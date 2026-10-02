@@ -150,6 +150,49 @@ MAIN_GATE = (
     ("identity_continuity", "higher"),
 )
 
+#: Ruling 102-2 / 102-3 (2026-10-02, 「待裁 102 修订稿二全按推荐」): the S3 main gate.  The primary comparison is VSMT-lean
+#: against the same-recipe AssocOnly (ruling 99-2); each gate metric is tested on one exclusion list over every run of the
+#: main table, by two-level resampling of houses and seeds plus the 82-1 seed-stability condition; the two front ends are
+#: tested in a fixed sequence.  The original gate (against the strongest control) is computed the same way and reported.
+PRIMARY_COMPARISON = ("VSMT-lean", "AssocOnly")
+GATE_SEEDS = (7, 19, 31, 43, 59)
+MAIN_GATE_RULE = (
+    "per front end, VSMT-lean against the same-recipe AssocOnly: on both main-gate metrics the two-level lower bound of the "
+    "seed-averaged paired advantage exceeds 0 and the 82-1 seed-stability condition holds; the target is the training "
+    "procedure under fixed training data, recipe and selection (ruling 99-2, ruling 102-3)"
+)
+EXCLUSION_OVER_RUNS_RULE = (
+    "one list per metric and front end: a house is excluded for every arm and every test when the metric is undefined in any "
+    "run of the main-table arms (each learned arm at each of its seeds, each rule arm once); the same list serves the primary "
+    "test, the seed-paired gaps, the original gate, the strongest-control choice and the power statement (X2 extended to seeds)"
+)
+TWO_LEVEL_RESAMPLING_RULE = (
+    "each draw resamples the houses with replacement and, independently, the seed indices with replacement; every drawn seed "
+    "is evaluated on the same drawn houses (houses and seeds are crossed) and the two arms are paired by seed index; the "
+    "statistic is the mean paired advantage over drawn houses x drawn seeds; the lower bound is the floor(0.05 x iterations)-th "
+    "of the sorted draws; a seedless arm (a rule arm) contributes its one value at every seed"
+)
+SEED_STABILITY_RULE = (
+    "82-1 in the favourable direction: all five seeds present, at least four of the five seed-paired house-mean gaps favour "
+    "VSMT-lean, their mean favours VSMT-lean and its absolute value exceeds the sample standard deviation of the five gaps"
+)
+ORIGINAL_GATE_RULE = (
+    "the gate written before ruling 99 -- VSMT-lean against the strongest control on both metrics -- computed with the same "
+    "exclusion list, resampling and stability rule and reported, never gating"
+)
+#: Ruling 102-2: the fixed sequence over the two front ends; a step is tested only when every earlier step passed.
+FIXED_SEQUENCE = (
+    ("simulator_instance_masks", ("missing_residual_rate", "identity_continuity")),
+    ("sam2", ("missing_residual_rate",)),
+    ("sam2", ("identity_continuity",)),
+)
+FIXED_SEQUENCE_RULE = (
+    "fixed-sequence testing at one-sided 5% per step: (1) instance segmentation, both main-gate metrics together; (2) only if (1) "
+    "passed, SAM 2.1 Missing residual rate; (3) only if (2) passed, SAM 2.1 identity continuity; a step not reached is reported "
+    "with its difference and interval only; the order (designed after the S2-06 development readings, frozen before validation "
+    "and test) follows the main-table front end of rulings 72 / 83-3 and the metric order of main_gate"
+)
+
 METHOD_ARM = "VSMT-lean"
 CONTROL_ARMS = ("TAF", "ELU-P", "RAC", "LOW")
 ABLATION_ARMS = ("NoVersion", "HandCost", "HeuristicLabel", "AssocOnly")
@@ -1555,6 +1598,215 @@ def main_gate(bounds: Mapping[str, float]) -> dict[str, Any]:
     return {"per_metric": verdict, "passed": all(verdict.values())}
 
 
+# --------------------------------------------------------------------------
+# 5b. the S3 main gate (ruling 102-2 / 102-3): runs, one exclusion list, two-level resampling, 82-1, fixed sequence
+# --------------------------------------------------------------------------
+
+def run_key(arm: str, seed: int | None = None) -> str:
+    """The key of one run in a per-house table: ``VSMT-lean:7`` for a learned arm at a seed, the bare name for a seedless arm."""
+
+    return str(arm) if seed is None else f"{arm}:{int(seed)}"
+
+
+def main_table_runs(*, learned: Sequence[str] = PRIMARY_COMPARISON, seeds: Sequence[int] = GATE_SEEDS,
+                    rule_arms: Sequence[str] = CONTROL_ARMS) -> list[str]:
+    """Every run of the main table: each learned arm at each seed and each rule arm once (the runs the exclusion list covers)."""
+
+    return [run_key(arm, seed) for arm in learned for seed in seeds] + [run_key(arm) for arm in rule_arms]
+
+
+def exclusion_over_runs(per_house: Mapping[str, Mapping[str, Any]], *, runs: Sequence[str],
+                        not_applicable: Sequence[str] = ()) -> list[str]:
+    """Ruling 102-3: the one exclusion list of a metric over every run (X2 extended to seeds); a missing run is an error.
+
+    白话：输入每个 house 上每次运行（学习臂的每个种子、每个规则臂）的某项指标值，输出该指标的排除清单：只要有一次运行
+    在这个 house 上不可算，这个 house 就对所有臂、所有检验一并排除。缺一次运行不是“不可算”，而是错误。
+    """
+
+    return undefined_houses(per_house, arms=list(runs), not_applicable=not_applicable)
+
+
+def seed_paired_matrix(per_house: Mapping[str, Mapping[str, Any]], *, arm: str, control: str, direction: str,
+                       houses: Sequence[str], seeds: Sequence[int] = GATE_SEEDS, control_seeded: bool = True) -> list[list[float]]:
+    """d[h][s]: the advantage of ``arm`` at seed s over ``control`` at seed s (or its one value), positive when ``arm`` is better."""
+
+    _require(direction in {"higher", "lower"}, "gate_direction_invalid")
+    sign = 1.0 if direction == "higher" else -1.0
+    matrix: list[list[float]] = []
+    for house in houses:
+        values = per_house[house]
+        row = []
+        for seed in seeds:
+            a_key, c_key = run_key(arm, seed), run_key(control, seed if control_seeded else None)
+            _require(a_key in values and c_key in values, f"gate_run_missing:{house}")
+            _require(values[a_key] is not None and values[c_key] is not None, f"gate_value_undefined:{house}")
+            row.append(sign * (_finite(values[a_key], "gate_value_invalid") - _finite(values[c_key], "gate_value_invalid")))
+        matrix.append(row)
+    return matrix
+
+
+def two_level_mean(matrix: Sequence[Sequence[float]], house_idx: Sequence[int], seed_idx: Sequence[int]) -> float:
+    """The two-level statistic for given draws: the mean of matrix[h][s] over drawn houses x drawn seeds (crossed draws)."""
+
+    _require(bool(house_idx) and bool(seed_idx), "two_level_draw_empty")
+    return sum(matrix[h][s] for h in house_idx for s in seed_idx) / (len(house_idx) * len(seed_idx))
+
+
+def two_level_lower_bound(matrix: Sequence[Sequence[float]], *, seed: int, iterations: int = BOOTSTRAP_ITERATIONS,
+                          confidence: float = CONFIDENCE_ONE_SIDED) -> float:
+    """One-sided lower bound of the mean advantage by two-level resampling (ruling 102-3).
+
+    白话：每一次抽样先有放回地抽种子编号，再有放回地抽 house，所有抽中的种子都用这同一批 house，算抽中 house × 抽中种子上
+    配对差的均值；抽 10,000 次，取第 floor(0.05 × 次数) 小的那个作单侧 95% 下界。它同时把“换一批 house”和“换一次训练”
+    两种随机性放进区间；五个种子时覆盖率没有理论保证，S3-01 用零效应校准核验过（results/vsmt_lean_s3_01_planning_6c57903.json）。
+    """
+
+    _int(iterations, "bootstrap_iterations_invalid", minimum=1)
+    _int(seed, "bootstrap_seed_invalid", minimum=0)
+    level = _finite(confidence, "bootstrap_confidence_invalid")
+    _require(0.5 < level < 1.0, "bootstrap_confidence_invalid")
+    n = len(matrix)
+    _require(n >= 2, "bootstrap_needs_two_houses")
+    width = len(matrix[0])
+    _require(width >= 1 and all(len(row) == width for row in matrix), "two_level_matrix_ragged")
+    rng = random.Random(seed)
+    means: list[float] = []
+    for _ in range(iterations):
+        weights = [0] * width
+        for _s in range(width):
+            weights[rng.randrange(width)] += 1
+        row_values = [sum(w * v for w, v in zip(weights, row)) for row in matrix]
+        total = sum(row_values[rng.randrange(n)] for _h in range(n))
+        means.append(total / (n * width))
+    means.sort()
+    return means[min(int(math.floor((1.0 - level) * iterations)), iterations - 1)]
+
+
+def seed_stability(gaps: Sequence[float], *, seeds: Sequence[int] = GATE_SEEDS) -> bool:
+    """82-1 in the favourable direction (gaps are signed so that positive favours the method)."""
+
+    if len(gaps) != len(seeds) or len(gaps) < 2:
+        return False
+    mean = sum(gaps) / len(gaps)
+    sd = math.sqrt(sum((g - mean) ** 2 for g in gaps) / (len(gaps) - 1))
+    favourable = sum(1 for g in gaps if g > 0)
+    return favourable >= len(gaps) - 1 and mean > 0 and abs(mean) > sd
+
+
+def gate_metric(
+    per_house: Mapping[str, Mapping[str, Any]], *, direction: str, arm: str, control: str, excluded_houses: Sequence[str],
+    seed: int, seeds: Sequence[int] = GATE_SEEDS, control_seeded: bool = True, iterations: int = BOOTSTRAP_ITERATIONS,
+    confidence: float = CONFIDENCE_ONE_SIDED,
+) -> dict[str, Any]:
+    """One metric of one comparison: two-level lower bound plus 82-1; passed only when both hold and all five seeds exist.
+
+    白话：输入每个 house 每次运行的指标值、排除清单、比较的两臂与方向，输出这一项的读数：有效 house 数、种子平均后的
+    平均优势、5 个按种子配对的 house 均值差、82-1 是否成立、两级重采样下界（主检验）与只按 house 重采样的下界（敏感性），
+    以及是否成立（下界大于 0 且 82-1 成立）。任何一臂少一个种子的运行，这一项记“不可判”，不删掉坏种子后照算。
+    """
+
+    excluded = {str(h) for h in excluded_houses}
+    houses = [str(h) for h in sorted(per_house) if str(h) not in excluded]
+    keys = [run_key(arm, s) for s in seeds] + ([run_key(control, s) for s in seeds] if control_seeded else [run_key(control)])
+    missing = sorted({key for h in houses for key in keys if key not in per_house[h]})
+    base = {"arm": arm, "control": control, "direction": direction, "houses": len(houses), "excluded_houses": sorted(excluded)}
+    if missing:
+        return {**base, "evaluable": False, "reason": f"runs_missing:{','.join(missing)}", "passed": False}
+    if len(houses) < 2:
+        return {**base, "evaluable": False, "reason": "fewer_than_two_houses", "passed": False}
+    matrix = seed_paired_matrix(per_house, arm=arm, control=control, direction=direction, houses=houses, seeds=seeds,
+                                control_seeded=control_seeded)
+    gaps = [sum(row[s] for row in matrix) / len(matrix) for s in range(len(seeds))]
+    mean = sum(sum(row) for row in matrix) / (len(matrix) * len(seeds))
+    lower_two_level = two_level_lower_bound(matrix, seed=seed, iterations=iterations, confidence=confidence)
+    row_means = {str(i): {"m": sum(row) / len(row), "z": 0.0} for i, row in enumerate(matrix)}
+    lower_house = paired_house_bootstrap(row_means, arm="m", control="z", seed=seed, direction="higher",
+                                         iterations=iterations, confidence=confidence)["lower_bound_one_sided"]
+    stable = seed_stability(gaps, seeds=seeds)
+    return {**base, "evaluable": True, "mean_advantage": mean, "seed_paired_gaps": gaps, "stable_82_1": stable,
+            "lower_bound_two_level": lower_two_level, "lower_bound_house_only_sensitivity": lower_house,
+            "passed": bool(lower_two_level > 0.0 and stable)}
+
+
+def _present_runs(table: Mapping[str, Mapping[str, Any]], runs: Sequence[str], rule_arms: Sequence[str]) -> list[str]:
+    """The main-table runs present in every house; a missing rule arm is an error, a missing learned seed is left to gate_metric
+    (which then reports the comparison as not evaluable rather than dropping the seed)."""
+
+    present = [r for r in runs if all(r in table[h] for h in table)]
+    for arm in rule_arms:
+        _require(run_key(arm) in present, f"main_table_run_missing:{arm}")
+    return present
+
+
+def primary_gate(
+    per_house_by_metric: Mapping[str, Mapping[str, Mapping[str, Any]]], *, seed: int, seeds: Sequence[int] = GATE_SEEDS,
+    rule_arms: Sequence[str] = CONTROL_ARMS, iterations: int = BOOTSTRAP_ITERATIONS,
+) -> dict[str, Any]:
+    """Ruling 99-2 / 102-3: VSMT-lean against AssocOnly on both main-gate metrics of one front end, each on its own one list."""
+
+    runs = main_table_runs(seeds=seeds, rule_arms=rule_arms)
+    out: dict[str, Any] = {"rule": MAIN_GATE_RULE, "metrics": {}}
+    for metric, direction in MAIN_GATE:
+        _require(metric in per_house_by_metric, f"main_gate_metric_missing:{metric}")
+        table = per_house_by_metric[metric]
+        present = _present_runs(table, runs, rule_arms)
+        excluded = exclusion_over_runs(table, runs=present)
+        out["metrics"][metric] = {
+            **gate_metric(table, direction=direction, arm=PRIMARY_COMPARISON[0], control=PRIMARY_COMPARISON[1],
+                          excluded_houses=excluded, seed=seed, seeds=seeds, iterations=iterations),
+            "exclusion_runs": present,
+        }
+    out["passed"] = all(block["passed"] for block in out["metrics"].values())
+    return out
+
+
+def original_gate(
+    per_house_by_metric: Mapping[str, Mapping[str, Mapping[str, Any]]], *, seed: int, seeds: Sequence[int] = GATE_SEEDS,
+    rule_arms: Sequence[str] = CONTROL_ARMS, iterations: int = BOOTSTRAP_ITERATIONS,
+) -> dict[str, Any]:
+    """The gate written before ruling 99 (against the strongest control), the same lists and rules; reported, never gating."""
+
+    runs = main_table_runs(seeds=seeds, rule_arms=rule_arms)
+    out: dict[str, Any] = {"rule": ORIGINAL_GATE_RULE, "metrics": {}}
+    for metric, direction in MAIN_GATE:
+        table = per_house_by_metric[metric]
+        present = _present_runs(table, runs, rule_arms)
+        excluded = exclusion_over_runs(table, runs=present)
+        houses = [h for h in sorted(table) if h not in set(excluded)]
+        averaged = {h: {arm: table[h][arm] for arm in rule_arms} for h in houses}
+        strongest = strongest_control(averaged, controls=rule_arms, direction=direction)
+        out["metrics"][metric] = {
+            **gate_metric(table, direction=direction, arm=METHOD_ARM, control=strongest, excluded_houses=excluded, seed=seed,
+                          seeds=seeds, control_seeded=False, iterations=iterations),
+            "strongest_control": strongest,
+        }
+    out["met"] = all(block["passed"] for block in out["metrics"].values())
+    return out
+
+
+def fixed_sequence(primary_by_front_end: Mapping[str, Mapping[str, Any]]) -> dict[str, Any]:
+    """Ruling 102-2: the three steps over the two front ends; a step is tested only when every earlier step passed.
+
+    白话：输入两套前端各自的首要检验结果，输出三步的判定：第一步实例分割两项都成立才看第二步（SAM2 的 Missing 残留率），
+    第二步成立才看第三步（SAM2 的身份连续率）；没走到的步骤记“未检验”，只报差值与区间。三步都成立才可以说“跨两种分割
+    都成立”。
+    """
+
+    steps: list[dict[str, Any]] = []
+    reached = True
+    for front_end, metrics in FIXED_SEQUENCE:
+        _require(front_end in primary_by_front_end, f"fixed_sequence_front_end_missing:{front_end}")
+        blocks = primary_by_front_end[front_end]["metrics"]
+        passed = all(blocks[m]["passed"] for m in metrics)
+        steps.append({"front_end": front_end, "metrics": list(metrics), "tested": reached, "passed": bool(reached and passed)})
+        reached = reached and passed
+    return {"rule": FIXED_SEQUENCE_RULE, "steps": steps,
+            "instance_segmentation_established": steps[0]["passed"],
+            "sam2_missing_residual_established": steps[1]["passed"],
+            "sam2_identity_continuity_established": steps[2]["passed"],
+            "across_both_front_ends": all(step["passed"] for step in steps)}
+
+
 def ablation_report(
     per_house: Mapping[str, Mapping[str, float]], *, direction: str, seed: int,
     iterations: int = BOOTSTRAP_ITERATIONS, ablations: Sequence[str] = ABLATION_ARMS,
@@ -1709,17 +1961,30 @@ EXPECTED_BOOLEAN_CLAIMS: dict[str, bool] = {
     "metrics.evaluator_matching_per_component_equals_dense_solve": True,
     "statistics.undefined_house_excluded_for_all_arms_and_counted": True,
     "statistics.undefined_house_never_imputed": True,
+    # ruling 102-3 (2026-10-02)
+    "statistics.all_five_seeds_required": True,
+    "statistics.target_is_the_training_procedure_under_fixed_data_recipe_and_selection": True,
+    "statistics.every_drawn_seed_uses_the_same_drawn_houses": True,
+    "statistics.original_gate_reported_never_gating": True,
 }
 
 #: D-224-X rulings this v2 implements; the contract must name them.
 V2_RULINGS_DECISION_ID = "D-224-X"
 V2_RULING_KEYS = ("X1", "X2", "X5", "X6")
 
-#: Policy values that must still be null; each is a number the user freezes later.
-NULL_POLICY_PATHS = (
-    "statistics.bootstrap_seed",
-    "statistics.main_gate_effect_size",
-)
+#: Policy values that must still be null: none since ruling 102-3 (2026-10-02) froze the bootstrap seed and the effect-size slot.
+NULL_POLICY_PATHS: tuple[str, ...] = ()
+
+#: Ruling 102-3: the S3 bootstrap seed (any fixed integer, registered before any S3 data existed) and the effect-size slot, which
+#: holds planning numbers only (the gate stays "lower bound above 0", ruling 99-2); the numbers are the seed-averaged development
+#: and confirmation advantages of results/vsmt_lean_s3_01_planning_6c57903.json under the ruling 102-0 definition.
+BOOTSTRAP_SEED = 20261002
+MAIN_GATE_EFFECT_SIZE = {
+    "role": "planning_only_not_a_threshold",
+    "source": "results/vsmt_lean_s3_01_planning_6c57903.json",
+    "instance_segmentation_confirmation": {"missing_residual_rate": 0.6054, "identity_continuity": 0.091},
+    "sam2_development": {"missing_residual_rate": 0.1745, "identity_continuity": 0.0147},
+}
 
 #: D-224-S1 ruling 67 (2026-09-24): the two label values, frozen once.  Callers still pass them
 #: explicitly; the validator requires the contract to carry exactly these numbers.
@@ -1737,6 +2002,8 @@ FROZEN_VALUES_BY_RULING = (
     ("labels.fragment_dominance.dominance_min_share", DOMINANCE_MIN_SHARE, "D-224-S1 ruling 67"),
     ("labels.existence.delta_moved_m", DELTA_MOVED_M, "D-224-S1 ruling 67"),
     ("nuisance_probe.maximum_advantage", NUISANCE_MAXIMUM_ADVANTAGE, "D-224-S1 ruling 68"),
+    ("statistics.bootstrap_seed", BOOTSTRAP_SEED, "D-224-S1 ruling 102-3"),
+    ("statistics.main_gate_effect_size", MAIN_GATE_EFFECT_SIZE, "D-224-S1 ruling 102-3"),
 )
 
 #: Constants already frozen by an approved decision; the validator binds their values.
@@ -1857,6 +2124,15 @@ def validate_teacher_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
     _require(statistics["appendix_arm"] == APPENDIX_ARM, "contract_appendix_arm_mismatch")
     _require(statistics["optional_arm"] == OPTIONAL_ARM, "contract_optional_arm_mismatch")
     _require(statistics["strongest_control_rule"] == STRONGEST_CONTROL_RULE, "contract_strongest_control_rule_mismatch")
+    # ruling 102-2 / 102-3
+    _require(tuple(statistics.get("primary_comparison") or ()) == PRIMARY_COMPARISON, "contract_primary_comparison_mismatch")
+    _require(tuple(statistics.get("seeds") or ()) == GATE_SEEDS, "contract_gate_seeds_mismatch")
+    for field, expected in (("main_gate_rule", MAIN_GATE_RULE), ("exclusion_rule", EXCLUSION_OVER_RUNS_RULE),
+                            ("resampling", TWO_LEVEL_RESAMPLING_RULE), ("seed_stability_rule", SEED_STABILITY_RULE),
+                            ("original_gate_rule", ORIGINAL_GATE_RULE), ("multiple_comparison_correction", FIXED_SEQUENCE_RULE)):
+        _require(statistics.get(field) == expected, f"contract_statistics_rule_mismatch:{field}")
+    _require(tuple((str(front), tuple(metrics)) for front, metrics in statistics.get("fixed_sequence") or ()) == FIXED_SEQUENCE,
+             "contract_fixed_sequence_mismatch")
 
     _require(contract["user_rulings"]["decision_id"] == RULINGS_DECISION_ID, "contract_rulings_decision_mismatch")
     _require(set(contract["user_rulings"]) >= {"L", "M", "N", "O", "P", "Q"}, "contract_rulings_incomplete")
@@ -1967,6 +2243,28 @@ __all__ = [
     "IDENTITY_CONTINUITY_CONDITIONAL_ROLE",
     "IDENTITY_CONTINUITY_DENOMINATOR",
     "main_gate",
+    "BOOTSTRAP_SEED",
+    "EXCLUSION_OVER_RUNS_RULE",
+    "FIXED_SEQUENCE",
+    "FIXED_SEQUENCE_RULE",
+    "GATE_SEEDS",
+    "MAIN_GATE_EFFECT_SIZE",
+    "MAIN_GATE_RULE",
+    "ORIGINAL_GATE_RULE",
+    "PRIMARY_COMPARISON",
+    "SEED_STABILITY_RULE",
+    "TWO_LEVEL_RESAMPLING_RULE",
+    "exclusion_over_runs",
+    "fixed_sequence",
+    "gate_metric",
+    "main_table_runs",
+    "original_gate",
+    "primary_gate",
+    "run_key",
+    "seed_paired_matrix",
+    "seed_stability",
+    "two_level_lower_bound",
+    "two_level_mean",
     "micro_average",
     "missing_residual_rate",
     "nuisance_probe",

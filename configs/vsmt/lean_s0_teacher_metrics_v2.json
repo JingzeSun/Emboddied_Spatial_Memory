@@ -347,10 +347,10 @@
   "statistics": {
     "unit": "house",
     "paired": true,
-    "resampling": "house-level paired bootstrap with a registered seed",
+    "resampling": "each draw resamples the houses with replacement and, independently, the seed indices with replacement; every drawn seed is evaluated on the same drawn houses (houses and seeds are crossed) and the two arms are paired by seed index; the statistic is the mean paired advantage over drawn houses x drawn seeds; the lower bound is the floor(0.05 x iterations)-th of the sorted draws; a seedless arm (a rule arm) contributes its one value at every seed",
     "bootstrap_iterations": 10000,
     "confidence_one_sided": 0.95,
-    "bootstrap_seed": null,
+    "bootstrap_seed": 20261002,
     "main_gate": [
       [
         "missing_residual_rate",
@@ -361,8 +361,37 @@
         "higher"
       ]
     ],
-    "main_gate_rule": "one-sided 95% lower bound of the paired advantage of VSMT-lean over the strongest control must exceed 0 on both metrics",
-    "main_gate_effect_size": null,
+    "main_gate_rule": "per front end, VSMT-lean against the same-recipe AssocOnly: on both main-gate metrics the two-level lower bound of the seed-averaged paired advantage exceeds 0 and the 82-1 seed-stability condition holds; the target is the training procedure under fixed training data, recipe and selection (ruling 99-2, ruling 102-3)",
+    "primary_comparison": [
+      "VSMT-lean",
+      "AssocOnly"
+    ],
+    "seeds": [
+      7,
+      19,
+      31,
+      43,
+      59
+    ],
+    "all_five_seeds_required": true,
+    "target_is_the_training_procedure_under_fixed_data_recipe_and_selection": true,
+    "every_drawn_seed_uses_the_same_drawn_houses": true,
+    "exclusion_rule": "one list per metric and front end: a house is excluded for every arm and every test when the metric is undefined in any run of the main-table arms (each learned arm at each of its seeds, each rule arm once); the same list serves the primary test, the seed-paired gaps, the original gate, the strongest-control choice and the power statement (X2 extended to seeds)",
+    "seed_stability_rule": "82-1 in the favourable direction: all five seeds present, at least four of the five seed-paired house-mean gaps favour VSMT-lean, their mean favours VSMT-lean and its absolute value exceeds the sample standard deviation of the five gaps",
+    "original_gate_rule": "the gate written before ruling 99 -- VSMT-lean against the strongest control on both metrics -- computed with the same exclusion list, resampling and stability rule and reported, never gating",
+    "original_gate_reported_never_gating": true,
+    "main_gate_effect_size": {
+      "role": "planning_only_not_a_threshold",
+      "source": "results/vsmt_lean_s3_01_planning_6c57903.json",
+      "instance_segmentation_confirmation": {
+        "missing_residual_rate": 0.6054,
+        "identity_continuity": 0.091
+      },
+      "sam2_development": {
+        "missing_residual_rate": 0.1745,
+        "identity_continuity": 0.0147
+      }
+    },
     "method_arm": "VSMT-lean",
     "controls": [
       "TAF",
@@ -384,8 +413,29 @@
     "appendix_arm_validation_only_never_main_table_or_test": true,
     "optional_arm": "VSMT-lean-ctx",
     "test_read_once": true,
-    "multiple_comparison_correction": "frozen in S3-01",
-    "plain_language_zh": "统计以 house 为配对与重采样单位，bootstrap 10,000 次、单侧 95% 下界由 METHOD 第十一节冻结；seed 与效应量在 S3-01 冻结，当前为 null。主门是 VSMT-lean 相对最强对照在 Missing 残留率（越低越好）和身份连续率（越高越好）两项的单侧 95% 下界都大于零；最强对照按该指标在同一划分上的 house 均值逐指标选取。四组消融与 VSMT-lean 用同一配对 bootstrap 比较并报告下界，不设门；AssocOnly 必须与四个对照并列进主表。LLM-op 只在 validation 上跑、只进附录、不进 test。某个 house 缺任一臂即拒绝，不悄悄跳过。test 只读一次。 某个 house 在某项指标上没法算（例如没有一件被搬走后重访过的物体，值为 null）时，该 house 在该指标上对所有臂一并排除、报告有效 house 数，绝不填 0 或 1；S3-01 的功效预算按有效数算（裁决 X2）。复审修订（LOG-225）：按构造没法算的臂不参与排除清单，例如从不撤回的 TAF、LOW、AssocOnly 之于假撤回率，它们在这项上报不适用；否则每个 house 都会被排除，整列对谁都报不出来。",
+    "multiple_comparison_correction": "fixed-sequence testing at one-sided 5% per step: (1) instance segmentation, both main-gate metrics together; (2) only if (1) passed, SAM 2.1 Missing residual rate; (3) only if (2) passed, SAM 2.1 identity continuity; a step not reached is reported with its difference and interval only; the order (designed after the S2-06 development readings, frozen before validation and test) follows the main-table front end of rulings 72 / 83-3 and the metric order of main_gate",
+    "fixed_sequence": [
+      [
+        "simulator_instance_masks",
+        [
+          "missing_residual_rate",
+          "identity_continuity"
+        ]
+      ],
+      [
+        "sam2",
+        [
+          "missing_residual_rate"
+        ]
+      ],
+      [
+        "sam2",
+        [
+          "identity_continuity"
+        ]
+      ]
+    ],
+    "plain_language_zh": "裁决 102（2026-10-02，「待裁 102 修订稿二全按推荐」）起：主门是每套前端上 VSMT-lean 对同配方 AssocOnly（裁决 99-2），Missing 残留率与身份连续率两项都要成立；每项先按“主表全部臂、全部种子都可算才保留”的单一清单排除 house，再算种子平均后的配对优势，下界用两级重采样（每次独立地有放回抽种子编号与 house，所有抽中的种子共用同一批 house，10,000 次，单侧 95%，种子 20261002），并要求 82-1 种子稳定条件（五个种子齐全、至少 4 个配对差有利、均值大于 5 个差的标准差）；结论针对固定训练数据、配方与选参流程下的训练程序。两套前端按固定顺序检验：实例分割两项 → SAM2 Missing 残留率 → SAM2 身份连续率，前一步不成立就停。原主门（对最强对照）用同一套清单与规则计算、只报告。main_gate_effect_size 只记规划用的效应，不是门槛。四组消融与 VSMT-lean 用同一套重采样报告下界、不设门；AssocOnly 与四个对照并列进主表；LLM-op 只在 validation 上跑、只进附录、不进 test。某个 house 缺任一运行即拒绝；不可算的 house 按清单排除、报告有效 house 数，绝不填 0 或 1；按构造没法算的臂（从不撤回的臂之于假撤回率）报不适用。test 只读一次。",
     "undefined_house_rule": "a house whose value is null for any applicable reported arm on a metric is excluded from that metric's pairing for every arm; the exclusion list is computed once per metric over the applicable reported arms, passed to every bootstrap and to the strongest-control selection, and the effective house count is reported; null is never imputed. An arm for which the metric is not applicable by construction (metric_not_applicable_rule) reports not_applicable and enters neither the exclusion list nor any pairing on that metric",
     "undefined_house_excluded_for_all_arms_and_counted": true,
     "undefined_house_never_imputed": true,
@@ -426,10 +476,7 @@
     "statistics.bootstrap_iterations",
     "statistics.confidence_one_sided"
   ],
-  "policy_values_without_defaults": [
-    "statistics.bootstrap_seed",
-    "statistics.main_gate_effect_size"
-  ],
+  "policy_values_without_defaults": [],
   "user_rulings": {
     "decision_id": "D-224-LQ",
     "L": "dormant entities count as in memory for node P/R/F1 and MRR",
@@ -449,7 +496,8 @@
     "ruling_77_1a": "2026-09-26 「裁决 77 取 (1)(a)(2)(a)」: node_prf1 pairs must be the entity's own object and within delta_moved_m or inside the truth box padded 0.25 m; LOG-263 sequel.",
     "ruling_80_5b": "2026-09-28 「裁决 80 全按推荐」: a secondary column false_retract_rate_in_scope beside the unchanged false_retract_rate, leaving out candidates labelled present by rule for objects outside the node scope; never the selection metric, never in the main gate; LOG-273.",
     "ruling_88_4": "2026-09-29 「裁决 88 全按推荐」: the existence label uses the node primary place test (centroid within delta_moved_m or inside the truth box padded 0.25 m); the centroid-only rule is kept as a diagnostic-only place rule; LOG-284 continued.",
-    "ruling_102_0": "2026-10-02 「待裁 102 修订稿二全按推荐」: identity_continuity is judged on the same events for every arm (every moved object re-observed with a labelled fragment after the window); no pre-move carrier counts as not kept; the earlier conditional definition stays as the diagnostic column identity_continuity_conditional, never gated, never selecting."
+    "ruling_102_0": "2026-10-02 「待裁 102 修订稿二全按推荐」: identity_continuity is judged on the same events for every arm (every moved object re-observed with a labelled fragment after the window); no pre-move carrier counts as not kept; the earlier conditional definition stays as the diagnostic column identity_continuity_conditional, never gated, never selecting.",
+    "ruling_102_3": "2026-10-02 「待裁 102 修订稿二全按推荐」: the main gate is VSMT-lean against the same-recipe AssocOnly per front end (both metrics), on one exclusion list per metric over every main-table run, by two-level house x seed resampling plus the 82-1 condition, for the training procedure; the two front ends in the fixed sequence of ruling 102-2; the original gate reported only; bootstrap seed 20261002; the effect-size slot holds planning numbers only."
   },
   "continue_gate": {
     "metric_list_frozen_before_any_data_generation": true,

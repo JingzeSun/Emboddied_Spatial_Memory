@@ -366,7 +366,12 @@ FROZEN_RULE_SHA256 = {
     # moved object re-observed with a labelled fragment after the window; no pre-move carrier counts as not kept; reported field
     # events), the denominator string and two claims bound; the earlier conditional definition becomes the diagnostic column
     # identity_continuity_conditional (names, reported fields, its block with role).  818ec131 -> 0e856be3.
-    "S0-04": "0e856be3c376e88a0c8ac6f6506fe545f09fa3a36b7d37523e9af3a3aaab967d",
+    # Ruling 102-2 / 102-3 (2026-10-02): the statistics block states the S3 gate -- VSMT-lean against the same-recipe AssocOnly
+    # (primary_comparison, seeds, all five required), one exclusion list per metric over every main-table run, two-level house x
+    # seed resampling (shared house draws), the favourable 82-1 condition, the target (the training procedure under fixed data,
+    # recipe and selection), the original gate reported only, and the fixed sequence over the two front ends as the multiple-
+    # comparison rule; the bootstrap seed and the planning-only effect-size block fill the two slots (masked).  0e856be3 -> bf775628.
+    "S0-04": "bf7756280af807cda079fc1aa3e32b77269f1ab2bc11078752e7a1bff0f53689",
     # S0-05 re-pinned 2026-09-25 for ruling 68 (LOG-256 sequel): every grid's values (at most twelve
     # configurations per method, a no-gate member in every rule arm), the ELU-P rollout_config
     # (0.7, 1.0, 0.0) and the should_be_visible_min_ratio_superseded record enter the digest; the
@@ -514,7 +519,16 @@ FROZEN_VALUES: dict[str, dict[str, Any]] = {
         "labels.existence.delta_moved_m": 0.5,
         # D-224-S1 ruling 68 (2026-09-25): the nuisance probe's largest admissible advantage, judged over the
         # pooled rows of one split (the scope rule string beside it); per-episode values are reported only.
-        "nuisance_probe.maximum_advantage": 0.05
+        "nuisance_probe.maximum_advantage": 0.05,
+        # Ruling 102-3 (2026-10-02, 「待裁 102 修订稿二全按推荐」): the S3 bootstrap seed, and the effect-size slot holding planning
+        # numbers only (the seed-averaged advantages of results/vsmt_lean_s3_01_planning_6c57903.json under ruling 102-0).
+        "statistics.bootstrap_seed": 20261002,
+        "statistics.main_gate_effect_size": {
+            "role": "planning_only_not_a_threshold",
+            "source": "results/vsmt_lean_s3_01_planning_6c57903.json",
+            "instance_segmentation_confirmation": {"missing_residual_rate": 0.6054, "identity_continuity": 0.091},
+            "sam2_development": {"missing_residual_rate": 0.1745, "identity_continuity": 0.0147},
+        }
     },
     "S0-05": {
         # D-224-S1 ruling 67 (2026-09-24) froze the should-be-visible minimum at 0.5 (half of the 64 cell

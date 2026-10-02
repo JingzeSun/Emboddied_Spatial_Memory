@@ -1314,21 +1314,18 @@ class TestMachineContract(unittest.TestCase):
         self.assertEqual(str(caught.exception), "contract_nuisance_scope_mismatch")
 
     def test_policy_values_must_still_be_null(self) -> None:
-        self.assertEqual(len(NULL_POLICY_PATHS), 2)  # rulings 67 and 68 froze the label values and the nuisance maximum
-        for path in NULL_POLICY_PATHS:
-            broken = self._fresh()
-            self._set(broken, path, 0.5)
-            with self.assertRaises(LeanTeacherError) as caught:
-                validate_teacher_contract(broken)
-            self.assertIn("must_be_null_before_freeze", str(caught.exception))
+        # rulings 67 and 68 froze the label values and the nuisance maximum; ruling 102-3 the bootstrap seed and the effect-size slot
+        self.assertEqual(NULL_POLICY_PATHS, ())
+        self.assertEqual(self._fresh()["policy_values_without_defaults"], [])
 
     def test_the_ruling_67_values_are_bound(self) -> None:
         self.assertEqual([path for path, _v, _r in FROZEN_VALUES_BY_RULING],
-                         ["labels.fragment_dominance.dominance_min_share", "labels.existence.delta_moved_m", "nuisance_probe.maximum_advantage"])
+                         ["labels.fragment_dominance.dominance_min_share", "labels.existence.delta_moved_m", "nuisance_probe.maximum_advantage",
+                          "statistics.bootstrap_seed", "statistics.main_gate_effect_size"])
         for path, value, _ruling in FROZEN_VALUES_BY_RULING:
             self.assertEqual(self._get(self._fresh(), path) if hasattr(self, "_get") else value, value)
             broken = self._fresh()
-            self._set(broken, path, value + 0.1)
+            self._set(broken, path, value + 1 if not isinstance(value, dict) else {**value, "role": "a_threshold"})
             with self.assertRaises(LeanTeacherError) as caught:
                 validate_teacher_contract(broken)
             self.assertEqual(str(caught.exception), f"contract_frozen_value_mismatch:{path}")
@@ -1431,3 +1428,150 @@ class TestStructuralScope(unittest.TestCase):
         with self.assertRaises(LeanTeacherError) as caught:
             validate_teacher_contract(contract)
         self.assertEqual(str(caught.exception), "contract_structural_scope_mismatch")
+
+
+class TestMainGateRuling102(unittest.TestCase):
+    """Ruling 102-2 / 102-3: one list over runs, two-level resampling with shared house draws, 82-1, fixed sequence."""
+
+    SEEDS = (7, 19, 31, 43, 59)
+
+    def table(self, vsmt, assoc, rules=None, houses=6):
+        """per_house[h][run]: VSMT-lean and AssocOnly values by seed (callables of house index and seed) and rule arms."""
+
+        from vsmt.lean_teacher import run_key
+
+        rules = rules or {arm: (lambda h: 0.5) for arm in ("TAF", "ELU-P", "RAC", "LOW")}
+        out = {}
+        for h in range(houses):
+            row = {}
+            for s in self.SEEDS:
+                row[run_key("VSMT-lean", s)] = vsmt(h, s)
+                row[run_key("AssocOnly", s)] = assoc(h, s)
+            for arm, value in rules.items():
+                row[run_key(arm)] = value(h)
+            out[f"h{h}"] = row
+        return out
+
+    def test_two_level_statistic_uses_the_same_drawn_houses_for_every_drawn_seed(self):
+        from vsmt.lean_teacher import two_level_mean
+
+        matrix = [[5 * h + s for s in range(5)] for h in range(3)]
+        house_idx, seed_idx = [0, 0, 2], [1, 1, 1, 4, 4]
+        expected = sum(matrix[h][s] for h in house_idx for s in seed_idx) / 15
+        self.assertAlmostEqual(two_level_mean(matrix, house_idx, seed_idx), expected)
+
+    def test_two_level_bound_is_reproducible_and_below_the_mean(self):
+        from vsmt.lean_teacher import two_level_lower_bound
+
+        matrix = [[0.1 + 0.01 * h + 0.02 * s for s in range(5)] for h in range(8)]
+        first = two_level_lower_bound(matrix, seed=20261002, iterations=500)
+        self.assertEqual(first, two_level_lower_bound(matrix, seed=20261002, iterations=500))
+        mean = sum(map(sum, matrix)) / 40
+        self.assertLess(first, mean)
+        constant = [[0.3] * 5 for _ in range(4)]
+        self.assertAlmostEqual(two_level_lower_bound(constant, seed=1, iterations=100), 0.3)
+
+    def test_seed_stability_needs_five_seeds_four_favourable_and_mean_above_sd(self):
+        from vsmt.lean_teacher import seed_stability
+
+        self.assertTrue(seed_stability([0.1, 0.1, 0.1, 0.1, -0.01]))
+        self.assertFalse(seed_stability([0.1, 0.1, -0.1, 0.1, 0.1]))
+        self.assertFalse(seed_stability([0.1, 0.1, 0.1, 0.1]))
+        self.assertFalse(seed_stability([-0.1] * 5))
+
+    def test_primary_gate_passes_on_a_clear_advantage_and_reports_both_bounds(self):
+        from vsmt.lean_teacher import primary_gate
+
+        mrr = self.table(lambda h, s: 0.1 + 0.01 * h, lambda h, s: 0.6 + 0.01 * h + 0.001 * s)
+        ic = self.table(lambda h, s: 0.5 + 0.01 * s, lambda h, s: 0.2 + 0.01 * h)
+        out = primary_gate({"missing_residual_rate": mrr, "identity_continuity": ic}, seed=20261002, iterations=300)
+        self.assertTrue(out["passed"])
+        block = out["metrics"]["missing_residual_rate"]
+        self.assertTrue(block["evaluable"] and block["stable_82_1"])
+        self.assertGreater(block["lower_bound_two_level"], 0)
+        self.assertIn("lower_bound_house_only_sensitivity", block)
+        self.assertEqual(len(block["seed_paired_gaps"]), 5)
+
+    def test_one_list_over_every_run_excludes_a_house_undefined_for_any_rule_arm(self):
+        from vsmt.lean_teacher import primary_gate
+
+        rules = {"TAF": lambda h: None if h == 0 else 0.5, "ELU-P": lambda h: 0.5, "RAC": lambda h: 0.5, "LOW": lambda h: 0.5}
+        mrr = self.table(lambda h, s: 0.1, lambda h, s: 0.6 + 0.01 * h, rules=rules)
+        ic = self.table(lambda h, s: 0.5, lambda h, s: 0.2 + 0.01 * h)
+        out = primary_gate({"missing_residual_rate": mrr, "identity_continuity": ic}, seed=1, iterations=200)
+        self.assertEqual(out["metrics"]["missing_residual_rate"]["excluded_houses"], ["h0"])
+        self.assertEqual(out["metrics"]["missing_residual_rate"]["houses"], 5)
+        self.assertEqual(out["metrics"]["identity_continuity"]["excluded_houses"], [])
+
+    def test_a_missing_seed_makes_the_comparison_not_evaluable(self):
+        from vsmt.lean_teacher import primary_gate, run_key
+
+        mrr = self.table(lambda h, s: 0.1, lambda h, s: 0.6 + 0.01 * h)
+        ic = self.table(lambda h, s: 0.5, lambda h, s: 0.2 + 0.01 * h)
+        for row in mrr.values():
+            del row[run_key("VSMT-lean", 43)]
+        out = primary_gate({"missing_residual_rate": mrr, "identity_continuity": ic}, seed=1, iterations=200)
+        block = out["metrics"]["missing_residual_rate"]
+        self.assertFalse(block["evaluable"])
+        self.assertIn("VSMT-lean:43", block["reason"])
+        self.assertFalse(out["passed"])
+
+    def test_a_missing_rule_arm_is_an_error(self):
+        from vsmt.lean_teacher import primary_gate, run_key
+
+        mrr = self.table(lambda h, s: 0.1, lambda h, s: 0.6 + 0.01 * h)
+        ic = self.table(lambda h, s: 0.5, lambda h, s: 0.2 + 0.01 * h)
+        for row in ic.values():
+            del row[run_key("RAC")]
+        with self.assertRaises(LeanTeacherError) as caught:
+            primary_gate({"missing_residual_rate": mrr, "identity_continuity": ic}, seed=1, iterations=50)
+        self.assertEqual(str(caught.exception), "main_table_run_missing:RAC")
+
+    def test_original_gate_uses_the_strongest_control_and_never_gates(self):
+        from vsmt.lean_teacher import original_gate
+
+        rules = {"TAF": lambda h: 0.7, "ELU-P": lambda h: 0.05, "RAC": lambda h: 0.1, "LOW": lambda h: 0.3}
+        mrr = self.table(lambda h, s: 0.12 + 0.001 * s, lambda h, s: 0.6, rules=rules)
+        ic_rules = {"TAF": lambda h: 0.2, "ELU-P": lambda h: 0.2, "RAC": lambda h: 0.0, "LOW": lambda h: 0.0}
+        ic = self.table(lambda h, s: 0.5, lambda h, s: 0.2, rules=ic_rules)
+        out = original_gate({"missing_residual_rate": mrr, "identity_continuity": ic}, seed=1, iterations=200)
+        self.assertEqual(out["metrics"]["missing_residual_rate"]["strongest_control"], "ELU-P")
+        self.assertFalse(out["metrics"]["missing_residual_rate"]["passed"])
+        self.assertFalse(out["met"])
+
+    def test_fixed_sequence_stops_at_the_first_step_that_fails(self):
+        from vsmt.lean_teacher import fixed_sequence
+
+        def result(mrr, ic):
+            return {"metrics": {"missing_residual_rate": {"passed": mrr}, "identity_continuity": {"passed": ic}}}
+
+        both = fixed_sequence({"simulator_instance_masks": result(True, True), "sam2": result(True, False)})
+        self.assertEqual([(s["tested"], s["passed"]) for s in both["steps"]], [(True, True), (True, True), (True, False)])
+        self.assertTrue(both["sam2_missing_residual_established"])
+        self.assertFalse(both["across_both_front_ends"])
+        stopped = fixed_sequence({"simulator_instance_masks": result(True, False), "sam2": result(True, True)})
+        self.assertEqual([(s["tested"], s["passed"]) for s in stopped["steps"]], [(True, False), (False, False), (False, False)])
+        self.assertFalse(stopped["sam2_missing_residual_established"])
+
+    def test_contract_binds_the_gate_rules(self):
+        import copy
+        import json
+        from pathlib import Path
+
+        from vsmt.lean_teacher import validate_teacher_contract
+
+        path = Path(__file__).resolve().parents[1] / "configs" / "vsmt" / "lean_s0_teacher_metrics_v2.json"
+        contract = json.loads(path.read_text(encoding="utf-8"))
+        validate_teacher_contract(contract)
+        for field, value, code in (
+            ("primary_comparison", ["VSMT-lean", "TAF"], "contract_primary_comparison_mismatch"),
+            ("seeds", [7, 19, 31, 43], "contract_gate_seeds_mismatch"),
+            ("resampling", "house-level paired bootstrap with a registered seed", "contract_statistics_rule_mismatch:resampling"),
+            ("multiple_comparison_correction", "frozen in S3-01", "contract_statistics_rule_mismatch:multiple_comparison_correction"),
+            ("fixed_sequence", [["sam2", ["missing_residual_rate"]]], "contract_fixed_sequence_mismatch"),
+        ):
+            broken = copy.deepcopy(contract)
+            broken["statistics"][field] = value
+            with self.subTest(field=field), self.assertRaises(LeanTeacherError) as caught:
+                validate_teacher_contract(broken)
+            self.assertEqual(str(caught.exception), code)
