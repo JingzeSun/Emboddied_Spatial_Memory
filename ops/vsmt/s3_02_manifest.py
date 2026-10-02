@@ -671,8 +671,9 @@ def cmd_verify(args: argparse.Namespace) -> int:
                 "splits": result["splits"], "exports": result["exports"], "movecheck": result["movecheck"],
                 "generator_repeat": result["generator_repeat"], "test_seal_problems": result["test_seal_problems"],
                 "problems": result["problems"],
-                "reproduction": ("bash ops/vsmt/s3_02_data.sh all at the recorded commits regenerates every root; the generator is "
-                                 "deterministic per house (generator_repeat), the caches per episode; README 'How to reproduce S3-02'")}
+                "reproduction": ("bash ops/vsmt/s3_02_data.sh all at the recorded commits regenerates every root; whether the generator "
+                                 "repeats a house byte for byte is recorded in generator_repeat (four houses), the caches are expected to "
+                                 "repeat per episode on the same card model but were not compared; README 'How to reproduce S3-02'")}
     write_json(export_dir / f"vsmt_lean_s3_02_manifest_{args.tag}.json", manifest)
     write_json(export_dir / f"vsmt_lean_s3_02_verify_{args.tag}.json",
                {"stage": STAGE, "step": "verify", "problems": result["problems"], "exports_checked": len(result["exports"]),
