@@ -141,6 +141,8 @@ bash ops/vsmt/s3_02_data.sh status
 
 **输出**：原始 episode `$AUTODL/vsmt_outputs/s3-02-<tag>/{measure,train,validation,test}`，几何 `$AUTODL/vsmt_private/s3-02-geometry-<tag>/<划分>`，cache `$AUTODL/vsmt_caches/s3-02-{instance,sam2}-<tag>/<划分>`（tag 是第一次 check 时的提交）；导出 `$AUTODL/vsmt_outputs/exports/vsmt_lean_s3_02_*_<tag>.json` 拉回 `results/` 提交：输入核对、测量、生成计划、train 与 validation 的逐 house 报告、几何与两套 cache 的报告、test 的计数汇总与封印、worker 依据、裁决 36 检查、登记记录、SAM2 试跑、运行清单与 verify。
 
+**正式运行之前的测速**（`ops/vsmt/s3_02_bench.sh`，一张 RTX 5090，只读开发集，不是正式阶段）：在干净的 detached worktree 上运行 `nohup bash ops/vsmt/s3_02_bench.sh all > /root/autodl-tmp/vsmt_outputs/run_logs/s3-02-bench-<commit>.log 2>&1 &`，全部输出写在 `/root/autodl-tmp/vsmt_bench/<tag>`，导出为 `vsmt_lean_s3_02_bench_*_<tag>.json`。七段：check（全量测试、显卡与 torch、输入）→ compat（生成器在这台机器上跑 4 个 house 的占用测量）→ sam2-scaling（每卡 1～4 个 SAM2 worker 做同一批工作）→ caches（两套 cache 依次与同时跑）→ audit-profile（闭环审计的 cProfile 剖析）→ train-device（训练记录的内存构成与 CPU／GPU 各一个 epoch）→ collect。粗估共约 3 小时，写盘约 6 GB。
+
 **怎样核对复现**：同一提交下，生成器对同一个 house 的输出是确定的——verify 把测量用的 4 个 house 与 train 里同名的 4 个逐字节比较并记进运行清单；cache 对同一条 episode 预期是确定的（同型号显卡；这一点没有逐字节验证过）。别人复现后，把自己的运行清单与 `results/vsmt_lean_s3_02_manifest_<tag>.json` 逐项比较；test 的封印摘要在 `results/vsmt_lean_s3_02_test_seal_<tag>.json`，S3-05 读 test 之前先核对它。
 
 ## 实现与证据
