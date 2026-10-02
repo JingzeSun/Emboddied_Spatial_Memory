@@ -7,7 +7,9 @@ from it (the check after the hold, a resumed generation); ruling 36 stops below 
 on train; the hold passes registered generator commits, holds an unregistered commit whose camera_pose encoder is the registered
 one and stops one whose encoder differs; geometry and caches are complete only when every raw episode is accounted for and a
 cache failure is one of the data's own reasons; the instance cache gets two threads per worker up to the quota and the memory
-(8 x 2 on the 16-CPU development host); the SAM2 workers per card are the cleanest fastest trial; the test summary carries no
+(8 x 2 on the 16-CPU development host); the SAM2 workers per card are the fastest usable trial (an episode failing for a data
+reason leaves a trial usable, any other failure drops it) and a trial that exits 1 with its receipt has finished, so one failed
+episode does not stop the stage; the test summary carries no
 house id; verify finds a missing cache episode, a marker on a train root and a changed sealed file; the driver's stage list is the
 helper's.  CPU only, a few seconds (a throwaway git repository, fake roots for the 450 manifest houses).
 """
@@ -232,12 +234,19 @@ class TestWorkersAndSam2(unittest.TestCase):
         self.assertEqual(support.instance_cache_workers(100, 40 * 2 ** 30)["workers"], 19)  # memory binds
 
     def test_the_sam2_trial_choice(self) -> None:
-        def rate(k, fps, ok=None):
-            return {"episodes": k, "succeeded": k if ok is None else ok, "frames_per_second": fps}
+        def rate(k, fps, other=0, episodes=None, frames=None):
+            return {"episodes": k if episodes is None else episodes, "frames": 60 * k if frames is None else frames,
+                    "other_failures": other, "frames_per_second": fps}
 
         self.assertEqual(support.choose_sam2_workers({1: rate(1, 0.40), 2: rate(2, 0.70), 3: rate(3, 0.69), 4: rate(4, 0.50)}), 2)
-        self.assertEqual(support.choose_sam2_workers({1: rate(1, 0.40), 2: rate(2, 0.70), 3: rate(3, 0.90, ok=2)}), 2)
+        self.assertEqual(support.choose_sam2_workers({1: rate(1, 0.40), 2: rate(2, 0.70), 3: rate(3, 0.90, other=1)}), 2)  # e.g. CUDA memory
         self.assertEqual(support.choose_sam2_workers({2: rate(2, 0.70), 3: rate(3, 0.70)}), 2)
+        # a data failure (a proposal overflow on one of the largest episodes) leaves the trial usable
+        self.assertEqual(support.choose_sam2_workers({1: rate(1, 0.40), 2: {**rate(2, 0.80), "data_failures": 1}}), 2)
+        self.assertEqual(support.choose_sam2_workers({1: rate(1, 0.40), 2: rate(2, 0.90, episodes=1)}), 1)
+        self.assertEqual(support.choose_sam2_workers({1: rate(1, 0.40, frames=0), 2: rate(2, 0.50)}), 2)
+        with self.assertRaises(SystemExit):
+            support.choose_sam2_workers({1: rate(1, 0.40, other=1), 2: rate(2, 0.50, other=2)})
         with tempfile.TemporaryDirectory() as tmp:
             trial = Path(tmp)
             write(trial / "trial_receipt.json", {"wall_clock_seconds": 100.0, "peak_vram_reserved_mib_max": 5300.0})
@@ -245,7 +254,26 @@ class TestWorkersAndSam2(unittest.TestCase):
                 write(trial / f"procthor10k-0.1.2-train-0000{i}" / "receipt.json",
                       {"status": "succeeded", "frames_processed": 60, "seconds_by_part": {"sam": seconds * 0.8, "dino": seconds * 0.2}})
             measured = support.trial_rate(trial)
+            write(trial / "procthor10k-0.1.2-train-00002" / "receipt.json",
+                  {"status": "failed", "reason": "proposal_overflow", "frames_processed": 12, "seconds_by_part": {"sam": 10.0}})
+            write(trial / "procthor10k-0.1.2-train-00003" / "receipt.json",
+                  {"status": "failed", "reason": "public_input_missing_or_malformed", "frames_processed": 0, "seconds_by_part": {}})
+            failed = support.trial_rate(trial)
         self.assertEqual((measured["frames"], measured["frames_per_second"], measured["frames_per_second_wall"]), (120, 2.5, 1.2))
+        self.assertEqual((measured["failed"], measured["data_failures"], measured["other_failures"]), ([], 0, 0))
+        self.assertEqual((failed["episodes"], failed["succeeded"], failed["frames"], failed["frames_per_second"]), (4, 2, 132, 3.7))
+        self.assertEqual((failed["data_failures"], failed["other_failures"]), (1, 1))
+        self.assertEqual(failed["failed"][0], {"episode": "procthor10k-0.1.2-train-00002", "reason": "proposal_overflow", "frames_processed": 12})
+
+    def test_a_trial_is_finished_on_exit_0_or_on_exit_1_with_its_receipt(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            trial = Path(tmp) / "trial"
+            trial.mkdir()
+            self.assertEqual([support.trial_finished(trial, code)[0] for code in (0, 1, 2, 3)], [False] * 4)  # no receipt yet
+            write(trial / "trial_receipt.json", {"wall_clock_seconds": 10.0})
+            self.assertEqual([support.trial_finished(trial, code)[0] for code in (0, 1, 2, 3)], [True, True, False, False])
+            self.assertEqual(quiet(support.main, ["trial-ok", "--root", str(trial), "--exit", "1"]), 0)
+            self.assertEqual(quiet(support.main, ["trial-ok", "--root", str(trial), "--exit", "3"]), 3)
 
 
 class TestSealSummaryAndVerify(unittest.TestCase):
@@ -338,6 +366,13 @@ class TestDriver(unittest.TestCase):
         self.assertEqual(roots, ["$RAW/train", "$RAW/validation", "$RAW/test", "$GEOMETRY", "$INSTANCE_CACHE", "$SAM2_CACHE"])
         for call in (r"M check (?:[^\n]*\\\n)*[^\n]*", r"M disk (?:[^\n]*\\\n)*[^\n]*"):  # the call with its continued lines
             self.assertIn('--run-roots "$RUN_ROOTS"', re.search(call, text).group(0))
+
+    def test_a_sam2_trial_with_a_failed_episode_does_not_stop_the_stage(self) -> None:
+        text = DRIVER.read_text(encoding="utf-8")
+        body = re.search(r"(?ms)^stage_sam2_measure\(\) \{\n(.*?)^\}", text).group(1)
+        trial = re.search(r"cache_threads \$PY ops/vsmt/lean_s1_03_cache\.py (?:[^\n]*\\\n)*[^\n]*", body).group(0)
+        self.assertNotIn("||", trial)  # the builder's exit 1 (an episode failed) is not fatal by itself
+        self.assertIn('M trial-ok --root "$TRIAL" --exit "$RC"', body)
 
 
 if __name__ == "__main__":

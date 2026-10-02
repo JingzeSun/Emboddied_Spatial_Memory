@@ -29,7 +29,9 @@
 #   instance-cache  the S1-03 cache, --mask-source simulator_instance_masks, per split root, two threads per worker, workers from the
 #                   cgroup quota and memory, every card, largest episode first
 #   sam2-measure    ruling 84-4: SAM2 trials with 1..4 workers on one card (the largest train episodes, 60 frames each) -> the best
-#                   workers per card and the projected hours, printed for the report; the run continues
+#                   workers per card and the projected hours, printed for the report; the run continues. A trial in which an
+#                   episode fails for a data reason still counts (listed); one with any other failure (e.g. CUDA memory) is dropped;
+#                   only an aborted trial, or no usable trial at all, stops the stage
 #   sam2-cache      the S1-03 cache, --mask-source sam2 (D-215 with ruling 43; no mask-layer revision, 102-7), per split root,
 #                   the best workers per card on every card, largest episode first
 #   export          train and validation reports per house, test as counts only, the measurement, plans, workers, the move check,
@@ -217,7 +219,7 @@ stage_instance_cache() {
 }
 
 stage_sam2_measure() {
-  local K TRIAL TRIALS=() GPUS RESUME
+  local K TRIAL TRIALS=() GPUS RESUME RC
   GPUS=$($PY -c "import json; print(','.join(json.load(open('$RUN_ROOT/workers.json'))['instance_cache']['gpus']))")
   for K in 1 2 3 4; do
     TRIAL=$AUTODL/vsmt_caches/s3-02-sam2-measure-k$K-$TAG-trial
@@ -226,8 +228,12 @@ stage_sam2_measure() {
     RESUME=""; [ -d "$TRIAL" ] && RESUME="--resume"
     cache_threads $PY ops/vsmt/lean_s1_03_cache.py --episode-roots "$RAW/train" --output-root "$TRIAL" --assets-json "$ASSETS_JSON" \
       --workers "$K" --worker-basis "ruling 84-4: SAM2 throughput with $K workers on one card" --mask-source sam2 --gpus 0 --largest-first \
-      --trial-frame-limit "$SAM2_TRIAL_FRAMES" --trial-episodes "$K" $RESUME > "$LOG_DIR/sam2-measure-k$K.log" 2>&1 \
-      || { DETAIL="SAM2 trial with $K workers failed ($LOG_DIR/sam2-measure-k$K.log)"; return 1; }
+      --trial-frame-limit "$SAM2_TRIAL_FRAMES" --trial-episodes "$K" $RESUME > "$LOG_DIR/sam2-measure-k$K.log" 2>&1
+    RC=$?
+    # exit 1 with a trial receipt = the trial ran to its end and some episode failed (a data failure such as a proposal overflow
+    # on the largest episodes, or CUDA memory with too many workers): the worker choice below judges it, the stage goes on
+    M trial-ok --root "$TRIAL" --exit "$RC" \
+      || { DETAIL="SAM2 trial with $K workers did not finish (exit $RC, $LOG_DIR/sam2-measure-k$K.log)"; return 1; }
   done
   local OUT
   OUT=$(M sam2-measure --run-root "$RUN_ROOT" --raw-root "$RAW" --gpus "$GPUS" "${TRIALS[@]}") || { DETAIL="SAM2 measurement refused"; return 1; }

@@ -14,7 +14,8 @@
     camera_pose 编码与已登记的不同，就停下（stopped），不能登记；
   * geometry-ok／cache-ok：几何重载与 cache 的每个划分是否完整、与原始 episode 一一对应、失败原因是否都是数据本身的原因；
   * workers：实例分割 cache 的 worker 数（每个 2 线程，按 cgroup 配额与内存）与显卡清单；sam2-measure：SAM2 在一张卡上用 1～4 个
-    worker 试跑，取吞吐最高的每卡 worker 数并估总时长（裁决 84-4）；
+    worker 试跑，取吞吐最高的每卡 worker 数并估总时长（裁决 84-4）——某一档里有 episode 因数据本身失败（如色块超上限）仍算数并列出，
+    因显存不足等别的原因失败的档不算；trial-ok：一档试跑是否跑完（退出码 0，或 1 且写了试跑回执）；
   * seal-pending／test-summary／seal：test 根的待封印标记、只含计数的 test 汇总、封印（裁决 103-1）；
   * verify：最后核对各划分在原始 episode、几何与两套 cache 之间一致、重算封印、核对每个导出文件的摘要、把测量用的四个 house 与
     train 里同名的四个逐字节比较（只记录），写出最终运行清单。
@@ -535,25 +536,60 @@ def cmd_workers(args: argparse.Namespace) -> int:
 
 
 def trial_rate(trial_root: Path) -> dict[str, Any]:
-    """Frames per second of one SAM2 trial: summed over its concurrent workers from their processing time, and from the wall."""
+    """Frames per second of one SAM2 trial: summed over its concurrent workers from their processing time, and from the wall.
 
-    rows = [r for r in receipts(trial_root).values()]
+    Failed episodes are listed with their reason and the frames they processed; a failure the data causes (``CACHE_DATA_FAILURES``,
+    e.g. a SAM2 frame with more proposals than the cap) is told apart from any other (e.g. CUDA out of memory with too many workers).
+    """
+
+    named = receipts(trial_root)
+    rows = list(named.values())
     stage = load_json(trial_root / "trial_receipt.json")
     frames = sum(int(r.get("frames_processed") or 0) for r in rows)
     processing = sum(int(r.get("frames_processed") or 0) / sum((r.get("seconds_by_part") or {}).values())
                      for r in rows if sum((r.get("seconds_by_part") or {}).values()) > 0)
-    return {"episodes": len(rows), "succeeded": sum(1 for r in rows if r.get("status") == "succeeded"), "frames": frames,
+    failed = [{"episode": name, "reason": r.get("reason"), "frames_processed": int(r.get("frames_processed") or 0)}
+              for name, r in sorted(named.items()) if r.get("status") != "succeeded"]
+    data = sum(1 for f in failed if f["reason"] in CACHE_DATA_FAILURES)
+    return {"episodes": len(rows), "succeeded": len(rows) - len(failed), "frames": frames,
             "frames_per_second": round(processing, 4), "frames_per_second_wall": round(frames / max(stage["wall_clock_seconds"], 1e-6), 4),
-            "wall_seconds": stage["wall_clock_seconds"], "peak_vram_reserved_mib": stage.get("peak_vram_reserved_mib_max")}
+            "wall_seconds": stage["wall_clock_seconds"], "peak_vram_reserved_mib": stage.get("peak_vram_reserved_mib_max"),
+            "failed": failed, "data_failures": data, "other_failures": len(failed) - data}
 
 
 def choose_sam2_workers(rates: Mapping[int, Mapping[str, Any]]) -> int:
-    """The per-card worker count with the highest processing rate among clean trials (fewer workers on a tie)."""
+    """The per-card worker count with the highest processing rate among usable trials (fewer workers on a tie).
 
-    clean = {k: r for k, r in rates.items() if r["succeeded"] == r["episodes"] == k}
-    if not clean:
-        raise SystemExit("no SAM2 trial finished cleanly")
-    return max(sorted(clean), key=lambda k: (clean[k]["frames_per_second"], -k))
+    白话：一档试跑（一张卡上 k 个 worker、各跑一条大 episode 的前 60 帧）算数，要求它正好有 k 条 episode、处理过帧、并且失败的
+    episode（如果有）都是数据本身的原因——例如最大的 house 某帧色块超上限，这说明数据，不说明 k 个 worker 跑不动，照样按已处理的帧
+    计吞吐并列出来；因显存不足等别的原因失败的档不算。都不算数才停下。它只决定每卡起几个 worker，不改任何 cache 的内容。
+    """
+
+    usable = {k: r for k, r in rates.items()
+              if r["episodes"] == k and int(r.get("frames") or 0) > 0 and int(r.get("other_failures") or 0) == 0}
+    if not usable:
+        raise SystemExit("no SAM2 trial is usable: each one failed for a reason other than the data, or processed no frame")
+    return max(sorted(usable), key=lambda k: (usable[k]["frames_per_second"], -k))
+
+
+def trial_finished(trial_root: Path, exit_code: int) -> tuple[bool, str]:
+    """Did one SAM2 trial run to its end?  The cache builder exits 1 when any episode failed, data failures included.
+
+    Exit 0, or exit 1 with the trial receipt written (the failed episodes are judged by ``choose_sam2_workers``), is a finished
+    trial; any other exit (an abort or an interruption) or a missing trial receipt is not.
+    """
+
+    if exit_code not in (0, 1):
+        return False, f"exit {exit_code}: the trial was aborted or interrupted"
+    if not (Path(trial_root) / "trial_receipt.json").is_file():
+        return False, f"exit {exit_code} without a trial receipt: the cache builder stopped before the end"
+    return True, "finished" if exit_code == 0 else "finished with failed episodes (judged by the worker choice)"
+
+
+def cmd_trial_ok(args: argparse.Namespace) -> int:
+    finished, reason = trial_finished(Path(args.root), int(args.exit))
+    print(f"[s3-02-sam2-trial] {args.root}: {reason}")
+    return 0 if finished else 3
 
 
 def cmd_sam2_measure(args: argparse.Namespace) -> int:
@@ -569,7 +605,9 @@ def cmd_sam2_measure(args: argparse.Namespace) -> int:
     out = {"stage": STAGE, "step": "sam2-measure", "measured_utc": utc_now(), "trials": rates, "workers_per_card": best,
            "gpus": gpus, "workers": best * len(gpus), "frames_to_cache": frames, "frames_per_second_all_cards": round(rate, 3),
            "projected_hours": round(frames / max(rate, 1e-9) / 3600.0, 1),
-           "rule": "ruling 84-4: the per-card worker count with the highest processing rate on one card, times the cards",
+           "rule": ("ruling 84-4: the per-card worker count with the highest processing rate on one card, times the cards; a trial "
+                    "whose failed episodes all failed for a data reason counts (its failures are listed), any other failure "
+                    "drops that trial"),
            "note": "trials process the first frames of the largest train episodes; the run continues after this measurement"}
     write_json(Path(args.run_root) / "sam2_measure.json", out)
     print(f"{out['workers']} {out['workers_per_card']} {out['projected_hours']}")
@@ -774,6 +812,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         p.add_argument(f"--{option}", default=None)
     p = command("sam2-measure", cmd_sam2_measure, "raw-root", "gpus")
     p.add_argument("--trial", action="append", required=True, help="k=<trial root>")
+    p = command("trial-ok", cmd_trial_ok, "root", run=False)
+    p.add_argument("--exit", type=int, required=True, help="the cache builder's exit code for this trial")
     p = command("seal-pending", cmd_seal_pending, "root", run=False)
     p.add_argument("--kind", required=True, choices=ts.SEAL_KINDS)
     command("test-summary", cmd_test_summary, "raw", "geometry", "instance-cache", "sam2-cache", "out", run=False)
