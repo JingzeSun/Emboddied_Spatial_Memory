@@ -759,3 +759,55 @@ class TestMachineContract(unittest.TestCase):
 
 if __name__ == "__main__":  # pragma: no cover
     unittest.main()
+
+
+class TestSelectionConstraintRuling102(unittest.TestCase):
+    """Ruling 102-4: one bar (validation Missing residual below AssocOnly) for the six arms with RETRACT."""
+
+    READINGS = {0: {"node_f1": 0.80, "missing_residual_rate": 0.40}, 1: {"node_f1": 0.78, "missing_residual_rate": 0.20},
+                2: {"node_f1": 0.78, "missing_residual_rate": 0.10}, 3: {"node_f1": 0.70, "missing_residual_rate": None}}
+
+    def test_constrained_arm_takes_the_best_admissible_configuration(self):
+        from vsmt.lean_arms import select_configuration
+
+        out = select_configuration(self.READINGS, arm="VSMT-lean", reference_missing_residual_rate=0.30)
+        self.assertEqual(out["admissible"], [1, 2])
+        self.assertEqual(out["selected"], 1)  # node F1 ties go to the smaller configuration index
+        self.assertTrue(out["constraint_satisfiable"])
+
+    def test_no_admissible_configuration_falls_back_and_says_so(self):
+        from vsmt.lean_arms import select_configuration
+
+        out = select_configuration(self.READINGS, arm="RAC", reference_missing_residual_rate=0.05)
+        self.assertEqual((out["selected"], out["constraint_satisfiable"], out["reason"]), (0, False, "constraint_not_satisfiable"))
+        undefined = select_configuration(self.READINGS, arm="HandCost", reference_missing_residual_rate=None)
+        self.assertEqual((undefined["selected"], undefined["reason"]), (0, "reference_missing_residual_rate_undefined"))
+
+    def test_arms_without_retract_select_by_node_f1_only(self):
+        from vsmt.lean_arms import select_configuration
+
+        for arm in ("TAF", "LOW", "AssocOnly"):
+            out = select_configuration(self.READINGS, arm=arm, reference_missing_residual_rate=0.05)
+            self.assertEqual((out["selected"], out["constraint_satisfiable"], out["constrained"]), (0, None, False))
+
+    def test_the_constrained_arms_are_exactly_the_arms_with_retract(self):
+        from vsmt.lean_arms import SELECTION_CONSTRAINED_ARMS, VOCABULARY
+
+        with_retract = {arm for arm, atoms in VOCABULARY.items() if "RETRACT" in atoms and arm not in ("LLM-op", "VSMT-lean-ctx")}
+        self.assertEqual(set(SELECTION_CONSTRAINED_ARMS), with_retract)
+
+    def test_contract_binds_the_rule_and_the_constraint(self):
+        from vsmt.lean_arms import LeanArmsError, validate_arms_contract
+
+        contract = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+        validate_arms_contract(contract)
+        for edit, code in (
+            (lambda c: c["budget"].__setitem__("selection_rule", "one configuration per method by node F1"), "contract_selection_rule_mismatch"),
+            (lambda c: c["budget"]["selection_constraint"]["arms"].remove("HandCost"), "contract_selection_constraint_mismatch"),
+            (lambda c: c["budget"]["selection_constraint"].__setitem__("reference_arm", "RAC"), "contract_selection_constraint_mismatch"),
+        ):
+            broken = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+            edit(broken)
+            with self.subTest(code=code), self.assertRaises(LeanArmsError) as caught:
+                validate_arms_contract(broken)
+            self.assertEqual(str(caught.exception), code)

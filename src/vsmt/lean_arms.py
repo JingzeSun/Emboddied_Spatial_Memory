@@ -73,6 +73,22 @@ HEURISTIC_LABEL_SOURCE = "ELU-P"
 SELECTION_METRIC = "node_f1"
 RULINGS_DECISION_ID = "D-224-SW"
 
+#: Ruling 102-4 (2026-10-02, 「待裁 102 修订稿二全按推荐」; ruling 83-1 required a pre-registered constraint, 79-7 the reason):
+#: every arm whose vocabulary has RETRACT chooses only among the configurations whose validation Missing residual rate is below
+#: the same front end's AssocOnly validation value -- one bar for all six arms, no per-arm counterfactual, no rule arm's score
+#: and no identity-continuity condition (a real "fewer stale entities, weaker identity" trade-off stays admissible).
+SELECTION_CONSTRAINED_ARMS = ("VSMT-lean", "NoVersion", "HeuristicLabel", "HandCost", "ELU-P", "RAC")
+SELECTION_REFERENCE_ARM = "AssocOnly"
+SELECTION_CONSTRAINT_METRIC = "missing_residual_rate"
+SELECTION_RULE = (
+    "one configuration per method by node F1 on validation (D-224-SW ruling V); ruling 102-4: an arm whose vocabulary has RETRACT "
+    "(VSMT-lean, NoVersion, HeuristicLabel, HandCost, ELU-P, RAC) chooses only among configurations whose validation Missing "
+    "residual rate is below the same front end's AssocOnly validation Missing residual rate (learned arms and AssocOnly as five-seed "
+    "means); when none qualifies the node-F1 maximum is chosen and recorded as constraint_not_satisfiable, and its result cannot "
+    "support a claim that the arm's retraction reduces stale entities; ties to the smallest configuration index; main-gate metrics "
+    "select nothing else"
+)
+
 FULL_VOCABULARY = ATOMS
 #: Which atoms each arm may emit.  TAF and LOW never retract, so they never
 #: hold a retracted entity, but a dormant one (shared dormancy rule) is
@@ -976,7 +992,50 @@ def validate_arms_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
     )
     for path, expected_value, _ruling in FROZEN_VALUES_BY_RULING:
         _require(_lookup(contract, path) == expected_value, f"contract_frozen_value_mismatch:{path}")
+    # ruling 102-4: the selection rule and its constraint block
+    budget = contract["budget"]
+    _require(budget.get("selection_rule") == SELECTION_RULE, "contract_selection_rule_mismatch")
+    constraint = budget.get("selection_constraint") or {}
+    _require(tuple(constraint.get("arms") or ()) == SELECTION_CONSTRAINED_ARMS
+             and constraint.get("reference_arm") == SELECTION_REFERENCE_ARM
+             and constraint.get("metric") == SELECTION_CONSTRAINT_METRIC, "contract_selection_constraint_mismatch")
     return clone_json(dict(contract))
+
+
+def select_configuration(validation: Mapping[int, Mapping[str, Any]], *, arm: str,
+                         reference_missing_residual_rate: float | None) -> dict[str, Any]:
+    """Ruling 102-4: the one configuration an arm takes to test, from its validation readings.
+
+    白话：输入一个臂在 validation 上每个配置的节点 F1 与 Missing 残留率（学习臂用 5 个种子的均值），以及同一前端 AssocOnly
+    的 validation Missing 残留率，输出它进 test 的唯一配置。有撤回机制的六个臂只能在残留率低于 AssocOnly 的配置里按节点 F1
+    取最大；没有一个满足时取节点 F1 最大的配置，并记“约束不可满足”——它的数值照算，但不能用来支持“这个臂的撤回减少了陈旧
+    实体”。其他臂（TAF、LOW、AssocOnly）只按节点 F1。并列取配置编号最小。例如 τ_r 0.9 节点 F1 最高、但残留率比 AssocOnly
+    还高，就不能选。它不读 test。
+    """
+
+    _require(type(validation) is dict and bool(validation), "selection_needs_validation_readings")
+    for index, reading in validation.items():
+        _require(type(index) is int and index >= 0, "selection_config_index_invalid")
+        _require(reading.get(SELECTION_METRIC) is not None, f"selection_node_f1_missing:{index}")
+
+    def best(indices: Sequence[int]) -> int:
+        return sorted(indices, key=lambda i: (-float(validation[i][SELECTION_METRIC]), i))[0]
+
+    everything = sorted(validation)
+    out: dict[str, Any] = {"arm": arm, "rule": SELECTION_RULE, "constrained": arm in SELECTION_CONSTRAINED_ARMS,
+                           "reference_missing_residual_rate": reference_missing_residual_rate}
+    if arm not in SELECTION_CONSTRAINED_ARMS:
+        return {**out, "admissible": everything, "selected": best(everything), "constraint_satisfiable": None}
+    if reference_missing_residual_rate is None:
+        return {**out, "admissible": [], "selected": best(everything), "constraint_satisfiable": False,
+                "reason": "reference_missing_residual_rate_undefined"}
+    reference = float(reference_missing_residual_rate)
+    admissible = [i for i in everything if validation[i].get(SELECTION_CONSTRAINT_METRIC) is not None
+                  and float(validation[i][SELECTION_CONSTRAINT_METRIC]) < reference]
+    if not admissible:
+        return {**out, "admissible": [], "selected": best(everything), "constraint_satisfiable": False,
+                "reason": "constraint_not_satisfiable"}
+    return {**out, "admissible": admissible, "selected": best(admissible), "constraint_satisfiable": True}
 
 
 __all__ = [
@@ -1015,6 +1074,11 @@ __all__ = [
     "ROLLOUT_CONFIG_PARAMETERS",
     "ROLLOUT_CONFIG_PATH",
     "SELECTION_METRIC",
+    "SELECTION_CONSTRAINED_ARMS",
+    "SELECTION_CONSTRAINT_METRIC",
+    "SELECTION_REFERENCE_ARM",
+    "SELECTION_RULE",
+    "select_configuration",
     "RULE_ARMS",
     "SPLIT_ALLOWED",
     "VOCABULARY",

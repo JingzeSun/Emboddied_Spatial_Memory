@@ -387,7 +387,11 @@ FROZEN_RULE_SHA256 = {
     # fitted block's source (simulator_instance_masks, values unchanged), fitted_by_mask_source.sam2 adds three slots registered
     # while null (masked out of the digest like every slot) and the per-source rule string binds how a pass reads them.
     # 806611ad -> 0065b9b4.
-    "S0-05": "0065b9b441f4c0798ee36c0b403e56344baa0e82a458da5ec58f10b68e2a64f1",
+    # Ruling 102-4 (2026-10-02, 「待裁 102 修订稿二全按推荐」): budget.selection_rule states the constraint 83-1 required -- an arm
+    # with RETRACT chooses only among validation configurations whose Missing residual rate is below the same front end's
+    # AssocOnly (five-seed means), the node-F1 maximum otherwise, recorded as not satisfiable and supporting no stale-entity claim;
+    # the selection_constraint block (six arms, reference arm, metric) is bound.  0065b9b4 -> 60e2aa9d.
+    "S0-05": "60e2aa9d92a03a70a766555f7247ce210b71f9fa26eb12ae305cd6f719a98fff",
     "S1-01": "4f139e631388c05e4006fd12ffad8b611d2e7811fb7f9a830ce9f7c63fdecd84",
     "S1-02a": "997cabe5105ca304269b0d8d9dd34038ff096df7a79c875c577a2629866ccc64",
     # S1-03 re-pinned 2026-09-22 for ruling 49 (LOG-242): the public_pose_correction block -- every
