@@ -183,7 +183,8 @@ class DevelopmentTableTests(unittest.TestCase):
                 "missing_residual_rate": {"missing_residual_rate": mrr, "residual": 0, "judged": 0, "not_yet_observable": 0},
                 "false_retract_rate": {"false_retract_rate": frr, "false_retracts": 0, "judged_retracts": 0, "ambiguous_retracts": 0},
                 "false_retract_rate_in_scope": {"false_retract_rate": frr, "false_retracts": 0, "judged_retracts": 0, "ambiguous_retracts": 0},
-                "identity_continuity": {"identity_continuity": cont, "kept": 0, "judged": 0, "no_prior_carrier": 0},
+                "identity_continuity": {"identity_continuity": cont, "kept": 0, "events": 0, "no_prior_carrier": 0},
+                "identity_continuity_conditional": {"identity_continuity": cont, "kept": 0, "judged": 0},
                 "recovery_latency_frames": {"recovery_latency_frames": latency, "recovered": 0, "unrecovered": [], "never_observable": [], "per_object": {}},
                 "contamination_auc": {"contamination_auc": auc, "frames": 5},
                 "size_and_cost": {"active_entity_count": active, "lifecycle_version_count": 4.0, "runtime_per_frame_s": 0.01, "peak_memory_bytes": 1000}}

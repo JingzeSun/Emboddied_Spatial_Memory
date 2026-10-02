@@ -81,19 +81,33 @@ def missing_residual_rate(report: Mapping[str, Any]) -> float | None:
     return None if value is None else float(value)
 
 
-def identity_continuity_conditional(report: Mapping[str, Any]) -> float | None:
-    """The registered definition (ruling M): kept / judged; judged counts only re-observed moved objects with a pre-move carrier."""
+def continuity_counts(report: Mapping[str, Any]) -> dict[str, int]:
+    """kept, judged (events with a pre-move carrier) and no_prior_carrier of one episode report, in either report format.
+
+    Reports before ruling 102-0 carry them in identity_continuity (kept, judged, no_prior_carrier); reports after it carry kept,
+    events and no_prior_carrier there and judged in the identity_continuity_conditional column.
+    """
 
     block = report["identity_continuity"]
-    return (block["kept"] / block["judged"]) if block["judged"] else None
+    if "events" in block:
+        judged = int(report["identity_continuity_conditional"]["judged"])
+        return {"kept": int(block["kept"]), "judged": judged, "no_prior_carrier": int(block["no_prior_carrier"])}
+    return {"kept": int(block["kept"]), "judged": int(block["judged"]), "no_prior_carrier": int(block["no_prior_carrier"])}
+
+
+def identity_continuity_conditional(report: Mapping[str, Any]) -> float | None:
+    """The definition before ruling 102-0 (ruling M): kept / judged; judged counts only re-observed moved objects with a pre-move carrier."""
+
+    counts = continuity_counts(report)
+    return (counts["kept"] / counts["judged"]) if counts["judged"] else None
 
 
 def identity_continuity_common(report: Mapping[str, Any]) -> float | None:
-    """The candidate common-event definition: kept / every re-observed moved object; no pre-move carrier counts as not kept."""
+    """The ruling 102-0 definition: kept / every re-observed moved object; no pre-move carrier counts as not kept."""
 
-    block = report["identity_continuity"]
-    events = block["judged"] + block["no_prior_carrier"]
-    return (block["kept"] / events) if events else None
+    counts = continuity_counts(report)
+    events = counts["judged"] + counts["no_prior_carrier"]
+    return (counts["kept"] / events) if events else None
 
 
 METRICS: dict[str, tuple[Callable[[Mapping[str, Any]], float | None], str]] = {
@@ -129,10 +143,9 @@ def load_reports(path: Path) -> dict[str, Mapping[str, Any]]:
 def denominators(reports: Mapping[str, Mapping[str, Any]]) -> dict[str, int]:
     totals = {"reobserved": 0, "judged": 0, "no_prior_carrier": 0, "kept": 0}
     for report in reports.values():
-        block = report["identity_continuity"]
-        totals["judged"] += int(block["judged"])
-        totals["no_prior_carrier"] += int(block["no_prior_carrier"])
-        totals["kept"] += int(block["kept"])
+        counts = continuity_counts(report)
+        for name in ("judged", "no_prior_carrier", "kept"):
+            totals[name] += counts[name]
     totals["reobserved"] = totals["judged"] + totals["no_prior_carrier"]
     return totals
 
@@ -274,7 +287,7 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
             reports[run] = load_reports(path)
         report["denominators"][source_name] = {
             f"{arm}:{seed}" if seed is not None else arm: denominators(reports[(arm, seed)]) for arm, seed in files}
-        reobserved = {run: {h: r["identity_continuity"]["judged"] + r["identity_continuity"]["no_prior_carrier"]
+        reobserved = {run: {h: continuity_counts(r)["judged"] + continuity_counts(r)["no_prior_carrier"]
                             for h, r in reports[run].items()} for run in files}
         houses_all = sorted(set.intersection(*(set(v) for v in reobserved.values())))
         report["denominators"][source_name]["reobserved_events_identical_across_runs"] = all(

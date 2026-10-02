@@ -55,7 +55,8 @@ METHOD_ARM = arms.METHOD_ARM
 #: Direction in which a larger headline value is better (size_and_cost is reported, never compared).
 BETTER = {"node_prf1": "higher", "node_prf1_iou": "higher", "missing_residual_rate": "lower", "false_retract_rate": "lower",
           "false_retract_rate_in_scope": "lower",
-          "identity_continuity": "higher", "recovery_latency_frames": "lower", "contamination_auc": "lower"}
+          "identity_continuity": "higher", "identity_continuity_conditional": "higher",  # ruling 102-0: diagnostic column
+          "recovery_latency_frames": "lower", "contamination_auc": "lower"}
 #: The passes of S2-05 in order; each pass is one S2-04 run per episode.
 PASSES = (
     "calibration",          # TAF at the rollout theta_a, no distance gate (ruling 75): the histograms and the ELU-P counts

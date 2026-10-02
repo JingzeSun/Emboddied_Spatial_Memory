@@ -77,6 +77,7 @@
     "false_retract_rate": "false_retract_rate",
     "false_retract_rate_in_scope": "false_retract_rate",
     "identity_continuity": "identity_continuity",
+    "identity_continuity_conditional": "identity_continuity",
     "recovery_latency_frames": "recovery_latency_frames",
     "contamination_auc": "contamination_auc"
   },

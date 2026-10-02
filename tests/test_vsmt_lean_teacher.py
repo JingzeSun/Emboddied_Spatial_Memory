@@ -914,8 +914,23 @@ class TestLifecycleMetrics(unittest.TestCase):
             carriers_before_move={"obj:mug": ["e1", "e1dup"], "obj:book": ["e2"], "obj:pen": ["e4"]},
             assignment={"f1": "e1dup", "f2": "birth:f2", "f3": "e5", "f4": "e9"},
         )
-        self.assertAlmostEqual(out["identity_continuity"], 1 / 3)
-        self.assertEqual((out["kept"], out["judged"], out["no_prior_carrier"]), (1, 3, 1))
+        # ruling 102-0: every re-observed moved object is an event; the lamp had no pre-move carrier and counts as not kept
+        self.assertAlmostEqual(out["identity_continuity"], 1 / 4)
+        self.assertEqual((out["kept"], out["events"], out["judged"], out["no_prior_carrier"]), (1, 4, 3, 1))
+
+    def test_identity_continuity_blocks_give_the_common_and_the_conditional_columns(self) -> None:
+        from vsmt.lean_teacher import identity_continuity_blocks
+
+        blocks = identity_continuity_blocks(kept=1, judged=3, no_prior_carrier=1)
+        self.assertEqual(blocks["identity_continuity"], {"identity_continuity": 0.25, "kept": 1, "events": 4, "no_prior_carrier": 1})
+        self.assertEqual(blocks["identity_continuity_conditional"], {"identity_continuity": 1 / 3, "kept": 1, "judged": 3})
+        empty = identity_continuity_blocks(kept=0, judged=0, no_prior_carrier=2)
+        self.assertEqual(empty["identity_continuity"]["identity_continuity"], 0.0)  # two events, none kept
+        self.assertIsNone(empty["identity_continuity_conditional"]["identity_continuity"])  # no event had a carrier
+        none = identity_continuity_blocks(kept=0, judged=0, no_prior_carrier=0)
+        self.assertIsNone(none["identity_continuity"]["identity_continuity"])
+        with self.assertRaises(LeanTeacherError):
+            identity_continuity_blocks(kept=2, judged=1, no_prior_carrier=0)
 
     def test_object_memory_correct_for_the_three_intervention_kinds(self) -> None:
         memory, mug, book = two_entity_memory()
@@ -982,7 +997,9 @@ class TestReportClosure(unittest.TestCase):
     def test_the_seven_metrics_pass(self) -> None:
         report = {name: {field: None for field in METRIC_FIELDS[name]} for name in METRICS}
         assert_report_keys(report)
-        self.assertEqual(len(METRICS), 9)  # ruling 70 added the centroid column; ruling 80-5 (b) the in-scope false-retract column
+        # ruling 70 added the centroid column; ruling 80-5 (b) the in-scope false-retract column; ruling 102-0 the conditional
+        # identity-continuity column
+        self.assertEqual(len(METRICS), 10)
 
     def test_an_eighth_metric_is_rejected(self) -> None:
         with self.assertRaises(LeanTeacherError) as caught:

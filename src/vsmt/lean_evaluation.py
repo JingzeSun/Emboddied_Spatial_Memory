@@ -104,6 +104,7 @@ HEADLINE_FIELD = {
     "false_retract_rate": "false_retract_rate",
     "false_retract_rate_in_scope": "false_retract_rate",
     "identity_continuity": "identity_continuity",
+    "identity_continuity_conditional": "identity_continuity",  # ruling 102-0: diagnostic column
     "recovery_latency_frames": "recovery_latency_frames",
     "contamination_auc": "contamination_auc",
 }
@@ -519,9 +520,9 @@ class EpisodeTeacher:
                                    "false_retracts": false_retracts, "judged_retracts": judged_retracts,
                                    "ambiguous_retracts": ambiguous_retracts},
             "false_retract_rate_in_scope": retract_block("false_retract_in_scope"),
-            "identity_continuity": {"identity_continuity": (self.continuity["kept"] / self.continuity["judged"]) if self.continuity["judged"] else None,
-                                    "kept": self.continuity["kept"], "judged": self.continuity["judged"],
-                                    "no_prior_carrier": self.continuity["no_prior_carrier"]},
+            # ruling 102-0: the common-event column and the conditional diagnostic column from the same summed counts
+            **lt.identity_continuity_blocks(kept=self.continuity["kept"], judged=self.continuity["judged"],
+                                            no_prior_carrier=self.continuity["no_prior_carrier"]),
             "recovery_latency_frames": {name: recovery[name] for name in lt.METRIC_FIELDS["recovery_latency_frames"]},
             "contamination_auc": {name: contamination[name] for name in lt.METRIC_FIELDS["contamination_auc"]},
             "size_and_cost": {

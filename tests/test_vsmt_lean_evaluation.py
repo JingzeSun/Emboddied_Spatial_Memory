@@ -238,7 +238,8 @@ class TafEpisodeTests(unittest.TestCase):
         self.assertEqual(report["missing_residual_rate"], {"missing_residual_rate": 0.5, "residual": 1, "judged": 2, "not_yet_observable": 0})
         self.assertEqual(diagnostics["missing_residual_series"], [None, None, 0.5, 0.5, 0.5])
         # identity continuity: the book's first re-observation after the move is bound to its pre-move carrier
-        self.assertEqual(report["identity_continuity"], {"identity_continuity": 1.0, "kept": 1, "judged": 1, "no_prior_carrier": 0})
+        self.assertEqual(report["identity_continuity"], {"identity_continuity": 1.0, "kept": 1, "events": 1, "no_prior_carrier": 0})
+        self.assertEqual(report["identity_continuity_conditional"], {"identity_continuity": 1.0, "kept": 1, "judged": 1})
         self.assertEqual(diagnostics["reobserved_at"], {"Book|2": 2})
         book_entity = entity_of(self.steps[1]["state"]["memory"], ":book")
         self.assertEqual(diagnostics["carriers_before_move"], {"Book|2": [book_entity]})
@@ -380,7 +381,8 @@ class GateAndInvarianceTests(unittest.TestCase):
         # no interventions at all: the intervention metrics are undefined and counted, nothing crashes
         _, _, frames, episode_report = run_and_label("TAF", data={**data, "executed": [], "window": None})
         self.assertEqual(episode_report["report"]["missing_residual_rate"]["missing_residual_rate"], None)
-        self.assertEqual(episode_report["report"]["identity_continuity"]["judged"], 0)
+        self.assertEqual(episode_report["report"]["identity_continuity"]["events"], 0)
+        self.assertEqual(episode_report["report"]["identity_continuity_conditional"]["judged"], 0)
         self.assertEqual(episode_report["report"]["recovery_latency_frames"]["recovered"], 0)
         self.assertTrue(all(f["missing_residual"] is None for f in frames))
 

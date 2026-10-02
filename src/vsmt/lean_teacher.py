@@ -89,6 +89,7 @@ METRICS = (
     "false_retract_rate",
     "false_retract_rate_in_scope",   # D-224-S1 ruling 80-5 (b): secondary column beside false_retract_rate
     "identity_continuity",
+    "identity_continuity_conditional",  # ruling 102-0: the pre-ruling conditional definition, a diagnostic column
     "recovery_latency_frames",
     "contamination_auc",
     "size_and_cost",
@@ -101,7 +102,8 @@ METRIC_FIELDS: dict[str, tuple[str, ...]] = {
     "missing_residual_rate": ("missing_residual_rate", "residual", "judged", "not_yet_observable"),
     "false_retract_rate": ("false_retract_rate", "false_retracts", "judged_retracts", "ambiguous_retracts"),
     "false_retract_rate_in_scope": ("false_retract_rate", "false_retracts", "judged_retracts", "ambiguous_retracts"),
-    "identity_continuity": ("identity_continuity", "kept", "judged", "no_prior_carrier"),
+    "identity_continuity": ("identity_continuity", "kept", "events", "no_prior_carrier"),
+    "identity_continuity_conditional": ("identity_continuity", "kept", "judged"),
     "recovery_latency_frames": ("recovery_latency_frames", "recovered", "unrecovered", "never_observable", "per_object"),
     "contamination_auc": ("contamination_auc", "frames"),
     "size_and_cost": ("active_entity_count", "lifecycle_version_count", "runtime_per_frame_s", "peak_memory_bytes"),
@@ -166,6 +168,18 @@ ENTITY_IDENTITY_RULE = "strict_majority_over_keyed_evidence"
 FRAGMENT_DOMINANCE_DENOMINATOR = "all_fragment_pixels_background_included"
 EXISTENCE_DISPLACEMENT_REFERENCE = "entity_remembered_centroid"
 IDENTITY_CONTINUITY_JUDGED_AT = "first_labelled_reobservation_after_move"
+#: Ruling 102-0 (2026-10-02): every arm is judged on the same events -- the moved objects re-observed with a labelled
+#: fragment after the window, which depend only on the front end and the truth; an object the arm's memory did not carry
+#: before the move counts as not kept.  The pre-ruling definition (kept over the objects that had a pre-move carrier in
+#: that arm, so each arm answered a different set of questions) stays as a diagnostic column.
+IDENTITY_CONTINUITY_DENOMINATOR = (
+    "every moved object re-observed with a labelled fragment after the window, the same events for every arm; an object "
+    "without a carrier in the arm's memory at the last window frame counts as not kept"
+)
+IDENTITY_CONTINUITY_CONDITIONAL_ROLE = (
+    "diagnostic_column_kept_over_the_events_with_a_pre_move_carrier_reported_beside_identity_continuity_"
+    "never_in_the_main_gate_never_selects"
+)
 RECOVERY_LATENCY_START = "first_frame_the_intervened_place_is_observable_to_the_method"
 CONTAMINATION_INTEGRATION = "trapezoid_over_frames_normalised_to_unit_length"
 TRUTH_NODE_SCOPE = "objects_present_at_t_that_have_been_observable_at_least_once_since_episode_start_excluding_structural_types"
@@ -1211,8 +1225,11 @@ def identity_continuity(
     白话：输入本帧首次重见的被搬动物体及其色块、搬动前承载该物体的全部实体 ID，
     以及学生分配，输出保住原身份的比例。判定时刻是搬动后第一次带标签的重见，看
     的是当时的分配（BIND/REACTIVATE 到搬动前任一承载实体即算保住）；此后共享去重
-    把新实体折进旧实体（canonical_of）不予承认，因为那是无学习的共享规则。搬动前
-    没有任何实体承载的物体不进分母，单独计数。它只看被搬动且重见的物体。
+    把新实体折进旧实体（canonical_of）不予承认，因为那是无学习的共享规则。裁决
+    102-0（2026-10-02）起分母是全部重见事件（events，与臂无关），搬动前没有任何
+    实体承载的物体记“没接回”并单独计数；只数有承载实体的那部分（judged）是裁决
+    之前的条件定义，留作诊断列。例如 4 个重见事件、3 个有承载实体、接回 1 个：
+    本列 1/4，条件列 1/3。它只看被搬动且重见的物体。
     """
 
     kept = 0
@@ -1228,11 +1245,33 @@ def identity_continuity(
         judged += 1
         if assignment[fragment_id] in carriers:
             kept += 1
+    events = judged + no_prior
     return {
-        "identity_continuity": (kept / judged) if judged else None,
+        "identity_continuity": (kept / events) if events else None,
         "kept": kept,
+        "events": events,
         "judged": judged,
         "no_prior_carrier": no_prior,
+    }
+
+
+def identity_continuity_blocks(*, kept: int, judged: int, no_prior_carrier: int) -> dict[str, dict[str, Any]]:
+    """The two report blocks of an episode from its summed counts: identity_continuity (ruling 102-0) and the conditional column.
+
+    白话：输入一条 episode 累计的接回数、有承载实体的事件数与没有承载实体的事件数，输出两块报告：主列
+    identity_continuity＝接回数 ÷ 全部重见事件数（各臂同一批事件），诊断列 identity_continuity_conditional＝
+    接回数 ÷ 有承载实体的事件数（裁决之前的定义）。没有事件时值为 None，不填 0。
+    """
+
+    for name, value in (("kept", kept), ("judged", judged), ("no_prior_carrier", no_prior_carrier)):
+        _require(type(value) is int and value >= 0, f"identity_continuity_count_invalid:{name}")
+    _require(kept <= judged, "identity_continuity_count_invalid:kept")
+    events = judged + no_prior_carrier
+    return {
+        "identity_continuity": {"identity_continuity": (kept / events) if events else None, "kept": kept, "events": events,
+                                "no_prior_carrier": no_prior_carrier},
+        "identity_continuity_conditional": {"identity_continuity": (kept / judged) if judged else None, "kept": kept,
+                                            "judged": judged},
     }
 
 
@@ -1639,6 +1678,10 @@ EXPECTED_BOOLEAN_CLAIMS: dict[str, bool] = {
     "metrics.missing_residual_rate.not_yet_observable_objects_excluded_and_counted": True,
     "metrics.identity_continuity.canonical_of_folding_recognised": False,
     "metrics.identity_continuity.any_prior_carrier_counts": True,
+    # ruling 102-0 (2026-10-02): the same events for every arm; no pre-move carrier counts as not kept
+    "metrics.identity_continuity.same_events_for_every_arm": True,
+    "metrics.identity_continuity.no_prior_carrier_counts_as_not_kept": True,
+    "metrics.identity_continuity_conditional.never_in_the_main_gate_never_selects": True,
     "metrics.recovery_latency_frames.starts_at_first_observable_frame_not_intervention_frame": True,
     "metrics.recovery_latency_frames.unrecovered_reported_separately_never_averaged": True,
     "statistics.paired": True,
@@ -1793,6 +1836,11 @@ def validate_teacher_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
     _require(contract["private_truth_inputs"]["truth_box_source"]["rule"] == TRUTH_BOX_SOURCE,
              "contract_truth_box_source_mismatch")
     _require(metrics["identity_continuity"]["judged_at"] == IDENTITY_CONTINUITY_JUDGED_AT, "contract_identity_judged_at_mismatch")
+    _require(metrics["identity_continuity"].get("denominator") == IDENTITY_CONTINUITY_DENOMINATOR,
+             "contract_identity_denominator_mismatch")  # ruling 102-0
+    conditional = metrics.get("identity_continuity_conditional") or {}
+    _require(conditional.get("role") == IDENTITY_CONTINUITY_CONDITIONAL_ROLE, "contract_identity_conditional_role_mismatch")
+    _require(conditional.get("judged_at") == IDENTITY_CONTINUITY_JUDGED_AT, "contract_identity_judged_at_mismatch")
     in_scope = metrics.get("false_retract_rate_in_scope") or {}
     _require(in_scope.get("rule") == FALSE_RETRACT_IN_SCOPE_RULE, "contract_false_retract_in_scope_rule_mismatch")
     _require(tuple(in_scope.get("excluded_reasons") or ()) == PRESENT_BY_RULE_REASONS, "contract_false_retract_in_scope_reasons_mismatch")
@@ -1915,6 +1963,9 @@ __all__ = [
     "PRESENT_BY_RULE_REASONS",
     "fragment_dominance",
     "identity_continuity",
+    "identity_continuity_blocks",
+    "IDENTITY_CONTINUITY_CONDITIONAL_ROLE",
+    "IDENTITY_CONTINUITY_DENOMINATOR",
     "main_gate",
     "micro_average",
     "missing_residual_rate",

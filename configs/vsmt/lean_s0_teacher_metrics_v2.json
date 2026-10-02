@@ -143,6 +143,7 @@
       "false_retract_rate",
       "false_retract_rate_in_scope",
       "identity_continuity",
+      "identity_continuity_conditional",
       "recovery_latency_frames",
       "contamination_auc",
       "size_and_cost"
@@ -185,8 +186,13 @@
       "identity_continuity": [
         "identity_continuity",
         "kept",
-        "judged",
+        "events",
         "no_prior_carrier"
+      ],
+      "identity_continuity_conditional": [
+        "identity_continuity",
+        "kept",
+        "judged"
       ],
       "recovery_latency_frames": [
         "recovery_latency_frames",
@@ -296,11 +302,20 @@
     },
     "identity_continuity": {
       "numerator": "moved objects whose fragment at the first labelled re-observation after the move is assigned to any entity that carried the object before the move",
-      "denominator": "moved objects re-observed with a label after the move that had at least one carrier before the move",
+      "denominator": "every moved object re-observed with a labelled fragment after the window, the same events for every arm; an object without a carrier in the arm's memory at the last window frame counts as not kept",
       "judged_at": "first_labelled_reobservation_after_move",
       "canonical_of_folding_recognised": false,
       "any_prior_carrier_counts": true,
-      "no_prior_carrier": "moved objects never carried before the move are excluded and counted"
+      "same_events_for_every_arm": true,
+      "no_prior_carrier_counts_as_not_kept": true,
+      "no_prior_carrier": "moved objects the arm did not carry before the move stay in the denominator as not kept and are counted (ruling 102-0; before it they were excluded)",
+      "plain_language_zh": "裁决 102-0（2026-10-02）：所有臂考同一批题——被搬动、并在窗口之后第一次有色块以它为主导物体的物体（只由前端色块与私有标签决定）；第一次重见被分配到搬动前承载它的任一实体算接回，搬动前该臂没有承载实体也算没接回。以前只数“搬动前有承载实体”的事件，各臂分母不同（SAM2 开发集 63 个重见事件里，VSMT-lean 种子 7 计 49 个、LOW 只计 24 个），那个定义留作诊断列 identity_continuity_conditional。"
+    },
+    "identity_continuity_conditional": {
+      "definition": "kept over the moved objects re-observed with a label after the move that had at least one carrier before the move in the arm's memory (the definition before ruling 102-0)",
+      "judged_at": "first_labelled_reobservation_after_move",
+      "role": "diagnostic_column_kept_over_the_events_with_a_pre_move_carrier_reported_beside_identity_continuity_never_in_the_main_gate_never_selects",
+      "never_in_the_main_gate_never_selects": true
     },
     "recovery_latency_frames": {
       "start": "first_frame_the_intervened_place_is_observable_to_the_method",
@@ -433,7 +448,8 @@
     "ruling_76_3a": "2026-09-26 「裁决 76 取 (1)(a)(2)(a)(3)(a)(4)(a)」: both node columns match count-first (most pairs, then most weight); LOG-262.",
     "ruling_77_1a": "2026-09-26 「裁决 77 取 (1)(a)(2)(a)」: node_prf1 pairs must be the entity's own object and within delta_moved_m or inside the truth box padded 0.25 m; LOG-263 sequel.",
     "ruling_80_5b": "2026-09-28 「裁决 80 全按推荐」: a secondary column false_retract_rate_in_scope beside the unchanged false_retract_rate, leaving out candidates labelled present by rule for objects outside the node scope; never the selection metric, never in the main gate; LOG-273.",
-    "ruling_88_4": "2026-09-29 「裁决 88 全按推荐」: the existence label uses the node primary place test (centroid within delta_moved_m or inside the truth box padded 0.25 m); the centroid-only rule is kept as a diagnostic-only place rule; LOG-284 continued."
+    "ruling_88_4": "2026-09-29 「裁决 88 全按推荐」: the existence label uses the node primary place test (centroid within delta_moved_m or inside the truth box padded 0.25 m); the centroid-only rule is kept as a diagnostic-only place rule; LOG-284 continued.",
+    "ruling_102_0": "2026-10-02 「待裁 102 修订稿二全按推荐」: identity_continuity is judged on the same events for every arm (every moved object re-observed with a labelled fragment after the window); no pre-move carrier counts as not kept; the earlier conditional definition stays as the diagnostic column identity_continuity_conditional, never gated, never selecting."
   },
   "continue_gate": {
     "metric_list_frozen_before_any_data_generation": true,

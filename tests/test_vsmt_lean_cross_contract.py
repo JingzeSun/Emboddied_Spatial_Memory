@@ -362,7 +362,11 @@ FROZEN_RULE_SHA256 = {
     # D-224-S1 ruling 88-4 (2026-09-29, LOG-284 continued): the existence label uses the node primary place test (centroid
     # within delta_moved_m or inside the truth box padded 0.25 m); place_rule, the pad source, the diagnostic-only
     # centroid_only rule and the superseded gone rule enter the digest.  185d7ff4 -> 818ec131.
-    "S0-04": "818ec131c46ff3172422dd3b969444ed108b128c50bf98b234458be096b64795",
+    # Ruling 102-0 (2026-10-02, 「待裁 102 修订稿二全按推荐」): identity_continuity is judged on the same events for every arm (every
+    # moved object re-observed with a labelled fragment after the window; no pre-move carrier counts as not kept; reported field
+    # events), the denominator string and two claims bound; the earlier conditional definition becomes the diagnostic column
+    # identity_continuity_conditional (names, reported fields, its block with role).  818ec131 -> 0e856be3.
+    "S0-04": "0e856be3c376e88a0c8ac6f6506fe545f09fa3a36b7d37523e9af3a3aaab967d",
     # S0-05 re-pinned 2026-09-25 for ruling 68 (LOG-256 sequel): every grid's values (at most twelve
     # configurations per method, a no-gate member in every rule arm), the ELU-P rollout_config
     # (0.7, 1.0, 0.0) and the should_be_visible_min_ratio_superseded record enter the digest; the
@@ -463,7 +467,8 @@ FROZEN_RULE_SHA256 = {
     # Re-pinned 2026-09-26 for ruling 74: derivation_rules.place_observable uses the per-point depth test on the
     # frame's public depth view, the arms' own should-be-visible yardstick (ruling 65 (1)).  d1645593 -> 51250dcb.
     # ruling 80-5 (b): headline_fields gains false_retract_rate_in_scope.  51250dcb -> eb9ac356.
-    "S2-04": "eb9ac3568be70bbc517376163000737db18b63b9acdaf7a964946bdfd6da0391",
+    # Ruling 102-0 (2026-10-02): the headline fields gain identity_continuity_conditional (the diagnostic column).  eb9ac356 -> 02d0e1b6.
+    "S2-04": "02d0e1b6bfde29f82d1ae43fb3de8fee6d4108d6835955b86da06fbbc1e6a8a8",
     # S2-05 v1 (2026-09-24, LOG-251): the development table -- the five passes in order (calibration
     # with LOW and no gate, the ELU-P fit with TAF at the rollout theta_a, DAgger rounds 0 and 1, the
     # table), the episode set, the calibration series and quantiles, the ELU-P count rules, the
@@ -478,7 +483,8 @@ FROZEN_RULE_SHA256 = {
     # Re-pinned 2026-09-26 for ruling 75 (1)(a): the calibration arm is TAF at the rollout theta_a with no gate (LOW with
     # no gate kept as calibration_arm_superseded) and the calibration pass also writes the ELU-P counts.  cea002f4 -> 7916d4f8.
     # ruling 80-5 (b): table.better gains false_retract_rate_in_scope (lower).  7916d4f8 -> d010a992.
-    "S2-05": "d010a992cdd75e220692160f265e8893fbc6a90a963f75bfe4432f0363f90144",
+    # Ruling 102-0 (2026-10-02): table.better gains identity_continuity_conditional (higher).  d010a992 -> 743eae92.
+    "S2-05": "743eae92c37bb106ef6dd0c36a1fb2edf429dc3cc4c80cfd89e03a1d0339eec4",
 }
 
 #: Every registered slot that has been frozen, and the value it froze at.

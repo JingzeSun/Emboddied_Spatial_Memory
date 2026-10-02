@@ -66,6 +66,16 @@ class TestRules(unittest.TestCase):
         self.assertEqual(plan.identity_continuity_common(ic_report(0, 0, 3)), 0.0)
         self.assertIsNone(plan.identity_continuity_common(ic_report(0, 0, 0)))
 
+    def test_both_report_formats_give_the_same_definitions(self):
+        old = ic_report(2, 4, 4)
+        new = {"identity_continuity": {"identity_continuity": 0.25, "kept": 2, "events": 8, "no_prior_carrier": 4},
+               "identity_continuity_conditional": {"identity_continuity": 0.5, "kept": 2, "judged": 4},
+               "missing_residual_rate": old["missing_residual_rate"]}
+        for report in (old, new):
+            self.assertEqual(plan.continuity_counts(report), {"kept": 2, "judged": 4, "no_prior_carrier": 4})
+            self.assertEqual(plan.identity_continuity_conditional(report), 0.5)
+            self.assertEqual(plan.identity_continuity_common(report), 0.25)
+
     def test_one_exclusion_list_over_the_listed_runs(self):
         values = {("VSMT-lean", 7): {"a": 0.1, "b": None, "c": 0.3}, ("AssocOnly", 7): {"a": 0.2, "b": 0.1, "c": None},
                   ("TAF", None): {"a": 0.0, "b": 0.0, "c": 0.0}}
