@@ -194,7 +194,8 @@ class TestCheckAndDriver(unittest.TestCase):
         # the cache builder refuses a trial whose output root does not end in -trial (the first bench run stopped there)
         roots = re.findall(r'"\$\{CACHE\[@\]\}" --output-root "([^"]+)"', text)
         self.assertEqual(len(roots), 5)
-        self.assertTrue(all(root.endswith("-trial") for root in roots), roots)
+        self.assertEqual(roots[0], "$T")  # the scaling trial's root, set just above it
+        self.assertTrue(all(root.endswith("-trial") for root in roots[1:]), roots)
         self.assertIn('T=$OUT/sam2-k$K-trial', text)
         self.assertTrue(all(run.endswith('-trial"') for run in re.findall(r'--run "[a-z0-9-]+=\$ROOT/[a-z0-9-]+"', text)))
 
