@@ -1,0 +1,45 @@
+{
+ "stage": "vsmt.lean.s3_02.bench.v1",
+ "step": "train-device",
+ "written_utc": "2026-10-02T16:14:10Z",
+ "sources": [
+  "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P"
+ ],
+ "arm": "VSMT-lean",
+ "threads": 4,
+ "epochs": 1,
+ "rss_bytes": {
+  "start": 522137600,
+  "records_loaded": 7646629888,
+  "records_and_prepared": 7811051520,
+  "prepared_freed": 7789416448,
+  "peak": 9758904320
+ },
+ "caveat": "timing only: the registered recipe (ruling 99-1) runs on the CPU; a GPU run computes in other kernels, so its weights are not the recipe's; one epoch, not the registered 20",
+ "files": 39,
+ "train_frames": 32550,
+ "validation_frames": 11547,
+ "load_seconds": 55.4,
+ "prepare_seconds_cpu": 19.6,
+ "prepared_tensor_bytes": 195385827,
+ "runs": {
+  "cpu": {
+   "wall_seconds": 142.9,
+   "updates_taken": 32549,
+   "diverged": false,
+   "train_curve": [
+    3.1776850907746224
+   ],
+   "peak_cuda_bytes": null
+  },
+  "cuda": {
+   "wall_seconds": 214.9,
+   "updates_taken": 32549,
+   "diverged": false,
+   "train_curve": [
+    3.177685231192582
+   ],
+   "peak_cuda_bytes": 828680704
+  }
+ }
+}

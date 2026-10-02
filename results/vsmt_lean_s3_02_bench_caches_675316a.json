@@ -1,0 +1,205 @@
+{
+ "stage": "vsmt.lean.s3_02.bench.v1",
+ "step": "caches",
+ "written_utc": "2026-10-02T17:42:43Z",
+ "runs": {
+  "seq-instance": {
+   "root": "/root/autodl-tmp/vsmt_bench/675316a/caches/seq-instance-trial",
+   "finished": true,
+   "episodes": [
+    "procthor10k-0.1.2-train-00563",
+    "procthor10k-0.1.2-train-00950",
+    "procthor10k-0.1.2-train-01259",
+    "procthor10k-0.1.2-train-01289",
+    "procthor10k-0.1.2-train-02524",
+    "procthor10k-0.1.2-train-02768",
+    "procthor10k-0.1.2-train-03361",
+    "procthor10k-0.1.2-train-04801",
+    "procthor10k-0.1.2-train-05806",
+    "procthor10k-0.1.2-train-07795",
+    "procthor10k-0.1.2-train-08398",
+    "procthor10k-0.1.2-train-08790"
+   ],
+   "frames": 7200,
+   "wall_seconds": 349.1,
+   "frames_per_second": 20.6245,
+   "actual_workers": 12,
+   "peak_vram_reserved_mib": 496.0,
+   "failed": [],
+   "data_failures": 0,
+   "other_failures": 0,
+   "seals": {
+    "procthor10k-0.1.2-train-00563": "f4a28d54a6320cd549c25faebc35215a38e6ac51940852d7f47c7ec1794fa4f2",
+    "procthor10k-0.1.2-train-00950": "b8a33bd855d2b338985a24688d80595b038e10a4b7b856f346a5bf868bc2ac1d",
+    "procthor10k-0.1.2-train-01259": "6bd60be01e911e33d7095ff2ea24e5f02d03ac630a284f809650efb44fb0b69e",
+    "procthor10k-0.1.2-train-01289": "501f0ae15b31946998c08677177ba7e395b7be5049f8e3620f9fac1758886506",
+    "procthor10k-0.1.2-train-02524": "1032a1ec206e144a84c6f26d31914bafc5f53d9ffc2b90ca7fc9d4a15124052d",
+    "procthor10k-0.1.2-train-02768": "9da5116a10cd1eeaa4327b31e32a9a9cfafc790a74f0bc56526050b64878902b",
+    "procthor10k-0.1.2-train-03361": "c48f2ed10f3623cc6de81bbd31707af7a1690937ad48ea74da2d4fecff239cfd",
+    "procthor10k-0.1.2-train-04801": "0e925d7fa737579fcb16286b41b1356feafc062d49ce8a96306bc128aed15179",
+    "procthor10k-0.1.2-train-05806": "0c0485a884d4f183f6ed272987497cbe4fd8ad8dc8fd286de9269b35818978aa",
+    "procthor10k-0.1.2-train-07795": "00b52e02316f6c1fb4941061fc468e294d3b8de3181ea2bef3fed845f066e941",
+    "procthor10k-0.1.2-train-08398": "e77028c47a266d4eac939323196ee450142617aafea61ba477ef2f7145aff1ab",
+    "procthor10k-0.1.2-train-08790": "70784e2b50b166240c24c872deb595f3c4d9a1a71d1800d5cea6e445593312f4"
+   }
+  },
+  "seq-sam2": {
+   "root": "/root/autodl-tmp/vsmt_bench/675316a/caches/seq-sam2-trial",
+   "finished": true,
+   "episodes": [
+    "procthor10k-0.1.2-train-00563",
+    "procthor10k-0.1.2-train-00950",
+    "procthor10k-0.1.2-train-01259",
+    "procthor10k-0.1.2-train-01289",
+    "procthor10k-0.1.2-train-02524",
+    "procthor10k-0.1.2-train-02768",
+    "procthor10k-0.1.2-train-03361",
+    "procthor10k-0.1.2-train-04801",
+    "procthor10k-0.1.2-train-05806",
+    "procthor10k-0.1.2-train-07795",
+    "procthor10k-0.1.2-train-08398",
+    "procthor10k-0.1.2-train-08790"
+   ],
+   "frames": 1440,
+   "wall_seconds": 993.2,
+   "frames_per_second": 1.4499,
+   "actual_workers": 4,
+   "peak_vram_reserved_mib": 5554.0,
+   "failed": [],
+   "data_failures": 0,
+   "other_failures": 0,
+   "seals": {
+    "procthor10k-0.1.2-train-00563": "50031486c7ffdddb8a27e5ccc671a7de5184f0566bcd8285359405d0a0db9c19",
+    "procthor10k-0.1.2-train-00950": "5eadb3cf0400f67c85a52dd44d7cf88f7ab8a64c451db4232dabc479a1592c11",
+    "procthor10k-0.1.2-train-01259": "21b86b47c51dda54ab1b3c0554e8a3fa24c3a0508396c061f0de54f3293b8100",
+    "procthor10k-0.1.2-train-01289": "4df911ef3a6f8fe737dc6827ee052210e65da866230bd8ed6a71ae8e9e6e22ba",
+    "procthor10k-0.1.2-train-02524": "8949991b2e18ce3c6af68c28ab479f4a110e1109174b8e6a02a01bb6f412086c",
+    "procthor10k-0.1.2-train-02768": "ec6b540a1fb67190a2042217550c7d37d51c1d0963336c8935afb09ae9bcef6b",
+    "procthor10k-0.1.2-train-03361": "d4b14e4e6ba92372fc9642b8f48a7941b616054f7615dbfe30abe70918132ee5",
+    "procthor10k-0.1.2-train-04801": "28b8ae4215a21a487de037c69aa360bb03f6a221293a948b17d018c8a349cd68",
+    "procthor10k-0.1.2-train-05806": "191fd0f98ce820a723509e52f768cf542c6dbf342ef58d7fba60fe7aa1977307",
+    "procthor10k-0.1.2-train-07795": "4a1020cf3b3c5cb83a651590a98196225b112179867a264efcb0968f2c344b27",
+    "procthor10k-0.1.2-train-08398": "3a93ddd5cb393f6f46a9f42dfe140b4edec45c747dc62200aabd68fb39244636",
+    "procthor10k-0.1.2-train-08790": "58166beb4fd6d035e8432e1e731a89c3e6a3d21c38bfb638a3f161e0bcbfdca8"
+   }
+  },
+  "par-instance": {
+   "root": "/root/autodl-tmp/vsmt_bench/675316a/caches/par-instance-trial",
+   "finished": true,
+   "episodes": [
+    "procthor10k-0.1.2-train-00563",
+    "procthor10k-0.1.2-train-00950",
+    "procthor10k-0.1.2-train-01259",
+    "procthor10k-0.1.2-train-01289",
+    "procthor10k-0.1.2-train-02524",
+    "procthor10k-0.1.2-train-02768",
+    "procthor10k-0.1.2-train-03361",
+    "procthor10k-0.1.2-train-04801",
+    "procthor10k-0.1.2-train-05806",
+    "procthor10k-0.1.2-train-07795",
+    "procthor10k-0.1.2-train-08398",
+    "procthor10k-0.1.2-train-08790"
+   ],
+   "frames": 7200,
+   "wall_seconds": 687.4,
+   "frames_per_second": 10.4743,
+   "actual_workers": 8,
+   "peak_vram_reserved_mib": 496.0,
+   "failed": [],
+   "data_failures": 0,
+   "other_failures": 0,
+   "seals": {
+    "procthor10k-0.1.2-train-00563": "f4a28d54a6320cd549c25faebc35215a38e6ac51940852d7f47c7ec1794fa4f2",
+    "procthor10k-0.1.2-train-00950": "b8a33bd855d2b338985a24688d80595b038e10a4b7b856f346a5bf868bc2ac1d",
+    "procthor10k-0.1.2-train-01259": "6bd60be01e911e33d7095ff2ea24e5f02d03ac630a284f809650efb44fb0b69e",
+    "procthor10k-0.1.2-train-01289": "501f0ae15b31946998c08677177ba7e395b7be5049f8e3620f9fac1758886506",
+    "procthor10k-0.1.2-train-02524": "1032a1ec206e144a84c6f26d31914bafc5f53d9ffc2b90ca7fc9d4a15124052d",
+    "procthor10k-0.1.2-train-02768": "9da5116a10cd1eeaa4327b31e32a9a9cfafc790a74f0bc56526050b64878902b",
+    "procthor10k-0.1.2-train-03361": "c48f2ed10f3623cc6de81bbd31707af7a1690937ad48ea74da2d4fecff239cfd",
+    "procthor10k-0.1.2-train-04801": "0e925d7fa737579fcb16286b41b1356feafc062d49ce8a96306bc128aed15179",
+    "procthor10k-0.1.2-train-05806": "0c0485a884d4f183f6ed272987497cbe4fd8ad8dc8fd286de9269b35818978aa",
+    "procthor10k-0.1.2-train-07795": "00b52e02316f6c1fb4941061fc468e294d3b8de3181ea2bef3fed845f066e941",
+    "procthor10k-0.1.2-train-08398": "e77028c47a266d4eac939323196ee450142617aafea61ba477ef2f7145aff1ab",
+    "procthor10k-0.1.2-train-08790": "70784e2b50b166240c24c872deb595f3c4d9a1a71d1800d5cea6e445593312f4"
+   }
+  },
+  "par-sam2": {
+   "root": "/root/autodl-tmp/vsmt_bench/675316a/caches/par-sam2-trial",
+   "finished": true,
+   "episodes": [
+    "procthor10k-0.1.2-train-00563",
+    "procthor10k-0.1.2-train-00950",
+    "procthor10k-0.1.2-train-01259",
+    "procthor10k-0.1.2-train-01289",
+    "procthor10k-0.1.2-train-02524",
+    "procthor10k-0.1.2-train-02768",
+    "procthor10k-0.1.2-train-03361",
+    "procthor10k-0.1.2-train-04801",
+    "procthor10k-0.1.2-train-05806",
+    "procthor10k-0.1.2-train-07795",
+    "procthor10k-0.1.2-train-08398",
+    "procthor10k-0.1.2-train-08790"
+   ],
+   "frames": 1440,
+   "wall_seconds": 1055.1,
+   "frames_per_second": 1.3648,
+   "actual_workers": 4,
+   "peak_vram_reserved_mib": 5554.0,
+   "failed": [],
+   "data_failures": 0,
+   "other_failures": 0,
+   "seals": {
+    "procthor10k-0.1.2-train-00563": "50031486c7ffdddb8a27e5ccc671a7de5184f0566bcd8285359405d0a0db9c19",
+    "procthor10k-0.1.2-train-00950": "5eadb3cf0400f67c85a52dd44d7cf88f7ab8a64c451db4232dabc479a1592c11",
+    "procthor10k-0.1.2-train-01259": "21b86b47c51dda54ab1b3c0554e8a3fa24c3a0508396c061f0de54f3293b8100",
+    "procthor10k-0.1.2-train-01289": "4df911ef3a6f8fe737dc6827ee052210e65da866230bd8ed6a71ae8e9e6e22ba",
+    "procthor10k-0.1.2-train-02524": "8949991b2e18ce3c6af68c28ab479f4a110e1109174b8e6a02a01bb6f412086c",
+    "procthor10k-0.1.2-train-02768": "ec6b540a1fb67190a2042217550c7d37d51c1d0963336c8935afb09ae9bcef6b",
+    "procthor10k-0.1.2-train-03361": "d4b14e4e6ba92372fc9642b8f48a7941b616054f7615dbfe30abe70918132ee5",
+    "procthor10k-0.1.2-train-04801": "28b8ae4215a21a487de037c69aa360bb03f6a221293a948b17d018c8a349cd68",
+    "procthor10k-0.1.2-train-05806": "191fd0f98ce820a723509e52f768cf542c6dbf342ef58d7fba60fe7aa1977307",
+    "procthor10k-0.1.2-train-07795": "4a1020cf3b3c5cb83a651590a98196225b112179867a264efcb0968f2c344b27",
+    "procthor10k-0.1.2-train-08398": "3a93ddd5cb393f6f46a9f42dfe140b4edec45c747dc62200aabd68fb39244636",
+    "procthor10k-0.1.2-train-08790": "58166beb4fd6d035e8432e1e731a89c3e6a3d21c38bfb638a3f161e0bcbfdca8"
+   }
+  }
+ },
+ "phase_wall_seconds": {
+  "sequential": 1348.0,
+  "parallel": 1058.0
+ },
+ "resources": {
+  "sequential": {
+   "samples": 643,
+   "seconds": 1346.8,
+   "cpu_cores_mean": 5.92,
+   "cpu_cores_peak": 12.51,
+   "memory_peak_gib": 7.72,
+   "gpu_memory_peak_mib": 25273.0,
+   "gpu_utilization_mean_pct": 74.31
+  },
+  "parallel": {
+   "samples": 505,
+   "seconds": 1058.0,
+   "cpu_cores_mean": 7.85,
+   "cpu_cores_peak": 14.19,
+   "memory_peak_gib": 11.39,
+   "gpu_memory_peak_mib": 31733.0,
+   "gpu_utilization_mean_pct": 94.51
+  }
+ },
+ "parallel_over_sequential": 0.785,
+ "instance_rate_together_over_alone": 0.508,
+ "instance_seals": {
+  "episodes_compared": 12,
+  "differ": [],
+  "all_equal": true
+ },
+ "sam2_rate_together_over_alone": 0.941,
+ "sam2_seals": {
+  "episodes_compared": 12,
+  "differ": [],
+  "all_equal": true
+ },
+ "reading": "parallel is worth adopting only if parallel_over_sequential is clearly below 1, no run failed for a non-data reason and both seal comparisons are all equal"
+}

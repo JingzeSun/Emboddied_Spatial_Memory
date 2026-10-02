@@ -1,0 +1,33 @@
+{
+ "stage": "vsmt.lean.s3_02.bench.v1",
+ "step": "collect",
+ "written_utc": "2026-10-02T17:42:44Z",
+ "tag": "675316a",
+ "code_commit": "2cb8b0eb315540ec5d7bd9eb0fe1590509ed61f6",
+ "exports": {
+  "vsmt_lean_s3_02_bench_audit_profile_675316a.json": {
+   "sha256": "03aeb1243e751e4d5c6ed0bb5f3750ae495666c860d58a959498e5f6297b662a",
+   "bytes": 35548
+  },
+  "vsmt_lean_s3_02_bench_caches_675316a.json": {
+   "sha256": "f3ded93b6d548e47c22ba9737a2d5a123e737df2274020ccf122523165433372",
+   "bytes": 9366
+  },
+  "vsmt_lean_s3_02_bench_check_675316a.json": {
+   "sha256": "eb6728597835862e44ea1c8db0a0380a2995e67d0631cfa3d10d521ea5d4986c",
+   "bytes": 2762
+  },
+  "vsmt_lean_s3_02_bench_compat_675316a.json": {
+   "sha256": "d0d104dc909e5a2329a69c6be630b402684cc34d106a3f462bc072e98a58e782",
+   "bytes": 3044
+  },
+  "vsmt_lean_s3_02_bench_sam2_scaling_675316a.json": {
+   "sha256": "38cd22f58f63bfc29bfab4ea6fa6379d4950ac80610b9694750ef830a7e6cc0d",
+   "bytes": 8545
+  },
+  "vsmt_lean_s3_02_bench_train_device_675316a.json": {
+   "sha256": "14117df7b3b693ffea99f4b9d77401985a23d26f86ae3429e029000ac11fc5b5",
+   "bytes": 1101
+  }
+ }
+}

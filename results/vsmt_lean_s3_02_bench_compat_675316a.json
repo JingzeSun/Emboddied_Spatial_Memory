@@ -1,0 +1,118 @@
+{
+ "stage": "vsmt.lean.s3_02.bench.v1",
+ "step": "compat",
+ "written_utc": "2026-10-02T15:59:56Z",
+ "measure_root": "/root/autodl-tmp/vsmt_bench/675316a/compat/measure",
+ "measured": {
+  "command": [
+   "/root/autodl-tmp/vsmt-envs/simulator-py39/bin/python",
+   "ops/vsmt/lean_s1_02a_pilot.py",
+   "--stage",
+   "s3-measure",
+   "--output-root",
+   "/root/autodl-tmp/vsmt_bench/675316a/compat",
+   "--source",
+   "/root/autodl-tmp/vsmt_sources/procthor-10k-0.1.2/train.jsonl.gz",
+   "--private-salt-file",
+   "/root/autodl-tmp/vsmt_private/null_window_salt.txt"
+  ],
+  "exit": 0,
+  "wall_seconds": 911.2,
+  "max_rss_children_bytes": 2107527168,
+  "finished_utc": "2026-10-02T15:59:56Z"
+ },
+ "houses": [
+  "procthor10k-0.1.2-train-06630",
+  "procthor10k-0.1.2-train-05947",
+  "procthor10k-0.1.2-train-09095",
+  "procthor10k-0.1.2-train-07383"
+ ],
+ "succeeded": 4,
+ "failed": 0,
+ "per_house": [
+  {
+   "house_id": "procthor10k-0.1.2-train-05947",
+   "status": "succeeded",
+   "reason": null,
+   "observations": 1032,
+   "peak_rss_gb": 1.301624,
+   "cpu_seconds": 97.129448,
+   "wall_seconds": 358.8438546657562,
+   "bytes_written": 258036504
+  },
+  {
+   "house_id": "procthor10k-0.1.2-train-06630",
+   "status": "succeeded",
+   "reason": null,
+   "observations": 808,
+   "peak_rss_gb": 1.144576,
+   "cpu_seconds": 186.59610600000002,
+   "wall_seconds": 899.934148311615,
+   "bytes_written": 202425317
+  },
+  {
+   "house_id": "procthor10k-0.1.2-train-07383",
+   "status": "succeeded",
+   "reason": null,
+   "observations": 101,
+   "peak_rss_gb": 0.168916,
+   "cpu_seconds": 14.024262,
+   "wall_seconds": 82.74263548851013,
+   "bytes_written": 25820761
+  },
+  {
+   "house_id": "procthor10k-0.1.2-train-09095",
+   "status": "succeeded",
+   "reason": null,
+   "observations": 321,
+   "peak_rss_gb": 0.4898,
+   "cpu_seconds": 42.194734000000004,
+   "wall_seconds": 300.8021171092987,
+   "bytes_written": 84251294
+  }
+ ],
+ "machine_peaks": {
+  "samples": 432,
+  "cpu_cores_peak_window": 10.472060343493263,
+  "cpu_window_seconds": 30.0,
+  "process_memory_peak_bytes": 5859549184,
+  "gpu0_used_peak_mib": 5976.0
+ },
+ "occupancy": {
+  "concurrency_verified_at": 4,
+  "cpu_cores_per_worker": 2.6180150858733158,
+  "ram_gb_per_worker": 1.378077696,
+  "vram_gb_per_worker": 1.45849609375,
+  "disk_gb_per_worker": 0.258036504,
+  "simulator_concurrency_limit": 4,
+  "statistic": "peak_not_average",
+  "workload": "a_full_episode_including_three_plane_write",
+  "failures": []
+ },
+ "wall_clock_seconds": 905.9,
+ "workers_by_quota": [
+  {
+   "cores": 25,
+   "memory_gib": 90,
+   "by_cpu": 7,
+   "by_memory": 56,
+   "bound": 7
+  },
+  {
+   "cores": 50,
+   "memory_gib": 180,
+   "by_cpu": 15,
+   "by_memory": 112,
+   "bound": 15
+  },
+  {
+   "cores": 100,
+   "memory_gib": 360,
+   "by_cpu": 30,
+   "by_memory": 224,
+   "bound": 30
+  }
+ ],
+ "note": "the simulator limit is not measured here (16 = the confirmation run); these are the CPU and memory bounds of the S1-01 rule at one, two and four cards of this host type",
+ "result": "the generator ran on this card"
+}

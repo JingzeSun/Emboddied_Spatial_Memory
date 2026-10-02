@@ -1,0 +1,116 @@
+{
+ "stage": "vsmt.lean.s3_02.bench.v1",
+ "step": "check",
+ "checked_utc": "2026-10-02T15:44:44Z",
+ "code_commit": "675316a59b0da67d0632dd1e57eefe0a8d7167df",
+ "machine": {
+  "cgroup_cpu_quota": 25.0,
+  "cgroup_memory_max_bytes": 96636764160,
+  "os_cpu_count": 208,
+  "platform": "Linux-5.15.0-94-generic-x86_64-with-glibc2.35",
+  "python": "3.12.3",
+  "gpus": [
+   {
+    "index": 0,
+    "name": "NVIDIA GeForce RTX 5090",
+    "memory_used_mib": 652.0,
+    "memory_total_mib": 32607.0,
+    "utilization_pct": 0.0,
+    "driver": "595.71.05"
+   }
+  ]
+ },
+ "torch": {
+  "importable": true,
+  "version": "2.8.0+cu128",
+  "cuda_build": "12.8",
+  "cuda_available": true,
+  "device": "NVIDIA GeForce RTX 5090",
+  "capability": [
+   12,
+   0
+  ],
+  "arch_list": [
+   "sm_70",
+   "sm_75",
+   "sm_80",
+   "sm_86",
+   "sm_90",
+   "sm_100",
+   "sm_120"
+  ],
+  "matmul_ok": true
+ },
+ "inputs": {
+  "episode_roots": {
+   "/root/autodl-tmp/vsmt_outputs/lean-s1-02a-5f9aa71": {
+    "episodes": 4,
+    "succeeded": 2
+   },
+   "/root/autodl-tmp/vsmt_outputs/lean-s1-02b-5f9aa71": {
+    "episodes": 46,
+    "succeeded": 37
+   }
+  },
+  "sam2_cache": {
+   "path": "/root/autodl-tmp/vsmt_caches/lean-s1-03-154776d",
+   "exists": true,
+   "succeeded": 39
+  },
+  "instance_cache": {
+   "path": "/root/autodl-tmp/vsmt_caches/lean-s1-03-oracle-8ebbd05",
+   "exists": true,
+   "succeeded": 39
+  },
+  "geometry_root": {
+   "path": "/root/autodl-tmp/vsmt_private/lean-s1-04-geometry-154776d",
+   "exists": true,
+   "succeeded": 39
+  },
+  "assets_json": {
+   "path": "/root/autodl-tmp/vsmt_private/s103_assets.json",
+   "exists": true
+  },
+  "sam2_reid": {
+   "path": "/root/autodl-tmp/vsmt_private/exports/reid_head_vitb14_154776d.json",
+   "exists": true
+  },
+  "instance_reid": {
+   "path": "/root/autodl-tmp/vsmt_private/lean-s1-04-diagnostics-oracle-caa50c7/reid_head_vitb14.json",
+   "exists": true
+  },
+  "source": {
+   "path": "/root/autodl-tmp/vsmt_sources/procthor-10k-0.1.2/train.jsonl.gz",
+   "exists": true
+  },
+  "salt_file": {
+   "path": "/root/autodl-tmp/vsmt_private/null_window_salt.txt",
+   "exists": true
+  },
+  "heads": {
+   "path": "/root/autodl-tmp/vsmt_private/s2-06-sam2/training/round1/VSMT-lean/A7/weights_grouped.json",
+   "exists": true
+  },
+  "record_sources": {
+   "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P": {
+    "exists": true,
+    "episodes": 39
+   }
+  },
+  "simulator": {
+   "python": "/root/autodl-tmp/vsmt-envs/simulator-py39/bin/python",
+   "ai2thor_and_python": "5.0.0 3.9.25",
+   "exit": 0
+  }
+ },
+ "disk": {
+  "free_gb": 46.9,
+  "total_gb": 107.4
+ },
+ "suite": {
+  "exit": 0,
+  "summary": "Ran 1658 tests in 345.065s OK "
+ },
+ "problems": [],
+ "role": "a bench on the development data; nothing here is S3 data or a formal stage"
+}

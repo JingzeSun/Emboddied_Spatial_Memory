@@ -1,0 +1,1490 @@
+{
+ "stage": "vsmt.lean.s3_02.bench.v1",
+ "step": "audit-profile",
+ "written_utc": "2026-10-02T16:14:09Z",
+ "episode": "procthor10k-0.1.2-train-04742",
+ "frames": 836,
+ "profiles": {
+  "TAF": {
+   "measured": {
+    "command": [
+     "/root/miniconda3/bin/python3.12",
+     "-m",
+     "cProfile",
+     "-o",
+     "/root/autodl-tmp/vsmt_bench/675316a/audit/taf.prof",
+     "ops/vsmt/lean_s2_05_node_audit.py",
+     "run",
+     "--cache-root",
+     "/root/autodl-tmp/vsmt_caches/lean-s1-03-154776d",
+     "--episode-root",
+     "/root/autodl-tmp/vsmt_outputs/lean-s1-02b-5f9aa71/procthor10k-0.1.2-train-04742",
+     "--geometry-root",
+     "/root/autodl-tmp/vsmt_private/lean-s1-04-geometry-154776d",
+     "--episode-id",
+     "procthor10k-0.1.2-train-04742",
+     "--arm",
+     "TAF",
+     "--config",
+     "{\"theta_a\": 0.7, \"d_a\": null}",
+     "--descriptor",
+     "reid_projection:vitb14",
+     "--weights",
+     "/root/autodl-tmp/vsmt_private/exports/reid_head_vitb14_154776d.json",
+     "--mask-source",
+     "sam2",
+     "--output-root",
+     "/root/autodl-tmp/vsmt_bench/675316a/audit/taf",
+     "--device",
+     "cpu"
+    ],
+    "exit": 0,
+    "wall_seconds": 844.6,
+    "max_rss_children_bytes": 863866880,
+    "finished_utc": "2026-10-02T16:14:08Z"
+   },
+   "total_self_seconds": 838.5,
+   "by_bucket": {
+    "lean_teacher.py": {
+     "self_seconds": 249.7,
+     "share": 0.298
+    },
+    "builtins": {
+     "self_seconds": 171.4,
+     "share": 0.204
+    },
+    "lean_memory.py": {
+     "self_seconds": 109.3,
+     "share": 0.13
+    },
+    "lean_assignment.py": {
+     "self_seconds": 101.7,
+     "share": 0.121
+    },
+    "json": {
+     "self_seconds": 81.1,
+     "share": 0.097
+    },
+    "other": {
+     "self_seconds": 60.3,
+     "share": 0.072
+    },
+    "lean_runner.py": {
+     "self_seconds": 33.0,
+     "share": 0.039
+    },
+    "numpy": {
+     "self_seconds": 9.0,
+     "share": 0.011
+    },
+    "hashing.py": {
+     "self_seconds": 7.9,
+     "share": 0.009
+    },
+    "l1_entities.py": {
+     "self_seconds": 5.2,
+     "share": 0.006
+    },
+    "lean_frontend_cache.py": {
+     "self_seconds": 2.5,
+     "share": 0.003
+    },
+    "lean_s2_04_evaluate_episode.py": {
+     "self_seconds": 1.5,
+     "share": 0.002
+    },
+    "lean_geometry.py": {
+     "self_seconds": 1.5,
+     "share": 0.002
+    },
+    "lean_evaluation.py": {
+     "self_seconds": 1.4,
+     "share": 0.002
+    },
+    "lean_object_geometry.py": {
+     "self_seconds": 0.7,
+     "share": 0.001
+    },
+    "lean_arms.py": {
+     "self_seconds": 0.7,
+     "share": 0.001
+    },
+    "torch": {
+     "self_seconds": 0.5,
+     "share": 0.001
+    },
+    "PIL": {
+     "self_seconds": 0.3,
+     "share": 0.0
+    },
+    "lean_frontend_diagnostics.py": {
+     "self_seconds": 0.3,
+     "share": 0.0
+    },
+    "lean_s1_03_cache.py": {
+     "self_seconds": 0.3,
+     "share": 0.0
+    },
+    "gzip": {
+     "self_seconds": 0.2,
+     "share": 0.0
+    },
+    "lean_model.py": {
+     "self_seconds": 0.1,
+     "share": 0.0
+    },
+    "lean_reid_head.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "lean_public_pose.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "causal_prior.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "pending.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "equivalence.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "executor.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "graph_ops.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "__init__.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "public_candidates.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "contracts.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "baselines.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "vm04_protocol.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "d213_unified_graph.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "vm04_materializer_config.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "vm04_l2_proposals.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "vm04_public_frontend.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "vm04_program_construction.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "vm05_protocol.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "vm04_observation_runner.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "l1_structures.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "vm04_online_plan_seal.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "vm04_public_visibility.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "d214_shared_frontend.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "shared_frontend_core.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "d216_estimator_training.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "d212_route_survey.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "d210_place_memory.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "d211_p0_smoke.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "d215_frontend_freeze.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "two_house_audit.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "d218_estimator_frontend.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "d217_estimator_development.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "d223_f00_topology_precheck.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "d223_f01_production_reader.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "lean_s1_04_diagnostics.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "lean_s2_01_runner.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "lean_intervention.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "lean_test_seal.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "vm04_public_frontend_sequence.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "shared_memory.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "vm04_public_context.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "l1_masks.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "vm04_public_packet_builder.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "errors.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "maintenance.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "place_scaffold.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    }
+   },
+   "top_cumulative": [
+    {
+     "function": "lean_runner.py:823:run_episode",
+     "bucket": "lean_runner.py",
+     "calls": 837,
+     "self_seconds": 0.058,
+     "cumulative_seconds": 412.08
+    },
+    {
+     "function": "lean_runner.py:687:run_frame",
+     "bucket": "lean_runner.py",
+     "calls": 836,
+     "self_seconds": 1.231,
+     "cumulative_seconds": 377.372
+    },
+    {
+     "function": "lean_s2_05_node_audit.py:490:observe",
+     "bucket": "other",
+     "calls": 836,
+     "self_seconds": 21.7,
+     "cumulative_seconds": 307.456
+    },
+    {
+     "function": "lean_memory.py:883:apply_program",
+     "bucket": "lean_memory.py",
+     "calls": 836,
+     "self_seconds": 1.388,
+     "cumulative_seconds": 177.446
+    },
+    {
+     "function": "lean_teacher.py:877:_max_weight_matching",
+     "bucket": "lean_teacher.py",
+     "calls": 13376,
+     "self_seconds": 1.781,
+     "cumulative_seconds": 122.846
+    },
+    {
+     "function": "lean_teacher.py:955:_max_weight_matching_dense",
+     "bucket": "lean_teacher.py",
+     "calls": 429272,
+     "self_seconds": 104.55,
+     "cumulative_seconds": 104.789
+    },
+    {
+     "function": "lean_memory.py:513:validate_memory",
+     "bucket": "lean_memory.py",
+     "calls": 11468,
+     "self_seconds": 13.704,
+     "cumulative_seconds": 95.385
+    },
+    {
+     "function": "lean_memory.py:284:memory_digest",
+     "bucket": "lean_memory.py",
+     "calls": 1674,
+     "self_seconds": 3.199,
+     "cumulative_seconds": 93.267
+    },
+    {
+     "function": "lean_assignment.py:65:cosine_matrix",
+     "bucket": "lean_assignment.py",
+     "calls": 2510,
+     "self_seconds": 25.557,
+     "cumulative_seconds": 82.171
+    },
+    {
+     "function": "~:0:<built-in method builtins.sum>",
+     "bucket": "builtins",
+     "calls": 25333878,
+     "self_seconds": 24.671,
+     "cumulative_seconds": 79.54
+    },
+    {
+     "function": "lean_teacher.py:359:_aabb_iou",
+     "bucket": "lean_teacher.py",
+     "calls": 15477809,
+     "self_seconds": 50.92,
+     "cumulative_seconds": 79.517
+    },
+    {
+     "function": "lean_assignment.py:642:build_assignment_inputs",
+     "bucket": "lean_assignment.py",
+     "calls": 836,
+     "self_seconds": 1.559,
+     "cumulative_seconds": 78.155
+    },
+    {
+     "function": "lean_memory.py:238:_canonical_payload",
+     "bucket": "lean_memory.py",
+     "calls": 1674,
+     "self_seconds": 33.6,
+     "cumulative_seconds": 75.902
+    },
+    {
+     "function": "lean_evaluation.py:344:label_frame",
+     "bucket": "lean_evaluation.py",
+     "calls": 836,
+     "self_seconds": 0.859,
+     "cumulative_seconds": 66.487
+    },
+    {
+     "function": "lean_teacher.py:519:entity_identities",
+     "bucket": "lean_teacher.py",
+     "calls": 7048,
+     "self_seconds": 2.083,
+     "cumulative_seconds": 52.102
+    },
+    {
+     "function": "lean_assignment.py:1133:seal_solution_and_existence",
+     "bucket": "lean_assignment.py",
+     "calls": 836,
+     "self_seconds": 1.915,
+     "cumulative_seconds": 51.89
+    },
+    {
+     "function": "lean_teacher.py:479:entity_identity",
+     "bucket": "lean_teacher.py",
+     "calls": 3919667,
+     "self_seconds": 26.205,
+     "cumulative_seconds": 50.993
+    },
+    {
+     "function": "lean_runner.py:416:entity_geometry",
+     "bucket": "lean_runner.py",
+     "calls": 5276,
+     "self_seconds": 1.668,
+     "cumulative_seconds": 48.956
+    },
+    {
+     "function": "lean_s2_04_evaluate_episode.py:89:verify_cache_episode",
+     "bucket": "lean_s2_04_evaluate_episode.py",
+     "calls": 1,
+     "self_seconds": 1.33,
+     "cumulative_seconds": 48.119
+    },
+    {
+     "function": "lean_s1_03_cache.py:335:load_cache_frame",
+     "bucket": "lean_s1_03_cache.py",
+     "calls": 1672,
+     "self_seconds": 0.057,
+     "cumulative_seconds": 45.702
+    },
+    {
+     "function": "hashing.py:10:canonical_json",
+     "bucket": "hashing.py",
+     "calls": 2079050,
+     "self_seconds": 0.79,
+     "cumulative_seconds": 44.063
+    },
+    {
+     "function": "~:0:<method 'join' of 'str' objects>",
+     "bucket": "builtins",
+     "calls": 12264186,
+     "self_seconds": 8.231,
+     "cumulative_seconds": 43.679
+    },
+    {
+     "function": "__init__.py:183:dumps",
+     "bucket": "json",
+     "calls": 2079052,
+     "self_seconds": 1.922,
+     "cumulative_seconds": 43.293
+    },
+    {
+     "function": "encoder.py:183:encode",
+     "bucket": "json",
+     "calls": 2079052,
+     "self_seconds": 1.331,
+     "cumulative_seconds": 41.007
+    },
+    {
+     "function": "lean_teacher.py:1070:evaluate_frame",
+     "bucket": "lean_teacher.py",
+     "calls": 1672,
+     "self_seconds": 5.569,
+     "cumulative_seconds": 39.407
+    },
+    {
+     "function": "encoder.py:205:iterencode",
+     "bucket": "json",
+     "calls": 899422,
+     "self_seconds": 38.902,
+     "cumulative_seconds": 38.902
+    },
+    {
+     "function": "__init__.py:299:loads",
+     "bucket": "json",
+     "calls": 3363,
+     "self_seconds": 0.016,
+     "cumulative_seconds": 38.551
+    },
+    {
+     "function": "decoder.py:332:decode",
+     "bucket": "json",
+     "calls": 3363,
+     "self_seconds": 0.023,
+     "cumulative_seconds": 38.531
+    },
+    {
+     "function": "decoder.py:343:raw_decode",
+     "bucket": "json",
+     "calls": 3363,
+     "self_seconds": 38.484,
+     "cumulative_seconds": 38.484
+    },
+    {
+     "function": "lean_runner.py:312:point_depth_counts",
+     "bucket": "lean_runner.py",
+     "calls": 415783,
+     "self_seconds": 17.288,
+     "cumulative_seconds": 37.274
+    }
+   ],
+   "top_self": [
+    {
+     "function": "lean_teacher.py:955:_max_weight_matching_dense",
+     "bucket": "lean_teacher.py",
+     "calls": 429272,
+     "self_seconds": 104.55,
+     "cumulative_seconds": 104.789
+    },
+    {
+     "function": "lean_teacher.py:359:_aabb_iou",
+     "bucket": "lean_teacher.py",
+     "calls": 15477809,
+     "self_seconds": 50.92,
+     "cumulative_seconds": 79.517
+    },
+    {
+     "function": "encoder.py:205:iterencode",
+     "bucket": "json",
+     "calls": 899422,
+     "self_seconds": 38.902,
+     "cumulative_seconds": 38.902
+    },
+    {
+     "function": "decoder.py:343:raw_decode",
+     "bucket": "json",
+     "calls": 3363,
+     "self_seconds": 38.484,
+     "cumulative_seconds": 38.484
+    },
+    {
+     "function": "lean_memory.py:238:_canonical_payload",
+     "bucket": "lean_memory.py",
+     "calls": 1674,
+     "self_seconds": 33.6,
+     "cumulative_seconds": 75.902
+    },
+    {
+     "function": "lean_teacher.py:479:entity_identity",
+     "bucket": "lean_teacher.py",
+     "calls": 3919667,
+     "self_seconds": 26.205,
+     "cumulative_seconds": 50.993
+    },
+    {
+     "function": "lean_assignment.py:65:cosine_matrix",
+     "bucket": "lean_assignment.py",
+     "calls": 2510,
+     "self_seconds": 25.557,
+     "cumulative_seconds": 82.171
+    },
+    {
+     "function": "~:0:<built-in method builtins.sum>",
+     "bucket": "builtins",
+     "calls": 25333878,
+     "self_seconds": 24.671,
+     "cumulative_seconds": 79.54
+    },
+    {
+     "function": "~:0:<built-in method builtins.max>",
+     "bucket": "builtins",
+     "calls": 187970649,
+     "self_seconds": 23.155,
+     "cumulative_seconds": 23.321
+    },
+    {
+     "function": "~:0:<method 'get' of 'dict' objects>",
+     "bucket": "builtins",
+     "calls": 110245567,
+     "self_seconds": 22.155,
+     "cumulative_seconds": 22.155
+    },
+    {
+     "function": "lean_s2_05_node_audit.py:490:observe",
+     "bucket": "other",
+     "calls": 836,
+     "self_seconds": 21.7,
+     "cumulative_seconds": 307.456
+    },
+    {
+     "function": "~:0:<built-in method numpy.asarray>",
+     "bucket": "builtins",
+     "calls": 3863927,
+     "self_seconds": 19.188,
+     "cumulative_seconds": 20.639
+    },
+    {
+     "function": "lean_assignment.py:94:<genexpr>",
+     "bucket": "lean_assignment.py",
+     "calls": 106545228,
+     "self_seconds": 18.876,
+     "cumulative_seconds": 18.876
+    },
+    {
+     "function": "lean_runner.py:312:point_depth_counts",
+     "bucket": "lean_runner.py",
+     "calls": 415783,
+     "self_seconds": 17.288,
+     "cumulative_seconds": 37.274
+    },
+    {
+     "function": "lean_teacher.py:356:<genexpr>",
+     "bucket": "lean_teacher.py",
+     "calls": 69326536,
+     "self_seconds": 15.137,
+     "cumulative_seconds": 15.137
+    },
+    {
+     "function": "lean_teacher.py:917:_positive_components",
+     "bucket": "lean_teacher.py",
+     "calls": 13376,
+     "self_seconds": 14.542,
+     "cumulative_seconds": 16.105
+    },
+    {
+     "function": "lean_memory.py:513:validate_memory",
+     "bucket": "lean_memory.py",
+     "calls": 11468,
+     "self_seconds": 13.704,
+     "cumulative_seconds": 95.385
+    },
+    {
+     "function": "~:0:<built-in method _hashlib.openssl_sha256>",
+     "bucket": "builtins",
+     "calls": 43729,
+     "self_seconds": 13.684,
+     "cumulative_seconds": 13.684
+    },
+    {
+     "function": "lean_memory.py:189:_json_native",
+     "bucket": "lean_memory.py",
+     "calls": 20997867,
+     "self_seconds": 13.2,
+     "cumulative_seconds": 15.557
+    },
+    {
+     "function": "lean_s2_05_node_audit.py:1036:_dedup_pairs",
+     "bucket": "other",
+     "calls": 83,
+     "self_seconds": 12.094,
+     "cumulative_seconds": 16.796
+    },
+    {
+     "function": "lean_s2_05_node_audit.py:301:capturing",
+     "bucket": "other",
+     "calls": 836,
+     "self_seconds": 12.093,
+     "cumulative_seconds": 15.64
+    },
+    {
+     "function": "lean_teacher.py:355:_distance",
+     "bucket": "lean_teacher.py",
+     "calls": 17331634,
+     "self_seconds": 11.323,
+     "cumulative_seconds": 37.156
+    },
+    {
+     "function": "lean_memory.py:150:_finite",
+     "bucket": "lean_memory.py",
+     "calls": 19290260,
+     "self_seconds": 10.274,
+     "cumulative_seconds": 13.443
+    },
+    {
+     "function": "lean_assignment.py:93:<genexpr>",
+     "bucket": "lean_assignment.py",
+     "calls": 55003407,
+     "self_seconds": 9.812,
+     "cumulative_seconds": 9.812
+    },
+    {
+     "function": "lean_assignment.py:54:add",
+     "bucket": "lean_assignment.py",
+     "calls": 318208,
+     "self_seconds": 8.971,
+     "cumulative_seconds": 9.0
+    },
+    {
+     "function": "~:0:<method 'join' of 'str' objects>",
+     "bucket": "builtins",
+     "calls": 12264186,
+     "self_seconds": 8.231,
+     "cumulative_seconds": 43.679
+    },
+    {
+     "function": "lean_memory.py:260:part",
+     "bucket": "lean_memory.py",
+     "calls": 1523724,
+     "self_seconds": 8.148,
+     "cumulative_seconds": 35.543
+    },
+    {
+     "function": "lean_assignment.py:568:existence_feature_vector",
+     "bucket": "lean_assignment.py",
+     "calls": 403553,
+     "self_seconds": 7.364,
+     "cumulative_seconds": 13.265
+    },
+    {
+     "function": "lean_s2_05_node_audit.py:237:_inside_padded",
+     "bucket": "other",
+     "calls": 10782853,
+     "self_seconds": 7.082,
+     "cumulative_seconds": 12.611
+    },
+    {
+     "function": "hashing.py:22:clone_json",
+     "bucket": "hashing.py",
+     "calls": 15749928,
+     "self_seconds": 7.072,
+     "cumulative_seconds": 7.219
+    }
+   ],
+   "seconds_per_frame_under_profile": 1.01
+  },
+  "VSMT-lean": {
+   "measured": {
+    "command": [
+     "/root/miniconda3/bin/python3.12",
+     "-m",
+     "cProfile",
+     "-o",
+     "/root/autodl-tmp/vsmt_bench/675316a/audit/vsmt.prof",
+     "ops/vsmt/lean_s2_05_node_audit.py",
+     "run",
+     "--cache-root",
+     "/root/autodl-tmp/vsmt_caches/lean-s1-03-154776d",
+     "--episode-root",
+     "/root/autodl-tmp/vsmt_outputs/lean-s1-02b-5f9aa71/procthor10k-0.1.2-train-04742",
+     "--geometry-root",
+     "/root/autodl-tmp/vsmt_private/lean-s1-04-geometry-154776d",
+     "--episode-id",
+     "procthor10k-0.1.2-train-04742",
+     "--arm",
+     "VSMT-lean",
+     "--config",
+     "{\"tau_r\": 0.5}",
+     "--heads",
+     "/root/autodl-tmp/vsmt_private/s2-06-sam2/training/round1/VSMT-lean/A7/weights_grouped.json",
+     "--descriptor",
+     "reid_projection:vitb14",
+     "--weights",
+     "/root/autodl-tmp/vsmt_private/exports/reid_head_vitb14_154776d.json",
+     "--mask-source",
+     "sam2",
+     "--output-root",
+     "/root/autodl-tmp/vsmt_bench/675316a/audit/vsmt",
+     "--device",
+     "cpu"
+    ],
+    "exit": 0,
+    "wall_seconds": 470.4,
+    "max_rss_children_bytes": 786743296,
+    "finished_utc": "2026-10-02T16:07:54Z"
+   },
+   "total_self_seconds": 465.2,
+   "by_bucket": {
+    "lean_teacher.py": {
+     "self_seconds": 108.7,
+     "share": 0.234
+    },
+    "builtins": {
+     "self_seconds": 106.8,
+     "share": 0.23
+    },
+    "json": {
+     "self_seconds": 72.8,
+     "share": 0.156
+    },
+    "lean_memory.py": {
+     "self_seconds": 67.2,
+     "share": 0.144
+    },
+    "lean_assignment.py": {
+     "self_seconds": 42.4,
+     "share": 0.091
+    },
+    "other": {
+     "self_seconds": 32.4,
+     "share": 0.07
+    },
+    "lean_runner.py": {
+     "self_seconds": 16.3,
+     "share": 0.035
+    },
+    "hashing.py": {
+     "self_seconds": 5.3,
+     "share": 0.011
+    },
+    "numpy": {
+     "self_seconds": 3.1,
+     "share": 0.007
+    },
+    "lean_frontend_cache.py": {
+     "self_seconds": 2.5,
+     "share": 0.005
+    },
+    "l1_entities.py": {
+     "self_seconds": 2.1,
+     "share": 0.004
+    },
+    "lean_s2_04_evaluate_episode.py": {
+     "self_seconds": 1.5,
+     "share": 0.003
+    },
+    "lean_evaluation.py": {
+     "self_seconds": 0.8,
+     "share": 0.002
+    },
+    "lean_object_geometry.py": {
+     "self_seconds": 0.8,
+     "share": 0.002
+    },
+    "lean_model.py": {
+     "self_seconds": 0.6,
+     "share": 0.001
+    },
+    "torch": {
+     "self_seconds": 0.5,
+     "share": 0.001
+    },
+    "lean_geometry.py": {
+     "self_seconds": 0.4,
+     "share": 0.001
+    },
+    "PIL": {
+     "self_seconds": 0.3,
+     "share": 0.001
+    },
+    "lean_frontend_diagnostics.py": {
+     "self_seconds": 0.3,
+     "share": 0.001
+    },
+    "lean_s1_03_cache.py": {
+     "self_seconds": 0.3,
+     "share": 0.001
+    },
+    "gzip": {
+     "self_seconds": 0.2,
+     "share": 0.0
+    },
+    "lean_arms.py": {
+     "self_seconds": 0.1,
+     "share": 0.0
+    },
+    "lean_reid_head.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "lean_public_pose.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "causal_prior.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "lean_intervention.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "pending.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "equivalence.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "executor.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "graph_ops.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "d213_unified_graph.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "baselines.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "__init__.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "public_candidates.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "contracts.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "vm04_protocol.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "vm04_materializer_config.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "d223_f00_topology_precheck.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "vm04_l2_proposals.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "vm04_public_frontend.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "vm04_observation_runner.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "vm04_program_construction.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "l1_structures.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "d217_estimator_development.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "d211_p0_smoke.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "vm04_online_plan_seal.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "d210_place_memory.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "vm05_protocol.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "vm04_public_visibility.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "shared_frontend_core.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "d216_estimator_training.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "d214_shared_frontend.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "d215_frontend_freeze.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "d212_route_survey.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "two_house_audit.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "d218_estimator_frontend.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "d223_f01_production_reader.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "lean_s1_04_diagnostics.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "lean_s2_01_runner.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "lean_test_seal.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "vm04_public_frontend_sequence.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "shared_memory.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "vm04_public_context.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "l1_masks.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "vm04_public_packet_builder.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "errors.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "maintenance.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    },
+    "place_scaffold.py": {
+     "self_seconds": 0.0,
+     "share": 0.0
+    }
+   },
+   "top_cumulative": [
+    {
+     "function": "lean_runner.py:823:run_episode",
+     "bucket": "lean_runner.py",
+     "calls": 837,
+     "self_seconds": 0.038,
+     "cumulative_seconds": 231.441
+    },
+    {
+     "function": "lean_runner.py:687:run_frame",
+     "bucket": "lean_runner.py",
+     "calls": 836,
+     "self_seconds": 0.533,
+     "cumulative_seconds": 194.62
+    },
+    {
+     "function": "lean_s2_05_node_audit.py:490:observe",
+     "bucket": "other",
+     "calls": 836,
+     "self_seconds": 11.586,
+     "cumulative_seconds": 131.391
+    },
+    {
+     "function": "lean_memory.py:883:apply_program",
+     "bucket": "lean_memory.py",
+     "calls": 836,
+     "self_seconds": 1.098,
+     "cumulative_seconds": 110.003
+    },
+    {
+     "function": "lean_memory.py:513:validate_memory",
+     "bucket": "lean_memory.py",
+     "calls": 11468,
+     "self_seconds": 13.171,
+     "cumulative_seconds": 58.526
+    },
+    {
+     "function": "lean_memory.py:284:memory_digest",
+     "bucket": "lean_memory.py",
+     "calls": 1674,
+     "self_seconds": 2.182,
+     "cumulative_seconds": 56.841
+    },
+    {
+     "function": "lean_evaluation.py:344:label_frame",
+     "bucket": "lean_evaluation.py",
+     "calls": 836,
+     "self_seconds": 0.436,
+     "cumulative_seconds": 49.689
+    },
+    {
+     "function": "lean_s2_04_evaluate_episode.py:89:verify_cache_episode",
+     "bucket": "lean_s2_04_evaluate_episode.py",
+     "calls": 1,
+     "self_seconds": 1.356,
+     "cumulative_seconds": 48.3
+    },
+    {
+     "function": "lean_teacher.py:359:_aabb_iou",
+     "bucket": "lean_teacher.py",
+     "calls": 9257083,
+     "self_seconds": 30.17,
+     "cumulative_seconds": 47.305
+    },
+    {
+     "function": "lean_memory.py:238:_canonical_payload",
+     "bucket": "lean_memory.py",
+     "calls": 1674,
+     "self_seconds": 18.698,
+     "cumulative_seconds": 47.093
+    },
+    {
+     "function": "lean_s1_03_cache.py:335:load_cache_frame",
+     "bucket": "lean_s1_03_cache.py",
+     "calls": 1672,
+     "self_seconds": 0.06,
+     "cumulative_seconds": 46.777
+    },
+    {
+     "function": "lean_teacher.py:519:entity_identities",
+     "bucket": "lean_teacher.py",
+     "calls": 6778,
+     "self_seconds": 0.83,
+     "cumulative_seconds": 41.702
+    },
+    {
+     "function": "lean_teacher.py:479:entity_identity",
+     "bucket": "lean_teacher.py",
+     "calls": 1347903,
+     "self_seconds": 23.037,
+     "cumulative_seconds": 41.593
+    },
+    {
+     "function": "__init__.py:299:loads",
+     "bucket": "json",
+     "calls": 3364,
+     "self_seconds": 0.016,
+     "cumulative_seconds": 39.667
+    },
+    {
+     "function": "decoder.py:332:decode",
+     "bucket": "json",
+     "calls": 3364,
+     "self_seconds": 0.024,
+     "cumulative_seconds": 39.647
+    },
+    {
+     "function": "decoder.py:343:raw_decode",
+     "bucket": "json",
+     "calls": 3364,
+     "self_seconds": 39.595,
+     "cumulative_seconds": 39.595
+    },
+    {
+     "function": "lean_s2_05_node_audit.py:1454:frames",
+     "bucket": "other",
+     "calls": 837,
+     "self_seconds": 0.016,
+     "cumulative_seconds": 36.783
+    },
+    {
+     "function": "~:0:<built-in method builtins.sum>",
+     "bucket": "builtins",
+     "calls": 13422213,
+     "self_seconds": 11.472,
+     "cumulative_seconds": 36.367
+    },
+    {
+     "function": "hashing.py:10:canonical_json",
+     "bucket": "hashing.py",
+     "calls": 848575,
+     "self_seconds": 0.346,
+     "cumulative_seconds": 33.793
+    },
+    {
+     "function": "lean_assignment.py:642:build_assignment_inputs",
+     "bucket": "lean_assignment.py",
+     "calls": 836,
+     "self_seconds": 0.63,
+     "cumulative_seconds": 33.769
+    },
+    {
+     "function": "__init__.py:183:dumps",
+     "bucket": "json",
+     "calls": 848577,
+     "self_seconds": 0.841,
+     "cumulative_seconds": 33.466
+    },
+    {
+     "function": "encoder.py:183:encode",
+     "bucket": "json",
+     "calls": 848577,
+     "self_seconds": 0.596,
+     "cumulative_seconds": 32.46
+    },
+    {
+     "function": "lean_assignment.py:65:cosine_matrix",
+     "bucket": "lean_assignment.py",
+     "calls": 2510,
+     "self_seconds": 9.512,
+     "cumulative_seconds": 32.114
+    },
+    {
+     "function": "encoder.py:205:iterencode",
+     "bucket": "json",
+     "calls": 381369,
+     "self_seconds": 31.516,
+     "cumulative_seconds": 31.516
+    },
+    {
+     "function": "~:0:<method 'join' of 'str' objects>",
+     "bucket": "builtins",
+     "calls": 1916530,
+     "self_seconds": 4.677,
+     "cumulative_seconds": 28.52
+    },
+    {
+     "function": "lean_teacher.py:877:_max_weight_matching",
+     "bucket": "lean_teacher.py",
+     "calls": 13376,
+     "self_seconds": 1.053,
+     "cumulative_seconds": 27.761
+    },
+    {
+     "function": "lean_frontend_cache.py:436:verify_frame_seal",
+     "bucket": "lean_frontend_cache.py",
+     "calls": 836,
+     "self_seconds": 0.008,
+     "cumulative_seconds": 26.4
+    },
+    {
+     "function": "lean_frontend_cache.py:155:sha",
+     "bucket": "lean_frontend_cache.py",
+     "calls": 2509,
+     "self_seconds": 0.01,
+     "cumulative_seconds": 26.376
+    },
+    {
+     "function": "lean_teacher.py:1070:evaluate_frame",
+     "bucket": "lean_teacher.py",
+     "calls": 1672,
+     "self_seconds": 2.719,
+     "cumulative_seconds": 24.231
+    },
+    {
+     "function": "lean_memory.py:260:part",
+     "bucket": "lean_memory.py",
+     "calls": 1005360,
+     "self_seconds": 6.609,
+     "cumulative_seconds": 23.979
+    }
+   ],
+   "top_self": [
+    {
+     "function": "decoder.py:343:raw_decode",
+     "bucket": "json",
+     "calls": 3364,
+     "self_seconds": 39.595,
+     "cumulative_seconds": 39.595
+    },
+    {
+     "function": "encoder.py:205:iterencode",
+     "bucket": "json",
+     "calls": 381369,
+     "self_seconds": 31.516,
+     "cumulative_seconds": 31.516
+    },
+    {
+     "function": "lean_teacher.py:359:_aabb_iou",
+     "bucket": "lean_teacher.py",
+     "calls": 9257083,
+     "self_seconds": 30.17,
+     "cumulative_seconds": 47.305
+    },
+    {
+     "function": "lean_teacher.py:479:entity_identity",
+     "bucket": "lean_teacher.py",
+     "calls": 1347903,
+     "self_seconds": 23.037,
+     "cumulative_seconds": 41.593
+    },
+    {
+     "function": "~:0:<method 'get' of 'dict' objects>",
+     "bucket": "builtins",
+     "calls": 100959503,
+     "self_seconds": 20.387,
+     "cumulative_seconds": 20.387
+    },
+    {
+     "function": "lean_memory.py:238:_canonical_payload",
+     "bucket": "lean_memory.py",
+     "calls": 1674,
+     "self_seconds": 18.698,
+     "cumulative_seconds": 47.093
+    },
+    {
+     "function": "lean_teacher.py:955:_max_weight_matching_dense",
+     "bucket": "lean_teacher.py",
+     "calls": 381219,
+     "self_seconds": 17.907,
+     "cumulative_seconds": 18.113
+    },
+    {
+     "function": "~:0:<built-in method builtins.max>",
+     "bucket": "builtins",
+     "calls": 112540184,
+     "self_seconds": 13.88,
+     "cumulative_seconds": 14.452
+    },
+    {
+     "function": "lean_memory.py:513:validate_memory",
+     "bucket": "lean_memory.py",
+     "calls": 11468,
+     "self_seconds": 13.171,
+     "cumulative_seconds": 58.526
+    },
+    {
+     "function": "lean_s2_05_node_audit.py:490:observe",
+     "bucket": "other",
+     "calls": 836,
+     "self_seconds": 11.586,
+     "cumulative_seconds": 131.391
+    },
+    {
+     "function": "~:0:<built-in method builtins.sum>",
+     "bucket": "builtins",
+     "calls": 13422213,
+     "self_seconds": 11.472,
+     "cumulative_seconds": 36.367
+    },
+    {
+     "function": "lean_s2_05_node_audit.py:301:capturing",
+     "bucket": "other",
+     "calls": 836,
+     "self_seconds": 10.899,
+     "cumulative_seconds": 11.869
+    },
+    {
+     "function": "lean_assignment.py:65:cosine_matrix",
+     "bucket": "lean_assignment.py",
+     "calls": 2510,
+     "self_seconds": 9.512,
+     "cumulative_seconds": 32.114
+    },
+    {
+     "function": "lean_teacher.py:356:<genexpr>",
+     "bucket": "lean_teacher.py",
+     "calls": 39787020,
+     "self_seconds": 9.183,
+     "cumulative_seconds": 9.183
+    },
+    {
+     "function": "~:0:<built-in method _hashlib.openssl_sha256>",
+     "bucket": "builtins",
+     "calls": 41072,
+     "self_seconds": 8.595,
+     "cumulative_seconds": 8.595
+    },
+    {
+     "function": "~:0:<built-in method numpy.asarray>",
+     "bucket": "builtins",
+     "calls": 1538461,
+     "self_seconds": 7.504,
+     "cumulative_seconds": 9.042
+    },
+    {
+     "function": "lean_teacher.py:917:_positive_components",
+     "bucket": "lean_teacher.py",
+     "calls": 13376,
+     "self_seconds": 7.469,
+     "cumulative_seconds": 8.452
+    },
+    {
+     "function": "lean_assignment.py:94:<genexpr>",
+     "bucket": "lean_assignment.py",
+     "calls": 40274832,
+     "self_seconds": 7.099,
+     "cumulative_seconds": 7.099
+    },
+    {
+     "function": "lean_runner.py:312:point_depth_counts",
+     "bucket": "lean_runner.py",
+     "calls": 157046,
+     "self_seconds": 6.819,
+     "cumulative_seconds": 13.409
+    },
+    {
+     "function": "lean_memory.py:260:part",
+     "bucket": "lean_memory.py",
+     "calls": 1005360,
+     "self_seconds": 6.609,
+     "cumulative_seconds": 23.979
+    },
+    {
+     "function": "lean_teacher.py:355:_distance",
+     "bucket": "lean_teacher.py",
+     "calls": 9946755,
+     "self_seconds": 6.501,
+     "cumulative_seconds": 21.817
+    },
+    {
+     "function": "lean_memory.py:189:_json_native",
+     "bucket": "lean_memory.py",
+     "calls": 8463447,
+     "self_seconds": 5.425,
+     "cumulative_seconds": 6.392
+    },
+    {
+     "function": "hashing.py:22:clone_json",
+     "bucket": "hashing.py",
+     "calls": 12098084,
+     "self_seconds": 4.999,
+     "cumulative_seconds": 5.065
+    },
+    {
+     "function": "~:0:<method 'decompress' of 'zlib._ZlibDecompressor' objects>",
+     "bucket": "builtins",
+     "calls": 3752,
+     "self_seconds": 4.759,
+     "cumulative_seconds": 4.759
+    },
+    {
+     "function": "~:0:<method 'join' of 'str' objects>",
+     "bucket": "builtins",
+     "calls": 1916530,
+     "self_seconds": 4.677,
+     "cumulative_seconds": 28.52
+    },
+    {
+     "function": "lean_memory.py:150:_finite",
+     "bucket": "lean_memory.py",
+     "calls": 8440502,
+     "self_seconds": 4.511,
+     "cumulative_seconds": 5.901
+    },
+    {
+     "function": "lean_assignment.py:54:add",
+     "bucket": "lean_assignment.py",
+     "calls": 318208,
+     "self_seconds": 4.329,
+     "cumulative_seconds": 4.355
+    },
+    {
+     "function": "lean_assignment.py:93:<genexpr>",
+     "bucket": "lean_assignment.py",
+     "calls": 21920325,
+     "self_seconds": 3.922,
+     "cumulative_seconds": 3.922
+    },
+    {
+     "function": "~:0:<built-in method builtins.id>",
+     "bucket": "builtins",
+     "calls": 40715285,
+     "self_seconds": 3.899,
+     "cumulative_seconds": 3.899
+    },
+    {
+     "function": "lean_assignment.py:247:_finite",
+     "bucket": "lean_assignment.py",
+     "calls": 6031569,
+     "self_seconds": 3.79,
+     "cumulative_seconds": 4.834
+    }
+   ],
+   "seconds_per_frame_under_profile": 0.563
+  }
+ },
+ "caveat": "cProfile adds overhead to tight Python loops; read shares, not absolute seconds"
+}
