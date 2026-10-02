@@ -295,5 +295,42 @@ class Ruling72InstanceSourceTests(unittest.TestCase):
         self.assertIn("mask_source=mask_source)", text)   # the episode seal is written with the source of the run
 
 
+class MultiGpuSchedulingTests(unittest.TestCase):
+    """Ruling 103-4: --gpus pins worker k to device k mod n before torch starts; --largest-first only reorders the dispatch."""
+
+    def test_gpu_list_parsing(self) -> None:
+        self.assertIsNone(runner.parse_gpus(None))
+        self.assertIsNone(runner.parse_gpus(""))
+        self.assertEqual(runner.parse_gpus("0,1, 2,3"), ["0", "1", "2", "3"])
+        for bad in ("0,0", "a,1", "-1", ","):
+            with self.assertRaises(ValueError):
+                runner.parse_gpus(bad)
+
+    def test_workers_are_pinned_round_robin_by_start_order(self) -> None:
+        import multiprocessing
+        import os
+        from unittest import mock
+
+        counter = multiprocessing.get_context("spawn").Value("i", 0)
+        seen = []
+        with mock.patch.dict(os.environ, {}, clear=False):
+            for _ in range(5):
+                runner.bind_worker_gpu(counter, ["2", "3"])
+                seen.append(os.environ["CUDA_VISIBLE_DEVICES"])
+        self.assertEqual(seen, ["2", "3", "2", "3", "2"])
+
+    def test_largest_first_reorders_only_the_dispatch(self) -> None:
+        episodes = [Path(f"/r/procthor10k-0.1.2-train-{i:05d}") for i in (3, 1, 2, 4)]
+        counts = {"procthor10k-0.1.2-train-00003": 500, "procthor10k-0.1.2-train-00001": 2000,
+                  "procthor10k-0.1.2-train-00002": 500, "procthor10k-0.1.2-train-00004": 900}
+        self.assertEqual(runner.dispatch_order(episodes, counts, largest_first=False), episodes)
+        self.assertEqual([p.name[-2:] for p in runner.dispatch_order(episodes, counts, largest_first=True)], ["01", "04", "02", "03"])
+
+    def test_the_pool_takes_the_initializer_only_with_gpus(self) -> None:
+        text = Path(runner.__file__).read_text(encoding="utf-8")
+        self.assertIn("initializer=bind_worker_gpu, initargs=(context.Value(\"i\", 0), gpus)", text)
+        self.assertIn('"cuda_visible_devices": os.environ.get("CUDA_VISIBLE_DEVICES")', text)
+
+
 if __name__ == "__main__":
     unittest.main()

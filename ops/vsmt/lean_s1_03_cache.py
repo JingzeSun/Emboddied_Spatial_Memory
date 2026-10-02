@@ -897,6 +897,7 @@ def build_episode(task: dict[str, Any]) -> dict[str, Any]:
         "peak_vram_reserved_mib": models.peak_reserved_mib() if models is not None else None,
         "peak_rss_mib": peak_rss_mib(),
         "worker_pid": os.getpid(),
+        "cuda_visible_devices": os.environ.get("CUDA_VISIBLE_DEVICES"),
     })
     (out_dir / "receipt.json").write_text(json.dumps(receipt, indent=1))
     return receipt
@@ -905,6 +906,38 @@ def build_episode(task: dict[str, Any]) -> dict[str, Any]:
 # --------------------------------------------------------------------------
 # orchestrator
 # --------------------------------------------------------------------------
+
+def parse_gpus(text: str | None) -> list[str] | None:
+    """``--gpus 0,1,2,3`` -> ['0', '1', '2', '3']; None when the option is omitted.  Distinct non-negative indices only."""
+
+    if text is None or text.strip() == "":
+        return None
+    gpus = [item.strip() for item in text.split(",") if item.strip()]
+    if not gpus or len(set(gpus)) != len(gpus) or not all(item.isdigit() for item in gpus):
+        raise ValueError(f"--gpus needs distinct CUDA device indices, got {text!r}")
+    return gpus
+
+
+def bind_worker_gpu(counter: Any, gpus: list[str]) -> None:
+    """Pool initializer for ``--gpus`` (ruling 103-4): pin this worker to one device before torch touches CUDA.
+
+    白话：多卡主机上，spawn 进程池的第 k 个 worker（按启动先后）只看得见第 k mod n 张卡（CUDA_VISIBLE_DEVICES），模型就装在那张卡上，
+    每张卡分到的 worker 数相差至多一个。它只决定算在哪张卡上，不改模型、参数、准入规则或任何产物的内容。
+    """
+
+    with counter.get_lock():
+        slot = counter.value
+        counter.value += 1
+    os.environ["CUDA_VISIBLE_DEVICES"] = gpus[slot % len(gpus)]
+
+
+def dispatch_order(episodes: list[Path], frame_counts: dict[str, int], *, largest_first: bool) -> list[Path]:
+    """Episodes by decreasing frame count (ties by id) under ``--largest-first``, else as listed; receipts merge by id either way."""
+
+    if not largest_first:
+        return list(episodes)
+    return sorted(episodes, key=lambda directory: (-int(frame_counts.get(directory.name, 0)), directory.name))
+
 
 def resource_snapshot() -> dict[str, Any]:
     """What this machine offers at launch; the evidence the worker count is judged against."""
@@ -1033,12 +1066,23 @@ def main() -> int:
                              "(NNNN.masks.npz plus a succeeded mask_recovery_receipt.json); SAM is not loaded, "
                              "the masks are read and re-digested from their pixels per frame; episodes without "
                              "a succeeded recovery receipt there are skipped and listed")
+    parser.add_argument("--gpus", default=None,
+                        help="ruling 103-4: comma-separated CUDA device indices; worker k of the pool (by start order) is pinned to "
+                             "device k mod n through CUDA_VISIBLE_DEVICES; omitted, every worker uses the default device as before")
+    parser.add_argument("--largest-first", action="store_true",
+                        help="dispatch episodes by decreasing frame count (the S1-02 receipt's observations); receipts still merge "
+                             "by episode id; with a trial, the largest episodes are the ones measured")
     parser.add_argument("--mask-source", choices=list(fc.MASK_SOURCES), default=None,
                         help="ruling 72, required for a cache run: simulator_instance_masks (main table; masks from the "
                              "private instance image, mask geometry only, SAM not loaded) or sam2 (robustness appendix; "
                              "the frozen generator, or --masks-from)")
     args = parser.parse_args()
     trial = args.trial_frame_limit is not None
+    try:
+        gpus = parse_gpus(args.gpus)
+    except ValueError as exc:
+        print(f"{exc}; refusing")
+        return 2
     if args.trial_episodes is not None and not trial:
         print("--trial-episodes requires --trial-frame-limit; refusing")
         return 2
@@ -1089,6 +1133,7 @@ def main() -> int:
 
     episodes = []
     episode_commits: dict[str, str] = {}
+    frame_counts: dict[str, int] = {}
     skipped_no_recovered_masks: list[dict[str, Any]] = []
     for root in args.episode_roots.split(","):
         for directory in sorted(Path(root).glob("procthor10k-*")):
@@ -1116,10 +1161,13 @@ def main() -> int:
                         "source_cache_status": old.get("status"), "recovery_status": (recovery or {}).get("status")})
                     continue
             episode_commits[directory.name] = source["code_commit"]
+            frame_counts[directory.name] = (int(source["observations"]) if isinstance(source.get("observations"), int)
+                                            else len(list((directory / "public").glob("*.frame.json"))))
             episodes.append(directory)
     if not episodes:
         print("no succeeded episodes under the given roots; refusing")
         return 2
+    episodes = dispatch_order(episodes, frame_counts, largest_first=args.largest_first)
     if trial and args.trial_episodes is not None:
         episodes = episodes[:max(1, args.trial_episodes)]
 
@@ -1168,6 +1216,8 @@ def main() -> int:
             "worker_basis": args.worker_basis, "resources_at_launch": snapshot,
             "sharding": "one episode per task, tasks handed to a spawn pool one at a time, "
                         "results merged in episode_id order",
+            "dispatch_order": "largest_first" if args.largest_first else "episode_id",
+            "gpus": gpus, "gpu_assignment": (None if gpus is None else "worker k (by start order) on device gpus[k mod n]"),
             "disk_floor_gib": args.disk_floor_gib, "resume": resumed, "mask_source": args.mask_source,
             "masks_from": (str(masks_from) if masks_from is not None else None),
             "episodes_skipped_no_recovered_masks": skipped_no_recovered_masks,
@@ -1185,7 +1235,10 @@ def main() -> int:
     aborted: dict[str, Any] | None = None
     if tasks:
         context = mp.get_context("spawn")
-        pool = context.Pool(processes=actual_workers)
+        if gpus:
+            pool = context.Pool(processes=actual_workers, initializer=bind_worker_gpu, initargs=(context.Value("i", 0), gpus))
+        else:
+            pool = context.Pool(processes=actual_workers)
         try:
             for row in pool.imap_unordered(build_episode, tasks, chunksize=1):
                 results.append(row)
@@ -1210,6 +1263,7 @@ def main() -> int:
                             args=args, actual_workers=actual_workers, snapshot=snapshot, started=started,
                             aborted=aborted, interrupted=interrupted)
     receipt.update({
+        "gpus": gpus, "dispatch_order": "largest_first" if args.largest_first else "episode_id",
         "mask_source": args.mask_source,
         "masks_from": (str(masks_from) if masks_from is not None else None),
         "episodes_skipped_no_recovered_masks": skipped_no_recovered_masks,
