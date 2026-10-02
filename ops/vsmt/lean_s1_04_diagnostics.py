@@ -76,6 +76,7 @@ from vsmt import lean_frontend_diagnostics as fd  # noqa: E402
 from vsmt import lean_object_geometry as og  # noqa: E402
 from vsmt import lean_public_pose as pp  # noqa: E402
 from vsmt import lean_reid_head as rh  # noqa: E402
+from vsmt import lean_test_seal  # noqa: E402
 
 CONTRACT_PATH = ROOT / "configs" / "vsmt" / "lean_s1_04_frontend_diagnostics_v1.json"
 S1_03_CONTRACT_PATH = ROOT / "configs" / "vsmt" / "lean_s1_03_frontend_cache_v1.json"
@@ -575,6 +576,10 @@ def main() -> int:
     parser.add_argument("--device", default="cuda")
     parser.add_argument("--allow-dirty", action="store_true", help="tests only")
     args = parser.parse_args()
+    refusal = lean_test_seal.refusal([args.cache_root, args.geometry_root, *args.episode_roots.split(",")], reader="s1-04")
+    if refusal:  # ruling 103-1: sealed S3 test roots are read only by S3-05
+        print(f"[s1-04] refused: {refusal}", file=sys.stderr)
+        return 2
 
     contract = fd.validate_contract(json.loads(CONTRACT_PATH.read_text(encoding="utf-8")))
     required = list(REQUIRED_AUTHORIZATION) + (["reid_adapter_head_training"] if args.reid else [])

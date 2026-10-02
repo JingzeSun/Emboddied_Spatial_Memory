@@ -57,6 +57,7 @@ from vsmt import lean_evaluation as ev  # noqa: E402
 from vsmt import lean_object_geometry as og  # noqa: E402
 from vsmt import lean_reid_head as rh  # noqa: E402
 from vsmt import lean_runner as lr  # noqa: E402
+from vsmt import lean_test_seal  # noqa: E402
 
 CONFIG_DIR = ROOT / "configs" / "vsmt"
 S2_05_CONTRACT = CONFIG_DIR / "lean_s2_05_development_v1.json"
@@ -176,6 +177,9 @@ def expected_pass_config(pass_name: str, arm: str, *, mask_source: str = arms.EL
 
 
 def cmd_run_pass(args: argparse.Namespace) -> int:
+    sealed = lean_test_seal.refusal([args.cache_root, args.geometry_root, *args.episode_roots.split(",")], reader="s2-05 run-pass")
+    if sealed:  # ruling 103-1: sealed S3 test roots are read only by S3-05
+        return refuse(sealed)
     problem = contracts_open()
     if problem:
         return refuse(problem)

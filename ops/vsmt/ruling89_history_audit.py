@@ -35,6 +35,7 @@ for item in (ROOT / "src", HERE.parent):
 
 from vsmt import lean_assignment as la  # noqa: E402
 from vsmt import lean_runner as lr  # noqa: E402
+from vsmt import lean_test_seal  # noqa: E402
 
 import ruling89_probes as probes  # noqa: E402
 
@@ -141,6 +142,10 @@ class Audit:
 def cmd_run(args: argparse.Namespace) -> int:
     import lean_s2_04_evaluate_episode as s2_04
 
+    refusal = lean_test_seal.refusal([args.cache_root, args.episode_root], reader="ruling89 history audit")
+    if refusal:  # ruling 103-1: sealed S3 test roots are read only by S3-05
+        print(f"refused: {refusal}", file=sys.stderr)
+        return 2
     config = json.loads(args.config)
     lr.validate_arm_config(args.arm, config)
     policy, missing = s2_04.gather_teacher_policy()

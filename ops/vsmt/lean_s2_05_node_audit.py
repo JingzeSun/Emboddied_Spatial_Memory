@@ -1344,7 +1344,12 @@ def run(args: argparse.Namespace) -> int:
     from vsmt import lean_evaluation as ev
     from vsmt import lean_object_geometry as og
     from vsmt import lean_runner as lr
+    from vsmt import lean_test_seal
 
+    refusal = lean_test_seal.refusal([args.cache_root, args.episode_root, args.geometry_root], reader="node-audit run")
+    if refusal:  # ruling 103-1: sealed S3 test roots are read only by S3-05
+        print(f"[node-audit] refused: {refusal}", file=sys.stderr)
+        return 2
     contract = ev.validate_evaluation_contract(s2_04.load_json(s2_04.S2_04_CONTRACT))
     runner_contract = lr.validate_runner_contract(s2_04.load_json(s2_01.S2_01_CONTRACT))
     closed = [f"S2-04 {name}" for name in s2_04.REQUIRED_S2_04 if contract["authorization"].get(name) is not True]

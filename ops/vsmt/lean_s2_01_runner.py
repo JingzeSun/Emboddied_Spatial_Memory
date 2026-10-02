@@ -46,6 +46,7 @@ for item in (ROOT / "src", HERE.parent):
 import lean_s1_04_diagnostics as diag  # noqa: E402
 from vsmt import lean_assignment as la  # noqa: E402
 from vsmt import lean_runner as lr  # noqa: E402
+from vsmt import lean_test_seal  # noqa: E402
 
 CONFIG_DIR = ROOT / "configs" / "vsmt"
 S2_01_CONTRACT = CONFIG_DIR / "lean_s2_01_runner_v1.json"
@@ -143,6 +144,10 @@ def main() -> int:
     parser.add_argument("--device", default="cpu")
     parser.add_argument("--allow-dirty", action="store_true", help="tests only")
     args = parser.parse_args()
+    refusal = lean_test_seal.refusal([args.cache_root, args.episode_root], reader="s2-01")  # ruling 103-1: sealed S3 test roots are read only by S3-05
+    if refusal:
+        print(f"[s2-01] refused: {refusal}", file=sys.stderr)
+        return 2
 
     contract = lr.validate_runner_contract(load_json(S2_01_CONTRACT))
     closed = [name for name in REQUIRED_AUTHORIZATION if contract["authorization"].get(name) is not True]

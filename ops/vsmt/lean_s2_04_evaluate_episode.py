@@ -51,6 +51,7 @@ import lean_s2_01_runner as s2_01  # noqa: E402
 from vsmt import lean_evaluation as ev  # noqa: E402
 from vsmt import lean_object_geometry as og  # noqa: E402
 from vsmt import lean_runner as lr  # noqa: E402
+from vsmt import lean_test_seal  # noqa: E402
 
 CONFIG_DIR = ROOT / "configs" / "vsmt"
 S2_04_CONTRACT = CONFIG_DIR / "lean_s2_04_evaluation_v1.json"
@@ -280,6 +281,10 @@ def main() -> int:
                         help="ruling 72: the mask source the cache must be sealed with; a cache of the other source is refused")
     parser.add_argument("--allow-dirty", action="store_true", help="tests only")
     args = parser.parse_args()
+    refusal = lean_test_seal.refusal([args.cache_root, args.episode_root, args.geometry_root], reader="s2-04")  # ruling 103-1: sealed S3 test roots are read only by S3-05
+    if refusal:
+        print(f"[s2-04] refused: {refusal}", file=sys.stderr)
+        return 2
 
     contract = ev.validate_evaluation_contract(load_json(S2_04_CONTRACT))
     runner_contract = lr.validate_runner_contract(load_json(s2_01.S2_01_CONTRACT))
