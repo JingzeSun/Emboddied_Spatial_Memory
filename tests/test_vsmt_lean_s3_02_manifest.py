@@ -35,7 +35,11 @@ import s3_02_manifest as support  # noqa: E402
 from vsmt import lean_test_seal as ts  # noqa: E402
 
 DRIVER = PROJECT_ROOT / "ops" / "vsmt" / "s3_02_data.sh"
-REGISTERED = "2339baa96c123a7676e129881d270bfab252573c"  # the confirmation generation, last in the pose registry
+# the last commit in the pose registry, read from the live S1-03 contract (2339baa, the confirmation generation, until the
+# S3-02 registration): the pre-authorised registration commit (ruling 103-3) appends the S3-02 generator commit, and the
+# check stage reruns this suite on that commit, so a hard-coded value would fail exactly there
+REGISTERED = json.loads((PROJECT_ROOT / "configs" / "vsmt" / "lean_s1_03_frontend_cache_v1.json").read_text(
+    encoding="utf-8"))["public_pose_correction"]["correct_encoder_since_code_commits"][-1]
 DEFECTIVE = "c222c51a1906f3703a6115c968e77f349306faa9"  # the pre-ruling-49 encoder (pitch sign)
 
 
