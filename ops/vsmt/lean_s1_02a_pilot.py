@@ -28,6 +28,18 @@ What one worker does, in order, and what it writes:
 The orchestrator selects the pilot houses with lean_pilot (head of the
 frozen split's train block), runs the workers, validates the receipts with
 the S1-02a contract checkers and derives the S1-02b worker count.
+
+S3-02 (ruling 103) adds two stages that run the same worker on the committed S3 manifests
+(configs/vsmt/lean_s3_01_manifests.json, ruling 102-8), with the same private salt and every S0-02 v3
+rule unchanged:
+    --stage s3-measure  the first four train houses at four workers into <output-root>/measure: the
+                        S1-01 occupancy reading (peaks of the workers and of the whole container, so the
+                        Unity processes count too); those four episodes are a measurement, not S3 data
+    --stage s3          every house of --s3-splits into <output-root>/<split>/, one pool, the worker
+                        count derived by the S1-01 rule from the measurement and this container's cgroup
+                        limits; a per-split receipt (s3_receipt.json) with the ruling-36 move minimum
+                        judged on train only; the test root carries the ruling-103-1 seal marker from
+                        its creation; --resume keeps every receipt and fails an interrupted house
 """
 
 from __future__ import annotations
@@ -64,7 +76,7 @@ from vsmt import lean_interventions as sel  # noqa: E402
 from vsmt import lean_pilot, lean_route  # noqa: E402
 from vsmt.lean_intervention import (  # noqa: E402
     DRY_RUN_DESTINATIONS_PER_OBJECT, DRY_RUN_MAX_POINTS, FAILURE_REASONS, MAX_REPLANS, MAXIMUM_ACTIONS,
-    MINIMUM_WINDOW_FRAMES, MIN_SUBJECT_PIXELS, WINDOW_FRAMES,
+    MINIMUM_WINDOW_FRAMES, MINIMUM_YIELD, MIN_SUBJECT_PIXELS, WINDOW_FRAMES,
     MIN_VISIBLE_PIXELS, PUBLIC_FRAME_FIELDS, check_move_minimum,
     PRIVATE_FRAME_FIELDS, FORBIDDEN_PUBLIC_KEYS,
 )
@@ -77,6 +89,7 @@ import vm04_two_house_worker as house_loader  # noqa: E402
 CONTRACT_S0_02 = ROOT / "configs" / "vsmt" / "lean_s0_intervention_data_v3.json"
 CONTRACT_S1_02A = ROOT / "configs" / "vsmt" / "lean_s1_02a_pilot_v2.json"
 CONFIRMATION_REGISTRY = ROOT / "configs" / "vsmt" / "lean_ruling81_confirmation_houses.json"
+S3_MANIFESTS = ROOT / "configs" / "vsmt" / "lean_s3_01_manifests.json"
 
 
 def confirmation_houses(block: list[str], registry: dict[str, Any]) -> list[str]:
@@ -1127,10 +1140,18 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--output-root", required=True)
     ap.add_argument("--source", required=True)
-    ap.add_argument("--workers", type=int, default=lean_pilot.PILOT_WORKERS)
-    ap.add_argument("--stage", choices=["s1-02a", "s1-02b", "confirmation", "regenerate", "window-probe"], default="s1-02a",
+    ap.add_argument("--workers", type=int, default=None,
+                    help="the pool width; omitted, the S1 stages use the pilot width 4 as before and s3 uses the derived count "
+                         "(given, it caps the derived count); s3-measure always runs at the pilot width")
+    ap.add_argument("--stage", choices=["s1-02a", "s1-02b", "confirmation", "regenerate", "window-probe", "s3-measure", "s3"],
+                    default="s1-02a",
                     help="confirmation: the ruling-81 confirmation houses (train block positions 50..99) under exactly "
-                         "the s1-02b protocol, into their own output root (ruling 89 execution rule, 2026-09-30)")
+                         "the s1-02b protocol, into their own output root (ruling 89 execution rule, 2026-09-30); "
+                         "s3-measure / s3: S3-02 (ruling 103), see the module docstring")
+    ap.add_argument("--s3-splits", default=",".join(S3_SPLITS),
+                    help="s3: the manifests to generate, in this order (default all three: train, validation, test)")
+    ap.add_argument("--measure-root", default=None,
+                    help="s3-measure / s3: where the S3 occupancy measurement lives (default <output-root>/measure)")
     ap.add_argument("--houses", default="",
                     help="regenerate: comma-separated house ids to rerun into --output-root; each one's old directory "
                          "must already have been moved aside (never overwritten) and the rerun must be named by a ruling")
@@ -1177,6 +1198,8 @@ def main() -> int:
                     help="ruling 37: a file outside the repository holding the private salt mixed into the "
                          "null-window draw; only its sha256 is written to plan.json and the receipts")
     args = ap.parse_args()
+    if args.workers is None and args.stage not in ("s3-measure", "s3"):
+        args.workers = lean_pilot.PILOT_WORKERS  # the S1 stages' default, unchanged
     args.private_salt = _read_private_salt(args.private_salt_file)
     if args.stage in ("s1-02b", "confirmation"):
         return main_s1_02b(args)
@@ -1184,6 +1207,8 @@ def main() -> int:
         return main_regenerate(args)
     if args.stage == "window-probe":
         return main_window_probe(args)
+    if args.stage in ("s3-measure", "s3"):
+        return main_s3(args)
     contract = json.loads(CONTRACT_S1_02A.read_text(encoding="utf-8"))
     lean_pilot.validate_pilot_contract(contract)
     if not all(contract["authorization"].values()):
@@ -1614,6 +1639,384 @@ def main_s1_02b(args: argparse.Namespace) -> int:
     (out_root / ("confirmation_receipt.json" if stage == "confirmation" else "s1_02b_receipt.json")).write_text(json.dumps(receipt, indent=1))
     print(json.dumps({"receipt": receipt, "per_house": results}, indent=1, default=str))
     return 0 if receipt["yield_gate_passed"] else 1
+
+
+# --------------------------------------------------------------------------
+# S3-02 (ruling 103): every S3 manifest house under the unchanged S0-02 v3 rules
+# --------------------------------------------------------------------------
+
+S3_SPLITS = ("train", "validation", "test")
+S3_RECEIPT = "s3_receipt.json"
+#: ruling 37: the digest of the private salt every S1 generation drew its null windows with (results/vsmt_lean_s1_02b_report_5f9aa71.json
+#: and the confirmation run); ruling 103-2 keeps every S0-02 v3 rule, so S3 draws with the same salt
+S3_SALT_SHA256 = "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96"
+#: the machine sampler's period and the window of its peak CPU rate (seconds)
+S3_SAMPLE_SECONDS = 2.0
+S3_CPU_WINDOW_SECONDS = 30.0
+
+
+def s3_manifest_houses(manifest: Mapping[str, Any] | None = None) -> dict[str, list[str]]:
+    """The three S3 lists (ruling 102-8), recomputed from the frozen split before anything runs.
+
+    白话：S3-02 只按已提交的 S3 清单生成。输入是清单文件（默认 configs/vsmt/lean_s3_01_manifests.json），输出 train／validation／test
+    三份名单；清单与按 S1-02a 冻结划分重算的结果不是逐项相同就拒绝。它不挑 house、不补 house，也不读任何 house 内容。
+    """
+
+    from vsmt import lean_s3_manifests
+
+    contract = json.loads(CONTRACT_S1_02A.read_text(encoding="utf-8"))
+    registry = json.loads(CONFIRMATION_REGISTRY.read_text(encoding="utf-8"))
+    manifest = manifest if manifest is not None else json.loads(S3_MANIFESTS.read_text(encoding="utf-8"))
+    lean_s3_manifests.validate(manifest, contract["split_freeze"], registry)
+    return {split: list(manifest[split]) for split in S3_SPLITS}
+
+
+def s3_split_receipt(split: str, houses: list[str], results: list[dict[str, Any]], *, commit: str, salt_sha256: str,
+                     run: dict[str, Any]) -> dict[str, Any]:
+    """One split's stage receipt (ruling 103-5): outcomes, the recorded yield, moves, and the ruling-36 minimum on train only.
+
+    白话：输入一个划分的名单与逐 house 回执，输出该划分的阶段回执：成功／失败与失败原因、空窗口数、非空成品率（只记录，不判门）、
+    执行成功的搬动数与其中“源位置先重访”的数目，以及裁决 36 的判决——只有 train 判门（不足 120／60 记 below_minimum，驱动据此停下、
+    提规模裁决），validation／test 只记数字。它不重跑任何 house，也不替换失败的 house。
+    """
+
+    by_id = {r["house_id"]: r for r in results}
+    rows = [by_id[h] for h in houses if h in by_id]
+    failed = [r for r in rows if r.get("status") != "succeeded"]
+    non_null = [r for r in rows if not r.get("null_window", False)]
+    ok_non_null = [r for r in non_null if r.get("status") == "succeeded" and int(r.get("executed_interventions") or 0) >= 1]
+    yield_rate = (len(ok_non_null) / len(non_null)) if non_null else None
+    moves = sum(int(r.get("moves_executed") or 0) for r in rows)
+    moves_first = sum(int(r.get("moves_source_first") or 0) for r in rows)
+    reasons: dict[str, int] = {}
+    for r in failed:
+        reasons[str(r.get("reason"))] = reasons.get(str(r.get("reason")), 0) + 1
+    return {
+        "stage": "s3", "split": split, "code_commit": commit, "code_commits": sorted({str(r.get("code_commit")) for r in rows}),
+        "houses_planned": len(houses), "houses_with_receipt": len(rows), "houses_missing": sorted(set(houses) - set(by_id)),
+        "succeeded": len(rows) - len(failed), "failed": len(failed), "failures_by_reason": dict(sorted(reasons.items())),
+        "failure_receipts": [{"house_id": r["house_id"], "reason": r.get("reason"), "detail": str(r.get("detail") or "")[:400]}
+                             for r in failed],
+        "null_window_episodes": len(rows) - len(non_null),
+        "null_window_failed": sum(1 for r in rows if r.get("null_window", False) and r.get("status") != "succeeded"),
+        "yield_house_level_non_null": yield_rate, "yield_gate": MINIMUM_YIELD,
+        "yield_gate_passed": (yield_rate is not None and yield_rate >= MINIMUM_YIELD),
+        "yield_gate_role": "recorded only; S3-02 judges the ruling-36 move minimum on train (ruling 103-5)",
+        "moves_executed": moves, "moves_source_first": moves_first,
+        "move_minimum": check_move_minimum(moves, moves_first, is_train_block=(split == "train")),
+        "controls_total": sum(int(r.get("controls") or 0) for r in rows),
+        "controls_outside_U": sum(int(r.get("controls_outside_U") or 0) for r in rows),
+        "null_window_salt_sha256": salt_sha256,
+        **run,
+    }
+
+
+def _cgroup_value(name: str) -> str | None:
+    try:
+        return Path("/sys/fs/cgroup", name).read_text(encoding="utf-8").strip()
+    except OSError:
+        return None
+
+
+def _cgroup_cpu_usec() -> int | None:
+    for line in (_cgroup_value("cpu.stat") or "").splitlines():
+        if line.startswith("usage_usec "):
+            return int(line.split()[1])
+    return None
+
+
+def _cgroup_process_bytes() -> int | None:
+    """The container's anonymous plus shared memory (memory.stat): what its processes hold, without the page cache."""
+
+    stat = _cgroup_value("memory.stat")
+    if stat is None:
+        return None
+    values = dict(line.split()[:2] for line in stat.splitlines() if len(line.split()) >= 2)
+    return int(values.get("anon", 0)) + int(values.get("shmem", 0))
+
+
+def _gpu0_used_mib() -> float | None:
+    try:
+        text = subprocess.run(["nvidia-smi", "--query-gpu=memory.used", "--format=csv,noheader,nounits"],
+                              capture_output=True, text=True, timeout=10).stdout.strip()
+        return float(text.splitlines()[0])  # Unity renders on device 0
+    except Exception:  # noqa: BLE001 - no reading is recorded as None, never guessed
+        return None
+
+
+def _machine_sample() -> tuple[float, int | None, int | None, float | None]:
+    return time.time(), _cgroup_cpu_usec(), _cgroup_process_bytes(), _gpu0_used_mib()
+
+
+def summarise_machine_samples(samples: list[tuple[float, int | None, int | None, float | None]],
+                              window_s: float = S3_CPU_WINDOW_SECONDS) -> dict[str, Any]:
+    """Peaks of the container while the measured houses ran: process memory, GPU 0 memory and the CPU rate over ``window_s``.
+
+    白话：S1-02a 的占用只量了 worker 进程自己（RUSAGE_SELF），它启动的 Unity 进程的 CPU 与内存不在里面。这里按固定间隔读整个容器
+    的 CPU 累计时间、进程内存（不含页缓存）与 0 号卡显存，输出三项峰值；CPU 取任意 ``window_s`` 秒窗口里的最大平均核数（比整段
+    平均更接近峰值）。读不到的量记 None，不猜。
+    """
+
+    cpu = [(t, c) for t, c, _m, _g in samples if c is not None]
+    peak_rate = None
+    for i, (t0, c0) in enumerate(cpu):
+        later = [(t, c) for t, c in cpu[i + 1:] if t - t0 >= window_s]
+        if later:
+            t1, c1 = later[0]
+            rate = (c1 - c0) / 1e6 / (t1 - t0)
+            peak_rate = rate if peak_rate is None else max(peak_rate, rate)
+    if peak_rate is None and len(cpu) >= 2 and cpu[-1][0] > cpu[0][0]:  # a run shorter than one window: its mean rate
+        peak_rate = (cpu[-1][1] - cpu[0][1]) / 1e6 / (cpu[-1][0] - cpu[0][0])
+    memory = [m for _t, _c, m, _g in samples if m is not None]
+    vram = [g for _t, _c, _m, g in samples if g is not None]
+    return {"samples": len(samples), "cpu_cores_peak_window": peak_rate, "cpu_window_seconds": window_s,
+            "process_memory_peak_bytes": (max(memory) if memory else None), "gpu0_used_peak_mib": (max(vram) if vram else None)}
+
+
+def _machine_sampler(stop: Any, out: Any, interval_s: float) -> None:
+    samples = [_machine_sample()]
+    while not stop.wait(interval_s):
+        samples.append(_machine_sample())
+    samples.append(_machine_sample())
+    out.put(summarise_machine_samples(samples))
+
+
+def s3_occupancy(results: list[dict[str, Any]], *, workers: int, machine: Mapping[str, Any],
+                 baseline: Mapping[str, Any]) -> dict[str, Any]:
+    """The S1-01 occupancy receipt of the S3 measurement: each per-worker cost is the larger of the worker-only and container readings.
+
+    白话：输入四条测量 house 的回执、四路并发下的容器峰值与开跑前的基线，输出 S1-01 规则要的五个量（峰值，不是均值）。CPU、内存
+    各取两种读法的较大值——S1-02a 的读法（worker 进程自身，逐 house 取最大）与整个容器的读法（峰值减基线，再除以 worker 数，含 Unity）；
+    显存是 0 号卡峰值减基线再除以 worker 数（与 S1-02a 相同）；磁盘是单 house 写入的最大值。模拟器并发上限记实测的 4。它只给推导公式
+    提供输入，不决定 worker 数。
+    """
+
+    occ = [r["occupancy"] for r in results]
+    cpu_worker = max(o["cpu_seconds"] / max(o["wall_seconds"], 1e-6) for o in occ)
+    ram_worker = max(o["peak_rss_gb"] for o in occ)
+    cpu_machine = (machine["cpu_cores_peak_window"] / workers) if machine.get("cpu_cores_peak_window") is not None else 0.0
+    ram_machine = 0.0
+    if machine.get("process_memory_peak_bytes") is not None and baseline.get("process_memory_bytes") is not None:
+        ram_machine = max(0.0, (machine["process_memory_peak_bytes"] - baseline["process_memory_bytes"]) / 1e9 / workers)
+    vram = 0.0
+    if machine.get("gpu0_used_peak_mib") is not None and baseline.get("gpu0_used_mib") is not None:
+        vram = max(0.0, (machine["gpu0_used_peak_mib"] - baseline["gpu0_used_mib"]) / 1024.0 / workers)
+    receipt = {
+        "concurrency_verified_at": workers,
+        "cpu_cores_per_worker": max(cpu_worker, cpu_machine),
+        "ram_gb_per_worker": max(ram_worker, ram_machine),
+        "vram_gb_per_worker": vram,
+        "disk_gb_per_worker": max(o["bytes_written"] for o in occ) / 1e9,
+        "simulator_concurrency_limit": workers,
+        "statistic": lean_pilot.REQUIRED_STATISTIC, "workload": lean_pilot.REQUIRED_WORKLOAD,
+        "failures": [r["house_id"] for r in results if r["status"] != "succeeded"],
+    }
+    return lean_pilot.validate_occupancy_receipt(receipt)
+
+
+def _s3_capacity_measurements() -> tuple[dict[str, Any], dict[str, Any]]:
+    """The S1-01 readings with this container's own limits: AutoDL reports the whole host's cores and free memory, the container
+    is held to its cgroup quota and memory.max, so those replace the host figures when they are smaller (both are recorded)."""
+
+    measured = _capacity_measurements()
+    basis: dict[str, Any] = {"host_cpu_logical_cores": measured["cpu_logical_cores"], "host_ram_available_gb": measured["ram_available_gb"]}
+    quota = _cgroup_value("cpu.max")
+    if quota and quota.split()[0] != "max":
+        cores = int(quota.split()[0]) / int(quota.split()[1])
+        basis["cgroup_cpu_quota"] = cores
+        measured["cpu_logical_cores"] = min(int(measured["cpu_logical_cores"]), int(cores))
+    limit = _cgroup_value("memory.max")
+    if limit and limit != "max":
+        available = (int(limit) - (_cgroup_process_bytes() or 0)) / 1e9
+        basis.update({"cgroup_memory_max_gb": int(limit) / 1e9, "cgroup_memory_available_gb": available})
+        measured["ram_available_gb"] = min(float(measured["ram_available_gb"]), available)
+    return measured, basis
+
+
+def _s3_tasks(houses: list[str], out_root: Path, *, source: Path, freeze: Mapping[str, Any], commit: str,
+              args: argparse.Namespace) -> list[dict[str, Any]]:
+    return [{"house_id": h, "index": int(h.rsplit("-", 1)[1]), "out": str(out_root / h), "source_root": str(source.parent),
+             "source_rel": source.name, "split_seed": freeze["seed"], "commit": commit, "private_salt": args.private_salt,
+             **_s3_options(args)} for h in houses]
+
+
+def _s3_options(args: argparse.Namespace) -> dict[str, Any]:
+    return {name: getattr(args, name) for name in ("replan_blocked_edges", "placement_tries", "stratify_by_kind", "add_source",
+                                                   "destination_points", "placement_prescreen", "dry_run_destinations_per_object",
+                                                   "window_mode", "window_segment_frames")}
+
+
+#: ruling 103-2: S3 runs the S0-02 v3 rules only; these are the generator's defaults after rulings 25-53
+S3_REQUIRED_OPTIONS = {"replan_blocked_edges": True, "placement_tries": DRY_RUN_MAX_POINTS, "stratify_by_kind": True,
+                       "add_source": "unseen_existing", "destination_points": "anywhere", "placement_prescreen": "dry_run",
+                       "dry_run_destinations_per_object": DRY_RUN_DESTINATIONS_PER_OBJECT, "window_mode": DEFAULT_WINDOW_MODE,
+                       "window_segment_frames": WINDOW_FRAMES}
+
+
+def main_s3(args: argparse.Namespace) -> int:
+    """S3-02 generation (ruling 103-2 / 103-4): the measurement on four train houses, then every S3 manifest house.
+
+    白话：S3 的原始数据由这里生成，规则与 S1-02b、确认集完全相同（窗口为过渡最后 30 帧、dry-run 每个物体至多 8 个目的容器、
+    maximum_actions 4000、私有盐空窗口抽签、增补用 unseen_existing），只是名单换成 S3 清单、输出按划分分根。``s3-measure`` 先用
+    train 的前四个 house、四路并发量出单 worker 占用（写进 measure 根，不算 S3 数据）；``s3`` 再按 S1-01 规则推导 worker 数，把所选
+    划分的全部 house 放进同一个进程池生成，失败照记、不替换，最后每个划分写一份回执。它不读 validation／test 的任何结果，也不改任何
+    生成规则：任何一项生成选项不是 S0-02 v3 的现行值都会被拒绝。
+    """
+
+    if _s3_options(args) != S3_REQUIRED_OPTIONS:
+        print(f"S3 runs the S0-02 v3 rules only (ruling 103-2); refusing the non-default options "
+              f"{ {k: v for k, v in _s3_options(args).items() if S3_REQUIRED_OPTIONS[k] != v} }"); return 2
+    salt_sha = sha_bytes(args.private_salt.encode("utf-8"))
+    if salt_sha != S3_SALT_SHA256:
+        print("the private salt is not the one every S1 generation used (ruling 37, 103-2); refusing"); return 2
+    contract = json.loads(CONTRACT_S1_02A.read_text(encoding="utf-8"))
+    lean_pilot.validate_pilot_contract(contract)
+    freeze = contract["split_freeze"]
+    lists = s3_manifest_houses()
+    splits = [s for s in args.s3_splits.split(",") if s]
+    if not splits or len(set(splits)) != len(splits) or any(s not in S3_SPLITS for s in splits):
+        print(f"--s3-splits must name distinct splits out of {list(S3_SPLITS)}"); return 2
+    source = Path(args.source)
+    pool_ids = {f"{DATASET_TAG}-{i:05d}" for i, _ in house_loader.records_from_json(source)}
+    absent = sorted(h for s in S3_SPLITS for h in lists[s] if h not in pool_ids)
+    if absent:
+        print(f"{len(absent)} manifest houses are not in the source, e.g. {absent[:3]}; refusing"); return 2
+    commit = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True, cwd=ROOT).stdout.strip()
+    out_root = Path(args.output_root)
+    measure_root = Path(args.measure_root) if args.measure_root else out_root / "measure"
+    if args.stage == "s3-measure":
+        if args.workers not in (None, lean_pilot.PILOT_WORKERS):
+            print(f"s3-measure runs at the pilot width {lean_pilot.PILOT_WORKERS} (S1-01 rule); refusing --workers {args.workers}"); return 2
+        return _main_s3_measure(args, houses=lists["train"][:lean_pilot.PILOT_WORKERS], measure_root=measure_root, source=source,
+                                freeze=freeze, commit=commit)
+    return _main_s3_generate(args, lists=lists, splits=splits, out_root=out_root, measure_root=measure_root, source=source,
+                             freeze=freeze, commit=commit, salt_sha=salt_sha)
+
+
+def _main_s3_measure(args: argparse.Namespace, *, houses: list[str], measure_root: Path, source: Path, freeze: Mapping[str, Any],
+                     commit: str) -> int:
+    if (measure_root / "occupancy_receipt.json").exists():
+        print(f"{measure_root} already holds a measurement; refusing (a measurement is never redone over itself)"); return 2
+    if measure_root.exists() and any(measure_root.iterdir()):
+        aside = measure_root.with_name(f"{measure_root.name}.incomplete-{time.strftime('%Y%m%dT%H%M%S')}")
+        measure_root.rename(aside)  # an earlier attempt that did not finish: kept beside, never deleted or reused
+        print(f"an unfinished measurement was moved aside to {aside}")
+    measure_root.mkdir(parents=True, exist_ok=True)
+    workers = lean_pilot.PILOT_WORKERS
+    _t, _c, memory0, vram0 = _machine_sample()
+    baseline = {"process_memory_bytes": memory0, "gpu0_used_mib": vram0}
+    stop, queue = mp.Event(), mp.Queue()
+    sampler = mp.Process(target=_machine_sampler, args=(stop, queue, S3_SAMPLE_SECONDS), daemon=True)
+    sampler.start()
+    t0 = time.time()
+    results = _run_with_timeout(_s3_tasks(houses, measure_root, source=source, freeze=freeze, commit=commit, args=args),
+                                workers, args.stall_timeout_s, commit)
+    wall = time.time() - t0
+    stop.set()
+    try:
+        machine = queue.get(timeout=60)
+    except Exception:  # noqa: BLE001 - the sampler died: the worker-only readings remain
+        machine = {"samples": 0, "cpu_cores_peak_window": None, "process_memory_peak_bytes": None, "gpu0_used_peak_mib": None}
+    sampler.join(timeout=5)
+    results = sorted(results, key=lambda r: r["house_id"])
+    succeeded = [r for r in results if r["status"] == "succeeded"]
+    receipt = {"stage": "s3-measure", "code_commit": commit, "houses": houses, "workers": workers, "wall_clock_seconds": round(wall, 1),
+               "succeeded": len(succeeded), "failed": len(results) - len(succeeded), "baseline": baseline, "machine": machine,
+               "per_house": [{"house_id": r["house_id"], "status": r["status"], "reason": r.get("reason"),
+                              "observations": r.get("observations"), **r["occupancy"]} for r in results],
+               "mean_wall_seconds_per_house": round(sum(r["occupancy"]["wall_seconds"] for r in results) / len(results), 1),
+               "not_s3_data": "these four episodes only measure occupancy; the s3 stage generates the same houses again into train"}
+    if not succeeded:
+        receipt["refused"] = "no measured house ran a full episode, so the peaks would understate a worker"
+        (measure_root / "measure_receipt.json").write_text(json.dumps(receipt, indent=1))
+        print(json.dumps(receipt, indent=1, default=str)); return 1
+    occupancy = s3_occupancy(results, workers=workers, machine=machine, baseline=baseline)
+    receipt["occupancy"] = occupancy
+    (measure_root / "measure_receipt.json").write_text(json.dumps(receipt, indent=1))
+    (measure_root / "occupancy_receipt.json").write_text(json.dumps(occupancy, indent=1))
+    print(json.dumps(receipt, indent=1, default=str))
+    return 0
+
+
+def _main_s3_generate(args: argparse.Namespace, *, lists: Mapping[str, list[str]], splits: list[str], out_root: Path,
+                      measure_root: Path, source: Path, freeze: Mapping[str, Any], commit: str, salt_sha: str) -> int:
+    from vsmt import lean_test_seal
+
+    occupancy_path = measure_root / "occupancy_receipt.json"
+    if not occupancy_path.exists():
+        print(f"no occupancy measurement at {occupancy_path}; run --stage s3-measure first"); return 2
+    occupancy = json.loads(occupancy_path.read_text(encoding="utf-8"))
+    occupancy = lean_pilot.validate_occupancy_receipt({k: occupancy[k] for k in lean_pilot.OCCUPANCY_RECEIPT_FIELDS})
+    measured = json.loads((measure_root / "measure_receipt.json").read_text(encoding="utf-8"))
+    verified_limit = occupancy["simulator_concurrency_limit"]
+    if args.simulator_concurrency_limit is not None:
+        # as in S1-02b: a limit above the measured four is an assumption, recorded with is_extrapolation, never lowered silently
+        occupancy["simulator_concurrency_limit"] = max(int(args.simulator_concurrency_limit), 1)
+    measurements, capacity_basis = _s3_capacity_measurements()
+    s1_01 = json.loads((ROOT / "configs" / "vsmt" / "lean_s1_assets_capacity_v2.json").read_text(encoding="utf-8"))
+    scale = lean_pilot.plan_scale_up(occupancy, measurements, headroom_fraction=s1_01["worker_rule"]["headroom_fraction"])
+    workers = min(scale["worker_count"], args.workers) if args.workers else scale["worker_count"]
+    roots = {split: out_root / split for split in splits}
+    if not args.resume:
+        crowded = [split for split, root in roots.items() if root.exists() and any(root.glob("procthor10k-*"))]
+        if crowded:
+            print(f"split roots already hold houses: {crowded}; refusing (pass --resume to continue, never overwrite)"); return 2
+    for split, root in roots.items():
+        root.mkdir(parents=True, exist_ok=True)
+        if split == "test" and lean_test_seal.sealed_marker(root) is None:  # ruling 103-1: sealed from its creation
+            lean_test_seal.write_marker(root, kind="raw", state=lean_test_seal.STATE_PENDING)
+    tasks = [task for split in splits
+             for task in _s3_tasks(lists[split], roots[split], source=source, freeze=freeze, commit=commit, args=args)]
+    prior: list[dict[str, Any]] = []
+    if args.resume:
+        pending = []
+        for task in tasks:
+            d = Path(task["out"])
+            if (d / "receipt.json").exists():
+                prior.append(json.loads((d / "receipt.json").read_text(encoding="utf-8")))
+            elif d.exists():
+                # interrupted before a receipt: a terminal failure as in S1-02b, partial output kept, never rerun
+                r = {"house_id": task["house_id"], "source_index": task["index"], "code_commit": commit,
+                     "status": "failed", "reason": "frame_write_failed", "detail": "interrupted_before_receipt",
+                     "occupancy": {"peak_rss_gb": 0.0, "cpu_seconds": 0.0, "wall_seconds": 0.0, "bytes_written": _dir_bytes(d)}}
+                (d / "receipt.json").write_text(json.dumps(r, indent=1))
+                prior.append(r)
+            else:
+                pending.append(task)
+        print(f"resume: {len(prior)} terminal, {len(pending)} pending", flush=True)
+        tasks = pending
+    mean_wall = float(measured["mean_wall_seconds_per_house"])
+    plan = {"stage": "s3", "splits": splits, "houses": {split: len(lists[split]) for split in splits}, "pending": len(tasks),
+            "measure_root": str(measure_root), "derived": scale, "requested_workers": args.workers, "actual_workers": workers,
+            "measurements": measurements, "capacity_basis": capacity_basis,
+            "simulator_concurrency_limit_verified": verified_limit,
+            "simulator_concurrency_limit_assumed": occupancy["simulator_concurrency_limit"],
+            "sharding": "one house per task in manifest order (train, validation, test); receipts merged by house id per split",
+            "projected_wall_hours": round(len(tasks) * mean_wall / max(workers, 1) / 3600.0, 2),
+            "projection_basis": f"{len(tasks)} houses x the measured mean {mean_wall:.0f} s per house / {workers} workers",
+            "commit": commit, "null_window_salt_sha256": salt_sha, "options": _s3_options(args)}
+    plan_name = f"plan.resume-{commit[:7]}-{time.strftime('%Y%m%dT%H%M%S')}.json" if (out_root / "plan.json").exists() else "plan.json"
+    (out_root / plan_name).write_text(json.dumps(plan, indent=1))
+    print(f"[s3] {len(tasks)} houses on {workers} workers (derived {scale['worker_count']}, binding {scale['binding_constraint']}, "
+          f"extrapolation {scale['is_extrapolation']}); projected {plan['projected_wall_hours']} h", flush=True)
+    t0 = time.time()
+    results = list(prior) + _run_with_timeout(tasks, workers, args.stall_timeout_s, commit)
+    wall = time.time() - t0
+    run = {"options": _s3_options(args), "requested_workers": args.workers, "actual_workers": workers,
+           "derived_worker_count": scale["worker_count"], "binding_constraint": scale["binding_constraint"],
+           "concurrency_verified_at": scale["concurrency_verified_at"], "is_extrapolation": scale["is_extrapolation"],
+           "simulator_concurrency_limit_verified": verified_limit,
+           "simulator_concurrency_limit_assumed": occupancy["simulator_concurrency_limit"],
+           "capacity_basis": capacity_basis, "wall_clock_seconds": round(wall, 1),
+           "wall_clock_note": "this invocation only: a resume restarts the clock (the plans list every invocation)", "plan_file": plan_name}
+    summary = {}
+    for split in splits:
+        receipt = s3_split_receipt(split, lists[split], results, commit=commit, salt_sha256=salt_sha, run=run)
+        (roots[split] / S3_RECEIPT).write_text(json.dumps(receipt, indent=1))
+        summary[split] = {k: receipt[k] for k in ("houses_planned", "succeeded", "failed", "null_window_episodes",
+                                                  "yield_house_level_non_null", "moves_executed", "moves_source_first", "move_minimum")}
+    print(json.dumps({"s3": summary, "workers": workers, "wall_clock_seconds": round(wall, 1)}, indent=1, default=str))
+    return 0
 
 
 if __name__ == "__main__":
