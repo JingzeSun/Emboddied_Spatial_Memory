@@ -127,17 +127,17 @@ bash ops/vsmt/s3_02_data.sh status
 
 | 阶段 | 做什么 | 预计耗时（粗估，以实测为准） |
 |---|---|---|
-| check | 全量测试；全部输入、显卡、cgroup 配额与内存、数据盘可用空间写进运行清单 | 约 15 分钟 |
+| check | 全量测试；全部输入、显卡、cgroup 配额与内存、数据盘可用空间写进运行清单（磁盘按全部产物推算、减去本次已写入，所以 hold 之后在登记提交上重跑时只要求剩下的部分） | 约 15 分钟 |
 | measure | train 前 4 个 house、4 路并发，实测单 worker 占用（measure 根，不算 S3 数据） | 约 25 分钟 |
 | generate | 用实测字节数重算磁盘；450 个 house 一个进程池（S1-01 规则推导 worker 数，模拟器并发上限按确认集的 16 路外推）；裁决 36 检查 | 约 8～9 小时 |
 | hold | 首跑停在这里：生成器提交要登记进 S1-03 位姿登记表（裁决 103-3 预授权的登记提交），在那个提交上再跑 `all` | — |
 | geometry | 三个划分的几何重载，8 个模拟器 worker | 约 15 分钟 |
 | instance-cache | 实例分割 cache，每个 worker 2 线程，按 cgroup 配额与内存定 worker 数，所有卡，大 episode 先派发 | 约 2 小时 |
-| sam2-measure | 一张卡上 1～4 个 worker 试跑，取吞吐最高的每卡 worker 数，打印总时长估计后继续 | 约 15 分钟 |
+| sam2-measure | 一张卡上 1～4 个 worker 试跑，取吞吐最高的每卡 worker 数，打印总时长估计后继续；某一档里有 episode 因数据本身失败（如色块超上限）照样算数并列出，因显存不足等其他原因失败的档不算，全都不算才停 | 约 15 分钟 |
 | sam2-cache | SAM 2.1 cache，每卡最佳 worker 数 × 卡数 | 约 20～40 小时 |
 | export → verify | 导出（train、validation 逐 house；test 只有计数）、封存 test、核对各划分一致与封印、写最终运行清单 | 约 30 分钟 |
 
-**停点**：train 搬动不足 120 次或源先重访不足 60 次时 generate 写 `stopped` 并停下，等规模裁决（裁决 36）；首跑到 hold 时写 `hold` 并停下，生成器提交登记后续跑；若生成器提交的 camera_pose 编码与已登记的不同，hold 写 `stopped`，这种提交不能这样登记。cache 某条 episode 的失败若不是数据本身的原因（如 SAM2 色块超上限），该段失败并停下等检查，不重跑、不替换。
+**停点**：train 搬动不足 120 次或源先重访不足 60 次时 generate 写 `stopped` 并停下，等规模裁决（裁决 36）；首跑到 hold 时写 `hold` 并停下，生成器提交登记后续跑；若生成器提交的 camera_pose 编码与已登记的不同，hold 写 `stopped`，这种提交不能这样登记。cache 某条 episode 若因数据本身的原因失败（如 SAM2 色块超上限），照记、不算该段失败；若因别的原因失败，该段失败并停下等检查，不重跑、不替换。
 
 **输出**：原始 episode `$AUTODL/vsmt_outputs/s3-02-<tag>/{measure,train,validation,test}`，几何 `$AUTODL/vsmt_private/s3-02-geometry-<tag>/<划分>`，cache `$AUTODL/vsmt_caches/s3-02-{instance,sam2}-<tag>/<划分>`（tag 是第一次 check 时的提交）；导出 `$AUTODL/vsmt_outputs/exports/vsmt_lean_s3_02_*_<tag>.json` 拉回 `results/` 提交：输入核对、测量、生成计划、train 与 validation 的逐 house 报告、几何与两套 cache 的报告、test 的计数汇总与封印、worker 依据、裁决 36 检查、登记记录、SAM2 试跑、运行清单与 verify。
 
