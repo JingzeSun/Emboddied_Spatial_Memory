@@ -61,7 +61,8 @@
     "correct_encoder_since_code_commits": [
       "7c10d2c8f5d06e37c2d8fa3792f2b4058ecf2b69",
       "5f9aa71d9328e0a1d065c61c2bc7ef54a11a468c",
-      "2339baa96c123a7676e129881d270bfab252573c"
+      "2339baa96c123a7676e129881d270bfab252573c",
+      "3f6ef1dda3873d81df1225fed42a42ceca4f5a9e"
     ],
     "an_episode_from_an_unlisted_commit_is_refused": true,
     "position_is_unchanged": true,
@@ -434,7 +435,8 @@
       "D-224-S1 裁决 49 的登记（2026-09-23）：裁决 50 的重新生成在提交 7c10d2c 下完成，该提交的编码器写 Ry(yaw)·Rx(+pitch)，故登记进 correct_encoder_since_code_commits，读者按原样读它生成的 episode，不再施加修正。",
       "D-224-S1 裁决 53 的登记（2026-09-23，用户原话「授权在 S1-03 合同登记 5f9aa71 并重钉，然后重建 cache」）：裁决 53 的重新生成在提交 5f9aa71 下完成（LOG-243 续四：S1-02b 非空成品率 28/37 过 0.6 门，全 50 条 39 成 11 败），该提交与 7c10d2c 之间 camera_pose 编码器未改、仍写 Ry(yaw)·Rx(+pitch)，故登记进 correct_encoder_since_code_commits，读者按原样读它生成的 39 条成功 episode；cache 重建到新根 lean-s1-03-<cache 提交>；7c10d2c 的 episode 保留为审计源，不再是数据。",
       "D-224-S1 裁决 72（2026-09-25 16:35 CST 批准，原话「裁决 72 取 (A)(a)(B)(a)(C)(a)(D)(a)」）：mask_source 块登记两个来源——simulator_instance_masks（主表）与 sam2（鲁棒性附录）；实例分割模式只读私有实例图的 mask 像素几何与核对帧身份所需的两项；准入规则不变；episode 封印对非 SAM2 来源写进 mask_source（SAM2 封印字节不变），读取入口拒绝另一来源的 cache；回执记来源。",
-      "裁决 89 执行变更一的登记（2026-09-30，DECISIONS 裁决 89“执行变更一”附带的工程登记）：确认集（train 块第 50～99 位）的原始 episode 在提交 2339baa 下生成；该提交相对 5f9aa71 只加了核对冻结名单的 --stage confirmation 入口与多卡 nvidia-smi 读数修复，camera_pose 编码器未改、仍写 Ry(yaw)·Rx(+pitch)，故登记进 correct_encoder_since_code_commits，cache 与几何重载的读取端按原样读这批 episode；读取规则不变。"
+      "裁决 89 执行变更一的登记（2026-09-30，DECISIONS 裁决 89“执行变更一”附带的工程登记）：确认集（train 块第 50～99 位）的原始 episode 在提交 2339baa 下生成；该提交相对 5f9aa71 只加了核对冻结名单的 --stage confirmation 入口与多卡 nvidia-smi 读数修复，camera_pose 编码器未改、仍写 Ry(yaw)·Rx(+pitch)，故登记进 correct_encoder_since_code_commits，cache 与几何重载的读取端按原样读这批 episode；读取规则不变。",
+      "裁决 103-3 的登记（2026-10-03，裁决 103 预授权的登记提交；用户同日原话「S3-02 六个提交审过；其余全部按推荐」）：S3-02 正式数据（train 300、validation 50、test 100 及测量用 4 个 house）在提交 3f6ef1d 下生成（本登记在开跑前预先做好，驱动在 hold 段之后才在含本登记的提交上续跑）；该提交的生成器相对 2339baa 只加了 --stage s3-measure 与 --stage s3（按清单生成、逐划分回执、裁决 36 检查），camera_pose 编码器未改、仍写 Ry(yaw)·Rx(+pitch)（驱动 hold 段另逐条核对编码与最近一次登记的相同，不同即停），故登记进 correct_encoder_since_code_commits，cache 与几何重载的读取端按原样读这批 episode；读取规则不变。"
     ]
   }
 }

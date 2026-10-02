@@ -36,6 +36,8 @@ CORRECTED = "7c10d2c8f5d06e37c2d8fa3792f2b4058ecf2b69"
 CORRECTED_53 = "5f9aa71d9328e0a1d065c61c2bc7ef54a11a468c"
 # the confirmation-set generation (ruling 89 execution change one): same camera_pose encoder, registered 2026-09-30
 CORRECTED_CONFIRM = "2339baa96c123a7676e129881d270bfab252573c"
+# the S3-02 generation (ruling 103-3): same camera_pose encoder, registered 2026-10-03 before the run
+CORRECTED_S3 = "3f6ef1dda3873d81df1225fed42a42ceca4f5a9e"
 CALIBRATION = {"fx": 112.0, "fy": 112.0, "cx": 111.5, "cy": 111.5}
 
 
@@ -110,7 +112,7 @@ class PolicyTests(unittest.TestCase):
         self.assertEqual(self.policy["applies_to_s1_02_code_commits"],
                          [DEFECTIVE, "a397d16b93d202cf50b849a87cbfbb55e5ca06c0"])
         # the ruling-50 regeneration's generator commit, registered once its data existed
-        self.assertEqual(self.policy["correct_encoder_since_code_commits"], [CORRECTED, CORRECTED_53, CORRECTED_CONFIRM])
+        self.assertEqual(self.policy["correct_encoder_since_code_commits"], [CORRECTED, CORRECTED_53, CORRECTED_CONFIRM, CORRECTED_S3])
         self.assertEqual(set(self.policy["applies_to_s1_02_code_commits"]) & set(self.policy["correct_encoder_since_code_commits"]), set())
         self.assertEqual(self.policy["rule"], pp.CORRECTION_RULE)
         fc.validate_contract(json.loads(S1_03_CONTRACT_PATH.read_text(encoding="utf-8")))

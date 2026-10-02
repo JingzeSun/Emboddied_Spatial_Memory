@@ -427,7 +427,12 @@ FROZEN_RULE_SHA256 = {
     # nvidia-smi reading to 5f9aa71 and leaves the camera_pose encoder untouched, so it joins
     # correct_encoder_since_code_commits and the confirmation episodes are read as written; no reading rule changes.
     # f354863c -> 32550212.
-    "S1-03": "325502120a83a8adc158529c7aa78d34bb777a98a2b924aa66f4eef1fde6b348",
+    # Re-pinned 2026-10-03 for ruling 103-3 (the pre-authorised registration): the S3-02 data is generated at
+    # 3f6ef1d, whose generator differs from 2339baa only by --stage s3-measure and --stage s3 and leaves the
+    # camera_pose encoder untouched (the driver's hold stage checks the encoding against the last registration),
+    # so it joins correct_encoder_since_code_commits and the S3 episodes are read as written; no reading rule
+    # changes. 32550212 -> 458aa609.
+    "S1-03": "458aa6094bb75ae8461bd52ed9d51343e934bad3d687fa5159a55c7d08e5499f",
     # S1-04 v1 (2026-09-22, rulings 45/46/47): first pinned with every bit closed
     # (2fff2d19...); re-pinned the same day when ruling 48 and the user's code review opened
     # all six bits by name in activation_policy (the bits are rules of who may run what, as
