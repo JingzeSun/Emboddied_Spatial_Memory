@@ -332,6 +332,18 @@ class GraphTests(unittest.TestCase):
             checked += 1
         self.assertEqual(checked, 50)
 
+    def test_no_builder_reads_a_loop_value_at_dispatch_time(self) -> None:
+        # the structural guard behind the test above: a builder runs at dispatch, long after build_jobs' loops ended, so it may
+        # capture from build_jobs' scope only what never changes there -- the run context and the first front (assigned once);
+        # every per-front, per-arm, per-seed or per-episode value must arrive as a bound default argument
+        allowed = {"ctx", "first"}
+        captured = {}
+        for job in self.jobs.values():
+            names = set(job.build.__code__.co_freevars) - allowed
+            if names:
+                captured[job.job_id] = sorted(names)
+        self.assertEqual(captured, {})
+
     def test_the_whole_graph_runs_in_protocol_order_under_fake_processes(self) -> None:
         effects = {"instance/fit": lambda argv: write_fit(self.ctx, "instance"), "sam2/fit": lambda argv: write_fit(self.ctx, "sam2"),
                    "train-threads": lambda argv: pool.write_json(self.ctx.run_root / "train_threads.json", {"train_threads": 3})}
