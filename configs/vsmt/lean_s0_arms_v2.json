@@ -480,7 +480,9 @@
       "plain_language_zh": "HeuristicLabel 回答私有实例真值相对公开启发式标签的贡献。标签来源是 ELU-P 在预登记 rollout_config 那一格上、对公开输入做出的决定（D-224-SW 裁决 T；D-224-X 裁决 X3/X4），同架构、同配方重训，不复用 VSMT-lean 权重。TAF 从不撤回，存在头会没有 gone 样本可学，所以不用它当标签源。复审修订（LOG-225）：ELU-P 的三个拟合量在 train 私有真值上估计，所以这些标签不是严格只用公开数据，私有信息只通过这三个标量进入；合同不再声称\"只用公开数据\"，而是写明这唯一的一条私有依赖。",
       "label_source_config": "arms.ELU-P.rollout_config",
       "labels_from_the_registered_rollout_config": true,
-      "retrained_not_weight_reuse": true
+      "retrained_not_weight_reuse": true,
+      "label_rule": "ruling 104-1 1c: HeuristicLabel's targets are ELU-P's decisions at the registered rollout_config with the registered fitted values of the episodes' mask source: each fragment's target is its column in the joint solve of ELU-P's gate logits over the same recalled columns; each eligible existence row is present when that solve binds a fragment to the entity, otherwise gone when ELU-P's log-odds -- the arm's own recursion (decay and weighted free-space coverage per eligible frame, gain per match) along this trajectory's eligible rows and matches, rolled back with an illegal frame -- fall below the retract threshold; every fragment and every eligible row carries a label; round 0 labels ELU-P's round-0 trajectory, round 1 HeuristicLabel's own trajectory under its round-0 heads",
+      "label_rule_plain_language_zh": "裁决 104-1 1c：HeuristicLabel 的标签是 ELU-P 在 rollout_config 加该前端登记拟合量下会作的决定。关联：ELU-P 的门 logit 在同一召回列上联合求解，每个色块分到的列就是它的目标；存在：这次求解把色块绑给某实体则记 present，否则看 ELU-P 的对数几率——与 ELU-P 臂同一递推（每个可判定帧减衰减与覆盖乘权重，每次匹配加增益，沿这条轨迹的可判定行与匹配累积，非法帧回滚）——低于撤回门记 gone。所有色块与可判定行都有标签。第 0 轮标 ELU-P 第 0 轮轨迹，第 1 轮标 HeuristicLabel 第 0 轮头自己的轨迹。这个递推与裁决 89-2 历史摘要的线性式是同一个量；按臂的递推算，是为了在 ELU-P 自己的轨迹上与臂的决定逐位相同（裁决 104-2 的 G4 门）。"
     },
     "AssocOnly": {
       "base": "VSMT-lean association head and solver",

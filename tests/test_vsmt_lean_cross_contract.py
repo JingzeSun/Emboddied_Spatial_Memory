@@ -393,7 +393,12 @@ FROZEN_RULE_SHA256 = {
     # with RETRACT chooses only among validation configurations whose Missing residual rate is below the same front end's
     # AssocOnly (five-seed means), the node-F1 maximum otherwise, recorded as not satisfiable and supporting no stale-entity claim;
     # the selection_constraint block (six arms, reference arm, metric) is bound.  0065b9b4 -> 60e2aa9d.
-    "S0-05": "60e2aa9d92a03a70a766555f7247ce210b71f9fa26eb12ae305cd6f719a98fff",
+    # Ruling 104-1 1c (2026-10-03, 「待裁 104 全按推荐；加速方案全按推荐（含 1b 不停机登记）；104-5 暂缓」): ablations.HeuristicLabel.
+    # label_rule states the label function (ELU-P's joint solve for the fragments; present when bound, otherwise gone below the
+    # retract threshold on the arm's own log-odds recursion along the trajectory; round 0 on ELU-P's trajectory, round 1 on
+    # HeuristicLabel's own), bound to lean_arms.HEURISTIC_LABEL_RULE.  Checked at re-pin time that with label_rule removed the
+    # digest is 60e2aa9d again.  60e2aa9d -> cd086c49.
+    "S0-05": "cd086c492a5f899034d0e3ddc9de8232c2473a153b87f6411b97823d9def661e",
     "S1-01": "4f139e631388c05e4006fd12ffad8b611d2e7811fb7f9a830ce9f7c63fdecd84",
     "S1-02a": "997cabe5105ca304269b0d8d9dd34038ff096df7a79c875c577a2629866ccc64",
     # S1-03 re-pinned 2026-09-22 for ruling 49 (LOG-242): the public_pose_correction block -- every

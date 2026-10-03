@@ -70,6 +70,18 @@ GATE_ARMS = ("TAF", "ELU-P", "RAC")
 
 #: D-224-SW rulings T and V.
 HEURISTIC_LABEL_SOURCE = "ELU-P"
+#: Ruling 104-1 1c (2026-10-03): HeuristicLabel's label function, implemented by ``lean_heuristic_label``; the S0-05
+#: HeuristicLabel block carries this string.
+HEURISTIC_LABEL_RULE = (
+    "ruling 104-1 1c: HeuristicLabel's targets are ELU-P's decisions at the registered rollout_config with the "
+    "registered fitted values of the episodes' mask source: each fragment's target is its column in the joint "
+    "solve of ELU-P's gate logits over the same recalled columns; each eligible existence row is present when "
+    "that solve binds a fragment to the entity, otherwise gone when ELU-P's log-odds -- the arm's own recursion "
+    "(decay and weighted free-space coverage per eligible frame, gain per match) along this trajectory's eligible "
+    "rows and matches, rolled back with an illegal frame -- fall below the retract threshold; every fragment and "
+    "every eligible row carries a label; round 0 labels ELU-P's round-0 trajectory, round 1 HeuristicLabel's own "
+    "trajectory under its round-0 heads"
+)
 SELECTION_METRIC = "node_f1"
 RULINGS_DECISION_ID = "D-224-SW"
 
@@ -950,6 +962,7 @@ def validate_arms_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
         contract["ablations"]["HeuristicLabel"]["label_source_arm"] == HEURISTIC_LABEL_SOURCE,
         "contract_heuristic_label_source_mismatch",
     )
+    _require(contract["ablations"]["HeuristicLabel"].get("label_rule") == HEURISTIC_LABEL_RULE, "contract_heuristic_label_rule_mismatch")
     # D-224-X ruling X4: the registered rollout configuration.
     rollout = arms[ROLLOUT_CONFIG_ARM]["rollout_config"]
     _require(tuple(rollout.keys()) == ROLLOUT_CONFIG_PARAMETERS, "contract_rollout_config_parameters_mismatch")
@@ -1057,6 +1070,7 @@ __all__ = [
     "EXPECTED_BOOLEAN_CLAIMS",
     "GATE_ARMS",
     "GRID_PARAMETERS",
+    "HEURISTIC_LABEL_RULE",
     "HEURISTIC_LABEL_SOURCE",
     "INELIGIBLE_LOGIT",
     "LEARNED_ARMS",

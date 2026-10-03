@@ -23,13 +23,7 @@ from vsmt import lean_arms as arms
 from vsmt import lean_assignment as la
 
 STAGE = "vsmt.lean.heuristic_label.v1"
-LABEL_RULE = (
-    "ruling 104-1 1c: HeuristicLabel's targets are ELU-P's decisions at the registered rollout_config with the S3 fitted values: "
-    "the column of each fragment in the joint solve of ELU-P's gate logits over the same recalled columns, and for each eligible "
-    "existence row present when that solve binds a fragment to the entity, otherwise gone when ELU-P's log-odds -- the arm's own "
-    "recursion along this trajectory's eligible rows and matches -- falls below the retract threshold; every fragment and every "
-    "eligible row carries a label"
-)
+LABEL_RULE = arms.HEURISTIC_LABEL_RULE  # the string the S0-05 HeuristicLabel block carries (ruling 104-1 1c)
 LABELLER_ARM = "ELU-P"
 
 

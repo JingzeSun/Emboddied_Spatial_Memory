@@ -7,10 +7,12 @@ row (no mismatch, and the scenario does retract A) and the labeller's log-odds e
 frame; on TAF's trajectory the labels follow that trajectory (TAF keeps A, the labeller calls A gone in both frames A
 is eligible) and no reproduction block is kept; where the trajectory births every fragment, the labeller's own solve
 binds the old entities and labels them present; AssocOnly's trajectory is refused (it has no existence step); every
-record is accepted by the trainer's own preparation.  CPU, seconds; nothing here reads a real cache or a private file.
+record is accepted by the trainer's own preparation; the S0-05 HeuristicLabel block carries the label rule and the
+contract check refuses another.  CPU, seconds; nothing here reads a real cache or a private file.
 """
 from __future__ import annotations
 
+import json
 import sys
 import unittest
 from pathlib import Path
@@ -33,6 +35,13 @@ LABEL_CONFIG = {**arms.ROLLOUT_CONFIG, "d_a": None, "initial_log_odds": 0.5, "pe
 
 
 class ConfigTests(unittest.TestCase):
+    def test_the_contract_carries_the_label_rule(self):
+        contract = json.loads((PROJECT_ROOT / "configs" / "vsmt" / "lean_s0_arms_v2.json").read_text(encoding="utf-8"))
+        self.assertEqual(contract["ablations"]["HeuristicLabel"]["label_rule"], hl.LABEL_RULE)
+        contract["ablations"]["HeuristicLabel"]["label_rule"] = hl.LABEL_RULE + " (edited)"
+        with self.assertRaisesRegex(ValueError, "contract_heuristic_label_rule_mismatch"):
+            arms.validate_arms_contract(contract)
+
     def test_only_the_rollout_config_with_fitted_values_is_accepted(self):
         self.assertEqual(hl.validate_label_config(LABEL_CONFIG), LABEL_CONFIG)
         for name, value, code in (("theta_a", 0.6, "label_config_not_the_rollout_config:theta_a"),
