@@ -248,7 +248,7 @@ def cmd_train(args: argparse.Namespace) -> int:
     started = time.time()
     callback = best_so_far_writer(out_dir, uses=plan["settings"]["uses"]) if args.best_so_far else None
     result = model.train_heads_streamed(record_stream(plan, "train"), record_stream(plan, "selection"), seed=int(args.seed),
-                                        device="cpu", best_callback=callback, **values)
+                                        device="cpu", best_callback=callback, optimizer_foreach=bool(args.foreach), **values)
     wall = round(time.time() - started, 1)
     write_json_atomic(out_dir / "weights.json", result["weights"])
     grouped = result.get("grouped")
@@ -263,6 +263,7 @@ def cmd_train(args: argparse.Namespace) -> int:
         "split": {"rule": plan["split"]["rule"], "training_houses_present": len(plan["training_houses_present"]),
                   "selection_houses_present": len(plan["selection_houses_present"]),
                   "training_houses_absent": plan["training_houses_absent"], "selection_houses_absent": plan["selection_houses_absent"]},
+        "optimizer_foreach": bool(args.foreach),
         "recipe": {**values, "registered_by": "ruling 99-1 (S0-05 arms.VSMT-lean.training.s2r_recipe); ruling 104-1",
                    "concatenation": "every source in full, no resampling; the budget is the registered epochs over the concatenation",
                    "preparation": "streamed in two passes (ruling 104-3): the encoding statistics, then the tensors; no raw record kept"},
@@ -307,8 +308,10 @@ def cmd_probe(args: argparse.Namespace) -> int:
     chosen = subset(plan, args.houses)
     values = {**recipe(plan["settings"]), "epochs": int(args.epochs)}
     train_stream, selection_stream = record_stream(plan, "train", houses=chosen), record_stream(plan, "selection", houses=chosen)
+    # the registered computation (list-based, the default optimizer path) against the run's (streamed, foreach when given)
     listed = model.train_heads(list(train_stream()), list(selection_stream()), seed=int(args.seed), device="cpu", **values)
-    streamed = model.train_heads_streamed(train_stream, selection_stream, seed=int(args.seed), device="cpu", **values)
+    streamed = model.train_heads_streamed(train_stream, selection_stream, seed=int(args.seed), device="cpu",
+                                          optimizer_foreach=bool(args.foreach), **values)
     compared = {
         "weights_sha256": [listed["weights"]["sha256"], streamed["weights"]["sha256"]],
         "grouped_sha256": [(listed.get("grouped") or {}).get("weights", {}).get("sha256"), (streamed.get("grouped") or {}).get("weights", {}).get("sha256")],
@@ -319,7 +322,9 @@ def cmd_probe(args: argparse.Namespace) -> int:
     }
     identical = all(a == b for a, b in compared.values())
     write_json_atomic(Path(args.out), {
-        "stage": STAGE, "check": "ruling 104-2 training equivalence probe: the list-based train_heads and the streamed path",
+        "stage": STAGE, "check": ("ruling 104-2 training equivalence probe: the list-based train_heads on the default optimizer path "
+                                  "against the streamed path as the run trains (with AdamW foreach when given, ruling 104-7)"),
+        "optimizer_foreach": bool(args.foreach),
         "arm": args.arm, "round": args.round, "seed": args.seed, "epochs": args.epochs, "houses": sorted(chosen),
         "identical": identical, "compared": {k: (v[0] == v[1]) for k, v in compared.items()},
         "weights_sha256": compared["weights_sha256"], "threads": threads, "code_commit": git_commit(),
@@ -341,7 +346,8 @@ def cmd_time(args: argparse.Namespace) -> int:
         threads = set_threads(count)
         marks: list[float] = []
         model.train_heads_streamed(record_stream(plan, "train", houses=chosen), record_stream(plan, "selection", houses=chosen),
-                                   seed=arms.SEEDS[0], device="cpu", epoch_callback=lambda epoch, heads: marks.append(time.time()), **values)
+                                   seed=arms.SEEDS[0], device="cpu", epoch_callback=lambda epoch, heads: marks.append(time.time()),
+                                   optimizer_foreach=bool(args.foreach), **values)
         rows.append({"threads": count, "thread_settings": threads, "epoch_seconds": round(marks[1] - marks[0], 3)})
         print(f"[s3-03-train time] {count} threads: {rows[-1]['epoch_seconds']} s per epoch")
     write_json_atomic(Path(args.out), {"stage": STAGE, "check": "ruling 104-3 per-epoch time by thread count on a fixed subset",
@@ -359,6 +365,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         command.add_argument("--source", dest="sources", action="append", required=True)
         command.add_argument("--arm", required=True, choices=list(s3.TRAINED_ARMS))
         command.add_argument("--round", type=int, required=True, choices=list(s3.ROUNDS))
+        command.add_argument("--foreach", action="store_true",
+                             help="ruling 104-7 conditional item: AdamW's multi-tensor path (bit-identical where pinned and probed)")
         if name == "train":
             command.add_argument("--seed", type=int, required=True)
             command.add_argument("--out-dir", required=True)

@@ -76,6 +76,10 @@ CONFIGS_PER_AUDIT_JOB = {"rule": 3, "learned": 5}
 RUN_FLOOR_GIB = 20.0
 #: The adoption choice of the first run, kept so that every resume builds the same graph.
 ADOPT_FILE = "adopt_calibration.json"
+#: Ruling 104-7 conditional item: the trainings, the timing and the training probe use AdamW's multi-tensor path.  It is
+#: bit-identical to the default path where checked (a suite test the check step runs on the server's torch; the training
+#: probe on real records, registered path against the run's); a difference stops the run before its results are used.
+OPTIMIZER_FOREACH = True
 TIMING_TRAINING_HOUSES = 20
 TIMING_SELECTION_HOUSES = TIMING_TRAINING_HOUSES // 4  # s3_03_train.subset takes a quarter as many selection houses
 PROBE_TRAIN_HOUSES = 12
@@ -283,7 +287,7 @@ class RunContext:
             argv += ["--source", source]
         return argv + ["--arm", arm, "--round", str(round_index), "--seed", str(seed),
                        "--out-dir", str(self.training_dir(front, round_index, arm, seed)), "--threads", str(self.train_threads()),
-                       "--best-so-far"]
+                       "--best-so-far", *(["--foreach"] if OPTIMIZER_FOREACH else [])]
 
     def manifest(self, command: str, *extra: str) -> list[str]:
         return [self.python, str(HERE), command, "--run-root", str(self.run_root), *extra]
@@ -356,7 +360,8 @@ def build_jobs(ctx: RunContext) -> list[pool.Job]:
         jobs.append(pool.Job(f"{front}/probe-train", "probe_train", (f"{front}/gate-r0", "train-threads"), P["control"], 0.0, None, "train_probe",
                              lambda f=front: [ctx.python, str(TRAIN_ENTRY), "probe", "--source", f"{ctx.pass_root(f, 'round0')}:ELU-P:teacher",
                                               "--arm", "VSMT-lean", "--round", "0", "--houses", str(PROBE_TRAIN_HOUSES), "--epochs", "1",
-                                              "--threads", str(ctx.train_threads()), "--out", str(ctx.gates_dir(f) / "train_probe.json")],
+                                              "--threads", str(ctx.train_threads()), "--out", str(ctx.gates_dir(f) / "train_probe.json"),
+                                              *(["--foreach"] if OPTIMIZER_FOREACH else [])],
                              exit_status={3: "gate_failed"}))
         round1 = ctx.pass_root(front, "round1")
         round1_ids: dict[str, list[str]] = {}
@@ -431,7 +436,7 @@ def build_jobs(ctx: RunContext) -> list[pool.Job]:
     jobs.append(pool.Job("timing", "timing", timing_deps, PRIORITY["control"], 0.0, 4, "train_timing",
                          lambda: [ctx.python, str(TRAIN_ENTRY), "time", "--source", f"{ctx.pass_root(first, 'round0')}:ELU-P:teacher",
                                   "--arm", "VSMT-lean", "--round", "0", "--houses", str(TIMING_TRAINING_HOUSES), "--threads", "1,2,3,4",
-                                  "--out", str(ctx.run_root / "train_timing.json")]))
+                                  "--out", str(ctx.run_root / "train_timing.json"), *(["--foreach"] if OPTIMIZER_FOREACH else [])]))
     jobs.append(pool.Job("train-threads", "train_threads", ("timing",), PRIORITY["control"], 0.0, 1, "small",
                          lambda: ctx.manifest("train-threads", "--trainings", str(len(s3.TRAINED_ARMS) * len(arms.SEEDS) * len(ctx.fronts)))))
     if set(ctx.fronts) == set(FRONTS):  # the S3 calibration passes' grid positions, ruling 101 (1)(a) reading, report only (102-6)

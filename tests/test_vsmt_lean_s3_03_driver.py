@@ -289,6 +289,8 @@ class GraphTests(unittest.TestCase):
         self.assertEqual([argv[i + 1] for i, a in enumerate(argv) if a == "--source"],
                          [f"{self.ctx.run_root / 'instance' / 'round0'}:ELU-P:teacher", f"{self.ctx.run_root / 'instance' / 'round1'}:VSMT-lean:teacher"])
         self.assertEqual((self.option(argv, "--threads"), self.option(argv, "--seed"), self.option(argv, "--round")), ("3", "19", "1"))
+        for job_id in ("instance/t1/VSMT-lean/s19", "instance/t0/AssocOnly", "instance/probe-train", "timing"):
+            self.assertIn("--foreach", self.argv(job_id))  # ruling 104-7: pinned by the suite, probed on real records
         argv = self.argv("instance/t0/HeuristicLabel")
         self.assertEqual([argv[i + 1] for i, a in enumerate(argv) if a == "--source"], [f"{self.ctx.run_root / 'instance' / 'round0'}:ELU-P:heuristic"])
         argv = self.argv(f"instance/audit/NoVersion/s31/c00-04/{episode}")

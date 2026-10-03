@@ -688,6 +688,7 @@ def train_heads(
     field_encoding: bool = False, existence_class_weight: bool = False,
     cosine_min_learning_rate: float | None = None, gradient_clip_norm: float | None = None,
     existence_prior_correction: bool = False, group_selection: bool = False, best_callback: Any = None,
+    optimizer_foreach: bool = False,
 ) -> dict[str, Any]:
     """Train the heads once and keep the best-validation epoch; every value explicit, None refused.
 
@@ -727,7 +728,8 @@ def train_heads(
         learning_rate=learning_rate, weight_decay=weight_decay, epochs=epochs, seed=seed, assoc_only=assoc_only, device=device,
         epoch_callback=epoch_callback, best_callback=best_callback, field_encoding=field_encoding,
         existence_class_weight=existence_class_weight, cosine_min_learning_rate=cosine_min_learning_rate,
-        gradient_clip_norm=gradient_clip_norm, existence_prior_correction=existence_prior_correction, group_selection=group_selection)
+        gradient_clip_norm=gradient_clip_norm, existence_prior_correction=existence_prior_correction, group_selection=group_selection,
+        optimizer_foreach=optimizer_foreach)
 
 
 def train_heads_streamed(
@@ -737,6 +739,7 @@ def train_heads_streamed(
     field_encoding: bool = False, existence_class_weight: bool = False,
     cosine_min_learning_rate: float | None = None, gradient_clip_norm: float | None = None,
     existence_prior_correction: bool = False, group_selection: bool = False, best_callback: Any = None,
+    optimizer_foreach: bool = False,
 ) -> dict[str, Any]:
     """``train_heads`` on records read one at a time (ruling 104-3; the approved reading "流式准备、留在 CPU", 2026-10-03).
 
@@ -773,7 +776,8 @@ def train_heads_streamed(
         pos_weight=pos_weight, class_counts=class_counts, learning_rate=learning_rate, weight_decay=weight_decay, epochs=epochs,
         seed=seed, assoc_only=assoc_only, device=device, epoch_callback=epoch_callback, best_callback=best_callback,
         field_encoding=field_encoding, existence_class_weight=existence_class_weight, cosine_min_learning_rate=cosine_min_learning_rate,
-        gradient_clip_norm=gradient_clip_norm, existence_prior_correction=existence_prior_correction, group_selection=group_selection)
+        gradient_clip_norm=gradient_clip_norm, existence_prior_correction=existence_prior_correction, group_selection=group_selection,
+        optimizer_foreach=optimizer_foreach)
 
 
 def _train_on_frames(
@@ -781,15 +785,23 @@ def _train_on_frames(
     encoding: Mapping[str, Any] | None, pos_weight: Any, class_counts: Mapping[str, Any] | None,
     learning_rate: float, weight_decay: float, epochs: int, seed: int, assoc_only: bool, device: str, epoch_callback: Any,
     best_callback: Any, field_encoding: bool, existence_class_weight: bool, cosine_min_learning_rate: float | None,
-    gradient_clip_norm: float | None, existence_prior_correction: bool, group_selection: bool,
+    gradient_clip_norm: float | None, existence_prior_correction: bool, group_selection: bool, optimizer_foreach: bool = False,
 ) -> dict[str, Any]:
-    """The training loop of ``train_heads`` on frames already prepared (and batched under the field-wise encoding)."""
+    """The training loop of ``train_heads`` on frames already prepared (and batched under the field-wise encoding).
+
+    ``optimizer_foreach`` (ruling 104-7, a conditional item): AdamW's multi-tensor path instead of the default single-tensor path
+    on CPU.  It does the same arithmetic element by element; it is used only where the weights are shown identical bit for bit --
+    a test pins it on the suite's torch, and S3-03's training probe checks it on real records before the run relies on it.
+    """
 
     import torch
 
     offset = -math.log(float(pos_weight.item())) if existence_prior_correction and pos_weight is not None else None
     heads = make_heads(assoc_only=assoc_only, seed=int(seed), encoding=encoding).to(device)
-    optimiser = torch.optim.AdamW(heads.parameters(), lr=float(learning_rate), weight_decay=float(weight_decay))
+    if optimizer_foreach:
+        optimiser = torch.optim.AdamW(heads.parameters(), lr=float(learning_rate), weight_decay=float(weight_decay), foreach=True)
+    else:
+        optimiser = torch.optim.AdamW(heads.parameters(), lr=float(learning_rate), weight_decay=float(weight_decay))
     generator = torch.Generator(device="cpu").manual_seed(int(seed))
     train_curve: list[float | None] = []
     validation_curve: list[float | None] = []

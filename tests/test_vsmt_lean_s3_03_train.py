@@ -97,6 +97,8 @@ class StreamedTrainingTests(unittest.TestCase):
             with self.subTest(name=name):
                 values = dict(learning_rate=1e-3, weight_decay=1e-4, epochs=4, seed=7, assoc_only=assoc_only, **kwargs)
                 listed = model.train_heads(train, validation, **values)
+                fast = model.train_heads_streamed(lambda: iter(train), lambda: iter(validation), optimizer_foreach=True, **values)
+                self.check_same(listed, fast)  # ruling 104-7: AdamW foreach is the registered optimizer path bit for bit
                 streamed = model.train_heads_streamed(lambda: iter(train), lambda: iter(validation), **values)
                 self.check_same(listed, streamed)
 
@@ -317,13 +319,15 @@ class EntryTests(unittest.TestCase):
         round1 = self.write_pass("dagger_round_1", "VSMT-lean")
         out = self.tmp / "training" / "round1" / "VSMT-lean" / "A7"
         code = entry.main(["train", "--source", f"{round0}:ELU-P:teacher", "--source", f"{round1}:VSMT-lean:teacher",
-                           "--arm", "VSMT-lean", "--round", "1", "--seed", "7", "--out-dir", str(out), "--threads", "1", "--best-so-far"])
+                           "--arm", "VSMT-lean", "--round", "1", "--seed", "7", "--out-dir", str(out), "--threads", "1", "--best-so-far",
+                           "--foreach"])
         self.assertEqual(code, 0)
         receipt = json.loads((out / "training_receipt.json").read_text(encoding="utf-8"))
         train, validation = self.reference([(round0, "ELU-P"), (round1, "VSMT-lean")])
         expected = model.train_heads(train, validation, learning_rate=1e-3, weight_decay=1e-4, epochs=20, seed=7, assoc_only=False,
                                      **RECIPE_99_1, group_selection=True)
-        self.assertEqual(receipt["weights_sha256"], expected["weights"]["sha256"])
+        self.assertEqual(receipt["weights_sha256"], expected["weights"]["sha256"])  # the registered path, trained here with foreach
+        self.assertTrue(receipt["optimizer_foreach"])
         self.assertEqual(receipt["group_selection"]["weights_sha256"], expected["grouped"]["weights"]["sha256"])
         self.assertEqual(receipt["validation_curve_terms"], expected["validation_curve_terms"])
         self.assertEqual(len(receipt["train_curve_terms"]), 20)
@@ -406,9 +410,10 @@ class EntryTests(unittest.TestCase):
         round0 = self.write_pass("dagger_round_0", "ELU-P")
         probe = self.tmp / "probe.json"
         self.assertEqual(entry.main(["probe", "--source", f"{round0}:ELU-P:teacher", "--arm", "VSMT-lean", "--round", "0",
-                                     "--houses", "2", "--epochs", "2", "--threads", "1", "--out", str(probe)]), 0)
+                                     "--houses", "2", "--epochs", "2", "--threads", "1", "--out", str(probe), "--foreach"]), 0)
         report = json.loads(probe.read_text(encoding="utf-8"))
         self.assertTrue(report["identical"])
+        self.assertTrue(report["optimizer_foreach"])
         self.assertEqual(len(report["houses"]), 3)  # two training houses and one selection house
 
 
