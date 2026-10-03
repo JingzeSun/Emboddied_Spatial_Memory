@@ -577,6 +577,55 @@ class EpisodeTeacher:
         return {"report": report, "diagnostics": diagnostics}
 
 
+class NuisanceTally:
+    """Ruling 104-2: ``nuisance_probes`` over the pooled rows of a split, accumulated frame by frame as count tables.
+
+    白话：裁决 104-2 的 split 级 nuisance 探针要把一整条 split 的标签行放在一起判（S0-04 冻结的最大优势 0.05），几百条
+    episode 的行全装进内存太大。这里逐帧读入每条 nuisance 记录，只累计“字段取值 × 标签”的个数，最后用
+    ``nuisance_probe_from_counts`` 算出与 ``nuisance_probes`` 对全部行逐位相同的结果。输入是 S2-04 入口写的
+    ``nuisance.jsonl.gz`` 的每一行，输出是同样结构的探针结果。它不设阈值、不改标签。
+    """
+
+    BLOCKS = (("association", NUISANCE_ASSOCIATION_LABELS), ("existence", NUISANCE_EXISTENCE_LABELS))
+
+    def __init__(self) -> None:
+        self.rows = {block: 0 for block, _ in self.BLOCKS}
+        self.labels: dict[str, dict[str, dict[str, int]]] = {block: {label: {} for label in labels} for block, labels in self.BLOCKS}
+        self.groups: dict[str, dict[str, dict[str, dict[str, dict[str, int]]]]] = {
+            block: {label: {field: {} for field in lt.NUISANCE_FIELDS} for label in labels} for block, labels in self.BLOCKS}
+
+    def add(self, nuisance: Mapping[str, Any]) -> None:
+        """One frame's nuisance record (``{"association": [...], "existence": [...]}``)."""
+
+        for block, labels in self.BLOCKS:
+            for row in nuisance[block]:
+                self.rows[block] += 1
+                values = {field: str(row[field]) for field in lt.NUISANCE_FIELDS}
+                for label in labels:
+                    item = str(row[label])
+                    counts = self.labels[block][label]
+                    counts[item] = counts.get(item, 0) + 1
+                    for field, value in values.items():
+                        group = self.groups[block][label][field].setdefault(value, {})
+                        group[item] = group.get(item, 0) + 1
+
+    def result(self) -> dict[str, Any]:
+        out: dict[str, Any] = {"association_rows": self.rows["association"], "existence_rows": self.rows["existence"]}
+        for block, labels in self.BLOCKS:
+            if self.rows[block] < 2:
+                out[block] = None
+                continue
+            table = {str(label): {field: lt.nuisance_probe_from_counts(self.labels[block][label], self.groups[block][label][field],
+                                                                        field=field, label=str(label))
+                                  for field in lt.NUISANCE_FIELDS} for label in labels}
+            largest = max((probe["advantage"] for probes in table.values() for probe in probes.values()), default=None)
+            out[block] = {"per_label": table, "largest_advantage": largest}
+        advantages = [block["largest_advantage"] for block in (out["association"], out["existence"])
+                      if block is not None and block["largest_advantage"] is not None]
+        out["largest_advantage"] = max(advantages) if advantages else None
+        return out
+
+
 def nuisance_probes(frame_records: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
     """The S0-04 probes over every labelled row of an episode (or a split): association and existence rows separately."""
 
@@ -665,6 +714,7 @@ __all__ = [
     "TRAINING_RECORD_RULE",
     "fragment_instances",
     "headline_values",
+    "NuisanceTally",
     "nuisance_probes",
     "object_of_label",
     "object_state_from_truth",

@@ -1975,6 +1975,36 @@ def nuisance_probe(records: Sequence[Mapping[str, Any]], *, field: str, label: s
     }
 
 
+def nuisance_probe_from_counts(label_counts: Mapping[str, int], groups: Mapping[str, Mapping[str, int]], *, field: str,
+                               label: str) -> dict[str, Any]:
+    """``nuisance_probe`` from its count tables (ruling 104-2): the same guesses, ties and numbers without keeping the rows.
+
+    白话：留一法里，同一个字段取值、同一个标签的行猜出来的东西都一样（去掉自己以后的那张表一样），所以命中数只取决于
+    “字段取值 × 标签”的计数表和标签总计数。输入就是这两张表（键都已转成字符串，与原函数一致），输出与原函数逐位相同的
+    结果。例如一整条 split 几百万行，只需要每个 house 序号、每个帧号下各标签的个数。它不设阈值。
+    """
+
+    _require(field in NUISANCE_FIELDS, "nuisance_field_unknown")
+    total = sum(int(count) for count in label_counts.values())
+    _require(total >= 2, "nuisance_probe_needs_records")
+    majority = max(label_counts, key=lambda item: (label_counts[item], item))
+    majority_accuracy = label_counts[majority] / total
+    hits = 0
+    for group in groups.values():
+        for item, count in group.items():
+            table = {name: value - (1 if name == item else 0) for name, value in group.items()}
+            table = {name: value for name, value in table.items() if value > 0}
+            guess = max(table, key=lambda name: (table[name], name)) if table else majority
+            hits += count if guess == item else 0
+    return {
+        "field": field,
+        "label": label,
+        "probe_accuracy": hits / total,
+        "majority_accuracy": majority_accuracy,
+        "advantage": hits / total - majority_accuracy,
+    }
+
+
 def run_nuisance_probes(
     records: Sequence[Mapping[str, Any]], *, labels: Sequence[str] = NUISANCE_LABELS,
 ) -> dict[str, Any]:
@@ -2382,6 +2412,7 @@ __all__ = [
     "micro_average",
     "missing_residual_rate",
     "nuisance_probe",
+    "nuisance_probe_from_counts",
     "object_memory_correct",
     "paired_house_bootstrap",
     "run_nuisance_probes",
