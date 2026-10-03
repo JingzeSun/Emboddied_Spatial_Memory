@@ -145,6 +145,47 @@ bash ops/vsmt/s3_02_data.sh status
 
 **怎样核对复现**：同一提交下，生成器对同一个 house 的输出是确定的——verify 把测量用的 4 个 house 与 train 里同名的 4 个逐字节比较并记进运行清单；cache 对同一条 episode 预期是确定的（同型号显卡；这一点没有逐字节验证过）。别人复现后，把自己的运行清单与 `results/vsmt_lean_s3_02_manifest_<tag>.json` 逐项比较；test 的封印摘要在 `results/vsmt_lean_s3_02_test_seal_<tag>.json`，S3-05 读 test 之前先核对它。
 
+## 怎样复现 S3-03（训练与选参读数，裁决 104）
+
+白话：S3-03 回答“正式实验里每个臂拿什么权重、每个配置在 validation 上读数多少”。输入是 S3-02 的 train／validation 数据（test 根封存，只读它们的封存标记文件）、冻结的方法（裁决 99-1 的配方）、网格与选参规则；输出是两套前端各自的 ELU-P 拟合量、第 0／1 轮轨迹与 HeuristicLabel 标签、36 次训练（每次都记逐 epoch 的 train／validation 分项损失）、208 组 × 约 42 条 validation 闭环审计（只算指标），以及给 S3-04 的选参读数。整趟是一个依赖驱动的作业池：作业的输入一齐就派发，关键路径（拟合、轨迹、训练）优先，规则臂审计用剩下的核。例如 VSMT-lean 第 0 轮训练一结束，它的第 1 轮轨迹就开始，不等另外两个臂。它不选配置（S3-04 做）、不读 test、不改方法与网格。
+
+**一条命令**（服务器，只用 CPU；S3-02 已完成、它的导出在 `$AUTODL/vsmt_outputs/exports`；在审过的提交上新建干净的 detached worktree）：
+
+```bash
+git -C /root/Emboddied_Spatial_Memory worktree add --detach /root/autodl-tmp/vsmt_worktrees/s3-03-<commit> <commit>
+cd /root/autodl-tmp/vsmt_worktrees/s3-03-<commit>
+nohup bash ops/vsmt/s3_03_train_select.sh all > /root/autodl-tmp/vsmt_outputs/run_logs/s3-03-<commit>.log 2>&1 &
+bash ops/vsmt/s3_03_train_select.sh status
+```
+
+再跑一次 `all` 就从停下的地方续跑：完成的作业保留（之后若代码有改动，只有 ELU-P 拟合值的登记文件与文档例外，否则拒绝，除非 `ACCEPT_CODE_CHANGE=1` 并记进作业状态）；上次中断时还在跑的作业，残留输出先挪到 `$RUN_ROOT/interrupted/` 留存再重跑；审计保留已完成的配置；失败或门未过的作业不会自己重跑，修好或裁决后用 `RETRY_FAILED=1`（残留输出先挪到 `$RUN_ROOT/failed/`）。作业图与各子命令写在 [`ops/vsmt/s3_03_manifest.py`](ops/vsmt/s3_03_manifest.py)，派发规则在 [`ops/vsmt/s3_03_jobs.py`](ops/vsmt/s3_03_jobs.py)。
+
+| 输入（`AUTODL=/root/autodl-tmp`） | 默认路径 | 运行前核对（check） |
+|---|---|---|
+| S3-02 的数据 | 原始 episode `$AUTODL/vsmt_outputs/s3-02-3f6ef1d/{train,validation}`、几何 `$AUTODL/vsmt_private/s3-02-geometry-3f6ef1d/<划分>`、cache `$AUTODL/vsmt_caches/s3-02-{instance,sam2}-3f6ef1d/<划分>` | S3-02 运行清单无问题；它记的每个导出文件摘要相符；逐 house 的原始回执、逐 episode 的 cache 封印与几何回执都等于导出所记；计数等于运行清单 |
+| S3-02 的 test 封印 | `$AUTODL/vsmt_outputs/exports/vsmt_lean_s3_02_test_seal_3f6ef1d.json` | 四个 test 根各有 `TEST_SEALED.json`，状态 sealed、摘要等于这份封印（只读这四个标记文件） |
+| 两份 ReID 头 | `$AUTODL/vsmt_private/exports/reid_head_vitb14_154776d.json`（SAM2）、`$AUTODL/vsmt_private/lean-s1-04-diagnostics-oracle-caa50c7/reid_head_vitb14.json`（实例分割） | 摘要等于 S0-03 按来源钉住的值 |
+| 可选：已有的校准趟（S3 预拟合） | `ADOPT_CALIBRATION_INSTANCE=<pass root>` | 每条 episode 的回执、配置与来源相符，并在本提交上重跑最小一条、两份产物逐字节相同才采用 |
+
+| 部分 | 做什么 |
+|---|---|
+| check | 全量测试；上表的核对；每套前端可用的 train／validation episode（清单内、原始、几何表、cache 都在）写进 `$RUN_ROOT/inputs.json` |
+| 校准趟 → 拟合 | TAF θ_a 0.7 无门，带直方图与 ELU-P 计数；S3 train 全部可用 episode 上拟合三个量，写成运行内的值（裁决 104-1 1b）；拟合被拒（退化）即停 |
+| 第 0 轮 → 门 | ELU-P 在 rollout_config 加本前端拟合量下的轨迹，同时写 teacher 记录与 HeuristicLabel 记录；门：HeuristicLabel 的决定函数在 ELU-P 自己的轨迹上与臂的决定逐行相同（G4）、整条 split 的 nuisance 探针最大优势 ≤ 0.05；不过即停在训练之前 |
+| 训练 | 第 0 轮三个臂（种子 7，总验证损失选点）→ 第 1 轮轨迹（VSMT-lean 与 HeuristicLabel τ_r 0.5，AssocOnly 无配置）→ 第 1 轮每臂 5 个种子（VSMT-lean 与 HeuristicLabel 分组选点）；前 240 个 house 训练、后 60 个选点（104-1 1a）；线程数在第 0 轮期间按 20＋5 个 house 实测 1～4 线程选定，整趟固定；崩溃或内存不足的训练同输入同种子自动重跑一次；发散记为结果，不换种子 |
+| 审计 | validation 上 208 组：规则臂 TAF 12、ELU-P 12、RAC 12、LOW 5、HandCost 12（ELU-P 等拟合），学习臂 VSMT-lean、NoVersion、HeuristicLabel 各 10 档 τ_r × 5 种子，AssocOnly × 5 种子；每个作业是一条 episode 上同一臂同一组头的全部配置（cache 只核验一次），只算指标 |
+| 探针 | 审计等价（一条 train episode 上完整审计与只算指标逐项相同）、训练等价（列表式与流式入口逐位相同）与正式作业同时跑，不过即停；最后在一条 validation episode 上重跑一个审计核对确定性 |
+| 读数 | 合并完整性；每套前端的选参读数（逐指标排除清单、house 均值、种子均值、缺的种子注明、AssocOnly 参照值）；只报告：89-3 ① 状态覆盖、两套校准趟的网格位置（101 (1)(a) 读法）、标签构成 |
+| export → verify | 导出 `$AUTODL/vsmt_outputs/exports/vsmt_lean_s3_03_*_<tag>.json`；verify 要求所有作业结束、所有门通过、S0-05 登记的拟合值与本次运行的值逐位相等 |
+
+**拟合值的登记（裁决 104-1 1b，不停机）**：运行用的是运行内的拟合值；登记提交把 S0-05 里两套开发集拟合值就地换成本次的值（旧值进台账 `SUPERSEDED_VALUES`），只改 `ops/vsmt/s3_03_manifest.py` 里 `REGISTRATION_FILES` 列出的文件，运行期间在本地做、运行结束后再拉到服务器（运行中的 checkout 不 pull）。拉之前 verify 会报 `elu_p_values_not_registered` 并以 3 退出——这是预期，不重跑任何作业；拉到登记提交后再跑一次 `all`：完成的作业全部保留，verify 通过。
+
+**停点**：check 不过；拟合被拒或值不有限；第 0 轮门（G4 有不一致，或 nuisance 优势超过 0.05——先只读拆解再提裁决，不放宽线）；审计等价、训练等价或确定性探针不同；任何作业的工程失败（训练除外：先自动重跑一次）。停下时在跑的作业会跑完，新作业不再派发。
+
+**输出**：运行根 `$AUTODL/vsmt_private/s3-03-run`（`inputs.json`、`workers.json`、`pool.json`、`jobs/` 逐作业状态与实测内存，每套前端的 `calibration/`、`fit/`、`round0/`、`round1/`、`training/`、`audit/`、`merged/`、`gates/`、`selection_readings.json`、`coverage.json`）；日志 `$AUTODL/vsmt_outputs/run_logs/s3-03-<tag>/`（每个作业一个）；导出拉回 `results/` 提交：输入核对、worker 依据、线程实测与选择、两套前端的拟合与校准、门与探针、训练回执摘要（含逐 epoch 分项损失）、选参读数、状态覆盖、网格位置、作业汇总、运行清单与 verify。
+
+**怎样核对复现**：同一提交与同一 TRAIN_THREADS 下训练权重逐位可复现（裁决 96），审计是确定的（确定性探针）；别人复现后把自己的运行清单与 `results/vsmt_lean_s3_03_manifest_<tag>.json` 逐项比较，选参读数逐项比较 `vsmt_lean_s3_03_readings_<front>_<tag>.json`。
+
 ## 实现与证据
 
 | 目录 | 职责 |
