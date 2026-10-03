@@ -253,6 +253,22 @@ class SelectionReadingTests(unittest.TestCase):
         with self.assertRaisesRegex(s3.LeanS3_03Error, "selection_seed_invalid:TAF"):
             s3.selection_readings(seeded_rule, mask_source="sam2")
 
+    def test_an_arm_without_any_run_is_named_and_left_out(self):
+        from vsmt import lean_arms as arms
+
+        runs = [r for r in synthetic_runs() if r["arm"] != "AssocOnly"]
+        with self.assertRaisesRegex(s3.LeanS3_03Error, "selection_runs_incomplete:AssocOnly"):
+            s3.selection_readings(runs, mask_source="sam2")
+        out = s3.selection_readings(runs, mask_source="sam2", absent_arms={"AssocOnly": "every seed diverged in round 0"})
+        self.assertEqual(out["arms_absent"], {"AssocOnly": "every seed diverged in round 0"})
+        self.assertNotIn("AssocOnly", out["readings"])
+        self.assertIsNone(out["reference"]["missing_residual_rate"])
+        choice = arms.select_configuration(s3.selection_validation(out, "VSMT-lean"), arm="VSMT-lean",
+                                           reference_missing_residual_rate=out["reference"]["missing_residual_rate"])
+        self.assertEqual(choice["reason"], "reference_missing_residual_rate_undefined")
+        with self.assertRaisesRegex(s3.LeanS3_03Error, "selection_absent_arm_has_runs"):
+            s3.selection_readings(synthetic_runs(), mask_source="sam2", absent_arms={"AssocOnly": "x"})
+
     def test_events_that_differ_between_runs_are_reported(self):
         runs = synthetic_runs()
         runs[0]["reports"]["h1"]["identity_continuity"]["events"] = 7

@@ -116,12 +116,15 @@ def _run_key(arm: str, index: int, seed: int | None) -> str:
     return f"{arm}|{index}|{'-' if seed is None else seed}"
 
 
-def selection_readings(runs: Sequence[Mapping[str, Any]], *, mask_source: str) -> dict[str, Any]:
+def selection_readings(runs: Sequence[Mapping[str, Any]], *, mask_source: str,
+                       absent_arms: Mapping[str, str] | None = None) -> dict[str, Any]:
     """Ruling 104-1 1f: the validation readings of one front end, and the inputs S3-04's ``select_configuration`` takes.
 
     ``runs`` lists every validation audit group of that front end as ``{"arm", "config_index", "config", "seed" (None for a rule
     arm), "reports": {episode_id: report}}``; every registered configuration of every arm must be present (an arm with seeds at
-    one seed at least), and every run must cover the same episodes.
+    one seed at least), and every run must cover the same episodes.  ``absent_arms`` names an arm with no run at all and why
+    (every seed's training diverged, ruling 102-9: a result); it is left out and named, and if it is AssocOnly the reference
+    is undefined, which ``select_configuration`` records as constraint_not_satisfiable.
     """
 
     from vsmt import lean_arms as arms
@@ -129,7 +132,10 @@ def selection_readings(runs: Sequence[Mapping[str, Any]], *, mask_source: str) -
     from vsmt import lean_teacher as lt
 
     _require(bool(runs), "selection_readings_need_runs")
-    grids = {arm: arms.enumerate_configs(arm, arms.FROZEN_GRIDS[arm]) for arm in SELECTION_ARMS}
+    absent = {str(arm): str(why) for arm, why in (absent_arms or {}).items()}
+    _require(set(absent) <= set(SELECTION_ARMS), "selection_absent_arm_unknown")
+    _require(not any(str(run["arm"]) in absent for run in runs), "selection_absent_arm_has_runs")
+    grids = {arm: arms.enumerate_configs(arm, arms.FROZEN_GRIDS[arm]) for arm in SELECTION_ARMS if arm not in absent}
     keys: dict[str, Mapping[str, Any]] = {}
     houses: set[str] | None = None
     for run in runs:
@@ -155,7 +161,7 @@ def selection_readings(runs: Sequence[Mapping[str, Any]], *, mask_source: str) -
     metrics: dict[str, Any] = {}
     run_means: dict[str, dict[str, float | None]] = {key: {} for key in keys}
     for metric, field in ev.HEADLINE_FIELD.items():
-        not_applicable = sorted(arm for arm in SELECTION_ARMS if metric in lt.METRIC_NOT_APPLICABLE_RULE and arm in without_retract)
+        not_applicable = sorted(arm for arm in grids if metric in lt.METRIC_NOT_APPLICABLE_RULE and arm in without_retract)
         applicable = [key for key, run in keys.items() if str(run["arm"]) not in not_applicable]
         table = {house: {key: keys[key]["reports"][house][metric][field] for key in applicable} for house in ordered_houses}
         excluded = lt.undefined_houses(table, arms=applicable) if applicable else list(ordered_houses)
@@ -181,14 +187,15 @@ def selection_readings(runs: Sequence[Mapping[str, Any]], *, mask_source: str) -
                 "seeds_missing": [seed for seed in arms.SEEDS if seed not in seeds] if SELECTION_ARMS[arm] else [],
                 "per_seed": per_seed, "mean": mean,
             }
-    reference = readings[arms.SELECTION_REFERENCE_ARM]["0"]
+    reference = (readings[arms.SELECTION_REFERENCE_ARM]["0"] if arms.SELECTION_REFERENCE_ARM in readings
+                 else {"seeds_present": [], "seeds_missing": list(arms.SEEDS), "mean": {"missing_residual_rate": None, "node_prf1": None}})
     events = {}
     for metric in ("identity_continuity", "retrieval_success"):  # ruling 102-0 / 102-5: one set of events for every arm
         totals = sorted({sum(int(keys[key]["reports"][house][metric]["events"]) for house in ordered_houses) for key in keys})
         events[metric] = {"events_per_run": totals, "equal_across_runs": len(totals) == 1}
     return {
         "stage": STAGE, "rule": SELECTION_READING_RULE, "mask_source": mask_source, "episodes": ordered_houses,
-        "runs": sorted(keys), "metrics": metrics, "readings": readings,
+        "runs": sorted(keys), "metrics": metrics, "readings": readings, "arms_absent": absent,
         "reference": {"arm": arms.SELECTION_REFERENCE_ARM, "config_index": 0, "seeds_present": reference["seeds_present"],
                       "seeds_missing": reference["seeds_missing"],
                       arms.SELECTION_CONSTRAINT_METRIC: reference["mean"]["missing_residual_rate"],
