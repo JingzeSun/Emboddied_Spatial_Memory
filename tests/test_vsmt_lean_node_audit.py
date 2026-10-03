@@ -8,7 +8,9 @@ scores below the current rule, the merged report pools two audits, and a labelle
 evaluator would disagree with is refused.  Ruling 104-4 (1): the real ``run`` entry, its file reads patched to the same
 synthetic episode, writes a metrics-only audit equal to the full audit field by field (report, decomposition counts, seal
 chain digest, final memory) for TAF, ELU-P, VSMT-lean, NoVersion and AssocOnly; a metrics-only run refuses diagnostic
-options, and a merge keeps one mode.  CPU only, seconds.
+options, and a merge keeps one mode.  Ruling 104-7: one job over several configurations writes, per configuration, the
+audit a separate run writes (rule arm and learned arm), keeps a finished audit on resume and refuses anything else.
+CPU only, seconds.
 """
 from __future__ import annotations
 
@@ -721,8 +723,8 @@ class RulingEightyFourMaskSourceTests(unittest.TestCase):
             self.assertEqual(str(caught.exception), "audits_mix_mask_sources")
 
 
-class RulingOneHundredFourMetricsOnlyTests(unittest.TestCase):
-    """Ruling 104-4 (1): the run of record without the diagnostic blocks, pinned equal to the full audit."""
+class SyntheticEntryFixture:
+    """The real ``run`` entry over the synthetic S2-04 episode, shared by the ruling 104-4 (1) and 104-7 tests."""
 
     ARMS = {"TAF": False, "ELU-P": False, "VSMT-lean": True, "NoVersion": True, "AssocOnly": True}
 
@@ -783,6 +785,9 @@ class RulingOneHundredFourMetricsOnlyTests(unittest.TestCase):
 
     def audit_of(self, out: Path, arm: str) -> dict:
         return json.loads((out / "ep-0001" / arm / audit_module.AUDIT_FILE_NAME).read_text(encoding="utf-8"))
+
+class RulingOneHundredFourMetricsOnlyTests(SyntheticEntryFixture, unittest.TestCase):
+    """Ruling 104-4 (1): the run of record without the diagnostic blocks, pinned equal to the full audit."""
 
     def test_the_metrics_only_audit_equals_the_full_audit_for_every_kind_of_arm(self) -> None:
         for arm in self.ARMS:
@@ -848,3 +853,58 @@ class RulingOneHundredFourMetricsOnlyTests(unittest.TestCase):
         full_merged = audit_module.merge_audits(full_root, "TAF")
         self.assertFalse(full_merged["metrics_only"])
         self.assertEqual(full_merged["per_episode"][0]["trajectory_sha256"], audit["trajectory_sha256"])
+
+
+class RulingOneHundredFourMultiConfigTests(SyntheticEntryFixture, unittest.TestCase):
+    """Ruling 104-7: several configurations of one arm on one episode in one job, each equal to its own run."""
+
+    def multi(self, arm: str, configs: list, roots: list, **override) -> int:
+        entries = json.dumps([{"config": config, "output_root": str(root)} for config, root in zip(configs, roots)])
+        options = {"config": None, "output_root": None, "configs": entries, "skip_existing": False, **override}
+        return self.run_entry(self.args(arm, out=self.tmp / "unused", metrics_only=True, **options))
+
+    def test_each_configuration_of_a_job_equals_its_own_run(self) -> None:
+        from vsmt import lean_arms as arms
+
+        cases = {"TAF": [arms.enumerate_configs("TAF", arms.FROZEN_GRIDS["TAF"])[i] for i in (0, 5, 11)],
+                 "VSMT-lean": [{"tau_r": value} for value in (0.15, 0.5, 0.9)]}
+        for arm, configs in cases.items():
+            with self.subTest(arm=arm):
+                roots = [self.tmp / f"multi-{arm}-{i}" for i in range(len(configs))]
+                self.assertEqual(self.multi(arm, configs, roots), 0)
+                for i, config in enumerate(configs):
+                    single = self.tmp / f"single-{arm}-{i}"
+                    self.assertEqual(self.run_entry(self.args(arm, out=single, metrics_only=True, config=json.dumps(config))), 0)
+                    together, alone = self.audit_of(roots[i], arm), self.audit_of(single, arm)
+                    self.assertEqual(together["config"], config)
+                    self.assertEqual(audit_module.comparable_metrics(together), audit_module.comparable_metrics(alone))
+
+    def test_resume_keeps_a_finished_audit_and_refuses_anything_else(self) -> None:
+        configs = [{"theta_a": 0.6, "d_a": None}, {"theta_a": 0.7, "d_a": None}]
+        roots = [self.tmp / "resume-0", self.tmp / "resume-1"]
+        self.assertEqual(self.run_entry(self.args("TAF", out=roots[0], metrics_only=True, config=json.dumps(configs[0]))), 0)
+        before = (roots[0] / "ep-0001" / "TAF" / audit_module.AUDIT_FILE_NAME).read_bytes()
+        self.assertEqual(self.multi("TAF", configs, roots), 2)  # without --skip-existing a finished audit is never overwritten
+        self.assertFalse((roots[1] / "ep-0001").exists())
+        self.assertEqual(self.multi("TAF", configs, roots, skip_existing=True), 0)
+        self.assertEqual((roots[0] / "ep-0001" / "TAF" / audit_module.AUDIT_FILE_NAME).read_bytes(), before)
+        self.assertTrue((roots[1] / "ep-0001" / "TAF" / audit_module.AUDIT_FILE_NAME).exists())
+        (roots[1] / "ep-0001" / "TAF" / audit_module.AUDIT_FILE_NAME).write_text("{", encoding="utf-8")  # a truncated file
+        self.assertEqual(self.multi("TAF", configs, roots, skip_existing=True), 2)
+        other = {"theta_a": 0.8, "d_a": None}  # a finished audit of another configuration under this root
+        self.assertEqual(self.multi("TAF", [other], [roots[0]], skip_existing=True), 2)
+
+    def test_the_configuration_plan(self) -> None:
+        base = dict(config=None, output_root=None)
+        good = json.dumps([{"config": {"theta_a": 0.6, "d_a": None}, "output_root": "a"}, {"config": {"theta_a": 0.7, "d_a": None}, "output_root": "b"}])
+        self.assertEqual(len(audit_module.config_plan(argparse.Namespace(**base, configs=good))), 2)
+        self.assertEqual(audit_module.config_plan(argparse.Namespace(config='{"d_low": null}', output_root="x", configs=None)), [({"d_low": None}, "x")])
+        for args, code in ((dict(config='{"d_low": null}', output_root="x", configs=good), "configs_excludes_config_and_output_root"),
+                           (dict(base, configs="[]"), "configs_must_be_a_non_empty_list"),
+                           (dict(base, configs=json.dumps([{"config": {}}])), "configs_entry_invalid"),
+                           (dict(base, configs=json.dumps([{"config": {}, "output_root": "a"}, {"config": {}, "output_root": "a"}])),
+                            "configs_output_roots_repeat"),
+                           (dict(config='{"d_low": null}', output_root=None, configs=None), "config_and_output_root_required")):
+            with self.subTest(code=code), self.assertRaises(audit_module.NodeAuditError) as caught:
+                audit_module.config_plan(argparse.Namespace(**args))
+            self.assertEqual(str(caught.exception), code)

@@ -62,6 +62,12 @@ v11（裁决 84-1 (b)，由裁决 100-1 (i) 落地，2026-10-01）：审计按 e
 （实例分割 5cea91cf…、SAM2 f6fc67e5…；SAM2 封印没有 mask_source 字段即 sam2），--mask-source 给出时须与封印一致；回执记下
 mask_source 与权重摘要，合并时一组审计里出现两种来源（或新旧回执混合，旧回执没有这一项）就拒绝。它不改任何审计口径。
 
+v12 起的作业形式（裁决 104-7，2026-10-03）：``run --configs '[{"config": …, "output_root": …}, …]'`` 让一个作业在同一条
+episode 上审计同一臂（同一组头）的多个配置——cache 只核验一次，每个配置各自重读几何表与干预日志、各用一个新 teacher 从第一帧
+跑闭环、各写各的审计文件（先写临时文件再改名，作业中途停下不会留下看似完成的文件）；``--skip-existing`` 续跑时保留已完成且
+episode、臂、配置与模式都对得上的那几份。白话：省掉的是重复核验 cache 与重复启动进程，每个配置的结果与单独跑一次逐字节相同
+（测试对拍）。
+
 v12（裁决 104-4 ①，2026-10-03）：``run --metrics-only`` 是 S3 的正式闭环审计——同一个 runner、同一个 teacher、同一份指标
 报告，只是不建 NodeAudit、不跑 v2～v10 的诊断块（``audit`` 记 null），也不收任何诊断开关（oracle、覆盖值、残留追踪）。
 两种模式的审计文件都新记三样东西：``metrics_only``、teacher 的三分解计数 ``decomposition_totals``（只有计数，没有私有键）、
@@ -76,6 +82,7 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import copy
 import hashlib
 import json
 import subprocess
@@ -1430,7 +1437,11 @@ def run(args: argparse.Namespace) -> int:
         print("[node-audit] refused: the checkout is not clean", file=sys.stderr)
         return 2
     commit = _git("rev-parse", "HEAD")
-    config = json.loads(args.config)
+    try:  # ruling 104-7: one job may audit several configurations of one arm on one episode
+        plan = config_plan(args)
+    except NodeAuditError as exc:
+        print(f"[node-audit] refused: {exc}", file=sys.stderr)
+        return 2
     if args.dedup_override:
         # diagnostic only: the same runner under another shared-dedup triple (a candidate for a ruling), recorded in the payload
         from vsmt import lean_memory as lm
@@ -1443,8 +1454,9 @@ def run(args: argparse.Namespace) -> int:
         # ruling 89-1, diagnostic only: the global recall channel's k' replaced for this run (the runner reads la.RECALL_GLOBAL_COUNT per frame)
         _require(int(args.recall_global_count) >= 1, "recall_global_count_invalid")
         la.RECALL_GLOBAL_COUNT = int(args.recall_global_count)
-    lr.validate_arm_config(args.arm, config)
-    scorer = None
+    for config, _ in plan:
+        lr.validate_arm_config(args.arm, config)
+    learned = None
     oracle_requested = bool(args.oracle_association or args.oracle_existence or args.oracle_recall)
     heads_needed = (not args.oracle_association) or (args.arm != "AssocOnly" and args.oracle_existence is None)
     if args.arm in lr.LEARNED_ARMS and (heads_needed or args.heads):
@@ -1453,7 +1465,7 @@ def run(args: argparse.Namespace) -> int:
             return 2
         from vsmt import lean_model
 
-        scorer = lean_model.LeanScorer(lean_model.load_heads(s2_04.load_json(Path(args.heads)), device=args.device), device=args.device)
+        learned = lean_model.LeanScorer(lean_model.load_heads(s2_04.load_json(Path(args.heads)), device=args.device), device=args.device)
     cache_dir = Path(args.cache_root).resolve() / args.episode_id
     try:  # ruling 84-1 (b): the head pinned for the episode's sealed mask source; --mask-source, when given, must be that source
         mask_source = args.mask_source or s2_01.sealed_mask_source_of(cache_dir)
@@ -1461,125 +1473,186 @@ def run(args: argparse.Namespace) -> int:
     except s2_01.EntryRefusal as exc:
         print(f"[node-audit] refused: {exc}", file=sys.stderr)
         return 2
+    pending: list[tuple[dict[str, Any], Path]] = []
+    for config, output_root in plan:
+        out_dir = Path(output_root).resolve() / args.episode_id / args.arm
+        existing = out_dir / AUDIT_FILE_NAME
+        if existing.exists():
+            if getattr(args, "skip_existing", False) and complete_audit(existing, episode_id=args.episode_id, arm=args.arm, config=config,
+                                                                         metrics_only=bool(args.metrics_only)):
+                print(f"[node-audit] kept: {existing}")
+                continue
+            print(f"[node-audit] refused: audit exists: {existing}", file=sys.stderr)
+            return 2
+        pending.append((config, out_dir))
+    if not pending:
+        return 0
 
     episode_root = Path(args.episode_root).resolve()
     seal, frame_paths = s2_04.verify_cache_episode(cache_dir, diag.registered_descriptor_asset_sha256s(), mask_source=mask_source)
     if args.frames is not None:
         frame_paths = frame_paths[: int(args.frames)]
-    table = og.validate_geometry_table(s2_04.load_json(Path(args.geometry_root).resolve() / args.episode_id / og.TABLE_FILE_NAME))
-    executed, window = diag.cache_runner_read_interventions(episode_root / "provenance")
     episode_receipt = s2_04.load_json(episode_root / "receipt.json") if (episode_root / "receipt.json").exists() else {}
     split_seed = int(s2_04.load_json(s2_04.CONFIG_DIR / "lean_s1_02a_pilot_v2.json")["split_freeze"]["seed"])
-    nuisance_meta = {"path": str(cache_dir), "seed": split_seed, "house_index": episode_receipt.get("source_index")}
 
-    out_dir = Path(args.output_root).resolve() / args.episode_id / args.arm
-    if (out_dir / AUDIT_FILE_NAME).exists():
-        print(f"[node-audit] refused: audit exists: {out_dir / AUDIT_FILE_NAME}", file=sys.stderr)
-        return 2
-    out_dir.mkdir(parents=True, exist_ok=True)
+    def audit_one(config: dict[str, Any], out_dir: Path) -> int:
+        """One configuration's closed loop from scratch: its own geometry table, intervention log, policy copy and teacher."""
 
-    teacher = ev.EpisodeTeacher(arm=args.arm, geometry_table=table, executed_interventions=executed, window=window,
-                                policy=policy["teacher"], nuisance_meta=nuisance_meta)
-    captured = None if args.metrics_only else capture_truth_table(teacher)  # ruling 104-4 (1): no diagnostic block to feed
-    learned_scorer = scorer  # the heads' own scorer, before any oracle wraps it (the residual trace reads its logits)
-    oracle = None
-    if oracle_requested:
-        # ruling 88-2 (i), diagnostic only: the teacher's decisions become the policy (private truth before the seals)
-        try:
-            oracle = OracleDiagnostic(teacher=teacher, geometry_table=table, executed_interventions=executed, window=window,
-                                      policy=policy["teacher"], arm=args.arm, episode_id=args.episode_id,
-                                      association=bool(args.oracle_association), existence_rule=args.oracle_existence,
-                                      recall=bool(args.oracle_recall), learned=scorer)
-        except NodeAuditError as exc:
-            print(f"[node-audit] refused: {exc}", file=sys.stderr)
-            return 2
-        scorer = oracle
-    audit = None
-    if not args.metrics_only:
-        audit = NodeAudit(evidence=teacher.evidence, iou_min=teacher.iou_min, delta_moved_m=policy["teacher"]["delta_moved_m"],
-                          groups=object_groups(table), arm=args.arm, config=config, scorer=scorer, dedup=policy["runner"]["dedup"],
-                          interventions=teacher.interventions, window_end=teacher.window_end,
-                          carriers_before_move=teacher.carriers_before_move)
-        audit.fold_capture = capture_dedup_folds()
-    tracer = None
-    if args.trace_residuals:
-        # ruling 93 revised (2026-09-30), read-only: where each lingering stale entity got stuck; changes no decision
-        import residual_trace
+        out_dir.mkdir(parents=True, exist_ok=True)
+        run_policy = copy.deepcopy(policy)
+        table = og.validate_geometry_table(s2_04.load_json(Path(args.geometry_root).resolve() / args.episode_id / og.TABLE_FILE_NAME))
+        executed, window = diag.cache_runner_read_interventions(episode_root / "provenance")
+        nuisance_meta = {"path": str(cache_dir), "seed": split_seed, "house_index": episode_receipt.get("source_index")}
+        teacher = ev.EpisodeTeacher(arm=args.arm, geometry_table=table, executed_interventions=executed, window=window,
+                                    policy=run_policy["teacher"], nuisance_meta=nuisance_meta)
+        captured = None if args.metrics_only else capture_truth_table(teacher)  # ruling 104-4 (1): no diagnostic block to feed
+        scorer = learned  # the heads' own scorer, before any oracle wraps it (the residual trace reads its logits)
+        oracle = None
+        if oracle_requested:
+            # ruling 88-2 (i), diagnostic only: the teacher's decisions become the policy (private truth before the seals)
+            try:
+                oracle = OracleDiagnostic(teacher=teacher, geometry_table=table, executed_interventions=executed, window=window,
+                                          policy=run_policy["teacher"], arm=args.arm, episode_id=args.episode_id,
+                                          association=bool(args.oracle_association), existence_rule=args.oracle_existence,
+                                          recall=bool(args.oracle_recall), learned=learned)
+            except NodeAuditError as exc:
+                print(f"[node-audit] refused: {exc}", file=sys.stderr)
+                return 2
+            scorer = oracle
+        audit = None
+        if not args.metrics_only:
+            audit = NodeAudit(evidence=teacher.evidence, iou_min=teacher.iou_min, delta_moved_m=run_policy["teacher"]["delta_moved_m"],
+                              groups=object_groups(table), arm=args.arm, config=config, scorer=scorer, dedup=run_policy["runner"]["dedup"],
+                              interventions=teacher.interventions, window_end=teacher.window_end,
+                              carriers_before_move=teacher.carriers_before_move)
+            audit.fold_capture = capture_dedup_folds()
+        tracer = None
+        if args.trace_residuals:
+            # ruling 93 revised (2026-09-30), read-only: where each lingering stale entity got stuck; changes no decision
+            import residual_trace
 
-        tracer = residual_trace.ResidualTracer(teacher=teacher, learned=learned_scorer, delta_moved_m=policy["teacher"]["delta_moved_m"],
-                                               identity_of=lambda entity: lt.entity_identity(entity, teacher.evidence))
-    started = time.time()
-    current: dict[str, Any] = {}
+            tracer = residual_trace.ResidualTracer(teacher=teacher, learned=learned, delta_moved_m=run_policy["teacher"]["delta_moved_m"],
+                                                   identity_of=lambda entity: lt.entity_identity(entity, teacher.evidence))
+        started = time.time()
+        current: dict[str, Any] = {}
 
-    depth_view = s2_04.episode_depth_reader(episode_root, cache_dir)
+        depth_view = s2_04.episode_depth_reader(episode_root, cache_dir)
 
-    def private_of(index: int) -> tuple[Any, Any, Any]:
-        masks = diag.cache_runner.read_masks_file(cache_dir / f"{index:04d}{diag.cache_runner.MASK_FILE_SUFFIX}")
-        record, image = s2_04.load_private_frame(episode_root, index)
-        return record, image, masks
+        def private_of(index: int) -> tuple[Any, Any, Any]:
+            masks = diag.cache_runner.read_masks_file(cache_dir / f"{index:04d}{diag.cache_runner.MASK_FILE_SUFFIX}")
+            record, image = s2_04.load_private_frame(episode_root, index)
+            return record, image, masks
 
-    def frames():
-        for index, path in enumerate(frame_paths):
-            frame = diag.cache_runner.load_cache_frame(path)
-            frame[lr.PUBLIC_DEPTH_VIEW_KEY] = depth_view(index, frame)  # ruling 74
-            current["frame"] = frame
-            if oracle is not None:  # ruling 88-2 (i): the oracle reads the frame's private truth before the runner's step
-                current["private"] = private_of(index)
-                record, image, masks = current["private"]
-                oracle.prepare(index, frame, record, masks, image)
-            yield frame
+        def frames():
+            for index, path in enumerate(frame_paths):
+                frame = diag.cache_runner.load_cache_frame(path)
+                frame[lr.PUBLIC_DEPTH_VIEW_KEY] = depth_view(index, frame)  # ruling 74
+                current["frame"] = frame
+                if oracle is not None:  # ruling 88-2 (i): the oracle reads the frame's private truth before the runner's step
+                    current["private"] = private_of(index)
+                    record, image, masks = current["private"]
+                    oracle.prepare(index, frame, record, masks, image)
+                yield frame
 
-    state = None
-    receipts: list[dict[str, Any]] = []
-    mark = time.time()
-    with (oracle.recall_patch() if oracle is not None else contextlib.nullcontext()):
-        for index, step in enumerate(lr.run_episode(frames(), episode_id=args.episode_id, arm=args.arm, config=config,
-                                                    policy=policy["runner"], descriptor=args.descriptor, projector=projector, scorer=scorer)):
-            runtime = time.time() - mark
-            receipts.append(step["receipt"])
-            state = step["state"]
-            cache_frame = current["frame"]
-            record, image, masks = current.pop("private") if oracle is not None else private_of(index)
-            labelled = teacher.label_frame(step, cache_frame=cache_frame, private_record=record, masks=masks,
-                                           label_image=image, runtime_s=runtime, peak_memory_bytes=s2_04.peak_rss_bytes())
-            if audit is not None:
-                audit.observe(step, labelled, captured["table"])
-            if tracer is not None:
-                tracer.observe(step, labelled)
-            if oracle is not None:
-                oracle.commit(step["state"]["memory"])
-            mark = time.time()
-    summary = lr.episode_summary(state, receipts)
-    episode = teacher.episode_report()
-    payload = {
-        "schema_version": SCHEMA_VERSION, "stage": "S2-05 node audit (read-only)", "code_commit": commit,
-        "episode_id": args.episode_id, "arm": args.arm, "config": config, "descriptor": args.descriptor,
-        "mask_source": mask_source, "weights_sha256": weights_sha256,
-        "dedup_policy": policy["runner"]["dedup"], "dedup_override": json.loads(args.dedup_override) if args.dedup_override else None,
-        "dormancy_override": args.dormancy_override,
-        "recall_global_count": la.RECALL_GLOBAL_COUNT, "recall_global_count_override": args.recall_global_count,
-        "frames": summary["frames"], "frames_requested": args.frames, "episode_seal_sha256": seal["payload_sha256"],
-        "final_memory_digest": summary["final_memory_digest"], "final_entities_by_state": summary["final_entities_by_state"],
-        "report_node_prf1": episode["report"]["node_prf1"], "report_node_prf1_iou": episode["report"]["node_prf1_iou"],
-        "report": episode["report"], "heads": args.heads,
-        "decomposition_totals": episode["diagnostics"]["decomposition_totals"], "trajectory_sha256": trajectory_sha256(receipts),
-        "oracle": None if oracle is None else oracle.describe(),
-        "metrics_only": bool(args.metrics_only),
-        "audit": None if audit is None else audit.report(),
-        "residual_trace": None if tracer is None else tracer.report(),
-        "wall_seconds": round(time.time() - started, 1),
-    }
-    (out_dir / AUDIT_FILE_NAME).write_text(json.dumps(payload, indent=1), encoding="utf-8")
-    if audit is None:
-        report = payload["report"]
-        print(f"[node-audit] {args.arm} {args.episode_id} (metrics only): {summary['frames']} frames, node F1 {report['node_prf1']['node_f1']}, "
-              f"MRR {report['missing_residual_rate']['missing_residual_rate']}, {payload['wall_seconds']} s")
+        state = None
+        receipts: list[dict[str, Any]] = []
+        mark = time.time()
+        with (oracle.recall_patch() if oracle is not None else contextlib.nullcontext()):
+            for index, step in enumerate(lr.run_episode(frames(), episode_id=args.episode_id, arm=args.arm, config=config,
+                                                        policy=run_policy["runner"], descriptor=args.descriptor, projector=projector,
+                                                        scorer=scorer)):
+                runtime = time.time() - mark
+                receipts.append(step["receipt"])
+                state = step["state"]
+                cache_frame = current["frame"]
+                record, image, masks = current.pop("private") if oracle is not None else private_of(index)
+                labelled = teacher.label_frame(step, cache_frame=cache_frame, private_record=record, masks=masks,
+                                               label_image=image, runtime_s=runtime, peak_memory_bytes=s2_04.peak_rss_bytes())
+                if audit is not None:
+                    audit.observe(step, labelled, captured["table"])
+                if tracer is not None:
+                    tracer.observe(step, labelled)
+                if oracle is not None:
+                    oracle.commit(step["state"]["memory"])
+                mark = time.time()
+        summary = lr.episode_summary(state, receipts)
+        episode = teacher.episode_report()
+        payload = {
+            "schema_version": SCHEMA_VERSION, "stage": "S2-05 node audit (read-only)", "code_commit": commit,
+            "episode_id": args.episode_id, "arm": args.arm, "config": config, "descriptor": args.descriptor,
+            "mask_source": mask_source, "weights_sha256": weights_sha256,
+            "dedup_policy": run_policy["runner"]["dedup"], "dedup_override": json.loads(args.dedup_override) if args.dedup_override else None,
+            "dormancy_override": args.dormancy_override,
+            "recall_global_count": la.RECALL_GLOBAL_COUNT, "recall_global_count_override": args.recall_global_count,
+            "frames": summary["frames"], "frames_requested": args.frames, "episode_seal_sha256": seal["payload_sha256"],
+            "final_memory_digest": summary["final_memory_digest"], "final_entities_by_state": summary["final_entities_by_state"],
+            "report_node_prf1": episode["report"]["node_prf1"], "report_node_prf1_iou": episode["report"]["node_prf1_iou"],
+            "report": episode["report"], "heads": args.heads,
+            "decomposition_totals": episode["diagnostics"]["decomposition_totals"], "trajectory_sha256": trajectory_sha256(receipts),
+            "oracle": None if oracle is None else oracle.describe(),
+            "metrics_only": bool(args.metrics_only),
+            "audit": None if audit is None else audit.report(),
+            "residual_trace": None if tracer is None else tracer.report(),
+            "wall_seconds": round(time.time() - started, 1),
+        }
+        write_json_atomic(out_dir / AUDIT_FILE_NAME, payload)
+        if audit is None:
+            report = payload["report"]
+            print(f"[node-audit] {args.arm} {args.episode_id} {json.dumps(config, sort_keys=True)} (metrics only): {summary['frames']} frames, "
+                  f"node F1 {report['node_prf1']['node_f1']}, MRR {report['missing_residual_rate']['missing_residual_rate']}, "
+                  f"{payload['wall_seconds']} s")
+            return 0
+        rules = payload["audit"]["rules"]
+        print(f"[node-audit] {args.arm} {args.episode_id}: {summary['frames']} frames, current F1 {rules['iou_0.3_secondary']['f1']}, "
+              f"oracle-group IoU F1 {rules['oracle_identity_groups_iou_0.3']['f1']}, centroid-0.5m F1 {rules['centroid_within_0.5m']['f1']}, "
+              f"{payload['wall_seconds']} s")
         return 0
-    rules = payload["audit"]["rules"]
-    print(f"[node-audit] {args.arm} {args.episode_id}: {summary['frames']} frames, current F1 {rules['iou_0.3_secondary']['f1']}, "
-          f"oracle-group IoU F1 {rules['oracle_identity_groups_iou_0.3']['f1']}, centroid-0.5m F1 {rules['centroid_within_0.5m']['f1']}, "
-          f"{payload['wall_seconds']} s")
+
+    for config, out_dir in pending:
+        code = audit_one(config, out_dir)
+        if code != 0:
+            return code
     return 0
+
+
+def config_plan(args: argparse.Namespace) -> list[tuple[dict[str, Any], str]]:
+    """Ruling 104-7: the (configuration, output root) pairs of one job -- ``--config`` with ``--output-root``, or ``--configs``."""
+
+    configs = getattr(args, "configs", None)
+    if configs:
+        _require(args.config is None and args.output_root is None, "configs_excludes_config_and_output_root")
+        entries = json.loads(configs)
+        _require(type(entries) is list and bool(entries), "configs_must_be_a_non_empty_list")
+        plan: list[tuple[dict[str, Any], str]] = []
+        for entry in entries:
+            _require(type(entry) is dict and set(entry) == {"config", "output_root"} and type(entry["config"]) is dict
+                     and type(entry["output_root"]) is str and bool(entry["output_root"]), "configs_entry_invalid")
+            plan.append((entry["config"], entry["output_root"]))
+        roots = [str(Path(root).resolve()) for _, root in plan]
+        _require(len(set(roots)) == len(roots), "configs_output_roots_repeat")
+        return plan
+    _require(args.config is not None and args.output_root is not None, "config_and_output_root_required")
+    return [(json.loads(args.config), args.output_root)]
+
+
+def complete_audit(path: Path, *, episode_id: str, arm: str, config: Mapping[str, Any], metrics_only: bool) -> bool:
+    """Whether an existing audit file is this job's finished output (resume skips it; anything else is refused)."""
+
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return False
+    return (payload.get("schema_version") == SCHEMA_VERSION and payload.get("episode_id") == episode_id and payload.get("arm") == arm
+            and payload.get("config") == dict(config) and bool(payload.get("metrics_only")) == metrics_only
+            and isinstance(payload.get("report"), dict))
+
+
+def write_json_atomic(path: Path, payload: Mapping[str, Any]) -> None:
+    """Written whole or not at all: a job stopped mid-write leaves no audit that looks finished."""
+
+    tmp = path.with_name(path.name + ".tmp")
+    tmp.write_text(json.dumps(payload, indent=1), encoding="utf-8")
+    tmp.replace(path)
 
 
 def merge_audits(output_root: Path, arm: str) -> dict[str, Any]:
@@ -1788,11 +1861,16 @@ def main() -> int:
     run_parser.add_argument("--geometry-root", required=True)
     run_parser.add_argument("--episode-id", required=True)
     run_parser.add_argument("--arm", required=True)
-    run_parser.add_argument("--config", required=True)
+    run_parser.add_argument("--config", default=None, help="one configuration (with --output-root), or use --configs")
     run_parser.add_argument("--descriptor", required=True)
     run_parser.add_argument("--weights", default=None)
     run_parser.add_argument("--heads", default=None)
-    run_parser.add_argument("--output-root", required=True)
+    run_parser.add_argument("--output-root", default=None)
+    run_parser.add_argument("--configs", default=None,
+                            help="ruling 104-7: a JSON list of {config, output_root}: several configurations of this arm on this episode "
+                                 "in one job; the cache is verified once, each configuration runs from scratch into its own root")
+    run_parser.add_argument("--skip-existing", action="store_true",
+                            help="resume: keep a configuration whose finished audit is already there (same episode, arm, config, mode)")
     run_parser.add_argument("--frames", type=int, default=None)
     run_parser.add_argument("--device", default="cpu")
     run_parser.add_argument("--allow-dirty", action="store_true")
