@@ -27,6 +27,7 @@ must not depend on dict order, float noise or library version.
 
 from __future__ import annotations
 
+import functools
 import hashlib
 import math
 from typing import Any, Mapping, Sequence
@@ -62,6 +63,18 @@ class _NeumaierSum:
         return np.where(self.compensation != 0.0, self.total + self.compensation, self.total)
 
 
+#: Engineering (ruling 104-7, 2026-10-03): an entity's descriptor keeps its norm from frame to frame until the descriptor
+#: changes, and a frame's fragment descriptors enter two matrices, so the norm is memoised on the row's float64 bytes.
+#: The same bytes are the same floats, and the memoised function evaluates the same scalar expression on them, so every
+#: norm -- and every cosine -- is the same to the last bit (the uncached form is kept in the tests and compared).
+ROW_NORM_CACHE_SIZE = 4096
+
+
+@functools.lru_cache(maxsize=ROW_NORM_CACHE_SIZE)
+def _row_norm(row_bytes: bytes) -> float:
+    return math.sqrt(sum(float(value) ** 2 for value in np.frombuffer(row_bytes, dtype=np.float64).tolist()))
+
+
 def cosine_matrix(left_rows: Sequence[Sequence[float]], right_rows: Sequence[Sequence[float]]) -> list[list[float]]:
     """Cosine of every left row against every right row, bit-identical to ``cosine_similarity``.
 
@@ -89,9 +102,10 @@ def cosine_matrix(left_rows: Sequence[Sequence[float]], right_rows: Sequence[Seq
     # The norms stay on the scalar path: ``value ** 2`` is the C library's pow(x, 2.0), which glibc
     # rounds within 0.52 ULP but not always to x*x, so a vectorised square differed from the scalar
     # function by one ULP on a few real descriptors (server check, LOG-254).  One norm per vector
-    # is cheap; the fragment-by-entity products are what the matrix form is for.
-    left_norm = np.asarray([math.sqrt(sum(float(value) ** 2 for value in row)) for row in left], dtype=np.float64)
-    right_norm = np.asarray([math.sqrt(sum(float(value) ** 2 for value in row)) for row in right], dtype=np.float64)
+    # is cheap; the fragment-by-entity products are what the matrix form is for.  Ruling 104-7: each
+    # row's norm is memoised on its float64 bytes (``_row_norm``), the same scalar expression.
+    left_norm = np.asarray([_row_norm(row.tobytes()) for row in a], dtype=np.float64)
+    right_norm = np.asarray([_row_norm(row.tobytes()) for row in b], dtype=np.float64)
     denominator = left_norm[:, None] * right_norm[None, :]
     with np.errstate(divide="ignore", invalid="ignore"):
         ratio = np.clip(dot / denominator, -1.0, 1.0)

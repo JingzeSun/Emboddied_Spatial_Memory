@@ -40,6 +40,7 @@ from __future__ import annotations
 import math
 import random
 import re
+from collections import OrderedDict
 from typing import Any, Mapping, Sequence
 
 from cpmt.hashing import clone_json
@@ -516,15 +517,37 @@ def entity_identity(
     }
 
 
+#: Engineering (ruling 104-7, 2026-10-03): the teacher resolves the same memory's identities several times per frame (the
+#: association targets, the frame evaluation, the Missing residual rate, object correctness), and the next frame's
+#: memory_before is that memory again.  The identities are a function of the entities' evidence lists, which the memory
+#: digest covers (a canonical sha256 of the whole sealed memory), and of the evidence map, which the teacher only ever
+#: extends by new keys (one per labelled fragment, lean_evaluation.EpisodeTeacher.label_frame), so the same map object at
+#: the same length holds the same entries.  The memo keys on exactly these three things and keeps the map object itself, so
+#: its id cannot be reused while an entry lives; every caller gets its own copy.  The uncached form is kept in the tests.
+IDENTITY_MEMO_SIZE = 8
+_IDENTITY_MEMO: "OrderedDict[tuple[str, int, int], tuple[Mapping[str, Any], dict[str, dict[str, Any]]]]" = OrderedDict()
+
+
 def entity_identities(
     memory: Mapping[str, Any], evidence_instance: Mapping[str, str | None],
 ) -> dict[str, dict[str, Any]]:
-    """Identity of every entity in a validated memory, keyed by entity id."""
+    """Identity of every entity in a validated memory, keyed by entity id (memoised per sealed memory, ruling 104-7)."""
 
-    return {
-        str(entity["entity_id"]): entity_identity(entity, evidence_instance)
-        for entity in memory["entities"]
-    }
+    digest = memory.get("memory_digest")
+    if type(digest) is not str:
+        return {str(entity["entity_id"]): entity_identity(entity, evidence_instance) for entity in memory["entities"]}
+    key = (digest, id(evidence_instance), len(evidence_instance))
+    hit = _IDENTITY_MEMO.get(key)
+    if hit is not None and hit[0] is evidence_instance:
+        _IDENTITY_MEMO.move_to_end(key)
+        result = hit[1]
+    else:
+        result = {str(entity["entity_id"]): entity_identity(entity, evidence_instance) for entity in memory["entities"]}
+        _IDENTITY_MEMO[key] = (evidence_instance, result)
+        _IDENTITY_MEMO.move_to_end(key)
+        while len(_IDENTITY_MEMO) > IDENTITY_MEMO_SIZE:
+            _IDENTITY_MEMO.popitem(last=False)
+    return {entity_id: {**row, "keys_seen": list(row["keys_seen"])} for entity_id, row in result.items()}
 
 
 def fragment_dominance(overlap: Mapping[str, Any], *, dominance_min_share: float) -> dict[str, Any]:
