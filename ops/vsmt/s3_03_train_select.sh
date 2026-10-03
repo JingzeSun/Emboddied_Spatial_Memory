@@ -7,7 +7,7 @@
 #   bash ops/vsmt/s3_03_train_select.sh status   the pool's state (jobs by status, the stop reason)
 #   long runs in the background:  nohup bash ops/vsmt/s3_03_train_select.sh all > <log> 2>&1 &
 #   (the driver refuses to start while a 'sleep N' or a shutdown is pending -- an earlier driver's fallback power-off may be
-#    armed -- or while an S3-03 pool or job still runs)
+#    armed -- while an S3-03 pool or job still runs, or while another driver holds the run root's lock $RUN_ROOT/.lock)
 #
 # Steps:
 #   check   the full test suite; $RUN_ROOT/inputs.json: the S3-02 exports equal its run manifest (raw receipts, cache seals,
@@ -50,7 +50,8 @@ INSTANCE_REID=${INSTANCE_REID:-$AUTODL/vsmt_private/lean-s1-04-diagnostics-oracl
 FRONTS=${FRONTS:-instance,sam2}
 FALLBACK_SHUTDOWN_SECONDS=${FALLBACK_SHUTDOWN_SECONDS:-0}
 ACCEPT_CODE_CHANGE=${ACCEPT_CODE_CHANGE:-0}
-JOB_PATTERN="s3_03_manifest.py|lean_s2_04_evaluate_episode.py|lean_s2_05_node_audit.py|s3_03_train.py"
+# the job processes themselves (a 'status' call, an editor or a pager holding one of these files does not match)
+JOB_PATTERN="s3_03_manifest.py (run|fit|gate-round0|train-threads|probe-audit|adopt-calibration|readings|probe-determinism|coverage|export|verify) |s3_03_jobs.py run-measured |lean_s2_04_evaluate_episode.py --|lean_s2_05_node_audit.py (run|merge) --|s3_03_train.py (train|probe|time) --"
 COMMAND=${1:-}
 case "$COMMAND" in all|status) ;; *) echo "usage: bash ops/vsmt/s3_03_train_select.sh all|status"; exit 2;; esac
 M() { PYTHONPATH=src $PY ops/vsmt/s3_03_manifest.py "$@"; }
@@ -61,6 +62,8 @@ if ps -eo args | grep -v grep | grep -E "^sleep [0-9]+$|/usr/bin/shutdown" > /de
 fi
 if pgrep -f "$JOB_PATTERN" > /dev/null; then echo "refused: an S3-03 pool or one of its jobs (or another vsmt entry) is running"; exit 2; fi
 mkdir -p "$RUN_ROOT" "$EXPORT_DIR"
+exec 9> "$RUN_ROOT/.lock"  # held by this driver and its pool for the whole run; a second driver on the same root stops here
+if ! flock -n 9; then echo "refused: another driver holds $RUN_ROOT/.lock (its test suite, check or pool is running)"; exit 2; fi
 [ -f "$RUN_ROOT/run_tag" ] || echo "$SHORT" > "$RUN_ROOT/run_tag"
 TAG=$(cat "$RUN_ROOT/run_tag")  # the commit of the first check: every export of this run carries it
 LOG_DIR=$OUTPUTS/run_logs/s3-03-$TAG

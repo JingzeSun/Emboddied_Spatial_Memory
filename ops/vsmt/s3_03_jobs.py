@@ -139,6 +139,8 @@ class Job:
     keep_partial: bool = False     # the job resumes over its own finished outputs (audits with --skip-existing)
     soft_deps: tuple[str, ...] = ()  # must have ended, in any of done / diverged / skipped (the readings over every merge)
     stops_on_failure: bool = True    # False for a report-only job: its failure is recorded (verify names it), the run goes on
+    rank: int = 1                    # among jobs of one priority, a lower rank goes first (the trainings: the longest jobs)
+    group: str = ""                  # e.g. the front end; groups listed earlier in the pool's group_order go first
 
 
 class Pool:
@@ -150,7 +152,9 @@ class Pool:
                  poll_seconds: float = 2.0, disk_root: Path | None = None, min_free_gib: float = 20.0,
                  memory_now: Callable[[], int | None] = cgroup_process_bytes, memory_limit_bytes: int | None = None,
                  launch: Callable[..., Any] | None = None, wrapper: Sequence[str] | None = None,
-                 sleep: Callable[[float], None] = time.sleep, retry_failed: bool = False) -> None:
+                 sleep: Callable[[float], None] = time.sleep, retry_failed: bool = False,
+                 memory_fallbacks: Mapping[str, tuple[str, float]] | None = None, inflight_gib: float = 0.0,
+                 group_order: Sequence[str] = ()) -> None:
         self.jobs = {job.job_id: job for job in jobs}
         _require(len(self.jobs) == len(jobs), "job_ids_repeat")
         for job in jobs:
@@ -172,6 +176,11 @@ class Pool:
         self.wrapper = list(wrapper or [])
         self.sleep = sleep
         self.retry_failed = retry_failed
+        self.memory_fallbacks = dict(memory_fallbacks or {})
+        self.inflight_gib = float(inflight_gib)
+        self.group_rank = {name: index for index, name in enumerate(group_order)}
+        self.round = 0
+        self.ready_round: dict[str, int] = {}
         self.state_dir = self.run_root / "jobs"
         self.states: dict[str, dict[str, Any]] = {}
         self.running: dict[str, tuple[Any, Any, int, float]] = {}
@@ -219,7 +228,10 @@ class Pool:
                                          "reason": state.get("reason"), "commit": state.get("commit"), "at_utc": utc_now()})
                 state["status"] = "pending"
                 self._save(job_id)
-            elif state["status"] == "done" and state.get("commit") != self.commit and self.code_change is not None:
+            elif state["status"] in ("failed", "gate_failed") and job.stops_on_failure:
+                # the stop stands on a resume: a failed gate or job is never walked past, only retried on request
+                problems.append(f"stopped_before:{state['status']}:{job_id}")
+            elif state["status"] in ("done", "diverged") and state.get("commit") != self.commit and self.code_change is not None:
                 commit = str(state.get("commit"))
                 if commit not in changes:
                     changes[commit] = self.code_change(commit)
@@ -243,7 +255,12 @@ class Pool:
 
     def gib_for(self, memory_class: str) -> float:
         default = float(self.memory_defaults.get(memory_class, self.memory_defaults.get("default", 4.0)))
-        return min(measured_gib(self.measured.get(memory_class), default), self.budget_gib)
+        peak = self.measured.get(memory_class)
+        if not peak and memory_class in self.memory_fallbacks:  # e.g. round 1 from round 0's peak, until round 1 is measured
+            source, factor = self.memory_fallbacks[memory_class]
+            if self.measured.get(source):
+                peak = int(self.measured[source] * float(factor))
+        return min(measured_gib(peak, default), self.budget_gib)
 
     def gib_of(self, job: Job) -> float:
         return self.gib_for(job.memory)
@@ -259,7 +276,12 @@ class Pool:
         out = [job for job_id, job in self.jobs.items()
                if self.status(job_id) == "pending" and all(self.status(dep) == "done" for dep in job.deps)
                and all(self.status(dep) in ("done", *SKIPPING) for dep in job.soft_deps)]
-        return sorted(out, key=lambda job: (job.priority, -job.cost, job.job_id))
+        for job in out:
+            self.ready_round.setdefault(job.job_id, self.round)
+        # ruling 104-7: priority first; then the trainings (rank 0); then what became ready earlier, so one arm's or one front
+        # end's jobs finish together and what waits on them can start; then the groups in order; then longest first
+        return sorted(out, key=lambda job: (job.priority, job.rank, self.ready_round[job.job_id],
+                                            self.group_rank.get(job.group, len(self.group_rank)), -job.cost, job.job_id))
 
     def propagate_skips(self) -> None:
         changed = True
@@ -276,11 +298,10 @@ class Pool:
                     changed = True
 
     def dispatch(self) -> list[str]:
-        if self.disk_root is not None:
-            free = shutil.disk_usage(self.disk_root).free / 2 ** 30
-            if free < self.min_free_gib:
-                self.stop_reason = f"disk_below_{self.min_free_gib}_gib:{round(free, 1)}"
-                return []
+        free_disk = shutil.disk_usage(self.disk_root).free / 2 ** 30 if self.disk_root is not None else None
+        if free_disk is not None and free_disk < self.min_free_gib:  # below the floor itself: stop
+            self.stop_reason = f"disk_below_{self.min_free_gib}_gib:{round(free_disk, 1)}"
+            return []
         current = self.memory_now() if self.memory_limit_bytes else None
         # pause only while this pool's own jobs run: with none running, memory held elsewhere is no reason to wait for ever
         self.memory_paused = bool(current is not None and current > self.memory_limit_bytes and self.running)
@@ -291,6 +312,11 @@ class Pool:
         free_cores, free_gib = self.budget_cores - used_cores, self.budget_gib - used_gib
         started: list[str] = []
         for job in self.ready():
+            # every job that starts may still write inflight_gib: start one only while the floor holds for all that may write
+            if free_disk is not None and free_disk < self.min_free_gib + self.inflight_gib * (len(self.running) + 1):
+                if not self.running:
+                    self.stop_reason = f"disk_below_{round(self.min_free_gib + self.inflight_gib, 1)}_gib:{round(free_disk, 1)}"
+                break
             cores, gib = self.cores_of(job), self.gib_of(job)
             if cores <= free_cores and gib <= free_gib:
                 self.start(job, cores=cores, gib=gib)
@@ -348,7 +374,8 @@ class Pool:
             state.update({"exit": code, "max_rss_bytes": peak, "finished_utc": utc_now(),
                           "wall_seconds": round(time.time() - float(state.get("started_at") or time.time()), 1)})
             status = "done" if code == 0 else job.exit_status.get(code)
-            if status is None and code not in NO_RETRY_CODES and state["attempts"] <= job.retries:
+            if status is None and code not in NO_RETRY_CODES and int(state.get("crashes", 0)) < job.retries:
+                state["crashes"] = int(state.get("crashes", 0)) + 1
                 state["history"].append({"status": "failed_then_rerun", "exit": code, "attempt": state["attempts"], "at_utc": utc_now()})
                 self._set_aside(job, "failed", state["attempts"])
                 state["status"] = "pending"  # ruling 104-3: a crash or an out-of-memory kill reruns once, same inputs, same seed
@@ -384,6 +411,7 @@ class Pool:
         rounds = 0
         last_snapshot = 0.0
         while True:
+            self.round += 1
             self.reap()
             self.propagate_skips()
             if self.stop_reason is None:
@@ -407,6 +435,31 @@ class Pool:
         return 3 if self.stop_reason.startswith("gate_failed") else 1
 
 
+def run_measured(argv: Sequence[str]) -> int:
+    """``run-measured --out <json> -- <command...>``: run one job and record its exit and the peak memory of its process tree.
+
+    It imports nothing beyond the standard library, so the wrapper around each of thousands of jobs costs little memory.
+    """
+
+    out, command = None, list(argv)
+    if command[:1] == ["--out"] and len(command) >= 2:
+        out, command = Path(command[1]), command[2:]
+    if command[:1] == ["--"]:
+        command = command[1:]
+    _require(out is not None and bool(command), "run_measured_usage:--out <json> -- <command...>")
+    started = time.time()
+    completed = subprocess.run(command)
+    try:  # the largest descendant waited for (Linux reports KiB); unavailable on Windows
+        import resource
+
+        peak = resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss * 1024
+    except ImportError:
+        peak = None
+    write_json(out, {"command": command, "exit": completed.returncode, "wall_seconds": round(time.time() - started, 1),
+                     "max_rss_children_bytes": peak, "finished_utc": utc_now()})
+    return completed.returncode
+
+
 __all__ = [
     "Job",
     "Pool",
@@ -417,5 +470,12 @@ __all__ = [
     "TERMINAL",
     "choose_train_threads",
     "measured_gib",
+    "run_measured",
     "thread_environment",
 ]
+
+
+if __name__ == "__main__":
+    if sys.argv[1:2] != ["run-measured"]:
+        raise SystemExit("usage: s3_03_jobs.py run-measured --out <json> -- <command...>")
+    sys.exit(run_measured(sys.argv[2:]))

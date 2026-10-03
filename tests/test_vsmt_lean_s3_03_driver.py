@@ -97,6 +97,54 @@ class PoolTests(unittest.TestCase):
         self.assertEqual(self.pool(jobs, launcher, run_root=self.tmp / "second").run(), 0)
         self.assertLess(launcher.started.index("t"), launcher.started.index("y"))  # y never takes a core t is waiting for
 
+    def test_ready_jobs_go_by_rank_then_readiness_then_group_then_length(self) -> None:
+        launcher = FakeLauncher()
+        jobs = [job("x", priority=0, cost=0), job("a1", cost=5, group="instance"), job("a2", cost=4, group="instance"),
+                job("b", deps=("x",), cost=100, group="instance")]
+        self.assertEqual(self.pool(jobs, launcher, budget_cores=1).run(), 0)
+        self.assertEqual(launcher.started, ["x", "a1", "a2", "b"])  # b became ready later: its length does not let it jump ahead
+        launcher = FakeLauncher()
+        jobs = [job("s", cost=10, group="sam2"), job("i", cost=1, group="instance"), job("x", priority=0, cost=0),
+                job("t", deps=("x",), rank=0, cost=1, group="sam2")]
+        runner = self.pool(jobs, launcher, run_root=self.tmp / "groups", budget_cores=1, group_order=("instance", "sam2"))
+        self.assertEqual(runner.run(), 0)
+        self.assertEqual(launcher.started, ["x", "t", "i", "s"])  # a training first, then the first front end's job
+
+    def test_round_one_memory_is_estimated_from_round_zero_until_measured(self) -> None:
+        runner = self.pool([job("p")], FakeLauncher(), memory_fallbacks={"train1": ("train0", 2.0)}, memory_defaults={"train0": 24.0, "train1": 24.0})
+        self.assertEqual(runner.gib_for("train1"), 24.0)
+        runner.measured["train0"] = 4 * 2 ** 30
+        self.assertEqual(runner.gib_for("train1"), 10.0)  # 1.25 x 2 x 4 GiB
+        runner.measured["train1"] = 6 * 2 ** 30
+        self.assertEqual(runner.gib_for("train1"), 7.5)  # its own measurement wins
+
+    def test_the_disk_floor_grows_with_the_running_jobs(self) -> None:
+        launcher = FakeLauncher()
+
+        class Long(FakeLauncher):
+            def __call__(inner, argv, *, log, env):
+                process, handle = super().__call__(argv, log=log, env=env)
+                process.polls = 10 ** 6
+                return process, handle
+
+        free = shutil.disk_usage(self.tmp).free / 2 ** 30
+        runner = self.pool([job("a"), job("b")], Long(), disk_root=self.tmp, min_free_gib=0.0, inflight_gib=0.6 * free)
+        runner.load()
+        self.assertEqual(runner.dispatch(), ["a"])  # room for what one job may write, not for two
+        self.assertEqual(runner.dispatch(), [])
+        self.assertIsNone(runner.stop_reason)  # a pause while a job runs, not a stop
+        runner = self.pool([job("a")], Long(), run_root=self.tmp / "full", disk_root=self.tmp, min_free_gib=0.0, inflight_gib=2 * free)
+        runner.load()
+        self.assertEqual(runner.dispatch(), [])
+        self.assertTrue(runner.stop_reason.startswith("disk_below_"))  # nothing runs and nothing fits: stop
+
+    def test_the_wrapper_records_the_exit_and_passes_it_on(self) -> None:
+        out = self.tmp / "rss.json"
+        self.assertEqual(pool.run_measured(["--out", str(out), "--", sys.executable, "-c", "import sys; sys.exit(4)"]), 4)
+        self.assertEqual(json.loads(out.read_text(encoding="utf-8"))["exit"], 4)
+        with self.assertRaises(pool.PoolError):
+            pool.run_measured(["--", "x"])
+
     def test_a_crashed_training_reruns_once_with_its_partial_output_set_aside(self) -> None:
         out = self.tmp / "training" / "s7"
 
@@ -135,8 +183,8 @@ class PoolTests(unittest.TestCase):
         self.assertEqual((runner.status("t"), launcher.started), ("failed", ["t"]))
         again = FakeLauncher()
         runner = self.pool([job("t", retries=1), job("after", deps=("t",))], again, run_root=self.tmp / "refusal")
-        self.assertEqual(runner.run(), 1)  # a failed job is never rerun by itself: its dependents are stuck
-        self.assertTrue(runner.stop_reason.startswith("stuck:"))
+        self.assertEqual(runner.run(), 2)  # a failed job is never rerun by itself, and a resume stops before it again
+        self.assertEqual(runner.stop_reason, "blocked:stopped_before:failed:t")
         self.assertEqual(again.started, [])
         runner = self.pool([job("t", retries=1), job("after", deps=("t",))], again, run_root=self.tmp / "refusal", retry_failed=True)
         self.assertEqual(runner.run(), 0)
@@ -145,6 +193,20 @@ class PoolTests(unittest.TestCase):
         runner = self.pool([job("reading", stops_on_failure=False), job("work", priority=3)], launcher, run_root=self.tmp / "report")
         self.assertEqual(runner.run(), 0)
         self.assertEqual((runner.status("reading"), runner.status("work"), runner.stop_reason), ("failed", "done", None))
+
+    def test_a_resume_stops_again_before_a_failed_gate_unless_retried(self) -> None:
+        jobs = [job("probe", priority=0, exit_status={3: "gate_failed"}), job("train", priority=1), job("reading", stops_on_failure=False)]
+        launcher = FakeLauncher(codes={"probe": [3], "reading": [1]})
+        root = self.tmp / "gate"
+        self.assertEqual(self.pool(jobs, launcher, run_root=root, budget_cores=1).run(), 3)
+        again = FakeLauncher()
+        runner = self.pool(jobs, again, run_root=root)
+        self.assertEqual(runner.run(), 2)
+        self.assertEqual(runner.stop_reason, "blocked:stopped_before:gate_failed:probe")  # the report-only failure blocks nothing
+        self.assertEqual(again.started, [])
+        runner = self.pool(jobs, again, run_root=root, retry_failed=True)
+        self.assertEqual(runner.run(), 0)
+        self.assertEqual(sorted(again.started), ["probe", "reading", "train"])
 
     def test_resume_keeps_finished_jobs_sets_interrupted_ones_aside_and_guards_code_changes(self) -> None:
         state_dir = self.tmp / "run" / "jobs"
@@ -165,6 +227,12 @@ class PoolTests(unittest.TestCase):
         self.assertTrue((self.tmp / "run" / "interrupted" / "b-attempt1" / "out-b" / "half.json").exists())
         state = json.loads((state_dir / "b.json").read_text(encoding="utf-8"))
         self.assertEqual([entry["status"] for entry in state["history"]], ["interrupted"])
+        pool.write_json(state_dir / "t.json", {"job_id": "t", "status": "running", "commit": "c1", "attempts": 1, "history": []})
+        launcher = FakeLauncher(codes={"t": [-9, 0]})  # interrupted once, then a crash: the crash still gets its rerun
+        runner = self.pool([job("t", retries=1)], launcher)
+        self.assertEqual(runner.run(), 0)
+        state = json.loads((state_dir / "t.json").read_text(encoding="utf-8"))
+        self.assertEqual((state["status"], state["attempts"], state["crashes"]), ("done", 3, 1))
 
     def test_memory_is_measured_per_class_and_the_disk_floor_stops(self) -> None:
         def measured(argv):
@@ -243,6 +311,11 @@ class GraphTests(unittest.TestCase):
                                  "train0": 6, "round1": 30, "train1": 30, "coverage": 2, "audit": 212, "merge": 416, "readings": 2,
                                  "probe_determinism": 2, "timing": 1, "train_threads": 1, "grid_reading": 1})
         self.assertEqual(len(self.jobs["instance/readings"].soft_deps), 208)
+        self.assertIn("instance/probe-train", self.jobs["instance/t0/VSMT-lean"].deps)  # ruling 104-2: certified before it trains
+        audits = [job for job in self.jobs.values() if job.kind == "audit"]
+        self.assertTrue(all(f"{job.group}/probe-audit" in job.deps for job in audits))
+        self.assertEqual({job.rank for job in self.jobs.values() if job.kind in ("train0", "train1")}, {0})
+        self.assertEqual((self.jobs["sam2/r0/" + MANIFEST["train"][0]].group, self.jobs["timing"].group), ("sam2", ""))
         self.assertEqual(self.jobs["timing"].deps, tuple(f"instance/r0/{house}" for house in MANIFEST["train"][:3] + MANIFEST["train"][240:242]))
 
     def test_the_whole_graph_runs_in_protocol_order_under_fake_processes(self) -> None:
@@ -514,18 +587,26 @@ class SubcommandTests(unittest.TestCase):
         self.ctx.merged_path("instance", "LOW", 2, None).unlink()
         self.assertEqual(self.call("readings", "--front", "instance")[0], 3)
 
-    def test_the_adoption_choice_is_made_once(self) -> None:
+    def test_the_adoption_choice_is_kept_and_changes_only_before_calibration(self) -> None:
         self.assertEqual(driver.resolve_adopt(self.run_root, {"instance": "/prefit"}), {"instance": "/prefit"})
         self.assertEqual(driver.resolve_adopt(self.run_root, None), {"instance": "/prefit"})  # a resume without the option keeps it
         self.assertEqual(driver.load_context(self.run_root).adopt, {"instance": "/prefit"})
-        with self.assertRaisesRegex(driver.DriverError, "adopt_calibration_differs_from_the_first_run"):
-            driver.resolve_adopt(self.run_root, {})
-        fresh = self.tmp / "fresh"
-        pool.write_json(fresh / "jobs" / "instance__cal__x.json", {"job_id": "instance/cal/x", "status": "done"})
-        with self.assertRaisesRegex(driver.DriverError, "adopt_calibration_after_the_run_started_without_it"):
-            driver.resolve_adopt(fresh, {"instance": "/prefit"})
+        pool.write_json(self.run_root / "jobs" / "instance__adopt-calibration.json", {"job_id": "instance/adopt-calibration", "status": "gate_failed"})
+        self.assertEqual(driver.resolve_adopt(self.run_root, {}), {})  # a refused adoption may give way to a calibration pass
+        self.assertIsNone(driver.load_context(self.run_root).adopt.get("instance"))
+        pool.write_json(self.run_root / "jobs" / "instance__cal__x.json", {"job_id": "instance/cal/x", "status": "done"})
+        with self.assertRaisesRegex(driver.DriverError, "adopt_calibration_differs_from_the_settled_choice"):
+            driver.resolve_adopt(self.run_root, {"instance": "/prefit"})
+        self.assertEqual(driver.resolve_adopt(self.run_root, None), {})
         with self.assertRaisesRegex(driver.DriverError, "adopt_calibration_names_no_front"):
             driver.resolve_adopt(self.tmp / "other", {"gpu": "/x"})
+
+    def test_a_refused_run_says_so_in_the_pool_snapshot(self) -> None:
+        pool.write_json(self.run_root / "pool.json", {"stop_reason": "gate_failed:an earlier run"})
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err), mock.patch.object(driver, "git", lambda *a, **k: "another-commit"):
+            self.assertEqual(driver.main(["run", "--run-root", str(self.run_root), "--log-dir", str(self.tmp / "logs")]), 2)
+        self.assertTrue(json.loads((self.run_root / "pool.json").read_text(encoding="utf-8"))["stop_reason"].startswith("run_refused:"))
 
     def test_the_determinism_probe_falls_back_to_taf_when_every_vsmt_seed_diverged(self) -> None:
         self.assertIsNone(driver.determinism_group(self.ctx, "instance"))
@@ -537,8 +618,14 @@ class SubcommandTests(unittest.TestCase):
         pool.write_json(self.ctx.merged_path("instance", "VSMT-lean", driver.audit_configs("VSMT-lean").index(tau), 19), {})
         self.assertEqual(driver.determinism_group(self.ctx, "instance")[0::3], ("VSMT-lean", 19))
 
-    def test_verify_names_jobs_that_never_started(self) -> None:
+    def test_verify_names_jobs_that_never_started_and_training_settings_that_differ(self) -> None:
+        pool.write_json(self.run_root / "train_threads.json", {"train_threads": 3})
+        for seed, foreach, threads in ((7, True, 3), (19, False, 3), (31, True, 2)):
+            pool.write_json(self.ctx.training_dir("instance", 1, "VSMT-lean", seed) / "training_receipt.json",
+                            {"optimizer_foreach": foreach, "threads": {"requested": threads}})
         result = driver.verify(self.ctx, self.tmp / "exports", "t")
+        differ = sorted(p.rsplit("/", 2)[-2] for p in result["problems"] if p.startswith("training_settings_differ:"))
+        self.assertEqual(differ, ["s19", "s31"])
         never = [p for p in result["problems"] if p.startswith("jobs_never_started:")]
         self.assertEqual(len(never), 1)
         self.assertEqual(int(never[0].split(":")[1]), len(driver.build_jobs(self.ctx)))
@@ -550,6 +637,14 @@ class SubcommandTests(unittest.TestCase):
             code, err = self.call("train-threads", "--trainings", "30")
         self.assertEqual(code, 0, err)
         self.assertEqual(self.ctx.train_threads(), 4)
+        pool.write_json(self.run_root / "train_timing.json", {"timings": [{"threads": 1, "epoch_seconds": 10.0}, {"threads": 2, "epoch_seconds": 5.2}]})
+        with mock.patch.object(driver, "resources", lambda: {"cpu_quota": 10}):
+            self.assertEqual(self.call("train-threads", "--trainings", "30")[0], 0)
+        self.assertEqual(self.ctx.train_threads(), 1)  # 8 cores: 4 waves x 10 s beat 8 x 5.2 s
+        pool.write_json(self.run_root / "workers.json", {"budget_cores": 4})
+        with mock.patch.object(driver, "resources", lambda: {"cpu_quota": 10}):
+            self.assertEqual(self.call("train-threads", "--trainings", "30")[0], 0)
+        self.assertEqual(self.ctx.train_threads(), 2)  # the run's budget of 4: 15 waves x 5.2 s beat 8 x 10 s
 
 
 if __name__ == "__main__":

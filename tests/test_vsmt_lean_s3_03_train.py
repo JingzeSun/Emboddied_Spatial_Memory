@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import gzip
 import json
+import math
 import shutil
 import sys
 import tempfile
@@ -119,6 +120,34 @@ class StreamedTrainingTests(unittest.TestCase):
             if snapshot["best_epoch_by_group"] == plain["grouped"]["best_epoch_by_group"]:
                 self.assertEqual(snapshot["grouped"]["sha256"], plain["grouped"]["weights"]["sha256"])
         model.load_heads(json.loads(json.dumps(last["grouped"])))  # its own digest holds
+
+
+class AdamWForeachTests(unittest.TestCase):
+    """Ruling 104-7: AdamW's foreach path past the step counts where its bias corrections settle (about 37k at beta2 0.999).
+
+    The training tests run a few hundred steps; this runs 45,000 on a tiny model so a torch whose two paths round the bias
+    correction differently (e.g. ``x ** 0.5`` against ``math.sqrt``) fails here, at the server's check, before any run.
+    """
+
+    def test_forty_five_thousand_steps_bit_for_bit(self):
+        import torch
+
+        def run(foreach):
+            torch.manual_seed(7)
+            params = [torch.nn.Parameter(torch.randn(5)), torch.nn.Parameter(torch.randn(3, 2)), torch.nn.Parameter(torch.randn(1))]
+            options = {"foreach": True} if foreach else {}
+            optimiser = torch.optim.AdamW(params, lr=1e-3, weight_decay=1e-4, **options)
+            for step in range(45_000):
+                if step % 2_250 == 0:  # a rate that moves, as the cosine schedule does once per epoch
+                    for group in optimiser.param_groups:
+                        group["lr"] = 1e-5 + (1e-3 - 1e-5) * (1 + math.cos(math.pi * step / 45_000)) / 2
+                for index, param in enumerate(params):
+                    param.grad = torch.sin(torch.arange(param.numel(), dtype=torch.float32).reshape(param.shape) * 0.37 + step * 0.013 + index)
+                optimiser.step()
+            return [param.detach().clone() for param in params]
+
+        for left, right in zip(run(False), run(True)):
+            self.assertTrue(torch.equal(left, right))
 
 
 class S3RulesTests(unittest.TestCase):

@@ -158,7 +158,7 @@ nohup bash ops/vsmt/s3_03_train_select.sh all > /root/autodl-tmp/vsmt_outputs/ru
 bash ops/vsmt/s3_03_train_select.sh status
 ```
 
-再跑一次 `all` 就从停下的地方续跑：完成的作业保留（之后若代码有改动，只有 ELU-P 拟合值的登记文件与文档例外，否则拒绝，除非 `ACCEPT_CODE_CHANGE=1` 并记进作业状态）；上次中断时还在跑的作业，残留输出先挪到 `$RUN_ROOT/interrupted/` 留存再重跑；审计保留已完成的配置；首跑时是否采用已有校准趟的选择写进运行根，之后每次续跑沿用（给出不同的选择会被拒绝）；失败或门未过的作业不会自己重跑，修好或裁决后用 `RETRY_FAILED=1`（残留输出先挪到 `$RUN_ROOT/failed/`）。作业图与各子命令写在 [`ops/vsmt/s3_03_manifest.py`](ops/vsmt/s3_03_manifest.py)，派发规则在 [`ops/vsmt/s3_03_jobs.py`](ops/vsmt/s3_03_jobs.py)。
+再跑一次 `all` 就从停下的地方续跑：完成的作业保留（之后若代码有改动，只有 ELU-P 拟合值的登记文件与文档例外，否则拒绝，除非 `ACCEPT_CODE_CHANGE=1` 并记进作业状态）；上次中断时还在跑的作业，残留输出先挪到 `$RUN_ROOT/interrupted/` 留存再重跑；审计保留已完成的配置；是否采用已有校准趟的选择写进运行根，之后每次续跑沿用（在任何校准或采用作业跑过之前可以改，之后再给不同的选择会被拒绝）；失败或门未过的作业不会自己重跑，续跑时驱动会先停在它前面，修好或裁决后用 `RETRY_FAILED=1` 才重跑（残留输出先挪到 `$RUN_ROOT/failed/`）；同一个运行根同时只能有一个驱动（文件锁 `$RUN_ROOT/.lock`）。作业图与各子命令写在 [`ops/vsmt/s3_03_manifest.py`](ops/vsmt/s3_03_manifest.py)，派发规则在 [`ops/vsmt/s3_03_jobs.py`](ops/vsmt/s3_03_jobs.py)。
 
 | 输入（`AUTODL=/root/autodl-tmp`） | 默认路径 | 运行前核对（check） |
 |---|---|---|
@@ -174,7 +174,7 @@ bash ops/vsmt/s3_03_train_select.sh status
 | 第 0 轮 → 门 | ELU-P 在 rollout_config 加本前端拟合量下的轨迹，同时写 teacher 记录与 HeuristicLabel 记录；门：HeuristicLabel 的决定函数在 ELU-P 自己的轨迹上与臂的决定逐行相同（G4）、整条 split 的 nuisance 探针最大优势 ≤ 0.05；不过即停在训练之前 |
 | 训练 | 第 0 轮三个臂（种子 7，总验证损失选点）→ 第 1 轮轨迹（VSMT-lean 与 HeuristicLabel τ_r 0.5，AssocOnly 无配置）→ 第 1 轮每臂 5 个种子（VSMT-lean 与 HeuristicLabel 分组选点）；前 240 个 house 训练、后 60 个选点（104-1 1a）；线程数在第 0 轮期间按 20＋5 个 house 实测 1～4 线程选定，整趟固定；优化器走 AdamW 的多张量路径（与登记路径逐位相同：测试套件钉住，训练等价探针在真实记录上再核）；崩溃或内存不足的训练同输入同种子自动重跑一次；发散记为结果，不换种子 |
 | 审计 | validation 上 208 组：规则臂 TAF 12、ELU-P 12、RAC 12、LOW 5、HandCost 12（ELU-P 等拟合），学习臂 VSMT-lean、NoVersion、HeuristicLabel 各 10 档 τ_r × 5 种子，AssocOnly × 5 种子；每个作业是一条 episode 上同一臂同一组头的至多 3 个（规则臂）或 5 个（学习臂）配置，cache 每个作业只核验一次，只算指标；作业不可抢占，所以单个作业压在约半小时以内，免得长的低优先级作业挡住关键路径 |
-| 探针 | 审计等价（一条 train episode 上完整审计与只算指标逐项相同）、训练等价（列表式与流式入口逐位相同）与正式作业同时跑，不过即停；最后在一条 validation episode 上重跑一个审计核对确定性 |
+| 探针 | 审计等价（一条 train episode 上完整审计与只算指标逐项相同）先于全部审计，训练等价（登记的列表式路径与本次运行的流式＋多张量路径逐位相同）先于第 0 轮训练，不过即停；最后在一条 validation episode 上重跑一个审计核对确定性 |
 | 读数 | 合并完整性；每套前端的选参读数（逐指标排除清单、house 均值、种子均值、缺的种子注明、AssocOnly 参照值）；只报告：89-3 ① 状态覆盖、两套校准趟的网格位置（101 (1)(a) 读法）、标签构成 |
 | export → verify | 导出 `$AUTODL/vsmt_outputs/exports/vsmt_lean_s3_03_*_<tag>.json`；verify 要求所有作业结束、所有门通过、S0-05 登记的拟合值与本次运行的值逐位相等 |
 

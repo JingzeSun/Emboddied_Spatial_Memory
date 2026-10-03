@@ -27,11 +27,9 @@ import gzip
 import hashlib
 import json
 import math
-import os
 import shutil
 import subprocess
 import sys
-import time
 from pathlib import Path
 from typing import Any, Iterator, Mapping, Sequence
 
@@ -42,6 +40,7 @@ for item in (ROOT / "src", HERE.parent):
         sys.path.insert(0, str(item))
 
 import s3_03_jobs as pool  # noqa: E402
+JOBS_SCRIPT = HERE.parent / "s3_03_jobs.py"  # its run-measured wrapper imports only the standard library
 from vsmt import lean_arms as arms  # noqa: E402
 from vsmt import lean_s3_03 as s3  # noqa: E402
 
@@ -74,6 +73,9 @@ MEMORY_DEFAULTS_GIB = {"pass": 4.0, "audit": 4.0, "audit_full": 6.0, "train0": 2
 CONFIGS_PER_AUDIT_JOB = {"rule": 3, "learned": 5}
 #: The disk floor of a resumed run's check (the pool stops dispatching below the same floor); a first check asks for --min-free-gib.
 RUN_FLOOR_GIB = 20.0
+#: What one running job may still write before it ends (records of a pass, an audit chunk, a training's snapshots); the pool's
+#: disk floor is RUN_FLOOR_GIB plus this for every running job, so about 98 passes writing at once cannot fill the disk unseen.
+INFLIGHT_GIB = 0.5
 #: The adoption choice of the first run, kept so that every resume builds the same graph.
 ADOPT_FILE = "adopt_calibration.json"
 #: Ruling 104-7 conditional item: the trainings, the timing and the training probe use AdamW's multi-tensor path.  It is
@@ -366,7 +368,8 @@ def build_jobs(ctx: RunContext) -> list[pool.Job]:
         round1 = ctx.pass_root(front, "round1")
         round1_ids: dict[str, list[str]] = {}
         for arm in s3.TRAINED_ARMS:
-            jobs.append(pool.Job(f"{front}/t0/{arm}", "train0", (f"{front}/gate-r0", "train-threads"), P["critical"], TRAINING_COST, None,
+            jobs.append(pool.Job(f"{front}/t0/{arm}", "train0", (f"{front}/gate-r0", "train-threads", f"{front}/probe-train"),
+                                 P["critical"], TRAINING_COST, None,
                                  "train0", lambda f=front, a=arm: ctx.train(f, a, 0, arms.SEEDS[0]),
                                  outputs=(str(ctx.training_dir(front, 0, arm, arms.SEEDS[0])),), retries=1, exit_status={3: "diverged"}))
             round1_ids[arm] = []
@@ -393,10 +396,10 @@ def build_jobs(ctx: RunContext) -> list[pool.Job]:
             configs = list(enumerate(audit_configs(arm)))
             for seed in (arms.SEEDS if seeded else (None,)):
                 if seeded:
-                    deps: tuple[str, ...] = (f"{front}/t1/{heads_arm(arm)}/s{seed}",)
+                    deps: tuple[str, ...] = (f"{front}/probe-audit", f"{front}/t1/{heads_arm(arm)}/s{seed}")
                     priority = P["learned_audit"]
                 else:
-                    deps = (f"{front}/fit",) if arm == "ELU-P" else ()
+                    deps = (f"{front}/probe-audit", f"{front}/fit") if arm == "ELU-P" else (f"{front}/probe-audit",)
                     priority = P["rule_audit"]
                 size = CONFIGS_PER_AUDIT_JOB["learned" if seeded else "rule"]
                 chunks = [configs[start:start + size] for start in range(0, len(configs), size)]
@@ -430,6 +433,10 @@ def build_jobs(ctx: RunContext) -> list[pool.Job]:
         jobs.append(pool.Job(f"{front}/probe-determinism", "probe_determinism", (f"{front}/readings",), P["control"],
                              float(min(validation_frames.values())), 1, "audit", lambda f=front: ctx.manifest("probe-determinism", "--front", f),
                              outputs=(str(gates / "determinism"),), exit_status={3: "gate_failed"}))
+    for job in jobs:
+        job.group = job.job_id.split("/", 1)[0]
+        if job.kind in ("train0", "train1"):
+            job.rank = 0
     first = ctx.fronts[0]
     training_houses, selection_houses = training_house_order(ctx, first)
     timing_deps = tuple(f"{first}/r0/{house}" for house in training_houses[:TIMING_TRAINING_HOUSES] + selection_houses[:TIMING_SELECTION_HOUSES])
@@ -599,20 +606,47 @@ def run_started(run_root: Path) -> bool:
     return any(path for path in (run_root / "jobs").glob("*.json")) if (run_root / "jobs").exists() else False
 
 
+def calibration_settled(run_root: Path) -> bool:
+    """Whether a calibration or adoption job has run (or runs): after that the adoption choice can no longer change."""
+
+    for path in (run_root / "jobs").glob("*.json") if (run_root / "jobs").exists() else ():
+        if path.name.endswith(".rss.json"):
+            continue
+        state = load_json(path)
+        job_id = str(state.get("job_id", ""))
+        if ("/cal/" in job_id or job_id.endswith("/adopt-calibration")) and state.get("status") in ("done", "running"):
+            return True
+    return False
+
+
 def resolve_adopt(run_root: Path, requested: Mapping[str, str] | None) -> dict[str, str]:
-    """The run's adoption choice: made once, at its first run, and kept, so every resume builds the same job graph."""
+    """The run's adoption choice, kept in the run root so every resume builds the same job graph.
+
+    A resume without the option keeps it.  A different choice is accepted only while no calibration or adoption job has run
+    (for example after a refused adoption probe); afterwards it is refused.
+    """
 
     unknown = sorted(set(requested or {}) - set(FRONTS))
     _require(not unknown, f"adopt_calibration_names_no_front:{unknown}")
     path = run_root / ADOPT_FILE
-    if path.exists():
-        saved = dict(load_json(path)["adopt"])
-        _require(requested is None or dict(requested) == saved, f"adopt_calibration_differs_from_the_first_run:{saved}")
+    saved = dict(load_json(path)["adopt"]) if path.exists() else None
+    if requested is None and saved is not None:
         return saved
-    _require(not (requested and run_started(run_root)), "adopt_calibration_after_the_run_started_without_it")
     chosen = dict(requested or {})
-    write_json(path, {"adopt": chosen, "rule": "chosen at the first run of this run root and kept for every resume", "written_utc": utc_now()})
+    if saved is not None and chosen == saved:
+        return saved
+    _require(not calibration_settled(run_root), f"adopt_calibration_differs_from_the_settled_choice:{saved}")
+    write_json(path, {"adopt": chosen, "replaced": saved, "written_utc": utc_now(),
+                      "rule": "kept for every resume; it may change only while no calibration or adoption job has run"})
     return chosen
+
+
+def note_refusal(run_root: Path, reason: str) -> None:
+    """A refused run says so in pool.json, so the status file never shows an earlier run's stop reason."""
+
+    path = run_root / "pool.json"
+    old = load_json(path) if path.exists() else {}
+    write_json(path, {**old, "stop_reason": f"run_refused:{reason}", "running": [], "updated_utc": utc_now()})
 
 
 def cmd_run(args: argparse.Namespace) -> int:
@@ -620,11 +654,16 @@ def cmd_run(args: argparse.Namespace) -> int:
     inputs = load_json(run_root / "inputs.json")
     head = git("rev-parse", "HEAD")
     if inputs.get("problems") or inputs.get("code_commit") != head:
-        print(f"[s3-03-run] refused: run check at {head[:12]} first (problems: {inputs.get('problems')}, checked at "
-              f"{str(inputs.get('code_commit'))[:12]})", file=sys.stderr)
+        reason = f"run check at {head[:12]} first (problems: {inputs.get('problems')}, checked at {str(inputs.get('code_commit'))[:12]})"
+        note_refusal(run_root, reason)
+        print(f"[s3-03-run] refused: {reason}", file=sys.stderr)
         return 2
     requested = None if args.adopt_calibration is None else dict(item.split("=", 1) for item in args.adopt_calibration)
-    adopt = resolve_adopt(run_root, requested)
+    try:
+        adopt = resolve_adopt(run_root, requested)
+    except DriverError as exc:
+        note_refusal(run_root, str(exc))
+        raise
     ctx = load_context(run_root, adopt=adopt)
     info = resources()
     cores = int(args.budget_cores or info["cpu_quota"]) - pool.RESERVE_CORES
@@ -639,13 +678,18 @@ def cmd_run(args: argparse.Namespace) -> int:
                                            "rule": ("ruling 104-3: cores and memory from the cgroup (cpu.max, memory.max), 2 cores and 8 GiB kept "
                                                     "free; single-threaded jobs pinned to one thread, trainings to TRAIN_THREADS; memory per "
                                                     "class 1.25 x the measured peak once measured"),
-                                           "adopt_calibration": adopt, "written_utc": utc_now()})
+                                           "adopt_calibration": adopt, "written_utc": utc_now(),
+                                           "memory_guard": ("cgroup memory.stat anon+shmem" if pool.cgroup_process_bytes() is not None else
+                                                            "unavailable here (no cgroup v2 memory.stat): dispatch never pauses on memory"),
+                                           "memory_fallbacks": {"train1": "2 x the measured round-0 peak until a round-1 training is measured"},
+                                           "inflight_gib_per_running_job": INFLIGHT_GIB})
     jobs = build_jobs(ctx)
     runner = pool.Pool(jobs, run_root=run_root, log_dir=Path(args.log_dir), budget_cores=cores, budget_gib=gib, memory_defaults=defaults,
                        train_threads=ctx.train_threads, commit=head, code_change=disallowed_changes,
                        accept_code_change=args.accept_code_change, poll_seconds=args.poll_seconds, disk_root=run_root,
                        min_free_gib=args.min_free_gib, memory_limit_bytes=memory_bytes - int(pool.RESERVE_GIB * 2 ** 30),
-                       wrapper=[ctx.python, str(HERE), "run-measured"], retry_failed=args.retry_failed)
+                       wrapper=[ctx.python, str(JOBS_SCRIPT), "run-measured"], retry_failed=args.retry_failed,
+                       memory_fallbacks={"train1": ("train0", 2.0)}, inflight_gib=INFLIGHT_GIB, group_order=ctx.fronts)
     print(f"[s3-03-run] {len(jobs)} jobs, {cores} cores, {round(gib, 1)} GiB, fronts {list(ctx.fronts)}, commit {head[:12]}", flush=True)
     code = runner.run()
     print(f"[s3-03-run] finished: {runner.stop_reason or 'all jobs ended'}")
@@ -664,23 +708,6 @@ def cmd_status(args: argparse.Namespace) -> int:
                       "failed": [s["job_id"] for s in states if s["status"] in ("failed", "gate_failed")][:10],
                       "diverged": [s["job_id"] for s in states if s["status"] == "diverged"]}, indent=1))
     return 0
-
-
-def cmd_run_measured(args: argparse.Namespace) -> int:
-    command = list(args.command)
-    if command and command[0] == "--":
-        command = command[1:]
-    started = time.time()
-    completed = subprocess.run(command)
-    try:  # the largest descendant waited for (Linux reports KiB); unavailable on Windows
-        import resource
-
-        peak = resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss * 1024
-    except ImportError:
-        peak = None
-    write_json(Path(args.out), {"command": command, "exit": completed.returncode, "wall_seconds": round(time.time() - started, 1),
-                                "max_rss_children_bytes": peak, "finished_utc": utc_now()})
-    return completed.returncode
 
 
 # --------------------------------------------------------------------------
@@ -785,8 +812,8 @@ def cmd_gate_round0(args: argparse.Namespace) -> int:
 def cmd_train_threads(args: argparse.Namespace) -> int:
     run_root = Path(args.run_root)
     timing = load_json(run_root / "train_timing.json")
-    info = resources()
-    cores = int(info["cpu_quota"]) - pool.RESERVE_CORES
+    workers = run_root / "workers.json"  # the run's own budget (it may have been set below the quota)
+    cores = int(load_json(workers)["budget_cores"]) if workers.exists() else int(resources()["cpu_quota"]) - pool.RESERVE_CORES
     choice = pool.choose_train_threads({row["threads"]: row["epoch_seconds"] for row in timing["timings"]}, cores=cores,
                                        trainings=int(args.trainings))
     write_json(run_root / "train_threads.json", {**choice, "timing_file_sha256": sha256_file(run_root / "train_timing.json"),
@@ -986,6 +1013,7 @@ def cmd_coverage(args: argparse.Namespace) -> int:
 def training_summary(path: Path) -> dict[str, Any]:
     receipt = load_json(path)
     keys = ("arm", "round", "seed", "label_source", "uses", "mask_source", "sources", "split", "best_epoch", "diverged", "updates_taken",
+            "optimizer_foreach",
             "train_curve", "validation_curve", "train_curve_terms", "validation_curve_terms", "weights_sha256", "group_selection",
             "existence_class_weight", "threads", "wall_seconds", "peak_rss_bytes", "code_commit")
     return {key: receipt.get(key) for key in keys} | {"receipt_sha256": sha256_file(path)}
@@ -1061,6 +1089,12 @@ def verify(ctx: RunContext, export_dir: Path, tag: str) -> dict[str, Any]:
         registered[front] = {"run_local": run_values, "registered": contract_values, "equal": run_values == contract_values}
         if run_values != contract_values:  # ruling 104-1 1b: the registration commit must carry exactly the run's values
             problems.append(f"elu_p_values_not_registered:{front}")
+    threads = ctx.train_threads() if (ctx.run_root / "train_threads.json").exists() else None
+    for front in ctx.fronts:  # ruling 104-3 / 104-7: one optimizer path and one thread count for every training of the run
+        for path in sorted((ctx.front_dir(front) / "training").glob("round*/*/s*/training_receipt.json")):
+            receipt = load_json(path)
+            if bool(receipt.get("optimizer_foreach")) != OPTIMIZER_FOREACH or (receipt.get("threads") or {}).get("requested") != threads:
+                problems.append(f"training_settings_differ:{path.relative_to(ctx.run_root).as_posix()}")
     exports = sorted(p for p in export_dir.glob(f"vsmt_lean_s3_03_*_{tag}.json")
                      if not p.name.startswith(("vsmt_lean_s3_03_manifest_", "vsmt_lean_s3_03_verify_")))
     return {"problems": problems, "registered_values": registered,
@@ -1114,10 +1148,6 @@ def main(argv: Sequence[str] | None = None) -> int:
     status = sub.add_parser("status")
     status.add_argument("--run-root", required=True)
     status.set_defaults(func=cmd_status)
-    measured = sub.add_parser("run-measured")
-    measured.add_argument("--out", required=True)
-    measured.add_argument("command", nargs=argparse.REMAINDER)
-    measured.set_defaults(func=cmd_run_measured)
     for name, func in (("fit", cmd_fit), ("gate-round0", cmd_gate_round0), ("probe-audit", cmd_probe_audit), ("readings", cmd_readings),
                        ("probe-determinism", cmd_probe_determinism), ("coverage", cmd_coverage), ("adopt-calibration", cmd_adopt_calibration)):
         job = sub.add_parser(name)
