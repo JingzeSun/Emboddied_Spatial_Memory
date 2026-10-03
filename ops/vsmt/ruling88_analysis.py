@@ -50,7 +50,7 @@ METRICS = {
     "false_retract_rate_in_scope": ("false_retract_rate_in_scope", "false_retract_rate", "lower"),
 }
 MERGED_SCHEMAS = ("vsmt-s2-05-node-audit-merged-v7", "vsmt-s2-05-node-audit-merged-v8", "vsmt-s2-05-node-audit-merged-v9",
-                  "vsmt-s2-05-node-audit-merged-v10", "vsmt-s2-05-node-audit-merged-v11")
+                  "vsmt-s2-05-node-audit-merged-v10", "vsmt-s2-05-node-audit-merged-v11", "vsmt-s2-05-node-audit-merged-v12")
 
 
 def as_merged(payload: Mapping[str, Any]) -> dict[str, Any]:

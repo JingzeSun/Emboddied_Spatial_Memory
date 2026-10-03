@@ -5,16 +5,22 @@ window, a structural wall): the audit reproduces the evaluator's per-frame node 
 current rule, its entity and truth categories partition the predicted and truth totals, the stale
 mug entity is counted as such on every frame after the window, the oracle identity grouping never
 scores below the current rule, the merged report pools two audits, and a labelled record the
-evaluator would disagree with is refused.  CPU only, seconds.
+evaluator would disagree with is refused.  Ruling 104-4 (1): the real ``run`` entry, its file reads patched to the same
+synthetic episode, writes a metrics-only audit equal to the full audit field by field (report, decomposition counts, seal
+chain digest, final memory) for TAF, ELU-P, VSMT-lean, NoVersion and AssocOnly; a metrics-only run refuses diagnostic
+options, and a merge keeps one mode.  CPU only, seconds.
 """
 from __future__ import annotations
 
+import argparse
 import copy
 import json
+import shutil
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 for item in (PROJECT_ROOT / "src", PROJECT_ROOT / "tests", PROJECT_ROOT / "ops" / "vsmt"):
@@ -670,7 +676,7 @@ class RulingEightyEightOracleTests(unittest.TestCase):
                 (root / name / "VSMT-lean" / audit_module.AUDIT_FILE_NAME).write_text(
                     json.dumps({**base, "episode_id": name, "oracle": setting}), encoding="utf-8")
             merged = audit_module.merge_audits(root, "VSMT-lean")
-            self.assertEqual(merged["schema_version"], "vsmt-s2-05-node-audit-merged-v11")
+            self.assertEqual(merged["schema_version"], audit_module.MERGED_SCHEMA_VERSION)
             self.assertEqual(merged["oracle"]["existence_rule"], "node_primary")
             self.assertNotIn("counts", merged["oracle"])
             (root / "ep-0003" / "VSMT-lean").mkdir(parents=True)
@@ -713,3 +719,121 @@ class RulingEightyFourMaskSourceTests(unittest.TestCase):
             with self.assertRaises(audit_module.NodeAuditError) as caught:
                 audit_module.merge_audits(root, "TAF")
             self.assertEqual(str(caught.exception), "audits_mix_mask_sources")
+
+
+class RulingOneHundredFourMetricsOnlyTests(unittest.TestCase):
+    """Ruling 104-4 (1): the run of record without the diagnostic blocks, pinned equal to the full audit."""
+
+    ARMS = {"TAF": False, "ELU-P": False, "VSMT-lean": True, "NoVersion": True, "AssocOnly": True}
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        from test_vsmt_lean_model import labelled_frame
+        from vsmt import lean_model
+        from vsmt import lean_object_geometry as og
+
+        cls.tmp = Path(tempfile.mkdtemp())
+        cls.data = episode()
+        geometry = cls.tmp / "geometry" / "ep-0001"
+        geometry.mkdir(parents=True)
+        (geometry / og.TABLE_FILE_NAME).write_text(json.dumps(cls.data["table"]), encoding="utf-8")
+        for name in ("cache", "episode"):
+            (cls.tmp / name).mkdir()
+        train = [labelled_frame(s, drop=("lamp" if s % 2 else None), new=(s % 3 == 0)) for s in range(30, 36)]
+        validation = [labelled_frame(s, drop=("book" if s % 2 else None), new=(s % 2 == 0)) for s in range(50, 52)]
+        cls.heads = {}
+        for assoc_only in (False, True):
+            result = lean_model.train_heads(train, validation, learning_rate=1e-3, weight_decay=1e-4, epochs=1, seed=7, assoc_only=assoc_only)
+            cls.heads[assoc_only] = cls.tmp / f"heads_{assoc_only}.json"
+            cls.heads[assoc_only].write_text(json.dumps(result["weights"]), encoding="utf-8")
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        shutil.rmtree(cls.tmp, ignore_errors=True)
+
+    def args(self, arm: str, *, out: Path, metrics_only: bool, **override) -> argparse.Namespace:
+        heads = None if not self.ARMS[arm] else str(self.heads[arm == "AssocOnly"])
+        values = dict(cache_root=str(self.tmp / "cache"), episode_root=str(self.tmp / "episode"), geometry_root=str(self.tmp / "geometry"),
+                      episode_id="ep-0001", arm=arm, config=json.dumps(CONFIGS[arm]), descriptor="vitb14", weights=None, heads=heads,
+                      output_root=str(out), frames=None, device="cpu", allow_dirty=True, dedup_override=None, dormancy_override=None,
+                      oracle_association=False, oracle_existence=None, oracle_recall=False, trace_residuals=False,
+                      recall_global_count=None, mask_source="simulator_instance_masks", metrics_only=metrics_only)
+        values.update(override)
+        return argparse.Namespace(**values)
+
+    def run_entry(self, args: argparse.Namespace) -> int:
+        """The real ``run``; only the reads of the cache, the private frames and the intervention log are served from memory."""
+
+        import lean_s1_04_diagnostics as diag
+        import lean_s2_04_evaluate_episode as s2_04
+        from vsmt import lean_memory as lm
+
+        data = self.data
+        with mock.patch.object(s2_04, "verify_cache_episode", lambda cache_dir, registered, mask_source: ({"payload_sha256": "0" * 64}, list(range(5)))), \
+                mock.patch.object(diag, "registered_descriptor_asset_sha256s", lambda: {}), \
+                mock.patch.object(diag.cache_runner, "load_cache_frame", lambda index: copy.deepcopy(data["frames"][index])), \
+                mock.patch.object(diag.cache_runner, "read_masks_file", lambda path: data["masks"][int(Path(path).name[:4])]), \
+                mock.patch.object(diag, "cache_runner_read_interventions", lambda provenance: (data["executed"], data["window"])), \
+                mock.patch.object(s2_04, "episode_depth_reader", lambda episode_root, cache_dir: (lambda index, frame: frame[lr.PUBLIC_DEPTH_VIEW_KEY])), \
+                mock.patch.object(s2_04, "load_private_frame", lambda root, index: (data["records"][index], data["images"][index])), \
+                mock.patch.object(lm, "_apply_dedup", lm._apply_dedup):  # a full run wraps the shared dedup; restored after each run
+            return audit_module.run(args)
+
+    def audit_of(self, out: Path, arm: str) -> dict:
+        return json.loads((out / "ep-0001" / arm / audit_module.AUDIT_FILE_NAME).read_text(encoding="utf-8"))
+
+    def test_the_metrics_only_audit_equals_the_full_audit_for_every_kind_of_arm(self) -> None:
+        for arm in self.ARMS:
+            with self.subTest(arm=arm):
+                metrics_root, full_root = self.tmp / f"metrics-{arm}", self.tmp / f"full-{arm}"
+                self.assertEqual(self.run_entry(self.args(arm, out=metrics_root, metrics_only=True)), 0)  # before any full run wraps the dedup
+                self.assertEqual(self.run_entry(self.args(arm, out=full_root, metrics_only=False)), 0)
+                metrics, full = self.audit_of(metrics_root, arm), self.audit_of(full_root, arm)
+                self.assertIsNone(metrics["audit"])
+                self.assertTrue(metrics["metrics_only"])
+                self.assertFalse(full["metrics_only"])
+                self.assertIsNotNone(full["audit"])
+                result = audit_module.compare_audits(full, metrics)
+                self.assertTrue(result["identical"], result["differing_fields"])
+                for field in ("report", "decomposition_totals", "trajectory_sha256", "final_memory_digest", "final_entities_by_state"):
+                    self.assertIn(field, result["compared_fields"])
+                self.assertEqual(metrics["trajectory_sha256"], full["trajectory_sha256"])
+                self.assertEqual(metrics["decomposition_totals"], full["decomposition_totals"])
+                self.assertGreater(metrics["decomposition_totals"]["decisions"], 0)
+                changed = copy.deepcopy(metrics)
+                changed["report"]["node_prf1"]["matched"] += 1
+                self.assertEqual(audit_module.compare_audits(full, changed)["differing_fields"], ["report"])
+                with self.assertRaises(audit_module.NodeAuditError):
+                    audit_module.compare_audits(metrics, full)  # the arguments in the wrong order are refused
+
+    def test_a_metrics_only_run_takes_no_diagnostic_option(self) -> None:
+        out = self.tmp / "refused"
+        for override in ({"oracle_association": True}, {"dormancy_override": 10}, {"trace_residuals": True}, {"recall_global_count": 5},
+                         {"dedup_override": "{}"}, {"oracle_recall": True}, {"oracle_existence": "node_primary"}):
+            with self.subTest(override=override):
+                self.assertEqual(self.run_entry(self.args("TAF", out=out, metrics_only=True, **override)), 2)
+        self.assertFalse(out.exists())
+
+    def test_a_merge_keeps_one_mode_and_the_metrics_only_merge_keeps_the_reports(self) -> None:
+        root = self.tmp / "merge-metrics"
+        self.assertEqual(self.run_entry(self.args("TAF", out=root, metrics_only=True)), 0)
+        audit = self.audit_of(root, "TAF")
+        for name in ("ep-0002",):  # a second episode: the same audit under another id
+            (root / name / "TAF").mkdir(parents=True)
+            (root / name / "TAF" / audit_module.AUDIT_FILE_NAME).write_text(json.dumps({**audit, "episode_id": name}), encoding="utf-8")
+        merged = audit_module.merge_audits(root, "TAF")
+        self.assertTrue(merged["metrics_only"])
+        self.assertEqual(merged["schema_version"], audit_module.MERGED_SCHEMA_VERSION)
+        self.assertEqual(merged["episodes"], 2)
+        self.assertEqual([row["report"] for row in merged["per_episode"]], [audit["report"], audit["report"]])
+        self.assertEqual(merged["pooled_decomposition_totals"], {k: 2 * v for k, v in audit["decomposition_totals"].items()})
+        self.assertNotIn("pooled_rules", merged)
+        full_root = self.tmp / "merge-full"
+        self.assertEqual(self.run_entry(self.args("TAF", out=full_root, metrics_only=False)), 0)
+        shutil.copytree(full_root / "ep-0001" / "TAF", root / "ep-0003" / "TAF")
+        with self.assertRaises(audit_module.NodeAuditError) as caught:
+            audit_module.merge_audits(root, "TAF")
+        self.assertEqual(str(caught.exception), "audits_mix_metrics_only_and_full")
+        full_merged = audit_module.merge_audits(full_root, "TAF")
+        self.assertFalse(full_merged["metrics_only"])
+        self.assertEqual(full_merged["per_episode"][0]["trajectory_sha256"], audit["trajectory_sha256"])

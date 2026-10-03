@@ -61,6 +61,16 @@ v5（裁决 81-3，2026-09-28）：失去承载的事件与此后的缺失时长
 v11（裁决 84-1 (b)，由裁决 100-1 (i) 落地，2026-10-01）：审计按 episode 封印声明的 mask 来源取 ReID 头摘要核对 --weights
 （实例分割 5cea91cf…、SAM2 f6fc67e5…；SAM2 封印没有 mask_source 字段即 sam2），--mask-source 给出时须与封印一致；回执记下
 mask_source 与权重摘要，合并时一组审计里出现两种来源（或新旧回执混合，旧回执没有这一项）就拒绝。它不改任何审计口径。
+
+v12（裁决 104-4 ①，2026-10-03）：``run --metrics-only`` 是 S3 的正式闭环审计——同一个 runner、同一个 teacher、同一份指标
+报告，只是不建 NodeAudit、不跑 v2～v10 的诊断块（``audit`` 记 null），也不收任何诊断开关（oracle、覆盖值、残留追踪）。
+两种模式的审计文件都新记三样东西：``metrics_only``、teacher 的三分解计数 ``decomposition_totals``（只有计数，没有私有键）、
+逐帧封存链摘要 ``trajectory_sha256``（每帧的 tick、阶段 A／B 封存摘要与提交后的记忆摘要连成一串再取 sha256）。``compare``
+子命令把同一 episode 的完整审计与 metrics-only 审计逐项对拍（除墙钟时间、提交号、头文件路径、实测耗时与内存、``audit`` 块
+与模式标记外全部相等），不同即退出码 3——这是裁决 104-2 的审计等价探针。合并时 metrics-only 与完整审计不混合；
+metrics-only 的合并只有逐 episode 报告与三分解计数的合计，选参读数只读逐 episode 的报告。白话：输入与完整审计相同，输出
+少了只用于诊断的分类账，指标一个字节都不变；例如 TAF 一条 836 帧的 episode，省下的是按七八种备选口径重新匹配的时间。
+它不改指标、标签或任何决定。
 """
 from __future__ import annotations
 
@@ -83,7 +93,7 @@ for item in (ROOT / "src", HERE.parent):
 from vsmt import lean_teacher as lt  # noqa: E402
 
 AUDIT_FILE_NAME = "node_audit.json"
-SCHEMA_VERSION = "vsmt-s2-05-node-audit-v11"  # v2: ruling 76 (1)(a) centroid ledger, birth reasons, dedup tallies, count-first columns;
+SCHEMA_VERSION = "vsmt-s2-05-node-audit-v12"  # v2: ruling 76 (1)(a) centroid ledger, birth reasons, dedup tallies, count-first columns;
 #                                             v3: ruling 79-2 existence-candidate tally; v4: ruling 80-4 association tally;
 #                                             v5: ruling 81-3 loss-of-carrier events and absence durations;
 #                                             v6: direction B (2026-09-29): folds filed by whether the two records were ever observed in the same frame;
@@ -94,7 +104,17 @@ SCHEMA_VERSION = "vsmt-s2-05-node-audit-v11"  # v2: ruling 76 (1)(a) centroid le
 #                                                  rank; --recall-global-count overrides k' for diagnostics, recorded as recall_global_count
 #                                             v11: ruling 84-1 (b) under ruling 100-1 (i) (2026-10-01): the ReID head follows the episode's sealed
 #                                                  mask source; mask_source and weights_sha256 recorded, a merge never mixes sources
-ACCEPTED_AUDIT_SCHEMAS = ("vsmt-s2-05-node-audit-v8", "vsmt-s2-05-node-audit-v9", "vsmt-s2-05-node-audit-v10", SCHEMA_VERSION)
+#                                             v12: ruling 104-4 (1) (2026-10-03): --metrics-only (no NodeAudit, audit null); every audit
+#                                                  records metrics_only, decomposition_totals and trajectory_sha256; a merge never mixes modes
+ACCEPTED_AUDIT_SCHEMAS = ("vsmt-s2-05-node-audit-v8", "vsmt-s2-05-node-audit-v9", "vsmt-s2-05-node-audit-v10",
+                          "vsmt-s2-05-node-audit-v11", SCHEMA_VERSION)
+MERGED_SCHEMA_VERSION = "vsmt-s2-05-node-audit-merged-v12"
+#: Ruling 104-4 (1): what may differ between a full audit and a metrics-only audit of the same run -- wall time, commit, the head
+#: file's path, the measured per-frame time and peak memory of S0-04 size_and_cost (measured, never decided on), the diagnostic
+#: block itself and the mode flag.  Everything else must be equal (the audit equivalence probe of ruling 104-2).
+VOLATILE_AUDIT_KEYS = ("wall_seconds", "code_commit", "heads")
+VOLATILE_REPORT_FIELDS = ("runtime_per_frame_s", "peak_memory_bytes")
+MODE_KEYS = ("audit", "metrics_only")
 
 #: Why an in-memory prediction (an entity in ``active``/``dormant`` whose object is not a present
 #: out-of-scope one) did not match under the IoU 0.3 column (the primary column until ruling 72 (B), secondary since).
@@ -263,6 +283,36 @@ def object_groups(geometry_table: Mapping[str, Any]) -> dict[str, str]:
     for row in geometry_table["objects"]:
         groups[str(row["object_id"])] = "pickupable" if row.get("pickupable") else ("receptacle" if row.get("receptacle") else "other")
     return groups
+
+
+def trajectory_sha256(receipts: Sequence[Mapping[str, Any]]) -> str:
+    """Ruling 104-4 (1): one digest of the run's per-frame seal chain (tick, both stage seals, the committed memory digest)."""
+
+    chain = [[int(r["tick"]), str(r["stage_a_seal_sha256"]), str(r["stage_b_seal_sha256"]), str(r["memory_digest_after"])] for r in receipts]
+    return hashlib.sha256(json.dumps(chain, separators=(",", ":")).encode("utf-8")).hexdigest()
+
+
+def comparable_metrics(payload: Mapping[str, Any]) -> dict[str, Any]:
+    """An audit without what may differ between a full and a metrics-only audit of the same run (ruling 104-4 (1))."""
+
+    out = {key: value for key, value in payload.items() if key not in VOLATILE_AUDIT_KEYS + MODE_KEYS}
+    report = dict(out.get("report") or {})
+    if "size_and_cost" in report:
+        report["size_and_cost"] = {k: v for k, v in report["size_and_cost"].items() if k not in VOLATILE_REPORT_FIELDS}
+    out["report"] = report
+    return out
+
+
+def compare_audits(full: Mapping[str, Any], metrics_only: Mapping[str, Any]) -> dict[str, Any]:
+    """Ruling 104-2 audit equivalence probe: a full audit and a metrics-only audit of one episode, field by field."""
+
+    _require(not full.get("metrics_only") and full.get("audit") is not None, "compare_needs_a_full_audit")
+    _require(bool(metrics_only.get("metrics_only")) and metrics_only.get("audit") is None, "compare_needs_a_metrics_only_audit")
+    left, right = comparable_metrics(full), comparable_metrics(metrics_only)
+    differing = sorted(key for key in set(left) | set(right) if left.get(key) != right.get(key))
+    return {"episode_id": metrics_only.get("episode_id"), "arm": metrics_only.get("arm"), "identical": not differing,
+            "differing_fields": differing, "compared_fields": sorted(set(left) | set(right)),
+            "excluded": {"keys": list(VOLATILE_AUDIT_KEYS + MODE_KEYS), "size_and_cost": list(VOLATILE_REPORT_FIELDS)}}
 
 
 def capture_truth_table(teacher: Any) -> dict[str, Any]:
@@ -1350,6 +1400,14 @@ def run(args: argparse.Namespace) -> int:
     if refusal:  # ruling 103-1: sealed S3 test roots are read only by S3-05
         print(f"[node-audit] refused: {refusal}", file=sys.stderr)
         return 2
+    diagnostic_options = [name for name, given in (
+        ("--dedup-override", bool(args.dedup_override)), ("--dormancy-override", args.dormancy_override is not None),
+        ("--oracle-association", bool(args.oracle_association)), ("--oracle-existence", args.oracle_existence is not None),
+        ("--oracle-recall", bool(args.oracle_recall)), ("--trace-residuals", bool(args.trace_residuals)),
+        ("--recall-global-count", args.recall_global_count is not None)) if given]
+    if args.metrics_only and diagnostic_options:  # ruling 104-4 (1): a run of record takes no diagnostic option
+        print(f"[node-audit] refused: --metrics-only takes no diagnostic option: {diagnostic_options}", file=sys.stderr)
+        return 2
     contract = ev.validate_evaluation_contract(s2_04.load_json(s2_04.S2_04_CONTRACT))
     runner_contract = lr.validate_runner_contract(s2_04.load_json(s2_01.S2_01_CONTRACT))
     closed = [f"S2-04 {name}" for name in s2_04.REQUIRED_S2_04 if contract["authorization"].get(name) is not True]
@@ -1415,7 +1473,7 @@ def run(args: argparse.Namespace) -> int:
 
     teacher = ev.EpisodeTeacher(arm=args.arm, geometry_table=table, executed_interventions=executed, window=window,
                                 policy=policy["teacher"], nuisance_meta=nuisance_meta)
-    captured = capture_truth_table(teacher)
+    captured = None if args.metrics_only else capture_truth_table(teacher)  # ruling 104-4 (1): no diagnostic block to feed
     learned_scorer = scorer  # the heads' own scorer, before any oracle wraps it (the residual trace reads its logits)
     oracle = None
     if oracle_requested:
@@ -1429,11 +1487,13 @@ def run(args: argparse.Namespace) -> int:
             print(f"[node-audit] refused: {exc}", file=sys.stderr)
             return 2
         scorer = oracle
-    audit = NodeAudit(evidence=teacher.evidence, iou_min=teacher.iou_min, delta_moved_m=policy["teacher"]["delta_moved_m"],
-                      groups=object_groups(table), arm=args.arm, config=config, scorer=scorer, dedup=policy["runner"]["dedup"],
-                      interventions=teacher.interventions, window_end=teacher.window_end,
-                      carriers_before_move=teacher.carriers_before_move)
-    audit.fold_capture = capture_dedup_folds()
+    audit = None
+    if not args.metrics_only:
+        audit = NodeAudit(evidence=teacher.evidence, iou_min=teacher.iou_min, delta_moved_m=policy["teacher"]["delta_moved_m"],
+                          groups=object_groups(table), arm=args.arm, config=config, scorer=scorer, dedup=policy["runner"]["dedup"],
+                          interventions=teacher.interventions, window_end=teacher.window_end,
+                          carriers_before_move=teacher.carriers_before_move)
+        audit.fold_capture = capture_dedup_folds()
     tracer = None
     if args.trace_residuals:
         # ruling 93 revised (2026-09-30), read-only: where each lingering stale entity got stuck; changes no decision
@@ -1475,7 +1535,8 @@ def run(args: argparse.Namespace) -> int:
             record, image, masks = current.pop("private") if oracle is not None else private_of(index)
             labelled = teacher.label_frame(step, cache_frame=cache_frame, private_record=record, masks=masks,
                                            label_image=image, runtime_s=runtime, peak_memory_bytes=s2_04.peak_rss_bytes())
-            audit.observe(step, labelled, captured["table"])
+            if audit is not None:
+                audit.observe(step, labelled, captured["table"])
             if tracer is not None:
                 tracer.observe(step, labelled)
             if oracle is not None:
@@ -1494,12 +1555,19 @@ def run(args: argparse.Namespace) -> int:
         "final_memory_digest": summary["final_memory_digest"], "final_entities_by_state": summary["final_entities_by_state"],
         "report_node_prf1": episode["report"]["node_prf1"], "report_node_prf1_iou": episode["report"]["node_prf1_iou"],
         "report": episode["report"], "heads": args.heads,
+        "decomposition_totals": episode["diagnostics"]["decomposition_totals"], "trajectory_sha256": trajectory_sha256(receipts),
         "oracle": None if oracle is None else oracle.describe(),
-        "audit": audit.report(),
+        "metrics_only": bool(args.metrics_only),
+        "audit": None if audit is None else audit.report(),
         "residual_trace": None if tracer is None else tracer.report(),
         "wall_seconds": round(time.time() - started, 1),
     }
     (out_dir / AUDIT_FILE_NAME).write_text(json.dumps(payload, indent=1), encoding="utf-8")
+    if audit is None:
+        report = payload["report"]
+        print(f"[node-audit] {args.arm} {args.episode_id} (metrics only): {summary['frames']} frames, node F1 {report['node_prf1']['node_f1']}, "
+              f"MRR {report['missing_residual_rate']['missing_residual_rate']}, {payload['wall_seconds']} s")
+        return 0
     rules = payload["audit"]["rules"]
     print(f"[node-audit] {args.arm} {args.episode_id}: {summary['frames']} frames, current F1 {rules['iou_0.3_secondary']['f1']}, "
           f"oracle-group IoU F1 {rules['oracle_identity_groups_iou_0.3']['f1']}, centroid-0.5m F1 {rules['centroid_within_0.5m']['f1']}, "
@@ -1531,6 +1599,8 @@ def merge_audits(output_root: Path, arm: str) -> dict[str, Any]:
     oracle_settings: set[str] = set()
     recall_counts: set[Any] = set()
     mask_sources: set[Any] = set()
+    modes: set[bool] = set()
+    pooled_decomposition: dict[str, int] = {}
     for path in sorted(output_root.glob(f"*/{arm}/{AUDIT_FILE_NAME}")):
         payload = json.loads(path.read_text(encoding="utf-8"))
         _require(payload.get("schema_version") in ACCEPTED_AUDIT_SCHEMAS and payload.get("arm") == arm, f"audit_file_invalid:{path}")
@@ -1538,8 +1608,20 @@ def merge_audits(output_root: Path, arm: str) -> dict[str, Any]:
         oracle_settings.add(json.dumps(oracle_setting, sort_keys=True))
         recall_counts.add(payload.get("recall_global_count"))
         mask_sources.add(payload.get("mask_source"))  # None for an audit written before v11
-        audit = payload["audit"]
+        modes.add(bool(payload.get("metrics_only")))  # False for an audit written before v12
         commits.add(str(payload["code_commit"]))
+        for name, value in (payload.get("decomposition_totals") or {}).items():
+            pooled_decomposition[name] = pooled_decomposition.get(name, 0) + int(value)
+        if payload.get("metrics_only"):  # ruling 104-4 (1): the report and the counts, no diagnostic block
+            episodes.append({
+                "episode_id": payload["episode_id"], "frames": payload["frames"], "config": payload["config"],
+                "code_commit": payload["code_commit"], "report": payload["report"], "dormancy_override": None, "oracle": None,
+                "final_entities_by_state": payload["final_entities_by_state"],
+                "decomposition_totals": payload["decomposition_totals"], "trajectory_sha256": payload["trajectory_sha256"],
+                "audit_sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+            })
+            continue
+        audit = payload["audit"]
         for rule in RULES:
             for name in ("matched", "predicted", "truth"):
                 pooled_rules[rule][name] += int(audit["rules"][rule][name])
@@ -1609,14 +1691,26 @@ def merge_audits(output_root: Path, arm: str) -> dict[str, Any]:
             "in_memory_entities_per_frame_mean": audit["in_memory_entities_per_frame_mean"],
             "own_object_iou_when_near": audit["own_object_iou_when_near"],
             "own_object_centroid_distance_m": audit["own_object_centroid_distance_m"],
+            "decomposition_totals": payload.get("decomposition_totals"), "trajectory_sha256": payload.get("trajectory_sha256"),
             "audit_sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
         })
     _require(bool(episodes), f"no_audits_found:{output_root}/*/{arm}")
     _require(len(oracle_settings) == 1, "audits_mix_oracle_settings")  # ruling 88-2: one cell per merge
     _require(len(recall_counts) == 1, "audits_mix_recall_global_counts")  # ruling 89-1: one k' per merge (None = pre-v10 audit)
     _require(len(mask_sources) == 1, "audits_mix_mask_sources")  # ruling 84-1 (b): one front end per merge (None = pre-v11 audit)
+    _require(len(modes) == 1, "audits_mix_metrics_only_and_full")  # ruling 104-4 (1): one mode per merge
+    if modes == {True}:
+        return {
+            "schema_version": MERGED_SCHEMA_VERSION, "metrics_only": True, "oracle": None,
+            "recall_global_count": next(iter(recall_counts)), "mask_source": next(iter(mask_sources)),
+            "stage": "S2-05 node audit (metrics only, pooled)", "arm": arm, "output_root": str(output_root),
+            "code_commits": sorted(commits), "episodes": len(episodes),
+            "pooled_decomposition_totals": pooled_decomposition,
+            "per_episode": episodes,
+            "private_ids_exported": False,
+        }
     return {
-        "schema_version": "vsmt-s2-05-node-audit-merged-v11",
+        "schema_version": MERGED_SCHEMA_VERSION, "metrics_only": False,
         "oracle": json.loads(next(iter(oracle_settings))),
         "recall_global_count": next(iter(recall_counts)),
         "mask_source": next(iter(mask_sources)),
@@ -1635,6 +1729,7 @@ def merge_audits(output_root: Path, arm: str) -> dict[str, Any]:
                               "intervals": {cause: pooled_loss_intervals[cause] for cause in sorted(pooled_loss_intervals)}, **pooled_uncarried},
         "pooled_truth_by_group": {group: row for group, row in sorted(pooled_group.items())},
         "pooled_truth_by_type": {name: row for name, row in sorted(pooled_type.items(), key=lambda item: (-sum(item[1].values()), item[0]))[:40]},
+        "pooled_decomposition_totals": pooled_decomposition,
         "per_episode": episodes,
         "private_ids_exported": False,
     }
@@ -1649,11 +1744,32 @@ def merge(args: argparse.Namespace) -> int:
     results = Path(args.results)
     results.parent.mkdir(parents=True, exist_ok=True)
     results.write_text(json.dumps(merged, indent=1), encoding="utf-8")
+    if merged["metrics_only"]:
+        print(f"[node-audit] merged {merged['episodes']} metrics-only audits of {args.arm}; wrote {results}")
+        return 0
     pooled = merged["pooled_rules"]
     print(f"[node-audit] merged {merged['episodes']} episodes of {args.arm}: " +
           ", ".join(f"{rule} F1 {pooled[rule]['f1']:.3f}" if pooled[rule]["f1"] is not None else f"{rule} F1 null" for rule in RULES))
     print(f"[node-audit] wrote {results}")
     return 0
+
+
+def compare(args: argparse.Namespace) -> int:
+    """Ruling 104-2: the audit equivalence probe over one episode's full and metrics-only audits."""
+
+    try:
+        result = compare_audits(json.loads(Path(args.full).read_text(encoding="utf-8")),
+                                json.loads(Path(args.metrics_only).read_text(encoding="utf-8")))
+    except NodeAuditError as exc:
+        print(f"[node-audit] refused: {exc}", file=sys.stderr)
+        return 2
+    result.update({"full": str(args.full), "metrics_only_audit": str(args.metrics_only)})
+    out = Path(args.out)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(result, indent=1), encoding="utf-8")
+    print(f"[node-audit] compare {result['arm']} {result['episode_id']}: identical={result['identical']}"
+          + ("" if result["identical"] else f", differing {result['differing_fields']}"))
+    return 0 if result["identical"] else 3
 
 
 def main() -> int:
@@ -1691,12 +1807,20 @@ def main() -> int:
     run_parser.add_argument("--mask-source", default=None, choices=tuple(la.REID_WEIGHTS_SHA256_BY_MASK_SOURCE),
                             help="ruling 84-1 (b): the mask source the episode must be sealed with; omitted, the seal's own source is used. "
                                  "The ReID weights must be the head pinned for that source")
+    run_parser.add_argument("--metrics-only", action="store_true",
+                            help="ruling 104-4 (1): the run of record -- the runner and the teacher's report without the diagnostic blocks "
+                                 "of v2-v10 (audit null); refused together with any diagnostic option")
     run_parser.set_defaults(func=run)
     merge_parser = sub.add_parser("merge", help="pool the audits of one arm into a results/ report")
     merge_parser.add_argument("--output-root", required=True)
     merge_parser.add_argument("--arm", required=True)
     merge_parser.add_argument("--results", required=True)
     merge_parser.set_defaults(func=merge)
+    compare_parser = sub.add_parser("compare", help="ruling 104-2: a full and a metrics-only audit of one episode, field by field")
+    compare_parser.add_argument("--full", required=True)
+    compare_parser.add_argument("--metrics-only", required=True)
+    compare_parser.add_argument("--out", required=True)
+    compare_parser.set_defaults(func=compare)
     args = parser.parse_args()
     return int(args.func(args))
 
