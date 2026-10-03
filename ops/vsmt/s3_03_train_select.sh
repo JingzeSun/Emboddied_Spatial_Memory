@@ -29,7 +29,12 @@
 #   ("audit=5 pass=4": defaults before the first measurement), ACCEPT_CODE_CHANGE=1 (keep jobs finished before a code change;
 #   recorded), RETRY_FAILED=1 (rerun failed and gate-failed jobs after a fix or a ruling; their outputs are set aside under
 #   $RUN_ROOT/failed first; never done by default), FALLBACK_SHUTDOWN_SECONDS (0 = off; > 0: after the status is written, power
-#   off that long later unless another vsmt job runs), PY.
+#   off that long later unless another vsmt job runs), PY,
+#   PROVISIONAL_INPUTS=1 (user 2026-10-04: start beside the S3-02 run on the same host before S3-02 has exported its run manifest;
+#   the check reads train and validation from their roots, which must already be complete by S3-02's own rules -- so both front
+#   ends' validation caches must be done -- and records what they rest on; the first full check after the export must find the
+#   same episodes and digests or the run stops, and verify refuses inputs that are still provisional),
+#   BUDGET_CORES (the pool's core budget instead of the cgroup quota, e.g. to leave the S3-02 SAM2 cache its cores; recorded).
 # Resume: run 'all' again; finished jobs are kept (only the fit registration files and documents may change since), jobs that
 #   were interrupted are set aside under $RUN_ROOT/interrupted and rerun, audits keep their finished configurations; the
 #   adoption choice of the first run is kept. Exit status: 0 when verify passed, otherwise the failing step's code (the status
@@ -95,7 +100,7 @@ if ! PYTHONPATH=src $PY -m unittest discover -s tests -t tests -p "test_*.py" > 
   DETAIL="the test suite failed ($LOG_DIR/suite-$SHORT.log)"; finish check 1
 fi
 if ! M check --run-root "$RUN_ROOT" --autodl-root "$AUTODL" --s3-02-tag "$S3_02_TAG" --export-dir "$EXPORT_DIR" \
-     --instance-reid "$INSTANCE_REID" --sam2-reid "$SAM2_REID" --fronts "$FRONTS"; then
+     --instance-reid "$INSTANCE_REID" --sam2-reid "$SAM2_REID" --fronts "$FRONTS" ${PROVISIONAL_INPUTS:+--provisional}; then
   DETAIL="inputs refused ($RUN_ROOT/inputs.json)"; finish check 1
 fi
 cp "$RUN_ROOT/inputs.json" "$RUN_ROOT/inputs-$SHORT.json"
@@ -106,6 +111,7 @@ OPTIONS=()
 for ITEM in ${MEMORY_GIB:-}; do OPTIONS+=(--memory-gib "$ITEM"); done
 [ "$ACCEPT_CODE_CHANGE" = "1" ] && OPTIONS+=(--accept-code-change)
 [ "${RETRY_FAILED:-0}" = "1" ] && OPTIONS+=(--retry-failed)
+[ -n "${BUDGET_CORES:-}" ] && OPTIONS+=(--budget-cores "$BUDGET_CORES")
 echo "[$(date)] the job pool: per-job logs in $LOG_DIR, state in $RUN_ROOT/jobs, snapshot in $RUN_ROOT/pool.json"
 M run --run-root "$RUN_ROOT" --log-dir "$LOG_DIR" ${OPTIONS[@]+"${OPTIONS[@]}"}
 RUN_EXIT=$?
