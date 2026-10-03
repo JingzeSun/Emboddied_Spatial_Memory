@@ -389,6 +389,19 @@ class EntryTests(unittest.TestCase):
                                      "--seed", "7", "--out-dir", out, "--threads", "1"]), 2)
         self.assertFalse(Path(out, "training_receipt.json").exists())
 
+    def test_the_timing_output_feeds_the_thread_choice(self):
+        import s3_03_jobs
+
+        round0 = self.write_pass("dagger_round_0", "ELU-P")
+        out = self.tmp / "timing.json"
+        self.assertEqual(entry.main(["time", "--source", f"{round0}:ELU-P:teacher", "--arm", "VSMT-lean", "--round", "0",
+                                     "--houses", "2", "--threads", "1,2", "--out", str(out)]), 0)
+        timing = json.loads(out.read_text(encoding="utf-8"))
+        self.assertEqual([row["threads"] for row in timing["timings"]], [1, 2])
+        self.assertEqual(timing["timings"][1]["thread_settings"]["requested"], 2)
+        choice = s3_03_jobs.choose_train_threads({row["threads"]: row["epoch_seconds"] for row in timing["timings"]}, cores=8)
+        self.assertIn(choice["train_threads"], (1, 2))
+
     def test_the_probe_reports_identical(self):
         round0 = self.write_pass("dagger_round_0", "ELU-P")
         probe = self.tmp / "probe.json"

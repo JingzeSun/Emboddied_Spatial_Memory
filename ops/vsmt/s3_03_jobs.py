@@ -106,17 +106,17 @@ def choose_train_threads(per_epoch_seconds: Mapping[int, float], *, cores: int, 
                      "threads, measured on about 20 training houses during round 0; ties to fewer threads; fixed for the run")}
 
 
-def cgroup_working_set() -> int | None:
-    """The container's working set now (cgroup v2: memory.current minus inactive_file), or None where it cannot be read.
+def cgroup_process_bytes() -> int | None:
+    """What the container's processes hold now (cgroup v2 memory.stat: anon + shmem), or None where it cannot be read.
 
-    memory.current also counts the page cache of every file read, which the kernel reclaims under pressure; reading a few
-    hundred GB of caches would make it look full.  The working set leaves out the inactive file pages (the Kubernetes rule).
+    memory.current also counts the page cache, which the kernel reclaims under pressure and which the jobs' repeated reads of the
+    caches keep active; anonymous plus shared memory is what the jobs themselves hold (the rule lean_s1_02a_pilot measures by).
     """
 
     try:
-        current = int(Path("/sys/fs/cgroup/memory.current").read_text(encoding="utf-8").strip())
-        stat = dict(line.split() for line in Path("/sys/fs/cgroup/memory.stat").read_text(encoding="utf-8").splitlines() if line.strip())
-        return max(0, current - int(stat.get("inactive_file", 0)))
+        lines = Path("/sys/fs/cgroup/memory.stat").read_text(encoding="utf-8").splitlines()
+        stat = dict(line.split()[:2] for line in lines if len(line.split()) >= 2)
+        return int(stat.get("anon", 0)) + int(stat.get("shmem", 0))
     except (OSError, ValueError):
         return None
 
@@ -148,7 +148,7 @@ class Pool:
                  memory_defaults: Mapping[str, float], train_threads: Callable[[], int], commit: str,
                  code_change: Callable[[str], list[str]] | None = None, accept_code_change: bool = False,
                  poll_seconds: float = 2.0, disk_root: Path | None = None, min_free_gib: float = 20.0,
-                 memory_now: Callable[[], int | None] = cgroup_working_set, memory_limit_bytes: int | None = None,
+                 memory_now: Callable[[], int | None] = cgroup_process_bytes, memory_limit_bytes: int | None = None,
                  launch: Callable[..., Any] | None = None, wrapper: Sequence[str] | None = None,
                  sleep: Callable[[float], None] = time.sleep, retry_failed: bool = False) -> None:
         self.jobs = {job.job_id: job for job in jobs}
@@ -282,7 +282,8 @@ class Pool:
                 self.stop_reason = f"disk_below_{self.min_free_gib}_gib:{round(free, 1)}"
                 return []
         current = self.memory_now() if self.memory_limit_bytes else None
-        self.memory_paused = bool(current is not None and current > self.memory_limit_bytes)
+        # pause only while this pool's own jobs run: with none running, memory held elsewhere is no reason to wait for ever
+        self.memory_paused = bool(current is not None and current > self.memory_limit_bytes and self.running)
         if self.memory_paused:
             return []
         used_cores = sum(entry[2] for entry in self.running.values())

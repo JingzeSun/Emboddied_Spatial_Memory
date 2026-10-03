@@ -66,8 +66,16 @@ PRIORITY = {"control": 0, "critical": 1, "learned_audit": 2, "rule_audit": 3}
 #: 2.0 GiB for one pass or audit process (1.25 x the peak of its largest episode) and 10.5 GiB for a development-scale training;
 #: S3 trainings stream, so their peak is unknown before the first one ends.  Round-1 trainings read about twice round 0's records
 #: and the probes far less, so each has its own class and no measurement lowers another's estimate.
-MEMORY_DEFAULTS_GIB = {"pass": 4.0, "audit": 4.0, "audit_full": 6.0, "train0": 24.0, "train1": 24.0, "train_probe": 12.0, "gate": 6.0,
-                       "small": 2.0}
+MEMORY_DEFAULTS_GIB = {"pass": 4.0, "audit": 4.0, "audit_full": 6.0, "train0": 24.0, "train1": 24.0, "train_probe": 12.0,
+                       "train_timing": 8.0, "gate": 6.0, "small": 2.0}
+#: Ruling 104-7, bounded job length: nothing is preempted, so a long low-priority job that starts while the critical path waits
+#: for its next inputs holds its core until it ends.  An audit job takes at most this many configurations (about 20-35 minutes on
+#: a typical episode, estimated from the development profile); the cache is still verified once per job, not once per config.
+CONFIGS_PER_AUDIT_JOB = {"rule": 3, "learned": 5}
+#: The disk floor of a resumed run's check (the pool stops dispatching below the same floor); a first check asks for --min-free-gib.
+RUN_FLOOR_GIB = 20.0
+#: The adoption choice of the first run, kept so that every resume builds the same graph.
+ADOPT_FILE = "adopt_calibration.json"
 TIMING_TRAINING_HOUSES = 20
 TIMING_SELECTION_HOUSES = TIMING_TRAINING_HOUSES // 4  # s3_03_train.subset takes a quarter as many selection houses
 PROBE_TRAIN_HOUSES = 12
@@ -149,17 +157,21 @@ def rollout_config(values: Mapping[str, Any]) -> dict[str, Any]:
             **{name: values[name] for name in arms.ELU_P_FITTED}}
 
 
-def round1_config(arm: str) -> dict[str, Any]:
-    """Ruling 104-1: round-1 rollouts at the registered development configuration (VSMT-lean's for HeuristicLabel; none for AssocOnly)."""
+def development_config(arm: str) -> dict[str, Any]:
+    """An arm's registered development configuration (S2-05 contract), in runner form."""
 
     from vsmt import lean_development as dev
 
-    if arm == "AssocOnly":
-        return {}
     contract = dev.validate_development_contract(load_json(S2_05_CONTRACT))
-    config = dev.development_configuration(contract, "VSMT-lean")
-    _require(config is not None, "development_configuration_null:VSMT-lean")
+    config = dev.development_configuration(contract, arm)
+    _require(config is not None, f"development_configuration_null:{arm}")
     return dict(config)
+
+
+def round1_config(arm: str) -> dict[str, Any]:
+    """Ruling 104-1: round-1 rollouts at the registered development configuration (VSMT-lean's for HeuristicLabel; none for AssocOnly)."""
+
+    return {} if arm == "AssocOnly" else development_config("VSMT-lean")
 
 
 def audit_configs(arm: str) -> list[dict[str, Any]]:
@@ -381,22 +393,26 @@ def build_jobs(ctx: RunContext) -> list[pool.Job]:
                 else:
                     deps = (f"{front}/fit",) if arm == "ELU-P" else ()
                     priority = P["rule_audit"]
+                size = CONFIGS_PER_AUDIT_JOB["learned" if seeded else "rule"]
+                chunks = [configs[start:start + size] for start in range(0, len(configs), size)]
                 audit_ids = []
                 for episode in validation:
-                    job_id = f"{front}/audit/{arm}/{'rule' if seed is None else f's{seed}'}/{episode}"
+                    for part in chunks:
+                        span = f"c{part[0][0]:02d}-{part[-1][0]:02d}"
+                        job_id = f"{front}/audit/{arm}/{'rule' if seed is None else f's{seed}'}/{span}/{episode}"
 
-                    def build_audit(f: str = front, a: str = arm, s: int | None = seed, e: str = episode,
-                                    c: list = configs) -> list[str]:
-                        chosen = c
-                        if a == "ELU-P":  # ruling 104-1 1b: every ELU-P configuration carries the run-local fitted values
-                            values = ctx.fit_values(f)
-                            chosen = [(index, {**config, **values}) for index, config in c]
-                        heads = ctx.heads_file(f, 1, heads_arm(a), s) if s is not None else None
-                        return ctx.audit(f, e, a, s, chosen, heads=heads)
+                        def build_audit(f: str = front, a: str = arm, s: int | None = seed, e: str = episode,
+                                        c: list = part) -> list[str]:
+                            chosen = c
+                            if a == "ELU-P":  # ruling 104-1 1b: every ELU-P configuration carries the run-local fitted values
+                                values = ctx.fit_values(f)
+                                chosen = [(index, {**config, **values}) for index, config in c]
+                            heads = ctx.heads_file(f, 1, heads_arm(a), s) if s is not None else None
+                            return ctx.audit(f, e, a, s, chosen, heads=heads)
 
-                    jobs.append(pool.Job(job_id, "audit", deps, priority, validation_frames[episode] * len(configs), 1, "audit",
-                                         build_audit, keep_partial=True))
-                    audit_ids.append(job_id)
+                        jobs.append(pool.Job(job_id, "audit", deps, priority, validation_frames[episode] * len(part), 1, "audit",
+                                             build_audit, keep_partial=True))
+                        audit_ids.append(job_id)
                 for index, _config in configs:
                     job_id = f"{front}/merge/{group_name(arm, index, seed)}"
                     jobs.append(pool.Job(job_id, "merge", tuple(audit_ids), P["control"], 0.0, 1, "small",
@@ -412,7 +428,7 @@ def build_jobs(ctx: RunContext) -> list[pool.Job]:
     first = ctx.fronts[0]
     training_houses, selection_houses = training_house_order(ctx, first)
     timing_deps = tuple(f"{first}/r0/{house}" for house in training_houses[:TIMING_TRAINING_HOUSES] + selection_houses[:TIMING_SELECTION_HOUSES])
-    jobs.append(pool.Job("timing", "timing", timing_deps, PRIORITY["control"], 0.0, 4, "train_probe",
+    jobs.append(pool.Job("timing", "timing", timing_deps, PRIORITY["control"], 0.0, 4, "train_timing",
                          lambda: [ctx.python, str(TRAIN_ENTRY), "time", "--source", f"{ctx.pass_root(first, 'round0')}:ELU-P:teacher",
                                   "--arm", "VSMT-lean", "--round", "0", "--houses", str(TIMING_TRAINING_HOUSES), "--threads", "1,2,3,4",
                                   "--out", str(ctx.run_root / "train_timing.json")]))
@@ -553,8 +569,9 @@ def cmd_check(args: argparse.Namespace) -> int:
         report["problems"].append("worktree_not_clean")
     info = resources()
     free = shutil.disk_usage(run_root.parent if run_root.parent.exists() else Path("/")).free / 2 ** 30
-    if free < args.min_free_gib:
-        report["problems"].append(f"disk_free_below_{args.min_free_gib}_gib:{round(free, 1)}")
+    floor = RUN_FLOOR_GIB if run_started(run_root) else args.min_free_gib  # a resume has already written most of its outputs
+    if free < floor:
+        report["problems"].append(f"disk_free_below_{floor}_gib:{round(free, 1)}")
     payload = {"stage": STAGE, "step": "check", "checked_utc": utc_now(), "code_commit": git("rev-parse", "HEAD", repo=Path(args.repo_root)),
                "run_root": str(run_root), "fronts": list(fronts), "resources": info, "disk_free_gib": round(free, 1), **report}
     write_json(run_root / "inputs.json", payload)
@@ -568,7 +585,29 @@ def cmd_check(args: argparse.Namespace) -> int:
 
 def load_context(run_root: Path, *, adopt: Mapping[str, str] | None = None) -> RunContext:
     inputs = load_json(run_root / "inputs.json")
+    if adopt is None and (run_root / ADOPT_FILE).exists():
+        adopt = load_json(run_root / ADOPT_FILE)["adopt"]
     return RunContext(run_root=run_root, inputs=inputs, fronts=tuple(inputs.get("fronts") or FRONTS), adopt=dict(adopt or {}))
+
+
+def run_started(run_root: Path) -> bool:
+    return any(path for path in (run_root / "jobs").glob("*.json")) if (run_root / "jobs").exists() else False
+
+
+def resolve_adopt(run_root: Path, requested: Mapping[str, str] | None) -> dict[str, str]:
+    """The run's adoption choice: made once, at its first run, and kept, so every resume builds the same job graph."""
+
+    unknown = sorted(set(requested or {}) - set(FRONTS))
+    _require(not unknown, f"adopt_calibration_names_no_front:{unknown}")
+    path = run_root / ADOPT_FILE
+    if path.exists():
+        saved = dict(load_json(path)["adopt"])
+        _require(requested is None or dict(requested) == saved, f"adopt_calibration_differs_from_the_first_run:{saved}")
+        return saved
+    _require(not (requested and run_started(run_root)), "adopt_calibration_after_the_run_started_without_it")
+    chosen = dict(requested or {})
+    write_json(path, {"adopt": chosen, "rule": "chosen at the first run of this run root and kept for every resume", "written_utc": utc_now()})
+    return chosen
 
 
 def cmd_run(args: argparse.Namespace) -> int:
@@ -579,11 +618,8 @@ def cmd_run(args: argparse.Namespace) -> int:
         print(f"[s3-03-run] refused: run check at {head[:12]} first (problems: {inputs.get('problems')}, checked at "
               f"{str(inputs.get('code_commit'))[:12]})", file=sys.stderr)
         return 2
-    adopt = dict(item.split("=", 1) for item in args.adopt_calibration or [])
-    unknown = sorted(set(adopt) - set(FRONTS))
-    if unknown:
-        print(f"[s3-03-run] refused: --adopt-calibration names no front: {unknown}", file=sys.stderr)
-        return 2
+    requested = None if args.adopt_calibration is None else dict(item.split("=", 1) for item in args.adopt_calibration)
+    adopt = resolve_adopt(run_root, requested)
     ctx = load_context(run_root, adopt=adopt)
     info = resources()
     cores = int(args.budget_cores or info["cpu_quota"]) - pool.RESERVE_CORES
@@ -871,6 +907,18 @@ def cmd_readings(args: argparse.Namespace) -> int:
     return 0
 
 
+def determinism_group(ctx: RunContext, front: str) -> tuple[str, int, dict[str, Any], int | None] | None:
+    """The audit group the determinism probe reruns: VSMT-lean at its development tau_r (first seed with a result), else TAF at its
+    development configuration -- every seed of VSMT-lean may have diverged (ruling 102-9: a result), the probe still runs."""
+
+    tau = round1_config("VSMT-lean")
+    candidates: list[tuple[str, int, dict[str, Any], int | None]] = [
+        ("VSMT-lean", audit_configs("VSMT-lean").index(tau), tau, seed) for seed in arms.SEEDS]
+    taf = development_config("TAF")
+    candidates.append(("TAF", audit_configs("TAF").index(taf), taf, None))
+    return next((c for c in candidates if ctx.merged_path(front, c[0], c[1], c[3]).exists()), None)
+
+
 def cmd_probe_determinism(args: argparse.Namespace) -> int:
     """Ruling 104-2: one validation audit run again gives the same audit (all but wall time, commit, head path and timings)."""
 
@@ -879,24 +927,24 @@ def cmd_probe_determinism(args: argparse.Namespace) -> int:
     ctx = load_context(Path(args.run_root))
     front = args.front
     episode = smallest(ctx.episodes(front, "validation"))
-    tau = round1_config("VSMT-lean")
-    index = audit_configs("VSMT-lean").index(tau)
-    seed = next((s for s in arms.SEEDS if ctx.merged_path(front, "VSMT-lean", index, s).exists()), None)
-    if seed is None:
-        print(f"[s3-03-probe-determinism] {front}: no VSMT-lean group to rerun", file=sys.stderr)
+    chosen = determinism_group(ctx, front)
+    if chosen is None:
+        print(f"[s3-03-probe-determinism] {front}: no audit group to rerun", file=sys.stderr)
         return 1
-    original = ctx.group_root(front, "VSMT-lean", index, seed) / episode / "VSMT-lean" / audit.AUDIT_FILE_NAME
+    arm, index, config, seed = chosen
+    original = ctx.group_root(front, arm, index, seed) / episode / arm / audit.AUDIT_FILE_NAME
     rerun_root = ctx.gates_dir(front) / "determinism"
-    argv = ctx.audit(front, episode, "VSMT-lean", seed, [(index, tau)], heads=ctx.heads_file(front, 1, "VSMT-lean", seed))
-    argv[argv.index("--configs") + 1] = json.dumps([{"config": tau, "output_root": str(rerun_root)}])
+    heads = ctx.heads_file(front, 1, heads_arm(arm), seed) if seed is not None else None
+    argv = ctx.audit(front, episode, arm, seed, [(index, config)], heads=heads)
+    argv[argv.index("--configs") + 1] = json.dumps([{"config": config, "output_root": str(rerun_root)}])
     completed = subprocess.run(argv)
     if completed.returncode != 0:
         return 1
-    rerun = load_json(rerun_root / episode / "VSMT-lean" / audit.AUDIT_FILE_NAME)
+    rerun = load_json(rerun_root / episode / arm / audit.AUDIT_FILE_NAME)
     first = load_json(original)
     identical = audit.comparable_metrics(first) == audit.comparable_metrics(rerun) and first.get("audit") == rerun.get("audit")
     write_json(ctx.gates_dir(front) / "determinism.json", {"stage": STAGE, "gate": "determinism", "front": front, "episode_id": episode,
-                                                           "group": group_name("VSMT-lean", index, seed), "identical": identical,
+                                                           "group": group_name(arm, index, seed), "identical": identical,
                                                            "compared": "everything but wall time, commit, head path and timings",
                                                            "checked_utc": utc_now()})
     print(f"[s3-03-probe-determinism] {front} {episode}: identical={identical}")
@@ -983,11 +1031,17 @@ def verify(ctx: RunContext, export_dir: Path, tag: str) -> dict[str, Any]:
     problems: list[str] = []
     states = {load_json(path)["job_id"]: load_json(path) for path in sorted((ctx.run_root / "jobs").glob("*.json"))
               if not path.name.endswith(".rss.json")}
-    for job_id, state in states.items():
-        if state["status"] not in ("done", "diverged", "skipped"):
-            problems.append(f"job_not_ended:{job_id}:{state['status']}")
+    never = []
+    for job in build_jobs(ctx):  # the run's whole graph, so a job that never started is named too
+        state = states.get(job.job_id)
+        if state is None:
+            never.append(job.job_id)
+        elif state["status"] not in ("done", "diverged", "skipped"):
+            problems.append(f"job_not_ended:{job.job_id}:{state['status']}")
         elif state["status"] == "skipped" and "dependency_" not in str(state.get("reason")):
-            problems.append(f"job_skipped_without_a_diverged_dependency:{job_id}")
+            problems.append(f"job_skipped_without_a_diverged_dependency:{job.job_id}")
+    if never:
+        problems.append(f"jobs_never_started:{len(never)}:{never[:20]}")
     contract = load_json(S0_05_CONTRACT)
     registered = {}
     for front in ctx.fronts:

@@ -462,7 +462,9 @@ def main() -> int:
         (out_dir / "elu_p_counts.json").write_text(json.dumps(counts, indent=1), encoding="utf-8")
         summary["elu_p_counts"] = counts
     summary["status"] = "succeeded"
-    (out_dir / "receipt.json").write_text(json.dumps(summary, indent=1), encoding="utf-8")
+    tmp = out_dir / "receipt.json.tmp"  # whole or not at all: the S3-03 timing and probe jobs list receipts while passes still run
+    tmp.write_text(json.dumps(summary, indent=1), encoding="utf-8")
+    tmp.replace(out_dir / "receipt.json")
     report = summary["report"]
     print(f"[s2-04] {args.arm} {args.episode_id}: {summary['frames']} frames, node F1 {report['node_prf1']['node_f1']}, "
           f"MRR {report['missing_residual_rate']['missing_residual_rate']}, continuity {report['identity_continuity']['identity_continuity']}, "

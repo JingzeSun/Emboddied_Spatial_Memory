@@ -31,7 +31,9 @@
 #   $RUN_ROOT/failed first; never done by default), FALLBACK_SHUTDOWN_SECONDS (0 = off; > 0: after the status is written, power
 #   off that long later unless another vsmt job runs), PY.
 # Resume: run 'all' again; finished jobs are kept (only the fit registration files and documents may change since), jobs that
-#   were interrupted are set aside under $RUN_ROOT/interrupted and rerun, audits keep their finished configurations.
+#   were interrupted are set aside under $RUN_ROOT/interrupted and rerun, audits keep their finished configurations; the
+#   adoption choice of the first run is kept. Exit status: 0 when verify passed, otherwise the failing step's code (the status
+#   JSON says which).
 set -u
 WORKTREE=$(cd "$(dirname "$0")/../.." && pwd)
 cd "$WORKTREE" || exit 2
@@ -57,7 +59,7 @@ if [ -n "$(git status --porcelain)" ]; then echo "refused: the worktree is not c
 if ps -eo args | grep -v grep | grep -E "^sleep [0-9]+$|/usr/bin/shutdown" > /dev/null; then
   echo "refused: a fallback power-off may be armed (a sleep or a shutdown is pending); stop it first"; exit 2
 fi
-if pgrep -f "s3_03_manifest.py (run|run-measured)" > /dev/null; then echo "refused: an S3-03 pool or job is already running"; exit 2; fi
+if pgrep -f "$JOB_PATTERN" > /dev/null; then echo "refused: an S3-03 pool or one of its jobs (or another vsmt entry) is running"; exit 2; fi
 mkdir -p "$RUN_ROOT" "$EXPORT_DIR"
 [ -f "$RUN_ROOT/run_tag" ] || echo "$SHORT" > "$RUN_ROOT/run_tag"
 TAG=$(cat "$RUN_ROOT/run_tag")  # the commit of the first check: every export of this run carries it
@@ -66,7 +68,7 @@ STATUS=$EXPORT_DIR/s3_03_$TAG.status.json
 mkdir -p "$LOG_DIR"
 DETAIL=""
 
-finish() {
+finish() {  # step, exit status (0 only when verify passed)
   $PY -c "import json, os, sys, time; json.dump({'tag': '$TAG', 'commit': '$HEAD_COMMIT', 'step_reached': sys.argv[1], 'detail': sys.argv[2],
     'finished_cst': time.strftime('%Y-%m-%d %H:%M:%S'), 'run_root': '$RUN_ROOT', 'log_dir': '$LOG_DIR',
     'pool': json.load(open('$RUN_ROOT/pool.json')) if os.path.exists('$RUN_ROOT/pool.json') else None,
@@ -82,16 +84,16 @@ finish() {
       echo "[$(date)] fallback shutdown (AutoDL)"; /usr/bin/shutdown
     fi
   fi
-  exit 0
+  exit "${2:-1}"
 }
 
 echo "[$(date)] S3-03 at $SHORT (run tag $TAG): full test suite -> $LOG_DIR/suite-$SHORT.log"
 if ! PYTHONPATH=src $PY -m unittest discover -s tests -t tests -p "test_*.py" > "$LOG_DIR/suite-$SHORT.log" 2>&1; then
-  DETAIL="the test suite failed ($LOG_DIR/suite-$SHORT.log)"; finish check
+  DETAIL="the test suite failed ($LOG_DIR/suite-$SHORT.log)"; finish check 1
 fi
 if ! M check --run-root "$RUN_ROOT" --autodl-root "$AUTODL" --s3-02-tag "$S3_02_TAG" --export-dir "$EXPORT_DIR" \
      --instance-reid "$INSTANCE_REID" --sam2-reid "$SAM2_REID" --fronts "$FRONTS"; then
-  DETAIL="inputs refused ($RUN_ROOT/inputs.json)"; finish check
+  DETAIL="inputs refused ($RUN_ROOT/inputs.json)"; finish check 1
 fi
 cp "$RUN_ROOT/inputs.json" "$RUN_ROOT/inputs-$SHORT.json"
 
@@ -107,11 +109,10 @@ RUN_EXIT=$?
 M export --run-root "$RUN_ROOT" --export-dir "$EXPORT_DIR" --tag "$TAG"
 if [ "$RUN_EXIT" != "0" ]; then
   REASON=$($PY -c "import json; print(json.load(open('$RUN_ROOT/pool.json')).get('stop_reason'))" 2>/dev/null)
-  DETAIL="the pool stopped (exit $RUN_EXIT): $REASON"; finish run
+  DETAIL="the pool stopped (exit $RUN_EXIT): $REASON"; finish run "$RUN_EXIT"
 fi
 if M verify --run-root "$RUN_ROOT" --export-dir "$EXPORT_DIR" --tag "$TAG"; then
-  DETAIL="every job ended, every gate passed, the fitted values are registered; exports in $EXPORT_DIR (*_$TAG.json)"
-else
-  DETAIL="verify reported problems: $EXPORT_DIR/vsmt_lean_s3_03_verify_$TAG.json (elu_p_values_not_registered alone means: pull the registration commit and run all again)"
+  DETAIL="every job ended, every gate passed, the fitted values are registered; exports in $EXPORT_DIR (*_$TAG.json)"; finish verify 0
 fi
-finish verify
+DETAIL="verify reported problems: $EXPORT_DIR/vsmt_lean_s3_03_verify_$TAG.json (elu_p_values_not_registered alone means: pull the registration commit and run all again)"
+finish verify 3

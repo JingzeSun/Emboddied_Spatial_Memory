@@ -170,10 +170,13 @@ class PoolTests(unittest.TestCase):
         def measured(argv):
             pool.write_json(self.tmp / "run" / "jobs" / "p.rss.json", {"max_rss_children_bytes": 6 * 2 ** 30})
 
-        guarded = self.pool([job("g")], FakeLauncher(), run_root=self.tmp / "guarded", memory_limit_bytes=1, memory_now=lambda: 2)
+        guarded = self.pool([job("g"), job("h", priority=3)], FakeLauncher(), run_root=self.tmp / "guarded", budget_cores=1,
+                            memory_limit_bytes=1, memory_now=lambda: 2)
         guarded.load()
+        self.assertEqual(guarded.dispatch(), ["g"])  # nothing of the pool's own runs: memory held elsewhere is no reason to wait
+        guarded.budget_cores = 2
         self.assertEqual(guarded.dispatch(), [])
-        self.assertTrue(guarded.memory_paused)  # above the line nothing new starts and nothing running is stopped
+        self.assertTrue(guarded.memory_paused)  # above the line while its jobs run: nothing new starts, nothing running stops
         runner = self.pool([job("p")], FakeLauncher(effects={"p": measured}))
         self.assertEqual(runner.gib_for("pass"), 4.0)
         self.assertEqual(runner.run(), 0)
@@ -237,7 +240,7 @@ class GraphTests(unittest.TestCase):
         for job in self.jobs.values():
             kinds[job.kind] = kinds.get(job.kind, 0) + 1
         self.assertEqual(kinds, {"probe_audit": 2, "calibration": 10, "fit": 2, "round0": 10, "gate_round0": 2, "probe_train": 2,
-                                 "train0": 6, "round1": 30, "train1": 30, "coverage": 2, "audit": 100, "merge": 416, "readings": 2,
+                                 "train0": 6, "round1": 30, "train1": 30, "coverage": 2, "audit": 212, "merge": 416, "readings": 2,
                                  "probe_determinism": 2, "timing": 1, "train_threads": 1, "grid_reading": 1})
         self.assertEqual(len(self.jobs["instance/readings"].soft_deps), 208)
         self.assertEqual(self.jobs["timing"].deps, tuple(f"instance/r0/{house}" for house in MANIFEST["train"][:3] + MANIFEST["train"][240:242]))
@@ -258,8 +261,8 @@ class GraphTests(unittest.TestCase):
             for dep in (*job.deps, *job.soft_deps):
                 self.assertLess(order[dep], order[job_id], f"{dep} before {job_id}")
         for front in ("instance", "sam2"):
-            self.assertLess(order[f"{front}/t1/VSMT-lean/s31"], order[f"{front}/audit/NoVersion/s31/{MANIFEST['validation'][0]}"])
-            self.assertLess(order[f"{front}/fit"], order[f"{front}/audit/ELU-P/rule/{MANIFEST['validation'][0]}"])
+            self.assertLess(order[f"{front}/t1/VSMT-lean/s31"], order[f"{front}/audit/NoVersion/s31/c05-09/{MANIFEST['validation'][0]}"])
+            self.assertLess(order[f"{front}/fit"], order[f"{front}/audit/ELU-P/rule/c09-11/{MANIFEST['validation'][0]}"])
 
     def test_each_kind_of_command_carries_the_registered_options(self) -> None:
         write_fit(self.ctx, "instance")
@@ -288,20 +291,23 @@ class GraphTests(unittest.TestCase):
         self.assertEqual((self.option(argv, "--threads"), self.option(argv, "--seed"), self.option(argv, "--round")), ("3", "19", "1"))
         argv = self.argv("instance/t0/HeuristicLabel")
         self.assertEqual([argv[i + 1] for i, a in enumerate(argv) if a == "--source"], [f"{self.ctx.run_root / 'instance' / 'round0'}:ELU-P:heuristic"])
-        argv = self.argv(f"instance/audit/NoVersion/s31/{episode}")
+        argv = self.argv(f"instance/audit/NoVersion/s31/c00-04/{episode}")
         self.assertEqual(self.option(argv, "--heads"), str(self.ctx.run_root / "instance/training/round1/VSMT-lean/s31/weights_grouped.json"))
         entries = json.loads(self.option(argv, "--configs"))
-        self.assertEqual([e["config"] for e in entries], [{"tau_r": v} for v in arms.FROZEN_GRIDS["NoVersion"]["tau_r"]])
+        self.assertEqual([e["config"] for e in entries], [{"tau_r": v} for v in arms.FROZEN_GRIDS["NoVersion"]["tau_r"][:5]])
         self.assertEqual(entries[3]["output_root"], str(self.ctx.run_root / "instance/audit/NoVersion-c03-s31"))
+        entries = json.loads(self.option(self.argv(f"instance/audit/NoVersion/s31/c05-09/{episode}"), "--configs"))
+        self.assertEqual(entries[0]["output_root"], str(self.ctx.run_root / "instance/audit/NoVersion-c05-s31"))
         for flag in ("--metrics-only", "--skip-existing"):
             self.assertIn(flag, argv)
         self.assertEqual(self.option(argv, "--manifest-split"), "validation")
-        argv = self.argv(f"instance/audit/AssocOnly/s7/{episode}")
+        argv = self.argv(f"instance/audit/AssocOnly/s7/c00-00/{episode}")
         self.assertEqual(self.option(argv, "--heads"), str(self.ctx.run_root / "instance/training/round1/AssocOnly/s7/weights.json"))
         self.assertEqual(json.loads(self.option(argv, "--configs")), [{"config": {}, "output_root": str(self.ctx.run_root / "instance/audit/AssocOnly-c00-s7")}])
-        argv = self.argv(f"instance/audit/ELU-P/rule/{episode}")
+        argv = self.argv(f"instance/audit/ELU-P/rule/c00-02/{episode}")
         entries = json.loads(self.option(argv, "--configs"))
-        self.assertEqual(len(entries), 12)
+        self.assertEqual(len(entries), 3)  # ruling 104-7: at most three configurations per rule-arm audit job
+        self.assertEqual(len(json.loads(self.option(self.argv(f"instance/audit/LOW/rule/c03-04/{episode}"), "--configs"))), 2)
         self.assertTrue(all({k: e["config"][k] for k in VALUES} == VALUES for e in entries))
         self.assertNotIn("--heads", argv)
         argv = self.argv("instance/merge/RAC-c05")
@@ -505,6 +511,35 @@ class SubcommandTests(unittest.TestCase):
         self.assertEqual(readings["readings"]["HeuristicLabel"]["0"]["seeds_missing"], [])
         self.ctx.merged_path("instance", "LOW", 2, None).unlink()
         self.assertEqual(self.call("readings", "--front", "instance")[0], 3)
+
+    def test_the_adoption_choice_is_made_once(self) -> None:
+        self.assertEqual(driver.resolve_adopt(self.run_root, {"instance": "/prefit"}), {"instance": "/prefit"})
+        self.assertEqual(driver.resolve_adopt(self.run_root, None), {"instance": "/prefit"})  # a resume without the option keeps it
+        self.assertEqual(driver.load_context(self.run_root).adopt, {"instance": "/prefit"})
+        with self.assertRaisesRegex(driver.DriverError, "adopt_calibration_differs_from_the_first_run"):
+            driver.resolve_adopt(self.run_root, {})
+        fresh = self.tmp / "fresh"
+        pool.write_json(fresh / "jobs" / "instance__cal__x.json", {"job_id": "instance/cal/x", "status": "done"})
+        with self.assertRaisesRegex(driver.DriverError, "adopt_calibration_after_the_run_started_without_it"):
+            driver.resolve_adopt(fresh, {"instance": "/prefit"})
+        with self.assertRaisesRegex(driver.DriverError, "adopt_calibration_names_no_front"):
+            driver.resolve_adopt(self.tmp / "other", {"gpu": "/x"})
+
+    def test_the_determinism_probe_falls_back_to_taf_when_every_vsmt_seed_diverged(self) -> None:
+        self.assertIsNone(driver.determinism_group(self.ctx, "instance"))
+        taf = driver.development_config("TAF")
+        index = driver.audit_configs("TAF").index(taf)
+        pool.write_json(self.ctx.merged_path("instance", "TAF", index, None), {})
+        self.assertEqual(driver.determinism_group(self.ctx, "instance"), ("TAF", index, taf, None))
+        tau = driver.round1_config("VSMT-lean")
+        pool.write_json(self.ctx.merged_path("instance", "VSMT-lean", driver.audit_configs("VSMT-lean").index(tau), 19), {})
+        self.assertEqual(driver.determinism_group(self.ctx, "instance")[0::3], ("VSMT-lean", 19))
+
+    def test_verify_names_jobs_that_never_started(self) -> None:
+        result = driver.verify(self.ctx, self.tmp / "exports", "t")
+        never = [p for p in result["problems"] if p.startswith("jobs_never_started:")]
+        self.assertEqual(len(never), 1)
+        self.assertEqual(int(never[0].split(":")[1]), len(driver.build_jobs(self.ctx)))
 
     def test_the_thread_count_from_the_timing(self) -> None:
         pool.write_json(self.run_root / "train_timing.json", {"timings": [{"threads": 1, "epoch_seconds": 10.0}, {"threads": 4, "epoch_seconds": 2.0}],

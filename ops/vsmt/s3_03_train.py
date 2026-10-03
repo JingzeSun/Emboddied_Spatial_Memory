@@ -342,7 +342,7 @@ def cmd_time(args: argparse.Namespace) -> int:
         marks: list[float] = []
         model.train_heads_streamed(record_stream(plan, "train", houses=chosen), record_stream(plan, "selection", houses=chosen),
                                    seed=arms.SEEDS[0], device="cpu", epoch_callback=lambda epoch, heads: marks.append(time.time()), **values)
-        rows.append({"threads": threads, "epoch_seconds": round(marks[1] - marks[0], 3)})
+        rows.append({"threads": count, "thread_settings": threads, "epoch_seconds": round(marks[1] - marks[0], 3)})
         print(f"[s3-03-train time] {count} threads: {rows[-1]['epoch_seconds']} s per epoch")
     write_json_atomic(Path(args.out), {"stage": STAGE, "check": "ruling 104-3 per-epoch time by thread count on a fixed subset",
                                        "arm": args.arm, "round": args.round, "houses": sorted(chosen), "timings": rows,
