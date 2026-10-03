@@ -498,10 +498,16 @@ class PolicyAndConfigTests(unittest.TestCase):
         with self.assertRaises(lr.LeanRunnerError) as caught:
             lr.validate_arm_config("ELU-P", {k: v for k, v in CONFIGS["ELU-P"].items() if k != "match_gain"})
         self.assertEqual(str(caught.exception), "arm_config_missing:ELU-P")
+        # ruling 105-9: the runner drives LLM-op (no configuration), the S2 entries' list still leaves it out
+        self.assertEqual(lr.validate_arm_config("LLM-op", {}), {})
         with self.assertRaises(lr.LeanRunnerError) as caught:
-            lr.validate_arm_config("LLM-op", {})
-        self.assertEqual(str(caught.exception), "arm_not_runnable_here:LLM-op")
+            lr.validate_arm_config("LLM-op", {"tau_r": 0.5})
+        self.assertEqual(str(caught.exception), "arm_config_missing:LLM-op")
         self.assertNotIn("LLM-op", lr.RUNNABLE_ARMS)
+        self.assertEqual(lr.RUNNER_ARMS, (*lr.RUNNABLE_ARMS, "LLM-op"))
+        with self.assertRaises(lr.LeanRunnerError) as caught:
+            lr.validate_arm_config("GPT-op", {})
+        self.assertEqual(str(caught.exception), "arm_not_runnable_here:GPT-op")
 
 
 class FrameStepTests(unittest.TestCase):

@@ -136,7 +136,23 @@
       "AssocOnly",
       "VSMT-lean-ctx"
     ],
-    "appendix_arm_refused_here": "LLM-op",
+    "appendix_arm": {
+      "name": "LLM-op",
+      "runner_arms": [
+        "VSMT-lean",
+        "TAF",
+        "ELU-P",
+        "RAC",
+        "LOW",
+        "NoVersion",
+        "HandCost",
+        "HeuristicLabel",
+        "AssocOnly",
+        "VSMT-lean-ctx",
+        "LLM-op"
+      ],
+      "rule": "ruling 105-9: the runner drives LLM-op with an LLM-op scorer -- association and birth logits through the learned-arm scorer interface, RETRACT or NOOP per eligible row given directly -- and nothing else differs from the other arms; the S2-01, S2-04 and S2-05 entries still refuse it; it runs only through the node audit's --arm LLM-op on validation and the LLM-op pilot on train (lean_s3_03_llm_op_v1)"
+    },
     "arm_state": {
       "ELU-P": "log_odds per entity: initial_log_odds on first eligibility, decays on every eligible unmatched frame, gains match_gain when the entity is bound or reactivated this frame",
       "RAC": "negative_renders per entity: incremented on a negative render, reset on a positive render or a match, reset after a RETRACT",
