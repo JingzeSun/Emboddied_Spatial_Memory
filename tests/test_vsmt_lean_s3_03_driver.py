@@ -499,6 +499,15 @@ class CheckTests(unittest.TestCase):
         confirmation = driver.confirm_provisional(provisional, self.check(), self.roots, tuple(driver.FRONTS))
         self.assertEqual(confirmation["differs"], ["digests"])
 
+    def test_a_provisional_check_accepts_a_test_root_not_built_yet(self) -> None:
+        # the SAM2 test cache is S3-02's last step: its root may not exist (or carry no marker) while S3-03 starts
+        self.hide_the_s3_02_manifest()
+        shutil.rmtree(Path(self.roots["cache"]["sam2"]) / "test")
+        report = self.check(provisional=True)
+        self.assertEqual(report["problems"], [])
+        self.assertEqual(report["test_seal"]["markers"]["sam2_cache"], {"path": str(Path(self.roots["cache"]["sam2"]) / "test" / "TEST_SEALED.json"),
+                                                                        "root_exists": False, "state": None})
+
     def test_a_provisional_check_refuses_an_incomplete_cache(self) -> None:
         self.hide_the_s3_02_manifest()
         house = self.houses["validation"][1]

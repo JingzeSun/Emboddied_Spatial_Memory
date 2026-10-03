@@ -550,9 +550,11 @@ def provisional_inputs(*, roots: Mapping[str, Any], reid: Mapping[str, Path], fr
                        *((f"{front}_cache", Path(roots["cache"][front]) / "test") for front in fronts)):
         marker_path = root / lean_test_seal.MARKER_NAME  # only the marker file is read, never a test episode
         marker = load_json(marker_path) if marker_path.exists() else {}
-        markers[kind] = {"path": str(marker_path), "state": marker.get("state")}
-        if marker.get("state") not in (lean_test_seal.STATE_PENDING, lean_test_seal.STATE_SEALED):
-            problems.append(f"test_root_without_a_marker:{kind}")
+        # recorded only: S3-02 may not have built this test root yet (the SAM2 test cache comes last) and a provisional run never
+        # reads test; the full check after S3-02's export requires every test root sealed by the exported seal
+        markers[kind] = {"path": str(marker_path), "root_exists": root.exists(), "state": marker.get("state")}
+        if marker and marker.get("state") not in (lean_test_seal.STATE_PENDING, lean_test_seal.STATE_SEALED):
+            problems.append(f"test_root_marker_in_an_unknown_state:{kind}:{marker.get('state')}")
     heads = reid_heads(reid, fronts, problems)
     return {"problems": problems, "provisional": {"digests": root_digests(roots, fronts), "written_utc": utc_now(),
                                                   "rule": "user 2026-10-04: start beside S3-02; confirmed by the first full check"},
