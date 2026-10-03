@@ -16,6 +16,7 @@ from __future__ import annotations
 import copy
 import datetime as dt
 import hashlib
+import http.client
 import json
 import os
 import shutil
@@ -42,7 +43,7 @@ from test_vsmt_lean_controls import stage_a_and_rows  # noqa: E402
 from test_vsmt_lean_runner import POLICY, scenario  # noqa: E402
 
 #: The reviewed bytes of the LLM-op contract (CRLF folded to LF); both bits closed until the user's code review.
-REVIEWED_CONTRACT_SHA256 = "1e4db7d41dc2c76f075cfe50f3cb1e7f4edaad8266c8050ff12062ab8e7eeae0"
+REVIEWED_CONTRACT_SHA256 = "451956aa7f09fdf22433c79de24e0e9ff4027e3ac41f13d3861971e88a29c9ce"
 SERVED = "deepseek-v4.1-flash"
 SATURDAY_NOON = dt.datetime(2026, 10, 3, 12, 0, tzinfo=dt.timezone.utc)
 
@@ -101,11 +102,27 @@ def opened_contract() -> dict[str, Any]:
     return llm.validate_contract(contract)
 
 
-def caller(tmp: Path, *, transport: Any = None, mode: str = "live", expected: str | None = None, sleeps: list | None = None,
-           name: str = "a.jsonl") -> llm.LlmCaller:
-    return llm.LlmCaller(archive=llm.CallArchive(tmp / name), mode=mode, transport=transport, expected_model=expected,
-                         stop_path=tmp / llm.STOP_FILE, sleep=(sleeps.append if sleeps is not None else (lambda s: None)),
-                         now=lambda: SATURDAY_NOON)
+class FakeTime:
+    """Sleeps that only move a clock the caller reads (the service retry limit is wall time)."""
+
+    def __init__(self) -> None:
+        self.now = 0.0
+        self.sleeps: list[float] = []
+
+    def sleep(self, seconds: float) -> None:
+        self.sleeps.append(seconds)
+        self.now += seconds
+
+    def clock(self) -> float:
+        return self.now
+
+
+def caller(tmp: Path, *, transport: Any = None, mode: str = "live", expected: str | None = None, time_: FakeTime | None = None,
+           name: str = "a.jsonl", budget_root: Path | None = None) -> llm.LlmCaller:
+    time_ = time_ or FakeTime()
+    return llm.LlmCaller(archive=llm.CallArchive(tmp / name, read_only=(mode == "replay")), mode=mode, transport=transport,
+                         expected_model=expected, stop_path=(budget_root or tmp) / llm.STOP_FILE, budget_root=budget_root,
+                         sleep=time_.sleep, now=lambda: SATURDAY_NOON, clock=time_.clock)
 
 
 class TempDir(unittest.TestCase):
@@ -255,13 +272,13 @@ class CallerTests(TempDir):
         self.assertEqual(caught.exception.detail, "archive_request_mismatch:association:7:1")
 
     def test_service_errors_back_off_are_archived_and_never_count_as_answers(self) -> None:
-        sleeps: list[float] = []
+        time_ = FakeTime()
         transport = ScriptedTransport([(429, {"error": {"message": "slow down"}}), (503, "busy"), llm.TransportError("TimeoutError"),
                                        (200, "not json"), (200, response("", finish="insufficient_system_resource")),
                                        (200, response("f1 -> BIRTH\n"))])
-        record = caller(self.tmp, transport=transport, sleeps=sleeps).ask("association", 3, 1, self.MESSAGES)
+        record = caller(self.tmp, transport=transport, time_=time_).ask("association", 3, 1, self.MESSAGES)
         self.assertEqual(record["response"]["content"], "f1 -> BIRTH\n")
-        self.assertEqual(sleeps, [2.0, 4.0, 8.0, 16.0, 32.0])
+        self.assertEqual(time_.sleeps, [2.0, 4.0, 8.0, 16.0, 32.0])
         rows = [json.loads(line) for line in (self.tmp / "a.jsonl").read_text(encoding="utf-8").splitlines()]
         self.assertEqual([row["type"] for row in rows], ["service_error"] * 5 + ["call"])
         self.assertEqual(rows[0]["error"], "slow down")
@@ -303,6 +320,113 @@ class CallerTests(TempDir):
         (self.tmp / "e.jsonl").write_text(good + "\n" + good + "\n", encoding="utf-8")
         with self.assertRaises(llm.ArchiveProblem):
             llm.CallArchive(self.tmp / "e.jsonl")
+
+
+class CallerRobustnessTests(TempDir):
+    """The review's findings (2026-10-04): error bodies, dropped connections, malformed answers, gaps, the workers' own safety stop."""
+
+    MESSAGES = CallerTests.MESSAGES
+
+    def test_an_error_body_of_any_shape_is_read_and_key_like_tokens_are_masked(self) -> None:
+        self.assertEqual(llm._error_text('{"error": "rate limited"}'), "rate limited")
+        self.assertEqual(llm._error_text('{"error": null}'), '{"error": null}')
+        self.assertEqual(llm._error_text("boom"), "boom")
+        self.assertEqual(llm._error_text('{"error": {"message": "Authentication Fails, your key sk-ab12**cd is invalid"}}'),
+                         "Authentication Fails, your key sk-*** is invalid")
+        time_ = FakeTime()
+        record = caller(self.tmp, transport=ScriptedTransport([(429, '{"error": "rate limited"}'), (200, response("f -> BIRTH\n"))]),
+                        time_=time_).ask("association", 1, 1, self.MESSAGES)
+        self.assertEqual((record["response"]["content"], time_.sleeps), ("f -> BIRTH\n", [2.0]))
+        with self.assertRaises(llm.ApiFatal) as caught:
+            caller(self.tmp, transport=ScriptedTransport([(401, '{"error": null}')]), name="b.jsonl").ask("association", 1, 1, self.MESSAGES)
+        self.assertEqual(caught.exception.exit_code, llm.EXIT_API_FATAL)
+
+    def test_a_dropped_connection_is_a_network_error_and_the_key_never_reaches_an_exception(self) -> None:
+        body = llm.request_body(self.MESSAGES)
+
+        def dropped(request, timeout):
+            raise http.client.IncompleteRead(b"partial")
+
+        with self.assertRaises(llm.TransportError) as caught:
+            llm.HttpTransport(api_key="sk-k", opener=dropped).post(body)
+        self.assertEqual(str(caught.exception), "IncompleteRead")
+
+        def refused(request, timeout):
+            raise ValueError("Invalid header value b'Bearer sk-secret'")
+
+        with self.assertRaises(llm.ApiFatal) as caught:
+            llm.HttpTransport(api_key="sk-secret", opener=refused).post(body)
+        self.assertEqual(caught.exception.detail, "request_not_sendable:ValueError")
+        for bad in ("sk-a\nb", "sk a", "sk-\x7f"):
+            with self.subTest(key=repr(bad)), self.assertRaises(llm.LlmOpError) as caught:
+                llm.load_api_key({llm.KEY_ENV: bad})
+            self.assertEqual(str(caught.exception), "api_key_malformed")
+        with self.assertRaises(llm.LlmOpError):
+            llm.HttpTransport(api_key="sk a")
+
+    def test_a_malformed_answer_body_is_retried_and_never_crashes_the_caller(self) -> None:
+        script = [(200, {"choices": [{"message": "plain text", "finish_reason": "stop"}]}),
+                  (200, {"choices": [{"message": {"content": ["x"]}, "finish_reason": "stop"}], "usage": {}}),
+                  (200, {"choices": [{"message": {"content": "ok"}, "finish_reason": "stop"}], "usage": [1, 2]}),
+                  (200, {"choices": [], "usage": {}}),
+                  (200, response("f -> BIRTH\n"))]
+        record = caller(self.tmp, transport=ScriptedTransport(script)).ask("association", 2, 1, self.MESSAGES)
+        self.assertEqual(record["response"]["content"], "f -> BIRTH\n")
+        rows = [json.loads(line) for line in (self.tmp / "a.jsonl").read_text(encoding="utf-8").splitlines()]
+        self.assertEqual([("unparseable_body" in row) for row in rows if row["type"] == "service_error"], [True] * 4)
+
+    def test_live_calls_go_only_past_the_archive_end(self) -> None:
+        caller(self.tmp, transport=ScriptedTransport([(200, response("f -> BIRTH\n"))])).ask("association", 5, 1, self.MESSAGES)
+        with self.assertRaises(llm.ArchiveProblem) as caught:
+            caller(self.tmp, transport=ScriptedTransport()).ask("association", 3, 1, self.MESSAGES)
+        self.assertEqual(caught.exception.detail, "archive_gap:association:3:1:archive_ends_at:5")
+        transport = ScriptedTransport([(200, response("f -> BIRTH\n"))])
+        caller(self.tmp, transport=transport).ask("existence", 5, 1, self.MESSAGES)  # the archive's last frame may go on
+        self.assertEqual(len(transport.bodies), 1)
+
+    def test_every_live_call_checks_the_run_ledgers_against_the_safety_stop(self) -> None:
+        run_root = self.tmp / "run"
+        for path, cost in ((run_root / "archive" / "instance" / "ep-1.jsonl.ledger.json", 150.0),
+                           (run_root / "pilot" / "archive" / "sam2.jsonl.ledger.json", 60.0)):
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(json.dumps({"cost_usd": cost}), encoding="utf-8")
+        self.assertEqual(llm.run_spend_usd(run_root), {"main_usd": 150.0, "pilot_usd": 60.0, "total_usd": 210.0})
+        transport = ScriptedTransport()
+        with self.assertRaises(llm.Stopped):
+            caller(run_root / "archive" / "instance", transport=transport, name="ep-2.jsonl", budget_root=run_root).ask(
+                "association", 1, 1, self.MESSAGES)
+        self.assertEqual(transport.bodies, [])
+        self.assertIn("seen by a worker", (run_root / llm.STOP_FILE).read_text(encoding="utf-8"))
+
+    def test_a_whole_last_line_without_its_newline_is_kept_and_a_replay_changes_nothing(self) -> None:
+        caller(self.tmp, transport=ScriptedTransport([(200, response("f -> BIRTH\n"))])).ask("association", 1, 1, self.MESSAGES)
+        path = self.tmp / "a.jsonl"
+        path.write_bytes(path.read_bytes().rstrip(b"\n"))
+        before = path.read_bytes()
+        self.assertEqual(len(llm.CallArchive(path, read_only=True).calls), 1)
+        self.assertEqual(path.read_bytes(), before)  # read-only: nothing written
+        archive = llm.CallArchive(path)
+        self.assertEqual(len(archive.calls), 1)
+        archive.close()
+        self.assertEqual(path.read_bytes(), before + b"\n")  # live: the newline restored, no record dropped
+        with open(path, "ab") as handle:
+            handle.write(b'{"type": "call", "kind": "assoc')
+        cut = path.read_bytes()
+        self.assertEqual(len(llm.CallArchive(path, read_only=True).calls), 1)
+        self.assertEqual(path.read_bytes(), cut)
+        with self.assertRaises(llm.LlmOpError):
+            llm.CallArchive(path, read_only=True).append({"type": "repair"})
+
+    @unittest.skipUnless(os.name == "posix", "flock exists on POSIX only")
+    def test_an_archive_has_one_writer_at_a_time(self) -> None:
+        path = self.tmp / "a.jsonl"
+        first = llm.CallArchive(path)
+        with self.assertRaises(llm.ArchiveProblem) as caught:
+            llm.CallArchive(path)
+        self.assertEqual(caught.exception.detail, "archive_in_use:a.jsonl")
+        llm.CallArchive(path, read_only=True)  # a replay takes no lock
+        first.close()
+        llm.CallArchive(path).close()
 
 
 class ScriptedCaller:
@@ -353,6 +477,14 @@ class ScorerTests(unittest.TestCase):
         self.assertEqual((stats["fallbacks"], stats["fallback_ticks"], stats["fallback_rate"]), (1, [int(self.stage_a["tick"])], 1.0))
         self.assertEqual(stats["invalid"], {"content_filter": 1, "empty": 1, "unparseable:line": 1})
 
+    def test_the_pilot_scorer_refuses_a_frame_past_its_limit(self) -> None:
+        scorer = llm.LlmOpScorer(ScriptedCaller([(self.good, "stop")] * 3), split="train", pilot=True, frames=2)
+        scorer.association_and_birth_logits(self.stage_a)
+        scorer.association_and_birth_logits(self.stage_a)
+        with self.assertRaises(llm.LlmOpError) as caught:
+            scorer.association_and_birth_logits(self.stage_a)
+        self.assertEqual(str(caught.exception), "pilot_frames_exceeded")
+
     def test_a_call_without_rows_is_not_asked_and_existence_comes_after_association(self) -> None:
         scripted = ScriptedCaller([])
         scorer = llm.LlmOpScorer(scripted, split="validation")
@@ -366,13 +498,20 @@ class ScorerTests(unittest.TestCase):
 
 
 class ProjectionTests(unittest.TestCase):
-    def test_the_projection_prices_rows_not_frames(self) -> None:
-        pilot = {"association": {"rows": 100, "tokens": {"input_cache_hit": 0, "input_cache_miss": 1_000_000, "output": 0, "reasoning": 0}},
-                 "existence": {"rows": 50, "tokens": {"input_cache_hit": 0, "input_cache_miss": 0, "output": 1_000_000, "reasoning": 0}}}
-        projection = llm.project_cost(pilot, planned_frames=1000, rows_per_frame={"association_rows": 90.0, "existence_rows": 36.0})
-        per_frame = 0.15 / 100 * 90 + 0.6 / 50 * 36
+    def test_the_projection_prices_rows_at_the_larger_rows_per_frame_and_reports_the_worst_case(self) -> None:
+        pilot = {"association": {"rows": 100, "frames": 10,
+                                 "tokens": {"input_cache_hit": 0, "input_cache_miss": 1_000_000, "output": 0, "reasoning": 0}},
+                 "existence": {"rows": 50, "frames": 10,
+                               "tokens": {"input_cache_hit": 0, "input_cache_miss": 0, "output": 1_000_000, "reasoning": 0}}}
+        projection = llm.project_cost(pilot, planned_frames=1000, rows_per_frame={"association_rows": 90.0, "existence_rows": 3.0})
+        per_frame = 0.15 / 100 * 90 + 0.6 / 50 * 5  # association: registered 90 > pilot 10; existence: pilot 5 > registered 3
         self.assertAlmostEqual(projection["usd_per_frame_off_peak"], per_frame)
         self.assertAlmostEqual(projection["projected_usd_expected"], per_frame * 1000 * llm.EXPECTED_PEAK_FACTOR)
+        self.assertAlmostEqual(projection["projected_usd_worst"], per_frame * 1000 * 2.0)
+        self.assertEqual(projection["unpriced_kinds"], [])
+        pilot["existence"]["rows"] = 0
+        self.assertEqual(llm.project_cost(pilot, planned_frames=1000, rows_per_frame={"association_rows": 90.0, "existence_rows": 3.0})[
+            "unpriced_kinds"], ["existence"])
 
 
 class RunnerIntegrationTests(TempDir):
@@ -397,10 +536,46 @@ class RunnerIntegrationTests(TempDir):
         for body in transport.bodies:  # only the registered instruction and the frame's tables are sent
             self.assertIn(body["messages"][0]["content"], (lc.ASSOCIATION_INSTRUCTION, lc.EXISTENCE_INSTRUCTION))
             self.assertIn(body["messages"][1]["content"].splitlines()[0], ("CANDIDATES", "ENTITIES"))
-        scorer.close()  # on Linux the archive's flock would otherwise refuse the replay's own open
+        scorer.close()  # on Linux the archive's flock would otherwise refuse the next writer
         replayed, again = run(caller(self.tmp, mode="replay", expected=SERVED))
         self.assertEqual(audit_module.trajectory_sha256(replayed), audit_module.trajectory_sha256(live))
         self.assertEqual(again.summary()["association"]["replayed_attempts"], again.summary()["association"]["attempts"])
+
+    def test_a_run_killed_midway_resumes_from_its_archive_and_pays_each_call_once(self) -> None:
+        def run(call: llm.LlmCaller) -> list[dict[str, Any]]:
+            scorer = llm.LlmOpScorer(call, split="validation")
+            steps = list(lr.run_episode(scenario(), episode_id="ep-0001", arm=llm.ARM, config={}, policy=POLICY,
+                                        descriptor=la.FROZEN_DESCRIPTOR_BASELINE, scorer=scorer))
+            return [s["receipt"] for s in steps]
+
+        clean_transport = ScriptedTransport()
+        clean_caller = caller(self.tmp, transport=clean_transport, name="clean.jsonl")
+        clean = run(clean_caller)
+        clean_caller.close()
+        total = len(clean_transport.bodies)
+
+        class Killed(BaseException):
+            pass
+
+        first = ScriptedTransport()
+        answer = first.post
+
+        def post(body: Mapping[str, Any]) -> tuple[int, str]:
+            if len(first.bodies) >= total // 2:
+                raise Killed()
+            return answer(body)
+
+        first.post = post
+        first_caller = caller(self.tmp, transport=first, name="resume.jsonl")
+        with self.assertRaises(Killed):
+            run(first_caller)
+        first_caller.close()
+        second = ScriptedTransport()
+        second_caller = caller(self.tmp, transport=second, name="resume.jsonl")
+        resumed = run(second_caller)
+        second_caller.close()
+        self.assertEqual(len(first.bodies) + len(second.bodies), total)
+        self.assertEqual(audit_module.trajectory_sha256(resumed), audit_module.trajectory_sha256(clean))
 
 
 if __name__ == "__main__":

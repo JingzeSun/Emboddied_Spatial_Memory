@@ -1621,7 +1621,8 @@ def run(args: argparse.Namespace) -> int:
         if llm is not None:  # ruling 105: calls, invalid answers, fallbacks, tokens, cost and the archive the decisions came from
             archive = Path(args.llm_op_archive)
             scorer.close()  # the archive is complete: release its lock before it is digested and recorded
-            payload["llm_op"] = {**scorer.summary(), "archive": archive.name, "archive_sha256": file_sha256(archive),
+            payload["llm_op"] = {**scorer.summary(), "archive": archive.name,  # no archive at all when no frame needed a call
+                                 "archive_sha256": file_sha256(archive) if archive.exists() else None,
                                  "contract_sha256": file_sha256(llm.CONTRACT_PATH)}
         write_json_atomic(out_dir / AUDIT_FILE_NAME, payload)
         if audit is None:

@@ -39,8 +39,10 @@ from __future__ import annotations
 
 import datetime as dt
 import hashlib
+import http.client
 import json
 import os
+import re
 import time
 import urllib.error
 import urllib.request
@@ -94,6 +96,10 @@ EXPECTED_PEAK_FACTOR = 1.0 + (PEAK_MULTIPLIER - 1.0) * (len(PEAK_WEEKDAYS) * 7.0
 KEY_ENV = "DEEPSEEK_API_KEY"
 KEY_FILE_ENV = "DEEPSEEK_API_KEY_FILE"
 DEFAULT_KEY_FILE = "/root/.config/vsmt/deepseek.env"
+#: A key is printable ASCII without spaces: anything else would make the HTTP library quote it in an exception.
+KEY_PATTERN = re.compile(r"^[\x21-\x7e]+$")
+#: An error text from the service never carries a key-like token into the archive or a log.
+KEY_LIKE = re.compile(r"sk-[A-Za-z0-9*_\-]+")
 #: Files in a run root the processes share.
 STOP_FILE = "STOP"
 MODEL_FILE = "model.json"
@@ -296,6 +302,7 @@ def load_api_key(environ: Mapping[str, str] | None = None) -> str:
     environ = os.environ if environ is None else environ
     value = (environ.get(KEY_ENV) or "").strip()
     if value:
+        _require(bool(KEY_PATTERN.match(value)), "api_key_malformed")
         return value
     path = Path(environ.get(KEY_FILE_ENV) or DEFAULT_KEY_FILE)
     _require(path.is_file(), "api_key_missing")
@@ -308,6 +315,7 @@ def load_api_key(environ: Mapping[str, str] | None = None) -> str:
         if line.startswith(f"{KEY_ENV}="):
             key = line.split("=", 1)[1].strip().strip('"').strip("'")
             if key:
+                _require(bool(KEY_PATTERN.match(key)), "api_key_malformed")
                 return key
     raise LlmOpError("api_key_missing")
 
@@ -333,6 +341,7 @@ class HttpTransport:
     def __init__(self, *, api_key: str, endpoint: str = ENDPOINT, timeout_s: float = REQUEST_TIMEOUT_S,
                  opener: Callable[..., Any] = urllib.request.urlopen) -> None:
         _require(bool(api_key), "api_key_missing")
+        _require(bool(KEY_PATTERN.match(api_key)), "api_key_malformed")
         self._key = api_key
         self.endpoint = endpoint
         self.timeout_s = float(timeout_s)
@@ -351,8 +360,11 @@ class HttpTransport:
             except Exception:  # noqa: BLE001 -- an unreadable error body is just empty
                 text = ""
             return int(exc.code), text
-        except (urllib.error.URLError, TimeoutError, ConnectionError, OSError) as exc:
+        except (urllib.error.URLError, TimeoutError, ConnectionError, OSError, http.client.HTTPException) as exc:
+            # a connection dropped mid-body (IncompleteRead, RemoteDisconnected) is a network error like any other
             raise TransportError(type(exc).__name__) from None
+        except ValueError:  # a request the library refuses to send; its message could quote a header, so it is not kept
+            raise ApiFatal("request_not_sendable:ValueError") from None
 
     def post(self, body: Mapping[str, Any]) -> tuple[int, str]:
         request = urllib.request.Request(self.endpoint, data=json.dumps(body).encode("utf-8"), method="POST", headers={
@@ -368,46 +380,64 @@ class CallArchive:
     """Append-only JSON lines for one (front end, episode) or one pilot: every response before it is used, every service error.
 
     A ``call`` record is keyed by (kind, tick, attempt) and replayed by that key when its request digest matches; a
-    ``service_error`` record only accounts for time and money.  A line cut off by a killed process is dropped on the next
-    open and the drop is itself recorded.  ``<archive>.ledger.json`` keeps the running cost for the driver to read cheaply.
+    ``service_error`` record only accounts for time and money.  A last line a killed process left without its newline is kept
+    when it is a whole record (the newline is restored) and otherwise dropped, the drop itself recorded; a read-only archive
+    (replay) changes nothing on disk and takes no lock.  ``<archive>.ledger.json`` keeps the running cost for cheap reading.
     """
 
-    def __init__(self, path: Path) -> None:
+    def __init__(self, path: Path, *, read_only: bool = False) -> None:
         self.path = Path(path)
+        self.read_only = bool(read_only)
         self.calls: dict[tuple[str, int, int], dict[str, Any]] = {}
         self.cost_usd = 0.0
         self.records = 0
         self.service_errors = 0
         self.last_tick: int | None = None
-        self.path.parent.mkdir(parents=True, exist_ok=True)
         self._lock = None
-        try:  # one process per archive: a second run of the same episode would interleave its lines
-            import fcntl
-        except ImportError:  # not POSIX (the local tests): no lock to take
-            fcntl = None
-        if fcntl is not None:
-            self._lock = open(self.path.with_name(self.path.name + ".lock"), "a")
-            try:
-                fcntl.flock(self._lock.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-            except OSError:
-                self._lock.close()
-                raise ArchiveProblem(f"archive_in_use:{self.path.name}") from None
-        if self.path.exists():
-            raw = self.path.read_bytes()
-            keep = raw if raw.endswith(b"\n") or not raw else raw[: raw.rfind(b"\n") + 1]
-            if len(keep) != len(raw):
-                with open(self.path, "r+b") as handle:
-                    handle.truncate(len(keep))
-            for number, line in enumerate(keep.decode("utf-8").splitlines(), start=1):
-                if not line.strip():
-                    continue
+        if not self.read_only:
+            self.path.parent.mkdir(parents=True, exist_ok=True)
+            try:  # one writing process per archive: a second live run of the same episode would interleave its lines
+                import fcntl
+            except ImportError:  # not POSIX (the local tests): no lock to take
+                fcntl = None
+            if fcntl is not None:
+                self._lock = open(self.path.with_name(self.path.name + ".lock"), "a")
                 try:
-                    record = json.loads(line)
-                except ValueError:
-                    raise ArchiveProblem(f"archive_line_unreadable:{self.path.name}:{number}") from None
-                self._index(record)
-            if len(keep) != len(raw):
-                self.append({"type": "repair", "dropped_bytes": len(raw) - len(keep), "utc": utc_now().isoformat()})
+                    fcntl.flock(self._lock.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                except OSError:
+                    self._lock.close()
+                    self._lock = None
+                    raise ArchiveProblem(f"archive_in_use:{self.path.name}") from None
+        if not self.path.exists():
+            return
+        raw = self.path.read_bytes()
+        body, tail = raw, b""
+        if raw and not raw.endswith(b"\n"):
+            cut = raw.rfind(b"\n") + 1
+            body, tail = raw[:cut], raw[cut:]
+        for number, line in enumerate(body.decode("utf-8").splitlines(), start=1):
+            if not line.strip():
+                continue
+            try:
+                record = json.loads(line)
+            except ValueError:
+                raise ArchiveProblem(f"archive_line_unreadable:{self.path.name}:{number}") from None
+            self._index(record)
+        if not tail:
+            return
+        try:
+            whole = json.loads(tail.decode("utf-8"))
+        except ValueError:
+            whole = None
+        if isinstance(whole, dict) and "type" in whole:  # a whole record that only lost its newline: paid for, so kept
+            self._index(whole)
+            if not self.read_only:
+                with open(self.path, "ab") as handle:
+                    handle.write(b"\n")
+        elif not self.read_only:
+            with open(self.path, "r+b") as handle:
+                handle.truncate(len(body))
+            self.append({"type": "repair", "dropped_bytes": len(tail), "utc": utc_now().isoformat()})
 
     def _index(self, record: Mapping[str, Any]) -> None:
         self.records += 1
@@ -425,13 +455,15 @@ class CallArchive:
         return self.calls.get((str(kind), int(tick), int(attempt)))
 
     def close(self) -> None:
-        """Release the archive's lock (a flock binds the open file, so a second open in the same process waits for this)."""
+        """Release the archive's lock (a flock binds the open file: until this, a second open fails with archive_in_use, even
+        in the same process)."""
 
         if self._lock is not None:
             self._lock.close()
             self._lock = None
 
     def append(self, record: Mapping[str, Any]) -> None:
+        _require(not self.read_only, "archive_read_only")
         line = json.dumps(dict(record), sort_keys=True, ensure_ascii=False)
         with open(self.path, "a", encoding="utf-8", newline="\n") as handle:
             handle.write(line + "\n")
@@ -446,27 +478,57 @@ class CallArchive:
 
 
 def _error_text(text: str) -> str:
+    """The service's error message (an object's message, a bare string, or the body), shortened, with key-like tokens masked."""
+
+    message: Any = None
     try:
         payload = json.loads(text)
-        message = payload.get("error", {}).get("message") if isinstance(payload, Mapping) else None
     except ValueError:
-        message = None
-    return str(message or text or "")[:200].replace("\n", " ")
+        payload = None
+    if isinstance(payload, Mapping):
+        error = payload.get("error")
+        message = error.get("message") if isinstance(error, Mapping) else error
+    shown = str(message) if message not in (None, "") else str(text or "")
+    return KEY_LIKE.sub("sk-***", shown)[:200].replace("\n", " ")
+
+
+def run_spend_usd(run_root: Path) -> dict[str, float]:
+    """The run's spend from its archives' ledgers (the main run and the pilot); every worker and the driver read the same sum."""
+
+    run_root = Path(run_root)
+    main = sum(float(json.loads(path.read_text(encoding="utf-8")).get("cost_usd") or 0.0)
+               for path in sorted((run_root / "archive").glob("*/*.jsonl.ledger.json")))
+    pilot = sum(float(json.loads(path.read_text(encoding="utf-8")).get("cost_usd") or 0.0)
+                for path in sorted((run_root / "pilot" / "archive").glob("*.jsonl.ledger.json")))
+    return {"main_usd": round(main, 6), "pilot_usd": round(pilot, 6), "total_usd": round(main + pilot, 6)}
+
+
+def write_stop(run_root: Path, reason: str) -> bool:
+    """Write the run's STOP file once (every process stops before its next call); True when this call wrote it."""
+
+    path = Path(run_root) / STOP_FILE
+    if path.exists():
+        return False
+    path.write_text(f"{reason} at {utc_now().isoformat()}\n", encoding="utf-8")
+    return True
 
 
 class LlmCaller:
     """One answer per ``ask``: replayed from the archive when there, else asked live (``mode="live"``) and archived first."""
 
     def __init__(self, *, archive: CallArchive, mode: str, transport: Any = None, expected_model: str | None = None,
-                 stop_path: Path | None = None, sleep: Callable[[float], None] = time.sleep,
+                 stop_path: Path | None = None, budget_root: Path | None = None, sleep: Callable[[float], None] = time.sleep,
                  now: Callable[[], dt.datetime] = utc_now, clock: Callable[[], float] = time.monotonic) -> None:
         _require(mode in ("live", "replay"), f"caller_mode_unknown:{mode}")
         _require(mode == "replay" or transport is not None, "live_caller_without_transport")
+        _require(mode == "live" or archive.read_only, "replay_needs_a_read_only_archive")
         self.archive = archive
         self.mode = mode
         self.transport = transport
         self.expected_model = expected_model
         self.stop_path = Path(stop_path) if stop_path is not None else None
+        #: the run root whose ledgers every live call sums first: the safety stop holds even when the driver is gone
+        self.budget_root = Path(budget_root) if budget_root is not None else None
         self._sleep, self._now, self._clock = sleep, now, clock
         self.models_seen: set[str] = set()
 
@@ -474,6 +536,10 @@ class LlmCaller:
         self.archive.close()
 
     def _check_stop(self) -> None:
+        if self.budget_root is not None:
+            spent = run_spend_usd(self.budget_root)["total_usd"]
+            if spent >= SAFETY_STOP_USD:
+                write_stop(self.budget_root, f"safety_stop_usd:{SAFETY_STOP_USD} reached (ledger ${spent:.2f}, seen by a worker)")
         if self.stop_path is not None and self.stop_path.exists():
             raise Stopped(f"stop_file:{self.stop_path.read_text(encoding='utf-8', errors='replace').strip()[:200]}")
 
@@ -494,7 +560,11 @@ class LlmCaller:
             return {**record, "replayed": True}
         if self.mode == "replay":
             raise ArchiveProblem(f"replay_miss:{kind}:{tick}:{attempt}")
-        waited, delay = 0.0, BACKOFF_FIRST_S
+        if self.archive.last_tick is not None and int(tick) < self.archive.last_tick:
+            # live calls only past the archive's end: a missing call inside it means the trajectory has diverged from it
+            raise ArchiveProblem(f"archive_gap:{kind}:{tick}:{attempt}:archive_ends_at:{self.archive.last_tick}")
+        failing_since: float | None = None
+        delay = BACKOFF_FIRST_S
         while True:
             self._check_stop()
             when, started = self._now(), self._clock()
@@ -505,16 +575,21 @@ class LlmCaller:
                 status, text, failure = None, "", {"transport_error": str(exc)}
             latency = round(self._clock() - started, 3)
             if status == 200:
-                try:
+                try:  # every shape the record relies on, checked before anything is kept (a malformed body is retried)
                     payload = json.loads(text)
+                    _require(isinstance(payload, Mapping), "body_not_object")
                     choice = payload["choices"][0]
                     message = choice.get("message") or {}
+                    _require(isinstance(message, Mapping), "message_not_object")
                     finish = choice.get("finish_reason")
                     usage = payload.get("usage") or {}
+                    _require(isinstance(usage, Mapping), "usage_not_object")
+                    for field in ("content", "reasoning_content"):
+                        _require(message.get(field) is None or isinstance(message.get(field), str), f"{field}_not_text")
+                    cost = call_cost_usd(usage, when)
                 except (ValueError, KeyError, IndexError, TypeError, AttributeError):
                     failure = {"unparseable_body": len(text)}
                 else:
-                    cost = call_cost_usd(usage, when)
                     if finish in SERVICE_FINISH:
                         failure = {"finish_reason": finish, "usage": usage, "cost_usd": cost}
                     else:
@@ -537,10 +612,10 @@ class LlmCaller:
                 failure = {"http_status": status, "error": _error_text(text)}
             self.archive.append({"type": "service_error", "kind": kind, "tick": int(tick), "attempt": int(attempt), "utc": when.isoformat(),
                                  "latency_s": latency, "wait_s": delay, "cost_usd": float(failure.pop("cost_usd", 0.0)), **failure})
-            if waited >= SERVICE_RETRY_LIMIT_S:
-                raise ServiceUnavailable(f"service_unavailable:{kind}:{tick}:{attempt}:{int(waited)}s")
+            failing_since = started if failing_since is None else failing_since
+            if self._clock() - failing_since >= SERVICE_RETRY_LIMIT_S:  # wall time, request time included
+                raise ServiceUnavailable(f"service_unavailable:{kind}:{tick}:{attempt}:{int(self._clock() - failing_since)}s")
             self._sleep(delay)
-            waited += delay
             delay = min(delay * 2.0, BACKOFF_MAX_S)
 
 
@@ -585,6 +660,7 @@ class LlmOpScorer:
         self.caller = caller
         self.split = split
         self.pilot = bool(pilot)
+        self.frames_limit = int(frames) if pilot else None
         self.tick: int | None = None
         self.stats = {kind: {"frames": 0, "calls": 0, "skipped_without_rows": 0, "attempts": 0, "replayed_attempts": 0,
                              "invalid": {}, "fallbacks": 0, "fallback_ticks": [], "rows": 0,
@@ -595,6 +671,7 @@ class LlmOpScorer:
         self.tick = int(stage_a["tick"])
         stats = self.stats["association"]
         stats["frames"] += 1
+        _require(self.frames_limit is None or stats["frames"] <= self.frames_limit, "pilot_frames_exceeded")
         if not stage_a["rows"]:
             stats["skipped_without_rows"] += 1
             return {"association_logits": {}, "birth_logits": {}}
@@ -664,13 +741,12 @@ def make_caller(*, archive_path: Path, mode: str, run_root: Path | None, expecte
                 environ: Mapping[str, str] | None = None) -> LlmCaller:
     """The caller an entry builds: live with the key and the run's STOP file, or replay with neither."""
 
-    archive = CallArchive(Path(archive_path))
     if mode == "replay":
-        return LlmCaller(archive=archive, mode="replay", expected_model=expected_model)
+        return LlmCaller(archive=CallArchive(Path(archive_path), read_only=True), mode="replay", expected_model=expected_model)
     _require(run_root is not None, "live_caller_without_run_root")
     transport = HttpTransport(api_key=load_api_key(environ))
-    return LlmCaller(archive=archive, mode="live", transport=transport, expected_model=expected_model,
-                     stop_path=Path(run_root) / STOP_FILE)
+    return LlmCaller(archive=CallArchive(Path(archive_path)), mode="live", transport=transport, expected_model=expected_model,
+                     stop_path=Path(run_root) / STOP_FILE, budget_root=Path(run_root))
 
 
 def registered_model(run_root: Path) -> str | None:
@@ -695,32 +771,37 @@ def draw_order(episode_ids: Sequence[str]) -> list[str]:
 
 
 def project_cost(pilot: Mapping[str, Any], *, planned_frames: int, rows_per_frame: Mapping[str, float]) -> dict[str, Any]:
-    """Ruling 105-8: the pilot's tokens per table row, times the rows a full frame carries, times the planned frames.
+    """Ruling 105-8: the pilot's dollars per table row, times the rows a full frame carries, times the planned frames.
 
     The first 200 frames of an episode hold a small memory, so their per-frame cost understates a whole episode's; the
-    projection therefore prices rows, not frames: input and output tokens per association row (each candidate row and each
-    NEW row) and per existence row, measured in the pilot, applied to ``rows_per_frame`` (association rows assume all 8
-    recalled candidates, an upper bound, and existence rows the registered per-frame mean), at off-peak prices and again
-    with the expected share of peak hours.
+    projection therefore prices rows, not frames: off-peak dollars per association row (each candidate row and each NEW row)
+    and per existence row, measured in the pilot, times the larger of the registered rows per frame (association: the
+    fragments per frame x 9, every recalled candidate filled, an upper bound; existence: the S3-03 round-0 ELU-P mean) and the
+    pilot's own rows per frame (LLM-op's memory may hold more eligible entities than ELU-P's).  A call kind the pilot never
+    asked cannot be priced and is reported as such.  The totals come at off-peak prices, with the expected share of peak hours,
+    and with every call at the peak price (the worst case, which the cap is checked against).
     """
 
-    out: dict[str, Any] = {"planned_frames": int(planned_frames), "rows_per_frame": dict(rows_per_frame), "by_kind": {}}
+    out: dict[str, Any] = {"planned_frames": int(planned_frames), "registered_rows_per_frame": dict(rows_per_frame), "by_kind": {},
+                           "unpriced_kinds": []}
     per_frame = 0.0
     for kind, rows_key in (("association", "association_rows"), ("existence", "existence_rows")):
         stats = pilot[kind]
-        rows = int(stats["rows"])
-        tokens = stats["tokens"]
-        if rows == 0:
-            out["by_kind"][kind] = {"rows": 0, "usd_per_row": None}
+        rows, frames = int(stats["rows"]), int(stats["frames"])
+        if rows == 0 or frames == 0:
+            out["by_kind"][kind] = {"rows": rows, "usd_per_row": None}
+            out["unpriced_kinds"].append(kind)
             continue
-        usd_per_row = off_peak_cost_usd(tokens) / rows
-        frame_rows = float(rows_per_frame[rows_key])
-        out["by_kind"][kind] = {"rows": rows, "usd_per_row": usd_per_row, "rows_per_frame": frame_rows,
-                                "usd_per_frame": usd_per_row * frame_rows}
+        usd_per_row = off_peak_cost_usd(stats["tokens"]) / rows
+        pilot_rows = rows / frames
+        frame_rows = max(float(rows_per_frame[rows_key]), pilot_rows)
+        out["by_kind"][kind] = {"rows": rows, "usd_per_row": usd_per_row, "pilot_rows_per_frame": pilot_rows,
+                                "rows_per_frame": frame_rows, "usd_per_frame": usd_per_row * frame_rows}
         per_frame += usd_per_row * frame_rows
     out["usd_per_frame_off_peak"] = per_frame
     out["projected_usd_off_peak"] = per_frame * int(planned_frames)
     out["projected_usd_expected"] = out["projected_usd_off_peak"] * EXPECTED_PEAK_FACTOR
+    out["projected_usd_worst"] = out["projected_usd_off_peak"] * PEAK_MULTIPLIER
     out["expected_peak_factor"] = EXPECTED_PEAK_FACTOR
     return out
 
@@ -733,5 +814,5 @@ __all__ = [
     "ModelChanged", "PILOT_FRAMES", "PILOT_SPLIT", "PRICES_OFF_PEAK", "SAFETY_STOP_USD", "STAGE_ID", "STOP_FILE", "ServiceUnavailable",
     "Stopped", "TransportError", "authorized", "call_cost_usd", "draw_order", "expected_contract_values", "invalid_reason", "is_peak",
     "load_api_key", "load_contract", "make_caller", "off_peak_cost_usd", "project_cost", "registered_model", "request_body",
-    "request_sha256", "usage_tokens", "utc_now", "validate_contract",
+    "request_sha256", "run_spend_usd", "usage_tokens", "utc_now", "validate_contract", "write_stop",
 ]

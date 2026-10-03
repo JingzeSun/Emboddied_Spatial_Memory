@@ -2,9 +2,12 @@
 
 Pinned here: the node audit runs --arm LLM-op only as a metrics-only run of record on validation with one archive per
 episode, refuses it while the contract bit is closed or the pilot has not registered the model, and a replay from the
-archive alone reproduces the live audit with no call; the driver's plan refuses a sealed test root, draws fifteen episodes
-by the salted order and lists the paths to copy (the pilot's private plane excluded); its run loop starts every episode once,
-starts none once the ledger reaches the cap, and writes STOP at the safety stop.
+archive alone reproduces the live audit with no call; the driver's plan refuses a sealed test root, S3-03 inputs with
+problems and provisional ones without the flag, draws fifteen episodes by the salted order and lists the paths to copy (the
+pilot's private plane excluded); the pilot report checks the worst case plus the pilot's spend against the cap and names
+unpriced kinds and format problems; the run loop starts every episode once, starts no new one at the cap but resumes a started
+one, writes STOP at the safety stop, on a changed model or a fatal answer and when the driver itself ends abnormally; stop
+writes STOP; export waits for a passed replay check.
 """
 
 from __future__ import annotations
@@ -121,26 +124,35 @@ class DriverPlanTests(TempDir):
         for front in llm.FRONTS:
             head = self.tmp / f"reid-{front}.json"
             head.write_text("{}", encoding="utf-8")
-        inputs = {"run_root": str(s3), "code_commit": "s3commit", "provisional": True, "roots": roots, "episodes": episodes,
+        inputs = {"run_root": str(s3), "code_commit": "s3commit", "provisional": True, "problems": [], "roots": roots, "episodes": episodes,
                   "reid": {front: {"file": str(self.tmp / f"reid-{front}.json"), "file_sha256": "f", "payload_sha256": "p"} for front in llm.FRONTS}}
         path = self.tmp / "inputs.json"
         path.write_text(json.dumps(inputs), encoding="utf-8")
         return path
 
-    def test_the_plan_refuses_a_sealed_test_root(self) -> None:
+    def plan_args(self, run_root: Path, inputs: Path, *, allow_provisional: bool = True) -> argparse.Namespace:
+        return argparse.Namespace(run_root=str(run_root), inputs=str(inputs), allow_provisional=allow_provisional)
+
+    def test_the_plan_refuses_a_sealed_test_root_problems_and_unflagged_provisional_inputs(self) -> None:
         inputs = self.build()
-        (self.tmp / "raw" / "validation" / "TEST_SEALED.json").write_text("{}", encoding="utf-8")
         with mock.patch.object(driver, "git", lambda *a: "c0ffee"):
-            self.assertEqual(driver.plan(argparse.Namespace(run_root=str(self.tmp / "run"), inputs=str(inputs))), 2)
+            self.assertEqual(driver.plan(self.plan_args(self.tmp / "run", inputs, allow_provisional=False)), 2)
+            data = json.loads(inputs.read_text(encoding="utf-8"))
+            inputs.write_text(json.dumps({**data, "problems": ["provisional_cache_incomplete:sam2:validation:x"]}), encoding="utf-8")
+            self.assertEqual(driver.plan(self.plan_args(self.tmp / "run", inputs)), 2)
+            inputs.write_text(json.dumps(data), encoding="utf-8")
+            (self.tmp / "raw" / "validation" / "TEST_SEALED.json").write_text("{}", encoding="utf-8")
+            self.assertEqual(driver.plan(self.plan_args(self.tmp / "run", inputs)), 2)
         self.assertFalse((self.tmp / "run" / "plan.json").exists())
 
     def test_the_plan_draws_fifteen_by_the_salted_order_and_lists_what_to_copy(self) -> None:
         inputs = self.build()
         run_root = self.tmp / "run"
         with mock.patch.object(driver, "git", lambda *a: "c0ffee"):
-            self.assertEqual(driver.plan(argparse.Namespace(run_root=str(run_root), inputs=str(inputs))), 0)
-            self.assertEqual(driver.plan(argparse.Namespace(run_root=str(run_root), inputs=str(inputs))), 2)  # written once
+            self.assertEqual(driver.plan(self.plan_args(run_root, inputs)), 0)
+            self.assertEqual(driver.plan(self.plan_args(run_root, inputs)), 2)  # written once
         plan = json.loads((run_root / "plan.json").read_text(encoding="utf-8"))
+        self.assertTrue(plan["inputs"]["provisional"] and plan["inputs"]["allow_provisional"])
         everyone = [f"procthor10k-0.1.2-train-{i:05d}" for i in range(20)]
         order = sorted(everyone, key=lambda e: hashlib.sha256((llm.DRAW_SALT + e).encode()).hexdigest())
         self.assertEqual([row["episode_id"] for row in plan["draw"]["episodes"]], order[:15])
@@ -172,6 +184,36 @@ class DriverPlanTests(TempDir):
         self.assertEqual(totals["association"]["fallback_rate"], 0.03)
         self.assertTrue(totals["format_unreliable"])
 
+    def test_the_pilot_report_checks_the_worst_case_plus_the_pilot_spend_against_the_cap(self) -> None:
+        run_root = self.tmp / "run"
+        driver.write_json(run_root / "plan.json", {"planned_frames": {"instance": 10000, "sam2": 10000},
+                                                   "rows_per_frame": {f: {"association_rows": 90.0, "existence_rows": 36.0} for f in llm.FRONTS}})
+
+        def pilot(output_tokens: int, fallbacks: int = 0, existence_rows: int = 3600) -> dict[str, Any]:
+            kind = {"calls": 200, "attempts": 200, "invalid": {}, "fallbacks": fallbacks, "fallback_rate": fallbacks / 200,
+                    "latency_s": {"p50": 1.0, "p90": 2.0, "max": 3.0}, "skipped_without_rows": 0, "frames": 200}
+            return {"frames": 200, "wall_seconds": 10.0, "llm_op": {
+                "models_seen": [SERVED], "cost_usd": 0.5,
+                "association": {**kind, "rows": 18000, "tokens": {"input_cache_hit": 0, "input_cache_miss": 1_000_000, "output": 0, "reasoning": 0}},
+                "existence": {**kind, "rows": existence_rows, "tokens": {"input_cache_hit": 0, "input_cache_miss": 0, "output": output_tokens, "reasoning": 0}}}}
+
+        driver.write_json(run_root / "pilot" / "archive" / "instance.jsonl.ledger.json", {"cost_usd": 1.0})
+        with mock.patch.object(driver, "git", lambda *a: "c0ffee"):
+            for front in llm.FRONTS:
+                driver.write_json(run_root / "pilot" / f"{front}.json", pilot(100_000))
+            report = driver.pilot_report(run_root, driver.Plan(run_root))
+            # per frame off peak: 0.15 / 18000 * 90 + 0.6 * 0.1 / 3600 * 36 = 0.00075 + 0.0006; x 10000 frames x 2 fronts x 2 (peak)
+            self.assertAlmostEqual(report["projected_usd_worst_total"], (0.00075 + 0.0006) * 10000 * 2 * 2)
+            self.assertAlmostEqual(report["projected_total_with_pilot_usd"], report["projected_usd_worst_total"] + 1.0)
+            self.assertTrue(report["within_cap"] and report["format_ok"] and report["one_model"])
+            for front in llm.FRONTS:
+                driver.write_json(run_root / "pilot" / f"{front}.json", pilot(3_000_000, fallbacks=5, existence_rows=0))
+            report = driver.pilot_report(run_root, driver.Plan(run_root))
+            self.assertFalse(report["within_cap"])
+            self.assertEqual(report["unpriced"], ["instance:existence", "sam2:existence"])
+            self.assertEqual(report["format_problems"], ["instance:association:0.025", "instance:existence:0.025",
+                                                         "sam2:association:0.025", "sam2:existence:0.025"])
+
 class DriverRunLoopTests(TempDir):
     """The run loop with stand-in processes: every episode dispatched under the cap, none after it, STOP at the safety stop."""
 
@@ -183,8 +225,11 @@ class DriverRunLoopTests(TempDir):
                  "cache": {front: {"validation": str(self.tmp / front)} for front in llm.FRONTS}}
         driver.write_json(self.run_root / "plan.json", {"draw": {"episodes": episodes}, "roots": roots,
                                                         "reid": {front: {"file": "h"} for front in llm.FRONTS}, "pilot": {"episode_id": "p"}})
-        driver.write_json(self.run_root / "pilot" / "report.json", {"within_cap": True, "projected_usd_expected_total": 50.0})
+        driver.write_json(self.run_root / "pilot" / "report.json", {
+            "within_cap": True, "format_ok": True, "one_model": True, "projected_total_with_pilot_usd": 50.0, "unpriced": [],
+            "format_problems": [], "models_seen": [SERVED], "code_commit": "c0ffee", "plan_sha256": driver.file_sha256(self.run_root / "plan.json")})
         driver.write_json(self.run_root / llm.MODEL_FILE, {"model": SERVED})
+        self.exit_codes: dict[str, int] = {}
         self.started: list[list[str]] = []
         self.spend_per_job = 0.0
 
@@ -198,16 +243,18 @@ class DriverRunLoopTests(TempDir):
             pid = 1000 + len(test.started)
 
             def poll(self) -> int:
-                driver.write_json(driver.audit_path(test.run_root, front, episode),
-                                  {"episode_id": episode, "arm": llm.ARM, "report": {}, "llm_op": {}, "metrics_only": True})
+                code = test.exit_codes.get(f"{front}:{episode}", 0)
+                if code == 0:
+                    driver.write_json(driver.audit_path(test.run_root, front, episode),
+                                      {"episode_id": episode, "arm": llm.ARM, "report": {}, "llm_op": {}, "metrics_only": True})
                 ledger = driver.archive_path(test.run_root, front, episode).with_name(f"{episode}.jsonl.ledger.json")
                 driver.write_json(ledger, {"cost_usd": test.spend_per_job, "last_tick": 1})
-                return 0
+                return code
 
         return Process()
 
     def run_loop(self, workers: int = 2) -> int:
-        args = argparse.Namespace(run_root=str(self.run_root), workers=workers, accept_projection=False, resume_after_stop=False,
+        args = argparse.Namespace(run_root=str(self.run_root), workers=workers, accept_pilot=False, resume_after_stop=False,
                                   retry_failed=False)
         with mock.patch.object(driver, "require_check", lambda root: {"checked_utc": "t"}), \
                 mock.patch.object(driver, "resources", lambda: {"cpu_quota": 16, "memory_bytes": 64 * 2 ** 30}), \
@@ -234,12 +281,52 @@ class DriverRunLoopTests(TempDir):
         self.assertEqual(self.run_loop(workers=2), driver.EXIT_DECISION)  # a rerun starts nothing either
         self.assertEqual(len(self.started), 2)
 
+    def test_a_started_episode_resumes_after_the_cap_but_a_new_one_does_not_start(self) -> None:
+        self.spend_per_job = 80.0
+        self.assertEqual(self.run_loop(workers=2), driver.EXIT_DECISION)  # two done, $160
+        interrupted = driver.archive_path(self.run_root, "instance", "ep-0")  # an episode that made calls before an interruption
+        interrupted.parent.mkdir(parents=True, exist_ok=True)
+        interrupted.write_text("", encoding="utf-8")
+        self.assertEqual(self.run_loop(workers=2), driver.EXIT_DECISION)
+        resumed = [c[c.index("--episode-id") + 1] + ":" + c[c.index("--mask-source") + 1] for c in self.started[2:]]
+        self.assertEqual(resumed, ["ep-0:simulator_instance_masks"])
+
     def test_the_safety_stop_writes_stop_and_a_rerun_waits_for_the_user(self) -> None:
         self.spend_per_job = 120.0  # $240, over the $200 safety stop
         self.assertEqual(self.run_loop(workers=2), driver.EXIT_DECISION)
         self.assertIn("safety_stop_usd", (self.run_root / llm.STOP_FILE).read_text(encoding="utf-8"))
         self.assertEqual(self.run_loop(workers=2), driver.EXIT_DECISION)  # refused while STOP stands
         self.assertEqual(len(self.started), 2)
+
+    def test_a_changed_model_or_a_fatal_answer_writes_stop(self) -> None:
+        for code, word in ((llm.EXIT_MODEL_CHANGED, "model_changed"), (llm.EXIT_API_FATAL, "api_fatal")):
+            with self.subTest(code=code):
+                stop = self.run_root / llm.STOP_FILE
+                if stop.exists():
+                    stop.unlink()
+                self.exit_codes = {"instance:ep-2": code}
+                self.started.clear()
+                for path in (self.run_root / "audit").rglob("node_audit.json"):
+                    path.unlink()
+                self.assertEqual(self.run_loop(workers=1), driver.EXIT_DECISION)
+                self.assertIn(word, stop.read_text(encoding="utf-8"))
+                self.assertEqual(len(self.started), 1)  # nothing starts after it
+
+    def test_the_driver_ending_abnormally_writes_stop_for_its_workers(self) -> None:
+        def broken_popen(command: list[str], **kwargs: Any) -> Any:
+            raise RuntimeError("cannot fork")
+
+        self.fake_popen = broken_popen
+        with self.assertRaises(RuntimeError):
+            self.run_loop()
+        self.assertIn("driver_ended:RuntimeError", (self.run_root / llm.STOP_FILE).read_text(encoding="utf-8"))
+
+    def test_stop_writes_stop_and_export_waits_for_a_passed_replay_check(self) -> None:
+        self.assertEqual(self.run_loop(workers=6), 0)
+        self.assertEqual(driver.export(argparse.Namespace(run_root=str(self.run_root), out=str(self.tmp / "out.json"))), driver.EXIT_DECISION)
+        self.assertFalse((self.tmp / "out.json").exists())
+        self.assertEqual(driver.stop_run(argparse.Namespace(run_root=str(self.run_root))), 0)
+        self.assertIn("stopped by the user", (self.run_root / llm.STOP_FILE).read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":

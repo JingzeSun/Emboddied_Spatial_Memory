@@ -11,7 +11,7 @@
     "validation_run": false
   },
   "activation_policy": null,
-  "activation_rule": "both bits stay false until the user has reviewed the LLM-op code; the commit that opens them names the ruling and the review in activation_policy (the S2 pattern); the pilot entry refuses while pilot_run is false, the validation entry while validation_run is false",
+  "activation_rule": "both bits stay false until the user has reviewed the LLM-op code; the commit that opens them names the ruling and the review in activation_policy (the S2 pattern) and re-pins the reviewed contract digest in tests/test_vsmt_lean_llm_op.py; the pilot entry refuses while pilot_run is false, the validation entry while validation_run is false",
   "fronts": {
     "instance": "simulator_instance_masks",
     "sam2": "sam2"
@@ -47,7 +47,7 @@
     "plain_language_zh": "105-3：用服务商默认（只显式开 thinking，effort、输出上限与采样参数都不传、取默认），只跑一遍。托管 API 的输出本来就不能逐字节复现，所以靠存档回放复现。"
   },
   "input": {
-    "instruction_sha256": "055453033eb171bd8e56cd4b6149a80840ce11b27578e6baa7e423a32a8e3a4f",
+    "instruction_sha256": "88fc983279364bd877c80d2236c0b9020a113775fad44f62eb6c513bee674134",
     "instruction_source": "src/vsmt/lean_controls.py ASSOCIATION_INSTRUCTION and EXISTENCE_INSTRUCTION, sent as the system message of each call",
     "rendering_rule": "csv tables with one header row each: CANDIDATES (fragment, candidate, the 14 association features) and NEW (fragment, the 4 birth features) for the association call, ENTITIES (entity, the 17 existence features) for the existence call; rows in sealed order, every feature in the frozen order, 4 decimals, anonymous ids only",
     "text_decimals": 4,
@@ -108,8 +108,9 @@
       "format compliance",
       "returned model name"
     ],
-    "projection_rule": "lean_llm_op.project_cost: off-peak dollars per association row and per existence row measured in the pilot, times the rows of a full frame (fragments per frame x 9 for association, an upper bound with all 8 candidates; the mean existence candidates per frame), times the planned frames, times the expected peak factor",
+    "projection_rule": "lean_llm_op.project_cost: off-peak dollars per association row and per existence row measured in the pilot, times the larger of the registered rows of a full frame (fragments per frame x 9 for association, an upper bound with all 8 candidates; the S3-03 round-0 ELU-P mean existence candidates per frame) and the pilot's own rows per frame, times the planned frames, with every call at the peak price (the worst case), plus the pilot's own spend",
     "stop_when_projection_exceeds": 150.0,
+    "other_decision_points": "a call kind the pilot never asked (cannot be priced), a fallback rate above 0.02 in either kind, or two returned model names; the run starts only after the user accepts the decision point (--accept-pilot, recorded)",
     "plain_language_zh": "105-8：先在 train 的 1 个 episode 上试点（每套前端前 200 帧），只看 token、耗时、格式合格率和返回的模型名，不读私有数据、不算任何指标；按每行的价钱乘满帧的行数推算，超过 150 美元就停下汇报。"
   },
   "cost": {
@@ -139,13 +140,13 @@
     "prices_source": "https://api-docs.deepseek.com/quick_start/pricing, read 2026-10-04 (deepseek-flash)",
     "holidays": "DeepSeek charges the off-peak price on Chinese public holidays; the ledger does not model them, so it can only overstate",
     "cap_usd": 150.0,
-    "cap_rule": "once the run's ledger reaches the cap no new episode starts; running episodes finish",
+    "cap_rule": "once the run's ledger reaches the cap no new episode starts; running episodes finish, and an episode that has already made calls may resume after an interruption",
     "safety_stop_usd": 200.0,
-    "safety_rule": "once the ledger reaches the safety stop the driver writes STOP and every process stops before its next call; the run resumes from the archive only after the user decides",
+    "safety_rule": "every live call first sums the run's ledgers: at the safety stop it writes STOP (so it holds without the driver), and every process stops before its next call; the driver also writes STOP when it is terminated or fails, and the user can write it with the stop subcommand; past the safety stop the run can resume only if a ruling raises it",
     "plain_language_zh": "价格按 2026-10-04 官网（非峰时：输入命中缓存 0.003、未命中 0.15、输出 0.6 美元／百万 token；工作日 UTC 01–04 点与 06–10 点翻倍）；节假日的优惠不计，所以账本只会高估。累计 150 美元不再开新 episode，200 美元全部停。"
   },
   "host": {
-    "rule": "a separate rented host (105-11 as the user decided): no GPU needed; the plan is written on the S3-02 host from the S3-03 check's lists, the inputs of the drawn and the pilot episodes are copied with ops/vsmt/llm_op_transfer.sh, and the run there re-verifies every seal before the pilot",
+    "rule": "a separate rented host (105-11 as the user decided): no GPU needed; the plan is written on the S3-02 host from the S3-03 check's lists (non-provisional unless recorded otherwise), the inputs of the drawn and the pilot episodes are copied with ops/vsmt/llm_op.sh transfer, and the run there re-verifies every seal before the pilot",
     "plain_language_zh": "105-11（用户改定）：另租一台机器跑，不需要 GPU；在 S3-02 那台机器上出计划和拷贝清单，只拷抽中的 episode 与试点 episode 的输入，新机器上先逐个重算封印再试点。"
   },
   "secrets": {

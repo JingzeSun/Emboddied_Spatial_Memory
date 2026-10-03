@@ -11,19 +11,21 @@ DeepSeek 密钥（只在新机器的文件里）；输出是每套前端 15 条 
          超过 150 美元就停下汇报；登记返回的模型名；
   run    30 个作业（2 套前端 × 15 条）并行跑 node audit 的 LLM-op 正式审计；累计 150 美元不再开新作业，200 美元写 STOP
          全部停下；中断的作业重跑时从存档回放、不重复花钱；
-  status 进度、费用、回退与模型名；
-  export 两套前端的逐 episode 指标与合并、调用统计（回退率超过 2% 标“格式不可靠”）、费用、模型名，写进 results/；
-  replay-check  按存档只回放一条 episode，核对轨迹摘要与指标和正式运行逐字节相同（复现性）。
+  status 进度、费用、回退与模型名；stop 写 STOP（所有进程在下一次调用前停下）；
+  replay-check  每套前端按存档只回放最短的一条 episode，核对轨迹摘要与指标和正式运行逐字节相同（复现性），记进
+         replay/check.json——必须在 export 之前跑（export 往 results/ 里写文件，checkout 不再干净，回放的审计会拒绝）；
+  export 两套前端的逐 episode 指标与合并、调用统计（回退率超过 2% 标“格式不可靠”）、费用、模型名与回放核对，写进 results/。
 它不训练、不选参、不读 test；没有用户审过代码后打开的合同位，pilot 和 run 一律拒绝。
 
 Usage (normally through ops/vsmt/llm_op.sh):
-  python ops/vsmt/llm_op.py plan   --run-root R --inputs /root/autodl-tmp/vsmt_private/s3-03-run/inputs.json
+  python ops/vsmt/llm_op.py plan   --run-root R --inputs /root/autodl-tmp/vsmt_private/s3-03-run/inputs.json [--allow-provisional]
   python ops/vsmt/llm_op.py check  --run-root R [--workers N]
   python ops/vsmt/llm_op.py pilot  --run-root R
-  python ops/vsmt/llm_op.py run    --run-root R [--workers N] [--accept-projection] [--resume-after-stop]
+  python ops/vsmt/llm_op.py run    --run-root R [--workers N] [--accept-pilot] [--resume-after-stop]
   python ops/vsmt/llm_op.py status --run-root R
+  python ops/vsmt/llm_op.py stop   --run-root R
+  python ops/vsmt/llm_op.py replay-check --run-root R [--front instance --episode <episode id>]
   python ops/vsmt/llm_op.py export --run-root R --out results/vsmt_lean_llm_op_<commit>.json
-  python ops/vsmt/llm_op.py replay-check --run-root R --front instance --episode <episode id>
 """
 
 from __future__ import annotations
@@ -31,6 +33,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import signal
 import subprocess
 import sys
 import time
@@ -179,6 +182,13 @@ def plan(args: argparse.Namespace) -> int:
     if refusal:
         print(f"[llm-op] refused: {refusal}", file=sys.stderr)
         return 2
+    if inputs.get("problems"):  # the S3-03 check writes its findings even when it stops on them
+        print(f"[llm-op] refused: the S3-03 check recorded problems: {inputs['problems'][:5]}", file=sys.stderr)
+        return 2
+    if inputs.get("provisional") and not args.allow_provisional:
+        print("[llm-op] refused: the S3-03 inputs are still provisional (S3-02 has not exported); wait for the full check, or "
+              "--allow-provisional (recorded in the plan)", file=sys.stderr)
+        return 2
     validation = usable_lists(inputs, "validation")
     train = usable_lists(inputs, "train")
     both = sorted(set(validation["instance"]) & set(validation["sam2"]))
@@ -214,7 +224,7 @@ def plan(args: argparse.Namespace) -> int:
         "stage": llm.STAGE_ID, "driver": STAGE, "ruling": llm.RULING, "written_utc": utc(), "code_commit": git("rev-parse", "HEAD"),
         "contract_sha256": file_sha256(llm.CONTRACT_PATH),
         "inputs": {"file": str(inputs_path), "sha256": file_sha256(inputs_path), "provisional": bool(inputs.get("provisional")),
-                   "s3_03_code_commit": inputs.get("code_commit")},
+                   "allow_provisional": bool(args.allow_provisional), "s3_03_code_commit": inputs.get("code_commit")},
         "roots": {"raw": dict(roots["raw"]), "geometry": dict(roots["geometry"]),
                   "cache": {front: dict(roots["cache"][front]) for front in llm.FRONTS}},
         "reid": reid,
@@ -458,27 +468,45 @@ def pilot_one(args: argparse.Namespace) -> int:
 
 
 def pilot_report(run_root: Path, plan_: Plan) -> dict[str, Any]:
-    """Both front ends' pilots: tokens, latency, format compliance, the returned model and the projection against the cap."""
+    """Both front ends' pilots: tokens, latency, format compliance, the returned model and the projection against the cap.
+
+    The cap is checked against the worst case -- every planned call at the peak price -- plus what the pilot itself spent: with
+    30 episodes running at once most of the money goes out within a day, so the peak share is not the week's average.  A
+    call kind the pilot could not price, a fallback rate above 2% or two model names are decision points too.
+    """
 
     fronts: dict[str, Any] = {}
     models: set[str] = set()
-    total = 0.0
+    worst = expected = 0.0
+    unpriced: list[str] = []
+    format_problems: list[str] = []
     for front in llm.FRONTS:
         payload = load_json(run_root / "pilot" / f"{front}.json")
         stats = payload["llm_op"]
         models.update(stats["models_seen"])
         projection = llm.project_cost(stats, planned_frames=plan_.data["planned_frames"][front],
                                       rows_per_frame=plan_.data["rows_per_frame"][front])
-        total += projection["projected_usd_expected"]
+        worst += projection["projected_usd_worst"]
+        expected += projection["projected_usd_expected"]
+        unpriced += [f"{front}:{kind}" for kind in projection["unpriced_kinds"]]
+        for kind in ("association", "existence"):
+            rate = stats[kind]["fallback_rate"]
+            if rate is not None and rate > llm.FORMAT_UNRELIABLE_FALLBACK_RATE:
+                format_problems.append(f"{front}:{kind}:{rate:.3f}")
         fronts[front] = {"frames": payload["frames"], "cost_usd": stats["cost_usd"], "wall_seconds": payload["wall_seconds"],
                          "association": {k: stats["association"][k] for k in ("calls", "attempts", "invalid", "fallbacks", "fallback_rate",
                                                                               "tokens", "latency_s", "skipped_without_rows")},
                          "existence": {k: stats["existence"][k] for k in ("calls", "attempts", "invalid", "fallbacks", "fallback_rate",
                                                                           "tokens", "latency_s", "skipped_without_rows")},
                          "projection": projection, "models_seen": stats["models_seen"]}
-    return {"stage": llm.STAGE_ID, "written_utc": utc(), "fronts": fronts, "models_seen": sorted(models),
-            "model": next(iter(models)) if len(models) == 1 else None, "projected_usd_expected_total": total,
-            "cap_usd": llm.CAP_USD, "within_cap": total <= llm.CAP_USD, "one_model": len(models) == 1}
+    spent = llm.run_spend_usd(run_root)["pilot_usd"]
+    total = worst + spent
+    return {"stage": llm.STAGE_ID, "written_utc": utc(), "code_commit": git("rev-parse", "HEAD"),
+            "plan_sha256": file_sha256(run_root / "plan.json"), "fronts": fronts, "models_seen": sorted(models),
+            "model": next(iter(models)) if len(models) == 1 else None, "one_model": len(models) == 1,
+            "projected_usd_expected_total": expected, "projected_usd_worst_total": worst, "pilot_spend_usd": spent,
+            "projected_total_with_pilot_usd": total, "unpriced": unpriced, "format_problems": format_problems,
+            "format_ok": not format_problems, "cap_usd": llm.CAP_USD, "within_cap": total <= llm.CAP_USD and not unpriced}
 
 
 def pilot(args: argparse.Namespace) -> int:
@@ -518,10 +546,12 @@ def pilot(args: argparse.Namespace) -> int:
         print(f"[llm-op] pilot {front}: {row['frames']} frames, ${row['cost_usd']:.4f}, association invalid {row['association']['invalid']} "
               f"fallbacks {row['association']['fallbacks']}, existence invalid {row['existence']['invalid']} fallbacks "
               f"{row['existence']['fallbacks']}, latency p50 {row['association']['latency_s']['p50']} / {row['existence']['latency_s']['p50']} s, "
-              f"projected ${row['projection']['projected_usd_expected']:.2f}")
-    print(f"[llm-op] pilot: models {report['models_seen']}; projected ${report['projected_usd_expected_total']:.2f} "
-          f"against the ${llm.CAP_USD:.0f} cap -> {'within' if report['within_cap'] else 'OVER: stop and report (ruling 105-8)'}")
-    return 0 if report["within_cap"] and report["one_model"] else EXIT_DECISION
+              f"projected ${row['projection']['projected_usd_off_peak']:.2f} off peak, ${row['projection']['projected_usd_worst']:.2f} all at peak")
+    print(f"[llm-op] pilot: models {report['models_seen']}; projected ${report['projected_usd_expected_total']:.2f} expected, "
+          f"${report['projected_total_with_pilot_usd']:.2f} at worst with the pilot's own spend, against the ${llm.CAP_USD:.0f} cap -> "
+          f"{'within' if report['within_cap'] else 'OVER or unpriced: stop and report (ruling 105-8)'}; unpriced {report['unpriced']}; "
+          f"format problems {report['format_problems']}")
+    return 0 if report["within_cap"] and report["one_model"] and report["format_ok"] else EXIT_DECISION
 
 
 # --------------------------------------------------------------------------
@@ -553,11 +583,9 @@ def job_command(plan_: Plan, front: str, episode: str, *, mode: str, output_root
 
 
 def ledger_cost(run_root: Path) -> dict[str, Any]:
-    """The run's spend so far from the archives' ledgers (main run and pilot), cheap to read every poll."""
+    """The run's spend so far from the archives' ledgers (main run and pilot), the same sum every worker checks before a call."""
 
-    main = sum(float(load_json(path).get("cost_usd") or 0.0) for path in sorted((run_root / "archive").glob("*/*.jsonl.ledger.json")))
-    pilot_cost = sum(float(load_json(path).get("cost_usd") or 0.0) for path in sorted((run_root / "pilot" / "archive").glob("*.jsonl.ledger.json")))
-    return {"main_usd": round(main, 6), "pilot_usd": round(pilot_cost, 6), "total_usd": round(main + pilot_cost, 6)}
+    return llm.run_spend_usd(run_root)
 
 
 def audit_complete(path: Path, episode: str) -> bool:
@@ -572,9 +600,7 @@ def audit_complete(path: Path, episode: str) -> bool:
 
 
 def write_stop(run_root: Path, reason: str) -> None:
-    path = run_root / llm.STOP_FILE
-    if not path.exists():
-        path.write_text(f"{reason} at {utc()}\n", encoding="utf-8")
+    llm.write_stop(run_root, reason)
 
 
 def classify(code: int) -> str:
@@ -604,9 +630,15 @@ def run(args: argparse.Namespace) -> int:
         print("[llm-op] refused: no pilot report; run the pilot first (ruling 105-8)", file=sys.stderr)
         return 2
     report = load_json(report_path)
-    if not report.get("within_cap") and not args.accept_projection:
-        print(f"[llm-op] refused: the pilot projects ${report['projected_usd_expected_total']:.2f} over the ${llm.CAP_USD:.0f} cap; "
-              "the user decides (then --accept-projection)", file=sys.stderr)
+    if report.get("plan_sha256") != file_sha256(run_root / "plan.json") or report.get("code_commit") != git("rev-parse", "HEAD"):
+        print("[llm-op] refused: the pilot report belongs to another plan or commit; run the pilot again (its archive replays, "
+              "nothing is paid twice)", file=sys.stderr)
+        return 2
+    decision = not (report.get("within_cap") and report.get("format_ok") and report.get("one_model"))
+    if decision and not args.accept_pilot:
+        print(f"[llm-op] refused: the pilot ended at a decision point (worst-case projection ${report['projected_total_with_pilot_usd']:.2f} "
+              f"against ${llm.CAP_USD:.0f}, unpriced {report['unpriced']}, format problems {report['format_problems']}, models "
+              f"{report['models_seen']}); the user decides (then --accept-pilot)", file=sys.stderr)
         return EXIT_DECISION
     model = llm.registered_model(run_root)
     if model is None:
@@ -623,8 +655,9 @@ def run(args: argparse.Namespace) -> int:
         kept = stop.with_name(f"STOP.{len([p for p in run_root.glob('STOP.*')]) + 1}")
         stop.replace(kept)
         state["events"].append({"utc": utc(), "event": "resumed_after_stop", "stop_kept_as": kept.name})
-    if args.accept_projection and not report.get("within_cap"):
-        state["events"].append({"utc": utc(), "event": "projection_accepted", "projected_usd": report["projected_usd_expected_total"]})
+    if args.accept_pilot and decision:
+        state["events"].append({"utc": utc(), "event": "pilot_decision_accepted", "projected_usd": report["projected_total_with_pilot_usd"],
+                                "unpriced": report["unpriced"], "format_problems": report["format_problems"]})
     info = resources()
     workers = choose_workers(info, len(plan_.episodes) * len(llm.FRONTS), args.workers)
     jobs = sorted(((front, episode) for episode in plan_.episodes for front in llm.FRONTS),
@@ -642,6 +675,34 @@ def run(args: argparse.Namespace) -> int:
     logs.mkdir(parents=True, exist_ok=True)
     state.update({"stage": llm.STAGE_ID, "driver": STAGE, "code_commit": git("rev-parse", "HEAD"), "model": model,
                   "workers": workers, "resources": info, "check_utc": checked["checked_utc"]})
+
+    def started(job: tuple[str, str]) -> bool:
+        """An episode that has made calls (or was started) is not new: the cap does not hold it back, only a STOP does."""
+
+        return archive_path(run_root, *job).exists() or int(state["jobs"].get(job_id(*job), {}).get("starts") or 0) > 0
+
+    def terminate(signum: int, frame: Any) -> None:
+        raise SystemExit(128 + int(signum))
+
+    handlers = {sig: signal.signal(sig, terminate) for sig in (signal.SIGTERM, signal.SIGINT)}
+    try:
+        return _run_loop(run_root, plan_, state, state_path, jobs, pending, running, logs, workers, info, stop, started)
+    except BaseException as exc:  # the driver going away must not leave the workers unattended
+        llm.write_stop(run_root, f"driver_ended:{type(exc).__name__}; every worker stops before its next call")
+        state.setdefault("events", []).append({"utc": utc(), "event": "driver_ended", "reason": type(exc).__name__})
+        try:
+            write_json(state_path, state)
+        except OSError:
+            pass
+        raise
+    finally:
+        for sig, handler in handlers.items():
+            signal.signal(sig, handler)
+
+
+def _run_loop(run_root: Path, plan_: Plan, state: dict[str, Any], state_path: Path, jobs: list[tuple[str, str]],
+              pending: list[tuple[str, str]], running: dict[str, Any], logs: Path, workers: Mapping[str, Any],
+              info: Mapping[str, Any], stop: Path, started: Any) -> int:
     halt = False
     while True:
         for key in list(running):
@@ -664,29 +725,47 @@ def run(args: argparse.Namespace) -> int:
         if cost["total_usd"] >= llm.SAFETY_STOP_USD and not stop.exists():
             write_stop(run_root, f"safety_stop_usd:{llm.SAFETY_STOP_USD} reached (ledger ${cost['total_usd']:.2f})")
             state["events"].append({"utc": utc(), "event": "safety_stop", "ledger_usd": cost["total_usd"]})
-        can_start = not halt and not stop.exists() and cost["total_usd"] < llm.CAP_USD
-        # the memory guard waits only while this run's own processes hold memory (the S3-03 pool's rule)
-        while can_start and pending and len(running) < workers["actual"] and (not running or memory_ok(info)):
-            front, episode = pending.pop(0)
+        can_dispatch = not halt and not stop.exists()
+        # the memory guard waits only while this run's own processes hold memory (the S3-03 pool's rule); at the cap no new
+        # episode starts, but one that has already made calls resumes (ruling 105-8: running episodes finish)
+        while can_dispatch and len(running) < workers["actual"] and (not running or memory_ok(info)):
+            choice = next((job for job in pending if cost["total_usd"] < llm.CAP_USD or started(job)), None)
+            if choice is None:
+                break
+            pending.remove(choice)
+            front, episode = choice
             key = job_id(front, episode)
             handle = open(logs / f"{front}-{episode}.log", "a", encoding="utf-8")
             handle.write(f"\n=== start {utc()} ===\n")
             handle.flush()
             command = job_command(plan_, front, episode, mode="live", output_root=run_root / "audit" / front)
-            process = subprocess.Popen(command, stdout=handle, stderr=subprocess.STDOUT, cwd=str(ROOT))
+            try:
+                process = subprocess.Popen(command, stdout=handle, stderr=subprocess.STDOUT, cwd=str(ROOT))
+            except BaseException:
+                handle.close()
+                raise
             running[key] = (process, handle, (front, episode))
             row = state["jobs"].setdefault(key, {})
             row.update({"status": "running", "started_utc": utc(), "starts": int(row.get("starts") or 0) + 1, "pid": process.pid})
         state.update({"updated_utc": utc(), "cost": cost, "running": sorted(running), "pending": [job_id(*j) for j in pending],
                       "stop": stop.read_text(encoding="utf-8").strip() if stop.exists() else None, "halted_on_failure": halt})
         write_json(state_path, state)
-        if not running and (not pending or not can_start or halt):
+        startable = can_dispatch and any(cost["total_usd"] < llm.CAP_USD or started(job) for job in pending)
+        if not running and not startable:
             break
         time.sleep(POLL_SECONDS)
     done = sum(1 for j in jobs if audit_complete(audit_path(run_root, *j), j[1]))
     print(f"[llm-op] run: {done}/{len(jobs)} episodes done, ledger ${state['cost']['total_usd']:.2f}"
           f"{'; STOP: ' + state['stop'] if state['stop'] else ''}{'; halted on a failure' if halt else ''}")
     return 0 if done == len(jobs) else (1 if halt else EXIT_DECISION)
+
+
+def stop_run(args: argparse.Namespace) -> int:
+    """The user's stop: STOP in the run root; every worker stops before its next call and a later run waits for the user."""
+
+    wrote = llm.write_stop(Path(args.run_root), "stopped by the user (llm_op.sh stop)")
+    print(f"[llm-op] {'STOP written' if wrote else 'STOP was already there'}: {Path(args.run_root) / llm.STOP_FILE}")
+    return 0
 
 
 def status(args: argparse.Namespace) -> int:
@@ -747,6 +826,13 @@ def export(args: argparse.Namespace) -> int:
     if missing:
         print(f"[llm-op] refused: {len(missing)} episodes unfinished: {missing}", file=sys.stderr)
         return EXIT_DECISION
+    replayed = load_json(run_root / "replay" / "check.json") if (run_root / "replay" / "check.json").exists() else {}
+    unchecked = [front for front in llm.FRONTS
+                 if not (replayed.get(front, {}).get("same_trajectory") and replayed.get(front, {}).get("same_metrics"))]
+    if unchecked:
+        print(f"[llm-op] refused: no passed replay-check for {unchecked}; run replay-check first (before export, while the checkout "
+              "is clean)", file=sys.stderr)
+        return EXIT_DECISION
     fronts: dict[str, Any] = {}
     commits: set[str] = set()
     models: set[str] = set()
@@ -767,7 +853,7 @@ def export(args: argparse.Namespace) -> int:
         "contract_sha256": file_sha256(llm.CONTRACT_PATH), "model": sorted(models), "one_model": len(models) == 1,
         "plan": {key: plan_.data[key] for key in ("draw", "pilot", "planned_frames", "rows_per_frame", "inputs", "reid", "code_commit")},
         "check": {key: load_json(run_root / "check.json")[key] for key in ("checked_utc", "resources", "workers", "api", "code_commit")},
-        "pilot": load_json(run_root / "pilot" / "report.json"), "cost": ledger_cost(run_root),
+        "pilot": load_json(run_root / "pilot" / "report.json"), "cost": ledger_cost(run_root), "replay_check": replayed,
         "run": {key: value for key, value in load_json(run_root / "run.json").items() if key in ("events", "workers", "jobs")},
         "fronts": fronts,
         "appendix_only": "never in the main table, never on test; compare with every other arm on these episodes only (ruling 105-2)",
@@ -779,31 +865,57 @@ def export(args: argparse.Namespace) -> int:
     return 0
 
 
-def replay_check(args: argparse.Namespace) -> int:
-    """Ruling 105-7: one episode replayed from its archive alone reproduces the run of record's trajectory and report byte for byte."""
+def replay_one(plan_: Plan, front: str, episode: str) -> dict[str, Any]:
+    """One episode replayed from its archive alone (no API call can happen) against its run of record."""
 
     import lean_s2_05_node_audit as audit
 
-    run_root = Path(args.run_root)
-    plan_ = Plan(run_root)
-    record_path = audit_path(run_root, args.front, args.episode)
-    _require(audit_complete(record_path, args.episode), "no_finished_run_of_record_for_this_episode")
-    scratch = run_root / "replay" / args.front
-    target = scratch / args.episode / llm.ARM / "node_audit.json"
+    run_root = plan_.run_root
+    record_path = audit_path(run_root, front, episode)
+    _require(audit_complete(record_path, episode), f"no_finished_run_of_record:{front}:{episode}")
+    scratch = run_root / "replay" / front
+    target = scratch / episode / llm.ARM / "node_audit.json"
     if target.exists():
         target.unlink()
-    code = subprocess.call(job_command(plan_, args.front, args.episode, mode="replay", output_root=scratch), cwd=str(ROOT))
-    if code != 0:
-        print(f"[llm-op] replay-check: the replay exited {code}", file=sys.stderr)
-        return 1
+    code = subprocess.call(job_command(plan_, front, episode, mode="replay", output_root=scratch), cwd=str(ROOT))
+    row: dict[str, Any] = {"front": front, "episode_id": episode, "exit_code": code, "checked_utc": utc(),
+                           "code_commit": git("rev-parse", "HEAD")}
+    if code != 0 or not target.exists():
+        return {**row, "same_trajectory": False, "same_metrics": False}
     record, replay = load_json(record_path), load_json(target)
-    same_trajectory = record["trajectory_sha256"] == replay["trajectory_sha256"]
-    same_metrics = audit.comparable_metrics({k: v for k, v in record.items() if k != "llm_op"}) == \
-        audit.comparable_metrics({k: v for k, v in replay.items() if k != "llm_op"})
-    print(f"[llm-op] replay-check {args.front} {args.episode}: trajectory {'same' if same_trajectory else 'DIFFERS'}, "
-          f"metrics {'same' if same_metrics else 'DIFFER'}; replayed attempts "
-          f"{replay['llm_op']['association']['replayed_attempts'] + replay['llm_op']['existence']['replayed_attempts']}")
-    return 0 if same_trajectory and same_metrics else EXIT_DECISION
+    return {**row, "same_trajectory": record["trajectory_sha256"] == replay["trajectory_sha256"],
+            "same_metrics": audit.comparable_metrics({k: v for k, v in record.items() if k != "llm_op"})
+            == audit.comparable_metrics({k: v for k, v in replay.items() if k != "llm_op"}),
+            "replayed_attempts": replay["llm_op"]["association"]["replayed_attempts"] + replay["llm_op"]["existence"]["replayed_attempts"],
+            "attempts": replay["llm_op"]["association"]["attempts"] + replay["llm_op"]["existence"]["attempts"]}
+
+
+def replay_check(args: argparse.Namespace) -> int:
+    """Ruling 105-7: replayed from its archive alone, an episode reproduces its run of record's trajectory and metrics byte for byte.
+
+    Without --front/--episode it replays, per front end, the drawn episode with the fewest frames.  It runs before export:
+    export writes into results/, after which the checkout is no longer clean and the replay's audit would refuse.
+    """
+
+    run_root = Path(args.run_root)
+    plan_ = Plan(run_root)
+    if args.front or args.episode:
+        _require(bool(args.front and args.episode), "give_both_front_and_episode")
+        targets = [(args.front, args.episode)]
+    else:
+        shortest = min(plan_.episodes, key=lambda e: (plan_.frames(e), e))
+        targets = [(front, shortest) for front in llm.FRONTS]
+    path = run_root / "replay" / "check.json"
+    record = load_json(path) if path.exists() else {}
+    ok = True
+    for front, episode in targets:
+        row = replay_one(plan_, front, episode)
+        record[front] = row
+        ok = ok and row["same_trajectory"] and row["same_metrics"]
+        print(f"[llm-op] replay-check {front} {episode}: exit {row['exit_code']}, trajectory "
+              f"{'same' if row['same_trajectory'] else 'DIFFERS'}, metrics {'same' if row['same_metrics'] else 'DIFFER'}")
+    write_json(path, record)
+    return 0 if ok else EXIT_DECISION
 
 
 def main() -> int:
@@ -812,6 +924,7 @@ def main() -> int:
     p = sub.add_parser("plan")
     p.add_argument("--run-root", required=True)
     p.add_argument("--inputs", required=True, help="the S3-03 check's inputs.json (its usable train and validation lists and roots)")
+    p.add_argument("--allow-provisional", action="store_true", help="plan from provisional S3-03 inputs (recorded in the plan)")
     p.set_defaults(func=plan)
     p = sub.add_parser("check")
     p.add_argument("--run-root", required=True)
@@ -828,21 +941,25 @@ def main() -> int:
     p = sub.add_parser("run")
     p.add_argument("--run-root", required=True)
     p.add_argument("--workers", type=int, default=None)
-    p.add_argument("--accept-projection", action="store_true", help="the user accepted a pilot projection over the cap")
+    p.add_argument("--accept-pilot", action="store_true",
+                   help="the user accepted the pilot's decision point (projection over the cap, an unpriced call kind, format problems)")
     p.add_argument("--resume-after-stop", action="store_true", help="the user decided to go on after a STOP (kept as STOP.<n>)")
     p.add_argument("--retry-failed", action="store_true")
     p.set_defaults(func=run)
     p = sub.add_parser("status")
     p.add_argument("--run-root", required=True)
     p.set_defaults(func=status)
+    p = sub.add_parser("stop")
+    p.add_argument("--run-root", required=True)
+    p.set_defaults(func=stop_run)
     p = sub.add_parser("export")
     p.add_argument("--run-root", required=True)
     p.add_argument("--out", required=True)
     p.set_defaults(func=export)
     p = sub.add_parser("replay-check")
     p.add_argument("--run-root", required=True)
-    p.add_argument("--front", required=True, choices=tuple(llm.FRONTS))
-    p.add_argument("--episode", required=True)
+    p.add_argument("--front", default=None, choices=tuple(llm.FRONTS))
+    p.add_argument("--episode", default=None)
     p.set_defaults(func=replay_check)
     args = parser.parse_args()
     try:

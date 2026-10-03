@@ -264,21 +264,22 @@ entities within 3 m of it ranked by appearance similarity, plus the 3 most simil
 - fragment, candidate: anonymous ids.
 - cosine_to_descriptor_mean: cosine similarity between the fragment's appearance descriptor and the entity's mean \
 descriptor (from -1 to 1; higher means more alike).
-- cosine_to_best_view_descriptor: cosine similarity between the fragment's descriptor and the entity's best single stored view.
+- cosine_to_best_view_descriptor: cosine similarity between the fragment's descriptor and the descriptor of the entity's stored \
+view with the largest mask.
 - centroid_distance_m: distance in metres between the fragment's 3D centroid and the entity's last known centroid.
 - aabb_iou: overlap (intersection over union, 0 to 1) of the fragment's and the entity's axis-aligned 3D boxes.
 - log_size_ratio: natural log of the fragment's box volume over the entity's box volume (0 means the same size).
-- ticks_since_last_seen: frames since the entity was last matched to a fragment.
-- missed_opportunity_count: consecutive frames in which the entity should have been visible but was not matched (reset by \
-any match).
+- ticks_since_last_seen: frames since the entity was last observed (created or matched to a fragment).
+- missed_opportunity_count: since the entity was last matched, how many times it should have been visible, was not matched \
+and was kept (reset by any match).
 - state_is_active, state_is_dormant, state_is_retracted: the entity's state; exactly one is 1. Dormant means missed several \
 times in a row and set aside; retracted means judged earlier to be no longer at its place. Both can be matched again.
 - cosine_rank_within_recall: the entity's rank by cosine_to_descriptor_mean among the fragment's candidates (0 is the most \
 similar).
 - cosine_margin_to_runner_up: for the top-ranked candidate, its cosine minus the second-best cosine (its cosine plus 1 when \
 it is the only candidate); for every other candidate, its cosine minus the top cosine.
-- mutual_best: 1 if the entity is the fragment's most similar candidate and the fragment is the entity's most similar \
-fragment in this frame, else 0.
+- mutual_best: 1 if the entity is the fragment's most similar candidate and, among this frame's fragments that recalled the \
+entity, the fragment is the most similar to it, else 0.
 - support_height_difference_m: absolute difference in metres between the bottom heights of the two boxes.
 
 NEW has one row per fragment and describes the option of creating a new entity for it. Columns:
@@ -309,23 +310,24 @@ current view but were not matched in this frame: for each of them, decide whethe
 You receive one table, ENTITIES, with one row per entity. Columns:
 - entity: anonymous id.
 - should_be_visible_ratio: of the points on the entity's last observed surface, the share that project into the current \
-depth image and are not hidden behind a nearer surface.
+depth image onto a valid depth reading and are not hidden behind a nearer surface.
 - free_space_coverage_ratio: of those visible points, the share where the measured depth lies more than 5 cm beyond the \
 point, i.e. the camera sees through the place where the surface should be (0 when no point is visible).
 - camera_distance_m: distance in metres from the camera to the entity's centroid.
 - camera_view_cosine: cosine between the camera's viewing direction and the direction from the camera to the entity's \
 centroid (1 means straight ahead).
-- missed_opportunity_count: consecutive earlier frames in which the entity should have been visible but was not matched \
+- missed_opportunity_count: since the entity was last matched, how many earlier times it was listed in this table and kept \
 (reset by any match).
 - observation_count: how many times the entity has been observed (created or matched).
-- ticks_since_last_seen: frames since the entity was last matched.
+- ticks_since_last_seen: frames since the entity was last observed (created or matched).
 - best_fragment_cosine: the highest appearance cosine between the entity and any fragment of the current frame (-1 when the \
 frame has no fragment).
 - best_fragment_still_unassigned: 1 if that most similar fragment was matched to no remembered entity in this frame (it \
 becomes a new entity), else 0.
 - state_is_active, state_is_dormant, state_is_retracted: the entity's state; exactly one is 1 (retracted never occurs here).
-- rac_run_rho_070, rac_run_rho_085: consecutive earlier frames in which the entity was listed in this table and its \
-free_space_coverage_ratio reached 0.70 (respectively 0.85); reset by any match.
+- rac_run_rho_070, rac_run_rho_085: how many of the entity's most recent earlier listings in this table, in a row, had a \
+free_space_coverage_ratio of at least 0.70 (respectively 0.85); a listing below that value or any match resets it, and a frame \
+in which the entity is not listed changes nothing.
 - matches_since_birth: how many times the entity has been matched since it was created.
 - eligible_frames_since_birth: earlier frames, since the entity was created, in which it was listed in this table.
 - free_space_coverage_sum_since_birth: the sum of free_space_coverage_ratio over those frames.
