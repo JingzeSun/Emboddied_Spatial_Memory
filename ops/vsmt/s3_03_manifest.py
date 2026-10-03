@@ -339,8 +339,8 @@ def build_jobs(ctx: RunContext) -> list[pool.Job]:
             for episode in train:
                 job_id = f"{front}/cal/{episode}"
                 jobs.append(pool.Job(job_id, "calibration", (), P["critical"], train_frames[episode], 1, "pass",
-                                     lambda f=front, e=episode: ctx.s2_04(f, "train", e, "TAF", calibration_config(), calibration,
-                                                                          flags=("--calibration", "--elu-p-counts", "--no-training-records")),
+                                     lambda f=front, e=episode, root=calibration: ctx.s2_04(f, "train", e, "TAF", calibration_config(), root,
+                                                                                            flags=("--calibration", "--elu-p-counts", "--no-training-records")),
                                      outputs=(str(calibration / episode / "TAF"),)))
                 calibration_ids.append(job_id)
         jobs.append(pool.Job(f"{front}/fit", "fit", tuple(calibration_ids), P["control"], 0.0, 1, "gate",
@@ -350,9 +350,10 @@ def build_jobs(ctx: RunContext) -> list[pool.Job]:
         for episode in train:
             job_id = f"{front}/r0/{episode}"
 
-            def build_round0(f: str = front, e: str = episode) -> list[str]:
+            # every loop value is bound as a default: the builder runs at dispatch, after the loop has moved on to the last front
+            def build_round0(f: str = front, e: str = episode, root: Path = round0) -> list[str]:
                 config = rollout_config(ctx.fit_values(f))
-                return ctx.s2_04(f, "train", e, "ELU-P", config, round0, flags=("--heuristic-labels", json.dumps(config)))
+                return ctx.s2_04(f, "train", e, "ELU-P", config, root, flags=("--heuristic-labels", json.dumps(config)))
 
             jobs.append(pool.Job(job_id, "round0", (f"{front}/fit",), P["critical"], train_frames[episode], 1, "pass", build_round0,
                                  outputs=(str(round0 / episode / "ELU-P"),)))
@@ -376,11 +377,11 @@ def build_jobs(ctx: RunContext) -> list[pool.Job]:
             for episode in train:
                 job_id = f"{front}/r1/{arm}/{episode}"
 
-                def build_round1(f: str = front, a: str = arm, e: str = episode) -> list[str]:
+                def build_round1(f: str = front, a: str = arm, e: str = episode, root: Path = round1) -> list[str]:
                     extra: tuple[str, ...] = ()
                     if a == "HeuristicLabel":  # ruling 104-1 1c: its round-1 labels on its own trajectory; no teacher records needed
                         extra = ("--heuristic-labels", json.dumps(rollout_config(ctx.fit_values(f))), "--no-training-records")
-                    return ctx.s2_04(f, "train", e, a, round1_config(a), round1, heads=ctx.heads_file(f, 0, a, arms.SEEDS[0]), flags=extra)
+                    return ctx.s2_04(f, "train", e, a, round1_config(a), root, heads=ctx.heads_file(f, 0, a, arms.SEEDS[0]), flags=extra)
 
                 jobs.append(pool.Job(job_id, "round1", (f"{front}/t0/{arm}",), P["critical"], train_frames[episode], 1, "pass", build_round1,
                                      outputs=(str(round1 / episode / arm),)))

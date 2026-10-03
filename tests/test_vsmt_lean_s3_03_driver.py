@@ -318,6 +318,20 @@ class GraphTests(unittest.TestCase):
         self.assertEqual((self.jobs["sam2/r0/" + MANIFEST["train"][0]].group, self.jobs["timing"].group), ("sam2", ""))
         self.assertEqual(self.jobs["timing"].deps, tuple(f"instance/r0/{house}" for house in MANIFEST["train"][:3] + MANIFEST["train"][240:242]))
 
+    def test_every_pass_job_writes_under_its_own_front(self) -> None:
+        # 2026-10-04 on the S3-02 host: the round-0 builder read its output root from the enclosing loop at dispatch time, so the
+        # instance round-0 jobs wrote into sam2/round0 and the SAM2 jobs of the same episodes failed; every builder binds it now
+        for front in driver.FRONTS:
+            write_fit(self.ctx, front)
+        checked = 0
+        for job in self.jobs.values():
+            if job.kind not in ("calibration", "round0", "round1"):
+                continue
+            output = Path(self.option(self.argv(job.job_id), "--output-root"))
+            self.assertEqual(output.relative_to(self.ctx.run_root).parts[0], job.job_id.split("/", 1)[0], job.job_id)
+            checked += 1
+        self.assertEqual(checked, 50)
+
     def test_the_whole_graph_runs_in_protocol_order_under_fake_processes(self) -> None:
         effects = {"instance/fit": lambda argv: write_fit(self.ctx, "instance"), "sam2/fit": lambda argv: write_fit(self.ctx, "sam2"),
                    "train-threads": lambda argv: pool.write_json(self.ctx.run_root / "train_threads.json", {"train_threads": 3})}
