@@ -339,8 +339,8 @@ def build_jobs(ctx: RunContext) -> list[pool.Job]:
             for episode in train:
                 job_id = f"{front}/cal/{episode}"
                 jobs.append(pool.Job(job_id, "calibration", (), P["critical"], train_frames[episode], 1, "pass",
-                                     lambda f=front, e=episode: ctx.s2_04(f, "train", e, "TAF", calibration_config(), calibration,
-                                                                          flags=("--calibration", "--elu-p-counts", "--no-training-records")),
+                                     lambda f=front, e=episode, root=calibration: ctx.s2_04(f, "train", e, "TAF", calibration_config(), root,
+                                                                                            flags=("--calibration", "--elu-p-counts", "--no-training-records")),
                                      outputs=(str(calibration / episode / "TAF"),)))
                 calibration_ids.append(job_id)
         jobs.append(pool.Job(f"{front}/fit", "fit", tuple(calibration_ids), P["control"], 0.0, 1, "gate",
@@ -350,9 +350,10 @@ def build_jobs(ctx: RunContext) -> list[pool.Job]:
         for episode in train:
             job_id = f"{front}/r0/{episode}"
 
-            def build_round0(f: str = front, e: str = episode) -> list[str]:
+            # every loop value is bound as a default: the builder runs at dispatch, after the loop has moved on to the last front
+            def build_round0(f: str = front, e: str = episode, root: Path = round0) -> list[str]:
                 config = rollout_config(ctx.fit_values(f))
-                return ctx.s2_04(f, "train", e, "ELU-P", config, round0, flags=("--heuristic-labels", json.dumps(config)))
+                return ctx.s2_04(f, "train", e, "ELU-P", config, root, flags=("--heuristic-labels", json.dumps(config)))
 
             jobs.append(pool.Job(job_id, "round0", (f"{front}/fit",), P["critical"], train_frames[episode], 1, "pass", build_round0,
                                  outputs=(str(round0 / episode / "ELU-P"),)))
@@ -376,11 +377,11 @@ def build_jobs(ctx: RunContext) -> list[pool.Job]:
             for episode in train:
                 job_id = f"{front}/r1/{arm}/{episode}"
 
-                def build_round1(f: str = front, a: str = arm, e: str = episode) -> list[str]:
+                def build_round1(f: str = front, a: str = arm, e: str = episode, root: Path = round1) -> list[str]:
                     extra: tuple[str, ...] = ()
                     if a == "HeuristicLabel":  # ruling 104-1 1c: its round-1 labels on its own trajectory; no teacher records needed
                         extra = ("--heuristic-labels", json.dumps(rollout_config(ctx.fit_values(f))), "--no-training-records")
-                    return ctx.s2_04(f, "train", e, a, round1_config(a), round1, heads=ctx.heads_file(f, 0, a, arms.SEEDS[0]), flags=extra)
+                    return ctx.s2_04(f, "train", e, a, round1_config(a), root, heads=ctx.heads_file(f, 0, a, arms.SEEDS[0]), flags=extra)
 
                 jobs.append(pool.Job(job_id, "round1", (f"{front}/t0/{arm}",), P["critical"], train_frames[episode], 1, "pass", build_round1,
                                      outputs=(str(round1 / episode / arm),)))
@@ -464,19 +465,134 @@ def s3_02_roots(autodl: Path, tag: str) -> dict[str, Any]:
             "cache": {front: autodl / "vsmt_caches" / f"s3-02-{front}-{tag}" for front in FRONTS}}
 
 
-def check_inputs(*, roots: Mapping[str, Any], export_dir: Path, tag: str, reid: Mapping[str, Path],
-                 fronts: Sequence[str] = tuple(FRONTS)) -> dict[str, Any]:
-    """Ruling 104-2: the S3-02 products equal its run manifest, the four test roots are sealed by the exported seal, the heads match."""
+def reid_heads(reid: Mapping[str, Path], fronts: Sequence[str], problems: list[str]) -> dict[str, Any]:
+    """Each front end's ReID head against its S0-03 pinned digest (a mismatch is added to ``problems``)."""
 
     from vsmt import lean_assignment as la
+    import s2_06_manifest
+
+    heads = {}
+    for front in fronts:
+        path = Path(reid[front])
+        payload = load_json(path) if path.exists() else {}
+        pinned = la.reid_weights_sha256_for(FRONTS[front])
+        ok = bool(payload) and payload.get("sha256") == pinned and s2_06_manifest.payload_digest_ok(payload)
+        heads[front] = {"file": str(path), "file_sha256": sha256_file(path) if path.exists() else None, "payload_sha256": payload.get("sha256"),
+                        "pinned_sha256": pinned, "matches": ok}
+        if not ok:
+            problems.append(f"reid_head_differs_from_the_pinned_digest:{front}")
+    return heads
+
+
+def root_digests(roots: Mapping[str, Any], fronts: Sequence[str]) -> dict[str, Any]:
+    """What a provisional check rests on, read from the roots: every succeeded raw receipt's sha256, each geometry stage receipt's
+    sha256, and every succeeded cache episode's seal payload digest, per split (train and validation only; test is never read)."""
+
+    import s3_02_manifest as s3_02
+
+    out: dict[str, Any] = {"raw": {}, "geometry": {}, "cache": {front: {} for front in fronts}}
+    for split in SPLITS:
+        raw_root, geometry_root = Path(roots["raw"]) / split, Path(roots["geometry"]) / split
+        out["raw"][split] = {house: sha256_file(raw_root / house / "receipt.json") for house in s3_02.succeeded(raw_root)}
+        receipt = geometry_root / "s1_04_geometry_receipt.json"
+        out["geometry"][split] = sha256_file(receipt) if receipt.exists() else None
+        for front in fronts:
+            cache_root = Path(roots["cache"][front]) / split
+            seals = {}
+            for episode in s3_02.succeeded(cache_root):
+                seal = cache_root / episode / "episode_seal.json"
+                seals[episode] = load_json(seal).get("payload_sha256") if seal.exists() else None
+            out["cache"][front][split] = seals
+    return out
+
+
+def provisional_inputs(*, roots: Mapping[str, Any], reid: Mapping[str, Path], fronts: Sequence[str]) -> dict[str, Any]:
+    """The inputs before S3-02 has exported its run manifest (user 2026-10-04: start S3-03 on the S3-02 host's free CPU while the SAM2
+    cache still runs). Train and validation are read from their roots and must already be complete by S3-02's own completeness rules
+    (geometry_problems, cache_problems: every raw episode accounted for, a cache failure only for a data reason, the stage receipt
+    complete); the test roots only need their markers (pending until S3-02 seals them; never read). The usable episodes are built
+    exactly as from the exports, and root_digests records what they rest on. The first full check after S3-02's export recomputes
+    the digests and the episodes and stops the run if anything differs (cmd_check); verify refuses inputs that are still provisional.
+    """
+
     from vsmt import lean_object_geometry as og
     from vsmt import lean_test_seal
-    import s2_06_manifest
+    import s3_02_manifest as s3_02
+
+    problems: list[str] = []
+    refusal = lean_test_seal.refusal([Path(roots["raw"]) / split for split in SPLITS] + [Path(roots["geometry"]) / split for split in SPLITS]
+                                     + [Path(roots["cache"][front]) / split for front in fronts for split in SPLITS], reader="s3-03 check")
+    if refusal:
+        problems.append(f"train_or_validation_root_sealed:{refusal}")
+    manifest = s3.load_manifest()
+    episodes: dict[str, dict[str, list[dict[str, Any]]]] = {front: {} for front in fronts}
+    counts: dict[str, Any] = {}
+    for split in SPLITS:
+        houses = s3.manifest_houses(manifest, split)
+        raw_root, geometry_root = Path(roots["raw"]) / split, Path(roots["geometry"]) / split
+        raw_ok = set(s3_02.succeeded(raw_root))
+        problems += [f"provisional_geometry_incomplete:{split}:{item}" for item in s3_02.geometry_problems(geometry_root, raw_root)[:5]]
+        geometry_ok = {house for house in houses if (geometry_root / house / og.TABLE_FILE_NAME).exists()}
+        split_counts = {"manifest_houses": len(houses), "raw_succeeded": len(raw_ok), "geometry_tables": len(geometry_ok)}
+        for front in fronts:
+            source = FRONTS[front]
+            cache_root = Path(roots["cache"][front]) / split
+            problems += [f"provisional_cache_incomplete:{front}:{split}:{item}" for item in s3_02.cache_problems(cache_root, raw_root, source)[:5]]
+            cache_ok = {episode: receipt for episode, receipt in s3_02.receipts(cache_root).items() if receipt.get("status") == "succeeded"}
+            usable = [house for house in houses if house in raw_ok and house in geometry_ok and house in cache_ok]
+            outside = sorted(set(cache_ok) - set(houses))
+            if outside:
+                problems.append(f"cache_episodes_outside_the_manifest:{front}:{split}:{outside[:3]}")
+            episodes[front][split] = [{"episode_id": house, "frames": int(cache_ok[house].get("frames") or 0)} for house in usable]
+            split_counts[f"usable_{front}"] = len(usable)
+        counts[split] = split_counts
+    markers = {}
+    for kind, root in (("raw", Path(roots["raw"]) / "test"), ("geometry", Path(roots["geometry"]) / "test"),
+                       *((f"{front}_cache", Path(roots["cache"][front]) / "test") for front in fronts)):
+        marker_path = root / lean_test_seal.MARKER_NAME  # only the marker file is read, never a test episode
+        marker = load_json(marker_path) if marker_path.exists() else {}
+        # recorded only: S3-02 may not have built this test root yet (the SAM2 test cache comes last) and a provisional run never
+        # reads test; the full check after S3-02's export requires every test root sealed by the exported seal
+        markers[kind] = {"path": str(marker_path), "root_exists": root.exists(), "state": marker.get("state")}
+        if marker and marker.get("state") not in (lean_test_seal.STATE_PENDING, lean_test_seal.STATE_SEALED):
+            problems.append(f"test_root_marker_in_an_unknown_state:{kind}:{marker.get('state')}")
+    heads = reid_heads(reid, fronts, problems)
+    return {"problems": problems, "provisional": {"digests": root_digests(roots, fronts), "written_utc": utc_now(),
+                                                  "rule": "user 2026-10-04: start beside S3-02; confirmed by the first full check"},
+            "s3_02": {"tag": None, "manifest": None, "code_commit": None},
+            "roots": {"raw": {split: str(Path(roots["raw"]) / split) for split in SPLITS},
+                      "geometry": {split: str(Path(roots["geometry"]) / split) for split in SPLITS},
+                      "cache": {front: {split: str(Path(roots["cache"][front]) / split) for split in SPLITS} for front in fronts}},
+            "reid": heads, "test_seal": {"provisional": True, "markers": markers}, "episodes": episodes, "counts": counts}
+
+
+def confirm_provisional(previous: Mapping[str, Any], report: Mapping[str, Any], roots: Mapping[str, Any],
+                        fronts: Sequence[str]) -> dict[str, Any] | None:
+    """Any check after a provisional one (a provisional resume, or the first full check once S3-02 has exported): the episodes and
+    the root digests must be exactly what the run started from."""
+
+    if not previous.get("provisional") or "episodes" not in report:
+        return None
+    digests = (report.get("provisional") or {}).get("digests") or root_digests(roots, fronts)
+    differs = [part for part, same in (("episodes", previous.get("episodes") == report["episodes"]),
+                                       ("digests", previous["provisional"].get("digests") == digests)) if not same]
+    return {"provisional_checked_utc": previous["provisional"].get("written_utc"), "confirmed_utc": utc_now(), "differs": differs}
+
+
+def check_inputs(*, roots: Mapping[str, Any], export_dir: Path, tag: str, reid: Mapping[str, Path],
+                 fronts: Sequence[str] = tuple(FRONTS), provisional: bool = False) -> dict[str, Any]:
+    """Ruling 104-2: the S3-02 products equal its run manifest, the four test roots are sealed by the exported seal, the heads match.
+    With ``provisional`` and no S3-02 run manifest yet, provisional_inputs reads the train and validation roots instead."""
+
+    from vsmt import lean_object_geometry as og
+    from vsmt import lean_test_seal
 
     problems: list[str] = []
     name = lambda part: export_dir / f"vsmt_lean_s3_02_{part}_{tag}.json"  # noqa: E731
     manifest_path = name("manifest")
     if not manifest_path.exists():
+        if provisional:
+            return provisional_inputs(roots=roots, reid=reid, fronts=fronts)
         return {"problems": [f"s3_02_manifest_missing:{manifest_path}"]}
     s3_02 = load_json(manifest_path)
     if s3_02.get("problems"):
@@ -554,16 +670,7 @@ def check_inputs(*, roots: Mapping[str, Any], export_dir: Path, tag: str, reid: 
             if not ok:
                 problems.append(f"test_root_not_sealed_by_the_exported_seal:{kind}")
         seal_report.update({"seal_sha256": digest, "markers": markers})
-    heads = {}
-    for front in fronts:
-        path = Path(reid[front])
-        payload = load_json(path) if path.exists() else {}
-        pinned = la.reid_weights_sha256_for(FRONTS[front])
-        ok = bool(payload) and payload.get("sha256") == pinned and s2_06_manifest.payload_digest_ok(payload)
-        heads[front] = {"file": str(path), "file_sha256": sha256_file(path) if path.exists() else None, "payload_sha256": payload.get("sha256"),
-                        "pinned_sha256": pinned, "matches": ok}
-        if not ok:
-            problems.append(f"reid_head_differs_from_the_pinned_digest:{front}")
+    heads = reid_heads(reid, fronts, problems)
     return {"problems": problems, "s3_02": {"tag": tag, "manifest": {"file": str(manifest_path), "sha256": sha256_file(manifest_path)},
                                             "code_commit": s3_02.get("code_commit")},
             "roots": {"raw": {split: str(Path(roots["raw"]) / split) for split in SPLITS},
@@ -575,8 +682,20 @@ def check_inputs(*, roots: Mapping[str, Any], export_dir: Path, tag: str, reid: 
 def cmd_check(args: argparse.Namespace) -> int:
     run_root, export_dir = Path(args.run_root), Path(args.export_dir)
     fronts = tuple(f for f in args.fronts.split(",") if f)
-    report = check_inputs(roots=s3_02_roots(Path(args.autodl_root), args.s3_02_tag), export_dir=export_dir, tag=args.s3_02_tag,
-                          reid={"instance": Path(args.instance_reid), "sam2": Path(args.sam2_reid)}, fronts=fronts)
+    roots = s3_02_roots(Path(args.autodl_root), args.s3_02_tag)
+    previous = load_json(run_root / "inputs.json") if (run_root / "inputs.json").exists() else {}
+    report = check_inputs(roots=roots, export_dir=export_dir, tag=args.s3_02_tag,
+                          reid={"instance": Path(args.instance_reid), "sam2": Path(args.sam2_reid)}, fronts=fronts,
+                          provisional=args.provisional)
+    confirmation = confirm_provisional(previous, report, roots, fronts)
+    if confirmation is not None:
+        report["provisional_confirmation" if not report.get("provisional") else "provisional_recheck"] = confirmation
+        if report.get("provisional"):
+            report["provisional"]["started_utc"] = previous["provisional"].get("started_utc") or previous["provisional"].get("written_utc")
+        if confirmation["differs"]:
+            report["problems"].append(f"provisional_inputs_changed:{confirmation['differs']}")
+    elif report.get("provisional"):
+        report["provisional"]["started_utc"] = report["provisional"]["written_utc"]
     if git("status", "--porcelain", repo=Path(args.repo_root)):
         report["problems"].append("worktree_not_clean")
     info = resources()
@@ -1075,6 +1194,8 @@ def verify(ctx: RunContext, export_dir: Path, tag: str) -> dict[str, Any]:
             problems.append(f"job_skipped_without_a_diverged_dependency:{job.job_id}")
     if never:
         problems.append(f"jobs_never_started:{len(never)}:{never[:20]}")
+    if ctx.inputs.get("provisional"):  # a run started beside S3-02 is valid only after a full check confirmed its inputs
+        problems.append("inputs_still_provisional: run all again after S3-02 has exported its run manifest")
     contract = load_json(S0_05_CONTRACT)
     registered = {}
     for front in ctx.fronts:
@@ -1132,6 +1253,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     check.add_argument("--repo-root", default=str(ROOT))
     check.add_argument("--fronts", default="instance,sam2")
     check.add_argument("--min-free-gib", type=float, default=100.0)
+    check.add_argument("--provisional", action="store_true",
+                       help="before S3-02 has exported its run manifest: read train and validation from their roots (confirmed later)")
     check.set_defaults(func=cmd_check)
     run = sub.add_parser("run")
     run.add_argument("--run-root", required=True)

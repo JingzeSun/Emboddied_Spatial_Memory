@@ -318,6 +318,20 @@ class GraphTests(unittest.TestCase):
         self.assertEqual((self.jobs["sam2/r0/" + MANIFEST["train"][0]].group, self.jobs["timing"].group), ("sam2", ""))
         self.assertEqual(self.jobs["timing"].deps, tuple(f"instance/r0/{house}" for house in MANIFEST["train"][:3] + MANIFEST["train"][240:242]))
 
+    def test_every_pass_job_writes_under_its_own_front(self) -> None:
+        # 2026-10-04 on the S3-02 host: the round-0 builder read its output root from the enclosing loop at dispatch time, so the
+        # instance round-0 jobs wrote into sam2/round0 and the SAM2 jobs of the same episodes failed; every builder binds it now
+        for front in driver.FRONTS:
+            write_fit(self.ctx, front)
+        checked = 0
+        for job in self.jobs.values():
+            if job.kind not in ("calibration", "round0", "round1"):
+                continue
+            output = Path(self.option(self.argv(job.job_id), "--output-root"))
+            self.assertEqual(output.relative_to(self.ctx.run_root).parts[0], job.job_id.split("/", 1)[0], job.job_id)
+            checked += 1
+        self.assertEqual(checked, 50)
+
     def test_the_whole_graph_runs_in_protocol_order_under_fake_processes(self) -> None:
         effects = {"instance/fit": lambda argv: write_fit(self.ctx, "instance"), "sam2/fit": lambda argv: write_fit(self.ctx, "sam2"),
                    "train-threads": lambda argv: pool.write_json(self.ctx.run_root / "train_threads.json", {"train_threads": 3})}
@@ -419,6 +433,7 @@ class CheckTests(unittest.TestCase):
                 pool.write_json(receipt, {"house_id": house, "status": "succeeded"})
                 raw_rows.append({"house_id": house, "status": "succeeded", "receipt_sha256": driver.sha256_file(receipt)})
                 pool.write_json(Path(self.roots["geometry"]) / split / house / og.TABLE_FILE_NAME, {"episode_id": house})
+                pool.write_json(Path(self.roots["geometry"]) / split / house / "receipt.json", {"status": "succeeded"})  # read by a provisional check
             export(f"raw_{split}", {"houses": raw_rows})
             pool.write_json(Path(self.roots["geometry"]) / split / "s1_04_geometry_receipt.json", {"split": split})
             shutil.copy2(Path(self.roots["geometry"]) / split / "s1_04_geometry_receipt.json", self.export_dir / "tmp.json")
@@ -430,13 +445,17 @@ class CheckTests(unittest.TestCase):
                 for i, house in enumerate(houses):
                     if front == "sam2" and split == "train" and i == 3:
                         rows.append({"episode_id": house, "status": "failed"})  # one SAM2 cache failed: absent, not replaced
+                        pool.write_json(Path(self.roots["cache"][front]) / split / house / "receipt.json",
+                                        {"status": "failed", "reason": "proposal_overflow"})
                         continue
                     seal = {"payload_sha256": f"{front}-{house}"}
                     if front == "instance":
                         seal["mask_source"] = source
                     pool.write_json(Path(self.roots["cache"][front]) / split / house / "episode_seal.json", seal)
+                    pool.write_json(Path(self.roots["cache"][front]) / split / house / "receipt.json", {"status": "succeeded", "frames": 900 + i})
                     rows.append({"episode_id": house, "status": "succeeded", "episode_seal_sha256": seal["payload_sha256"], "frames": 900 + i})
                 export(f"{front}_cache_{split}", {"episodes": rows})
+                pool.write_json(Path(self.roots["cache"][front]) / split / "s1_03_receipt.json", {"complete": True, "mask_source": source})
                 counts[f"cache_succeeded_{source}"] = sum(1 for row in rows if row["status"] == "succeeded")
             splits[split] = counts
         kinds = {"raw": Path(self.roots["raw"]) / "test", "geometry": Path(self.roots["geometry"]) / "test",
@@ -455,13 +474,60 @@ class CheckTests(unittest.TestCase):
     def tearDown(self) -> None:
         shutil.rmtree(self.tmp, ignore_errors=True)
 
-    def check(self) -> dict:
+    def check(self, provisional: bool = False) -> dict:
         import s2_06_manifest
         from vsmt import lean_assignment as la
 
         with mock.patch.object(la, "reid_weights_sha256_for", lambda source: f"head-{'instance' if source == 'simulator_instance_masks' else 'sam2'}"), \
                 mock.patch.object(s2_06_manifest, "payload_digest_ok", lambda payload: True):
-            return driver.check_inputs(roots=self.roots, export_dir=self.export_dir, tag=self.TAG, reid=self.reid)
+            return driver.check_inputs(roots=self.roots, export_dir=self.export_dir, tag=self.TAG, reid=self.reid, provisional=provisional)
+
+    def hide_the_s3_02_manifest(self) -> Path:
+        path = self.export_dir / f"vsmt_lean_s3_02_manifest_{self.TAG}.json"
+        hidden = self.tmp / "manifest.hidden"
+        path.rename(hidden)
+        return hidden
+
+    def test_a_provisional_check_reads_the_roots_and_builds_the_same_episodes(self) -> None:
+        # user 2026-10-04: start beside S3-02 before its run manifest exists; the episodes equal the full check's
+        full = self.check()
+        hidden = self.hide_the_s3_02_manifest()
+        self.assertEqual(self.check()["problems"], [f"s3_02_manifest_missing:{self.export_dir / f'vsmt_lean_s3_02_manifest_{self.TAG}.json'}"])
+        provisional = self.check(provisional=True)
+        self.assertEqual(provisional["problems"], [])
+        self.assertEqual(provisional["episodes"], full["episodes"])
+        self.assertTrue(provisional["test_seal"]["provisional"])
+        hidden.rename(self.export_dir / f"vsmt_lean_s3_02_manifest_{self.TAG}.json")
+        # with the manifest back, the full check runs even when provisional is asked, and confirms the provisional start
+        again = self.check(provisional=True)
+        self.assertNotIn("provisional", again)
+        confirmation = driver.confirm_provisional(provisional, again, self.roots, tuple(driver.FRONTS))
+        self.assertEqual(confirmation["differs"], [])
+
+    def test_inputs_that_changed_after_a_provisional_start_are_named(self) -> None:
+        hidden = self.hide_the_s3_02_manifest()
+        provisional = self.check(provisional=True)
+        hidden.rename(self.export_dir / f"vsmt_lean_s3_02_manifest_{self.TAG}.json")
+        house = self.houses["train"][0]
+        pool.write_json(Path(self.roots["raw"]) / "train" / house / "receipt.json", {"house_id": house, "status": "succeeded", "edited": True})
+        confirmation = driver.confirm_provisional(provisional, self.check(), self.roots, tuple(driver.FRONTS))
+        self.assertEqual(confirmation["differs"], ["digests"])
+
+    def test_a_provisional_check_accepts_a_test_root_not_built_yet(self) -> None:
+        # the SAM2 test cache is S3-02's last step: its root may not exist (or carry no marker) while S3-03 starts
+        self.hide_the_s3_02_manifest()
+        shutil.rmtree(Path(self.roots["cache"]["sam2"]) / "test")
+        report = self.check(provisional=True)
+        self.assertEqual(report["problems"], [])
+        self.assertEqual(report["test_seal"]["markers"]["sam2_cache"], {"path": str(Path(self.roots["cache"]["sam2"]) / "test" / "TEST_SEALED.json"),
+                                                                        "root_exists": False, "state": None})
+
+    def test_a_provisional_check_refuses_an_incomplete_cache(self) -> None:
+        self.hide_the_s3_02_manifest()
+        house = self.houses["validation"][1]
+        (Path(self.roots["cache"]["sam2"]) / "validation" / house / "receipt.json").unlink()  # still being built
+        problems = self.check(provisional=True)["problems"]
+        self.assertIn(f"provisional_cache_incomplete:sam2:validation:cache_missing:{house}", problems)
 
     def test_consistent_inputs_are_accepted(self) -> None:
         report = self.check()
