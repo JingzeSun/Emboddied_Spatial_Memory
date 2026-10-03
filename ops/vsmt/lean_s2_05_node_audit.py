@@ -1408,6 +1408,13 @@ def run(args: argparse.Namespace) -> int:
     if args.metrics_only and diagnostic_options:  # ruling 104-4 (1): a run of record takes no diagnostic option
         print(f"[node-audit] refused: --metrics-only takes no diagnostic option: {diagnostic_options}", file=sys.stderr)
         return 2
+    if getattr(args, "manifest_split", None):  # ruling 104-6: an S3-03 audit reads only episodes of its manifest split
+        from vsmt import lean_s3_03
+
+        problem = lean_s3_03.manifest_split_refusal(args.episode_id, args.manifest_split)
+        if problem:
+            print(f"[node-audit] refused: {problem}", file=sys.stderr)
+            return 2
     contract = ev.validate_evaluation_contract(s2_04.load_json(s2_04.S2_04_CONTRACT))
     runner_contract = lr.validate_runner_contract(s2_04.load_json(s2_01.S2_01_CONTRACT))
     closed = [f"S2-04 {name}" for name in s2_04.REQUIRED_S2_04 if contract["authorization"].get(name) is not True]
@@ -1810,6 +1817,8 @@ def main() -> int:
     run_parser.add_argument("--metrics-only", action="store_true",
                             help="ruling 104-4 (1): the run of record -- the runner and the teacher's report without the diagnostic blocks "
                                  "of v2-v10 (audit null); refused together with any diagnostic option")
+    run_parser.add_argument("--manifest-split", default=None, choices=("train", "validation"),
+                            help="ruling 104-6: refuse an episode that is not in this split of the S3 manifest (every S3-03 audit names it)")
     run_parser.set_defaults(func=run)
     merge_parser = sub.add_parser("merge", help="pool the audits of one arm into a results/ report")
     merge_parser.add_argument("--output-root", required=True)

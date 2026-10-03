@@ -734,9 +734,11 @@ class RulingOneHundredFourMetricsOnlyTests(unittest.TestCase):
 
         cls.tmp = Path(tempfile.mkdtemp())
         cls.data = episode()
-        geometry = cls.tmp / "geometry" / "ep-0001"
-        geometry.mkdir(parents=True)
-        (geometry / og.TABLE_FILE_NAME).write_text(json.dumps(cls.data["table"]), encoding="utf-8")
+        cls.validation_id = json.loads((PROJECT_ROOT / "configs" / "vsmt" / "lean_s3_01_manifests.json").read_text(encoding="utf-8"))["validation"][0]
+        for episode_id in ("ep-0001", cls.validation_id):
+            geometry = cls.tmp / "geometry" / episode_id
+            geometry.mkdir(parents=True)
+            (geometry / og.TABLE_FILE_NAME).write_text(json.dumps(cls.data["table"]), encoding="utf-8")
         for name in ("cache", "episode"):
             (cls.tmp / name).mkdir()
         train = [labelled_frame(s, drop=("lamp" if s % 2 else None), new=(s % 3 == 0)) for s in range(30, 36)]
@@ -757,7 +759,7 @@ class RulingOneHundredFourMetricsOnlyTests(unittest.TestCase):
                       episode_id="ep-0001", arm=arm, config=json.dumps(CONFIGS[arm]), descriptor="vitb14", weights=None, heads=heads,
                       output_root=str(out), frames=None, device="cpu", allow_dirty=True, dedup_override=None, dormancy_override=None,
                       oracle_association=False, oracle_existence=None, oracle_recall=False, trace_residuals=False,
-                      recall_global_count=None, mask_source="simulator_instance_masks", metrics_only=metrics_only)
+                      recall_global_count=None, mask_source="simulator_instance_masks", metrics_only=metrics_only, manifest_split=None)
         values.update(override)
         return argparse.Namespace(**values)
 
@@ -813,6 +815,15 @@ class RulingOneHundredFourMetricsOnlyTests(unittest.TestCase):
             with self.subTest(override=override):
                 self.assertEqual(self.run_entry(self.args("TAF", out=out, metrics_only=True, **override)), 2)
         self.assertFalse(out.exists())
+
+    def test_the_manifest_split_guard(self) -> None:
+        out = self.tmp / "split"
+        self.assertEqual(self.run_entry(self.args("TAF", out=out, metrics_only=True, manifest_split="validation")), 2)  # ep-0001
+        self.assertFalse(out.exists())
+        self.assertEqual(self.run_entry(self.args("TAF", out=out, metrics_only=True, manifest_split="train", episode_id=self.validation_id)), 2)
+        self.assertEqual(self.run_entry(self.args("TAF", out=out, metrics_only=True, manifest_split="validation",
+                                                  episode_id=self.validation_id)), 0)
+        self.assertTrue((out / self.validation_id / "TAF" / audit_module.AUDIT_FILE_NAME).exists())
 
     def test_a_merge_keeps_one_mode_and_the_metrics_only_merge_keeps_the_reports(self) -> None:
         root = self.tmp / "merge-metrics"

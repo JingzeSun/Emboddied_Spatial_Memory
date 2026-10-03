@@ -307,12 +307,21 @@ def main() -> int:
                              "count where the label function and ELU-P's decisions differ (ruling 104-2 G4)")
     parser.add_argument("--no-training-records", action="store_true",
                         help="do not write the teacher's training records (a pass that trains nothing on them, e.g. the fit pass)")
+    parser.add_argument("--manifest-split", default=None, choices=("train", "validation"),
+                        help="ruling 104-6: refuse an episode that is not in this split of the S3 manifest (every S3-03 pass names it)")
     parser.add_argument("--allow-dirty", action="store_true", help="tests only")
     args = parser.parse_args()
     refusal = lean_test_seal.refusal([args.cache_root, args.episode_root, args.geometry_root], reader="s2-04")  # ruling 103-1: sealed S3 test roots are read only by S3-05
     if refusal:
         print(f"[s2-04] refused: {refusal}", file=sys.stderr)
         return 2
+    if args.manifest_split:  # ruling 104-6: an S3-03 pass reads only episodes of its manifest split
+        from vsmt import lean_s3_03
+
+        problem = lean_s3_03.manifest_split_refusal(args.episode_id, args.manifest_split)
+        if problem:
+            print(f"[s2-04] refused: {problem}", file=sys.stderr)
+            return 2
 
     contract = ev.validate_evaluation_contract(load_json(S2_04_CONTRACT))
     runner_contract = lr.validate_runner_contract(load_json(s2_01.S2_01_CONTRACT))

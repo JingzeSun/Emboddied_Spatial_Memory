@@ -60,6 +60,18 @@ class TestMarkerAndGuard(unittest.TestCase):
         self.assertIsNone(ts.refusal([train_root, train_root / HOUSES[1], None, ""], reader="r"))
         self.assertIn("ruling 103-1", ts.refusal([test_root], reader="r"))
 
+    def test_a_root_one_level_above_a_test_root_is_refused(self) -> None:
+        caches = self.base / "caches"
+        test_root, train_root = caches / "test", caches / "train"
+        write(test_root / HOUSES[0] / "0000.cache.json.gz", "x")
+        write(train_root / HOUSES[1] / "0000.cache.json.gz", "x")
+        write(caches / "README.txt", "a file beside the split roots")
+        ts.write_marker(test_root, kind="sam2_cache", state=ts.STATE_PENDING)
+        self.assertEqual(ts.sealed_marker(caches), test_root / ts.MARKER_NAME)  # ruling 104-6: one level down
+        self.assertIn("sealed_test_root:", ts.refusal([caches], reader="r"))
+        self.assertIsNone(ts.refusal([self.base], reader="r"))  # two levels above: not a root of test data by itself
+        self.assertIsNone(ts.refusal([train_root, train_root / HOUSES[1]], reader="r"))  # a sibling stays readable
+
     def test_marker_states(self) -> None:
         with self.assertRaises(ts.LeanTestSealError):
             ts.write_marker(self.base, kind="raw", state=ts.STATE_SEALED)  # a sealed marker names its seal

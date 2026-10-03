@@ -107,6 +107,26 @@ class TestFinishStreams(unittest.TestCase):
 
 
 
+class ManifestSplitTests(unittest.TestCase):
+    """Ruling 104-6: with --manifest-split an episode outside that split is refused before anything is read or written."""
+
+    def test_a_validation_episode_is_refused_by_a_train_pass(self) -> None:
+        import contextlib
+        import io
+        from unittest import mock
+
+        manifest = json.loads((PROJECT_ROOT / "configs" / "vsmt" / "lean_s3_01_manifests.json").read_text(encoding="utf-8"))
+        with tempfile.TemporaryDirectory() as tmp:
+            argv = ["entry", "--cache-root", tmp, "--episode-root", tmp, "--geometry-root", tmp, "--episode-id", manifest["validation"][0],
+                    "--arm", "TAF", "--config", "{}", "--descriptor", "vitb14", "--mask-source", "simulator_instance_masks",
+                    "--output-root", str(Path(tmp) / "out"), "--manifest-split", "train"]
+            err = io.StringIO()
+            with contextlib.redirect_stderr(err), mock.patch.object(sys, "argv", argv):
+                self.assertEqual(entry.main(), 2)
+            self.assertIn("episode_not_in_the_s3_train_manifest", err.getvalue())
+            self.assertFalse((Path(tmp) / "out").exists())
+
+
 class FrameDigestTests(unittest.TestCase):
     """Ruling 76 (4)(a): the reader recomputes the S1-02 frame digest from the bytes it read."""
 

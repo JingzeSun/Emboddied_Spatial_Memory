@@ -4,8 +4,9 @@
 的入口拒绝读 test 根，S3-05 先核对封印再读，且只读一次。这个模块做三件事：
   * 标记：每个 test 根放一个 ``TEST_SEALED.json``。生成期间是“待封印”（``pending``，还没有摘要）；S3-02 把四个根都生成完以后，
     算出封印并把标记换成带封印摘要的正式标记（``sealed``）；
-  * 守卫：``refuse_sealed(paths, reader=...)``——给定的任一路径本身或它的任一上级目录里有这个标记就拒绝；读取数据的入口在加载任何
-    数据之前调用它，所以 test 根即使被误传给训练、选参或审计入口，也在读第一帧之前就停下；
+  * 守卫：``refuse_sealed(paths, reader=...)``——给定的任一路径本身、它的任一上级目录，或（裁决 104-6）它的任一直接子目录里有
+    这个标记就拒绝；读取数据的入口在加载任何数据之前调用它，所以 test 根即使被误传给训练、选参或审计入口，也在读第一帧之前就停下，
+    把三个 split 的上一级目录传进来也一样被挡住；
   * 封印：逐 episode 计算目录树摘要（每个文件的相对路径、字节数与 sha256 排序后再求 sha256），原始 episode、几何重载、实例分割
     cache、SAM2 cache 四类根各一份，连同根下各阶段回执的摘要写成一个封印文件；S3-05 用 ``verify_seal`` 重算并逐项比对。
 输入是四个 test 根的路径与 test 名单，输出是标记、封印与核对结果。例如有人把 SAM2 cache 的 test 根传给节点审计入口，入口报出挡住
@@ -94,13 +95,19 @@ def write_marker(root: Path, *, kind: str, state: str, seal_digest: str | None =
 
 
 def sealed_marker(path: str | Path) -> Path | None:
-    """The marker that covers ``path`` (in the path itself or in any directory above it), or None."""
+    """The marker that covers ``path``, or None: in the path itself, in any directory above it, or (ruling 104-6) in a directory
+    directly below it -- a root one level above a test root, such as the parent of the three split roots, holds test data too."""
 
     resolved = Path(path).resolve()
     for candidate in (resolved, *resolved.parents):
         marker = candidate / MARKER_NAME
         if marker.is_file():
             return marker
+    if resolved.is_dir():
+        for child in sorted(resolved.iterdir()):
+            marker = child / MARKER_NAME
+            if marker.is_file():
+                return marker
     return None
 
 

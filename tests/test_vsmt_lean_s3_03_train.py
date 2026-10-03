@@ -130,6 +130,14 @@ class S3RulesTests(unittest.TestCase):
         with self.assertRaises(s3.LeanS3_03Error):
             s3.manifest_houses(MANIFEST, "test")
 
+    def test_the_manifest_split_guard(self):
+        self.assertIsNone(s3.manifest_split_refusal(MANIFEST["train"][0], "train"))
+        self.assertIsNone(s3.manifest_split_refusal(MANIFEST["validation"][0], "validation"))
+        self.assertIn("episode_not_in_the_s3_train_manifest", s3.manifest_split_refusal(MANIFEST["validation"][0], "train"))
+        self.assertIn("episode_not_in_the_s3_validation_manifest", s3.manifest_split_refusal(MANIFEST["train"][0], "validation"))
+        self.assertIn("split_not_readable_in_s3_03:test", s3.manifest_split_refusal(MANIFEST["test"][0], "test"))
+        self.assertEqual(s3.load_manifest(), MANIFEST)
+
     def test_the_training_settings_are_the_evaluated_recipe(self):
         import argparse
 
