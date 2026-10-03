@@ -179,11 +179,11 @@ class EntryTests(unittest.TestCase):
                     handle.write(json.dumps({"tick": tick, **record}) + "\n")
         return root
 
-    def reference(self, sources: list[tuple[Path, str]]) -> tuple[list[dict], list[dict]]:
+    def reference(self, sources: list[tuple[Path, str]], *, file: str = "training_records.jsonl.gz") -> tuple[list[dict], list[dict]]:
         train, validation = [], []
         for root, arm in sources:
             for house in sorted(p.name for p in root.iterdir()):
-                rows = list(entry.read_records(root / house / arm / "training_records.jsonl.gz"))
+                rows = list(entry.read_records(root / house / arm / file))
                 (train if house in self.training_houses else validation).extend(rows)
         return train, validation
 
@@ -227,6 +227,19 @@ class EntryTests(unittest.TestCase):
         self.assertFalse((out / "weights_grouped.json").exists())
         self.assertTrue(receipt["assoc_only"])
         self.assertEqual(receipt["uses"], "total")
+
+    def test_heuristic_label_trains_on_its_own_records(self):
+        heuristic = self.write_pass("dagger_round_0", "ELU-P", file="heuristic_training_records.jsonl.gz")
+        out = self.tmp / "training" / "round0" / "HeuristicLabel"
+        self.assertEqual(entry.main(["train", "--source", f"{heuristic}:ELU-P:heuristic", "--arm", "HeuristicLabel", "--round", "0",
+                                     "--seed", "7", "--out-dir", str(out), "--threads", "1"]), 0)
+        receipt = json.loads((out / "training_receipt.json").read_text(encoding="utf-8"))
+        train, validation = self.reference([(heuristic, "ELU-P")], file="heuristic_training_records.jsonl.gz")
+        expected = model.train_heads(train, validation, learning_rate=1e-3, weight_decay=1e-4, epochs=20, seed=7, assoc_only=False,
+                                     **RECIPE_99_1)
+        self.assertEqual(receipt["weights_sha256"], expected["weights"]["sha256"])
+        self.assertEqual(receipt["label_source"], "heuristic")
+        self.assertIsNone(receipt["group_selection"])  # round 0 keeps the total-loss selection
 
     def test_refusals(self):
         round0 = self.write_pass("dagger_round_0", "ELU-P")

@@ -86,6 +86,17 @@ class TestFinishStreams(unittest.TestCase):
         large.close()
         self.assertEqual(len(entry._reread(large.path)), len(self.rows))
 
+    def test_a_pass_without_training_records_writes_no_file(self):
+        labels, _, nuisance = self.streams()
+        training = entry.NullStream(self.dir / "skipped.jsonl.gz")
+        for row in self.rows[:10]:
+            training.write({"tick": row["tick"], "targets": []})
+            nuisance.write(row)
+        result = entry.finish_streams(labels, training, nuisance)
+        self.assertEqual(result["training_file_bytes"], 0)
+        self.assertEqual(result["nuisance_rows_written"], 10)
+        self.assertFalse((self.dir / "skipped.jsonl.gz").exists())
+
     def test_row_count_mismatch_is_refused(self):
         labels, training, nuisance = self.streams()
         for row in self.rows[:10]:

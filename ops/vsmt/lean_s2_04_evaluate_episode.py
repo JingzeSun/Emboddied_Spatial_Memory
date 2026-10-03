@@ -24,9 +24,17 @@ labels, training records and nuisance rows, closes the three streams, re-reads t
 seven-metric report, the diagnostics and the nuisance probes.  Multi-episode, multi-arm
 orchestration is S2-05.
 
+S3-03 options (ruling 104): ``--heuristic-labels <ELU-P configuration JSON>`` also writes HeuristicLabel's
+training records (``heuristic_training_records.jsonl.gz``, ``lean_heuristic_label``) and a ``heuristic_records``
+receipt block whose ``reproduction`` counts, on ELU-P's own trajectory at that configuration, the rows where the
+label function and ELU-P's decisions differ (ruling 104-2 G4 needs none); ``--no-training-records`` writes no
+teacher training record.
+
 白话：这个入口把 S2-01 的 runner 和 S2-04 的 teacher 接在一起跑一条 episode、一个臂。公开阶段先跑，
 每帧回执带着两段封存摘要，私有侧凭它打开这一帧的实例图与位姿打标签、记账、算指标输入；跑完写七项
-指标。它不编排多条 episode（S2-05），不训练。
+指标。它不编排多条 episode（S2-05），不训练。S3-03 起可加 ``--heuristic-labels``：同一趟顺带写一份
+HeuristicLabel 的训练记录（标签是 ELU-P 在 rollout_config 下会作的决定），在 ELU-P 自己的轨迹上还逐行
+核对标签与臂的决定一致；``--no-training-records`` 则不写 teacher 训练记录（用不上它们的趟省盘）。
 """
 
 from __future__ import annotations
@@ -226,6 +234,20 @@ def peak_rss_bytes() -> int:
         return 0
 
 
+class NullStream:
+    """A stream that writes nothing (``--no-training-records``): the pass needs no training record, only its other outputs."""
+
+    def __init__(self, path: Path) -> None:
+        self.path = path
+        self.rows = 0
+
+    def write(self, row: dict[str, Any]) -> None:
+        return None
+
+    def close(self) -> int:
+        return 0
+
+
 class Stream:
     def __init__(self, path: Path) -> None:
         self.handle = gzip.open(path, "wb", compresslevel=6)
@@ -279,6 +301,12 @@ def main() -> int:
     parser.add_argument("--elu-p-counts", action="store_true", help="S2-05 fit pass: also write the ELU-P count records")
     parser.add_argument("--mask-source", required=True, choices=list(diag.fc.MASK_SOURCES),
                         help="ruling 72: the mask source the cache must be sealed with; a cache of the other source is refused")
+    parser.add_argument("--heuristic-labels", default=None,
+                        help="ruling 104-1 1c: an ELU-P configuration at the rollout_config with the S3 fitted values; also write "
+                             "HeuristicLabel's training records (heuristic_training_records.jsonl.gz), and on ELU-P's own trajectory "
+                             "count where the label function and ELU-P's decisions differ (ruling 104-2 G4)")
+    parser.add_argument("--no-training-records", action="store_true",
+                        help="do not write the teacher's training records (a pass that trains nothing on them, e.g. the fit pass)")
     parser.add_argument("--allow-dirty", action="store_true", help="tests only")
     args = parser.parse_args()
     refusal = lean_test_seal.refusal([args.cache_root, args.episode_root, args.geometry_root], reader="s2-04")  # ruling 103-1: sealed S3 test roots are read only by S3-05
@@ -303,6 +331,17 @@ def main() -> int:
     commit = _git("rev-parse", "HEAD")
     config = json.loads(args.config)
     lr.validate_arm_config(args.arm, config)
+    labeller = None
+    if args.heuristic_labels:  # ruling 104-1 1c; checked before anything is read or written
+        from vsmt import lean_heuristic_label as hl
+
+        try:
+            if args.arm == "AssocOnly":
+                raise hl.LeanHeuristicLabelError("heuristic_labels_need_the_existence_step")
+            labeller = hl.HeuristicLabeller(json.loads(args.heuristic_labels))
+        except ValueError as exc:  # the labeller's and the runner's refusals, and malformed JSON
+            print(f"[s2-04] refused: --heuristic-labels {exc}", file=sys.stderr)
+            return 2
 
     scorer = None
     if args.arm in lr.LEARNED_ARMS:
@@ -345,8 +384,9 @@ def main() -> int:
         collector = dev.CalibrationCollector() if args.calibration else None
         counter = (dev.EluPCounter(geometry_table=table, executed_interventions=executed, window=window, policy=policy["teacher"])
                    if args.elu_p_counts else None)
-    labels_stream, training_stream, nuisance_stream = (Stream(out_dir / name) for name in
-                                                       ("labels.jsonl.gz", "training_records.jsonl.gz", "nuisance.jsonl.gz"))
+    labels_stream, nuisance_stream = Stream(out_dir / "labels.jsonl.gz"), Stream(out_dir / "nuisance.jsonl.gz")
+    training_stream = (NullStream if args.no_training_records else Stream)(out_dir / "training_records.jsonl.gz")
+    heuristic_stream = Stream(out_dir / "heuristic_training_records.jsonl.gz") if labeller is not None else None
     started = time.time()
     receipts: list[dict[str, Any]] = []
     state = None
@@ -377,12 +417,22 @@ def main() -> int:
         if counter is not None:
             counter.observe(step, cache_frame=cache_frame, private_record=record, evidence=teacher.evidence)
         training_stream.write({"tick": labelled["tick"], **labelled["training_record"]})
+        if labeller is not None:
+            heuristic = labeller.label(step, arm=args.arm, arm_config=config)
+            heuristic_stream.write({"tick": labelled["tick"], **heuristic["training_record"]})
         nuisance_stream.write({"tick": labelled["tick"], **labelled["nuisance"]})
         labels_stream.write({k: v for k, v in labelled.items() if k not in ("training_record", "nuisance")})
         mark = time.time()
     summary = lr.episode_summary(state, receipts)
     episode = teacher.episode_report()
     streams = finish_streams(labels_stream, training_stream, nuisance_stream)  # closed before the re-read (LOG-256)
+    if heuristic_stream is not None:
+        summary["heuristic_records"] = {**labeller.summary(), "file": heuristic_stream.path.name, "rows": heuristic_stream.rows,
+                                        "file_bytes": heuristic_stream.close()}
+        reproduction = summary["heuristic_records"]["reproduction"]
+        if reproduction is not None and (reproduction["fragment_mismatches"] or reproduction["existence_mismatches"]):
+            print(f"[s2-04] HeuristicLabel labels differ from ELU-P's decisions on its own trajectory: {reproduction}", file=sys.stderr)
+    summary["training_records_written"] = not args.no_training_records
     summary.update({
         "stage": ev.STAGE_ID, "code_commit": commit, "cache_root": str(cache_dir), "episode_root": str(episode_root),
         "episode_seal_sha256": seal["payload_sha256"], "mask_source": args.mask_source, "frames_requested": args.frames, "config": config,
