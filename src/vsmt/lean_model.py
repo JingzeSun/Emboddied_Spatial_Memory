@@ -39,7 +39,7 @@ from __future__ import annotations
 
 import hashlib
 import math
-from typing import Any, Mapping, Sequence
+from typing import Any, Callable, Iterable, Mapping, Sequence
 
 import numpy as np
 
@@ -176,33 +176,77 @@ def encode_rows_numpy(rows: Any, names: Sequence[str]) -> Any:
     return matrix
 
 
+def _encoding_entry(name: str, columns: Mapping[int, Any], rows: int) -> dict[str, Any]:
+    """One head's statistics from its encoded (log1p already applied) non-identity columns, by field index."""
+
+    names = HEAD_FEATURES[name]
+    kinds = [FIELD_ENCODING[field] for field in names]
+    mean, std = [0.0] * len(names), [1.0] * len(names)
+    for index, column in columns.items():
+        mean[index] = float(column.mean())
+        spread = float(column.std())
+        std[index] = spread if spread >= 1e-8 else 1.0
+    return {"fields": list(names), "kinds": kinds, "log1p": [1.0 if k == "log1p_standardize" else 0.0 for k in kinds],
+            "mean": mean, "std": std, "rows": rows}
+
+
+def _head_tables(record: Mapping[str, Any]) -> tuple[tuple[str, Sequence[Mapping[str, Any]]], ...]:
+    return (("association", record["stage_a"]["association_rows"]), ("birth", record["stage_a"]["birth_rows"]),
+            ("existence", record["existence_rows"]))
+
+
 def field_encoding_statistics(records: Sequence[Mapping[str, Any]], *, heads: Sequence[str] = HEAD_NAMES) -> dict[str, Any]:
     """Per head: which fields take log1p, and the mean / std the encoding subtracts and divides by (training houses only)."""
 
     tables: dict[str, list[list[float]]] = {name: [] for name in heads}
     for record in records:
-        if "association" in tables:
-            tables["association"].extend(row["features"] for row in record["stage_a"]["association_rows"])
-        if "birth" in tables:
-            tables["birth"].extend(row["features"] for row in record["stage_a"]["birth_rows"])
-        if "existence" in tables:
-            tables["existence"].extend(row["features"] for row in record["existence_rows"])
+        for name, rows in _head_tables(record):
+            if name in tables:
+                tables[name].extend(row["features"] for row in rows)
     out: dict[str, Any] = {}
     for name in heads:
         names = HEAD_FEATURES[name]
-        kinds = [FIELD_ENCODING[field] for field in names]
-        mean, std = [0.0] * len(names), [1.0] * len(names)
+        columns: dict[int, Any] = {}
         if tables[name]:
             matrix = encode_rows_numpy(tables[name], names)
-            for index, kind in enumerate(kinds):
-                if kind == "identity":
-                    continue
-                column = matrix[:, index]
-                mean[index] = float(column.mean())
-                spread = float(column.std())
-                std[index] = spread if spread >= 1e-8 else 1.0
-        out[name] = {"fields": list(names), "kinds": kinds, "log1p": [1.0 if k == "log1p_standardize" else 0.0 for k in kinds],
-                     "mean": mean, "std": std, "rows": len(tables[name])}
+            columns = {index: matrix[:, index] for index, field in enumerate(names) if FIELD_ENCODING[field] != "identity"}
+        out[name] = _encoding_entry(name, columns, len(tables[name]))
+    return out
+
+
+def field_encoding_statistics_streamed(records: Iterable[Mapping[str, Any]], *, heads: Sequence[str] = HEAD_NAMES) -> dict[str, Any]:
+    """``field_encoding_statistics`` over records read one at a time (ruling 104-3, the first of the two streamed passes).
+
+    Only the fields the encoding standardises are kept, one float64 column each, so neither the raw records nor the
+    identity fields are ever all in memory.  The numbers are those of ``field_encoding_statistics``: the same float64
+    values in the same row order, log1p on the same contiguous clipped column, numpy's mean and population std of the
+    column (pinned by test against the whole-matrix function, beyond numpy's pairwise-summation block sizes).
+
+    白话：编码统计要用训练 house 的全部特征行，现行做法先把全部原始记录读进内存再算（S3 第 1 轮约 85 GB）。这里逐条读，
+    只留下要标准化的那几列（每列一个连续的 float64 数组），读完一条就丢；算出的均值与标准差与整表算法逐位相同。
+    """
+
+    keep = {name: [index for index, field in enumerate(HEAD_FEATURES[name]) if FIELD_ENCODING[field] != "identity"] for name in heads}
+    chunks: dict[str, list[Any]] = {name: [] for name in heads}
+    counts = {name: 0 for name in heads}
+    for record in records:
+        for name, rows in _head_tables(record):
+            if name not in chunks or not rows:
+                continue
+            matrix = np.asarray([row["features"] for row in rows], dtype=np.float64).reshape(-1, len(HEAD_FEATURES[name]))
+            chunks[name].append(matrix[:, keep[name]])
+            counts[name] += matrix.shape[0]
+    out: dict[str, Any] = {}
+    for name in heads:
+        columns: dict[int, Any] = {}
+        if counts[name]:
+            for position, index in enumerate(keep[name]):
+                column = np.concatenate([chunk[:, position] for chunk in chunks[name]])
+                if FIELD_ENCODING[HEAD_FEATURES[name][index]] == "log1p_standardize":
+                    column = np.log1p(np.clip(column, 0.0, None))
+                columns[index] = column
+        chunks[name] = []
+        out[name] = _encoding_entry(name, columns, counts[name])
     return out
 
 
@@ -612,13 +656,38 @@ def _mean_loss(heads: Any, prepared_records: Sequence[Mapping[str, Any]], *, exi
     return float(np.mean(values)) if values else None
 
 
+def _check_training_values(*, learning_rate: Any, weight_decay: Any, epochs: Any, seed: Any) -> None:
+    for name, value in (("learning_rate", learning_rate), ("weight_decay", weight_decay), ("epochs", epochs), ("seed", seed)):
+        _require(value is not None, f"training_value_not_frozen:{name}")
+    _require(_finite(learning_rate, "learning_rate_invalid") > 0.0, "learning_rate_invalid")
+    _require(_finite(weight_decay, "weight_decay_invalid") >= 0.0, "weight_decay_invalid")
+    _require(type(epochs) is int and epochs >= 1, "epochs_invalid")
+    _require(type(seed) is int and seed >= 0, "seed_invalid")
+
+
+def _trained_head_names(assoc_only: bool) -> list[str]:
+    return [n for n in HEAD_NAMES if not (assoc_only and n == "existence")]
+
+
+def _existence_class_weight(frames: Sequence[Mapping[str, Any]], *, device: str) -> tuple[Any, dict[str, Any]]:
+    """Ruling 89-2 (a): pos_weight = present rows / gone rows over the training frames (prepared or batched alike)."""
+
+    import torch
+
+    gone = sum(int(round(float(p["existence"][1].sum().item()))) for p in frames if p["existence"] is not None)
+    total = sum(p["existence"][2] for p in frames if p["existence"] is not None)
+    _require(gone >= 1 and total - gone >= 1, "existence_class_weight_needs_both_classes")
+    class_counts = {"gone": gone, "present": total - gone, "pos_weight": (total - gone) / gone}
+    return torch.as_tensor([(total - gone) / gone], dtype=torch.float32, device=device), class_counts
+
+
 def train_heads(
     train_records: Sequence[Mapping[str, Any]], validation_records: Sequence[Mapping[str, Any]], *,
     learning_rate: float | None, weight_decay: float | None, epochs: int | None, seed: int | None,
     assoc_only: bool, device: str = "cpu", epoch_callback: Any = None,
     field_encoding: bool = False, existence_class_weight: bool = False,
     cosine_min_learning_rate: float | None = None, gradient_clip_norm: float | None = None,
-    existence_prior_correction: bool = False, group_selection: bool = False,
+    existence_prior_correction: bool = False, group_selection: bool = False, best_callback: Any = None,
 ) -> dict[str, Any]:
     """Train the heads once and keep the best-validation epoch; every value explicit, None refused.
 
@@ -635,35 +704,90 @@ def train_heads(
     同样的数据、同样的值、同一设备两次训练权重逐位相同。损失出现非有限值即判发散并如实返回。
     ``epoch_callback(epoch, heads)``（裁决 79-3，只读诊断用，默认不调用）在每个 epoch 的 validation 之后
     被调用一次，此时头处于 eval 模式；它不得改动头或优化器，训练结果与不传时逐位相同。
+    ``best_callback(snapshot)``（裁决 104-7 推测执行，默认不调用）在其后被调用，拿到“到目前为止最好的”检查点
+    （总损失与分组各自的），用 ``snapshot_weights`` 可以写出此刻若训练结束会返回的权重；它同样只读。
+    ``train_heads_streamed`` 是同一训练的流式版本（S3-03），两者逐位相同。
     """
 
-    import torch
-
-    for name, value in (("learning_rate", learning_rate), ("weight_decay", weight_decay), ("epochs", epochs), ("seed", seed)):
-        _require(value is not None, f"training_value_not_frozen:{name}")
-    _require(_finite(learning_rate, "learning_rate_invalid") > 0.0, "learning_rate_invalid")
-    _require(_finite(weight_decay, "weight_decay_invalid") >= 0.0, "weight_decay_invalid")
-    _require(type(epochs) is int and epochs >= 1, "epochs_invalid")
-    _require(type(seed) is int and seed >= 0, "seed_invalid")
+    _check_training_values(learning_rate=learning_rate, weight_decay=weight_decay, epochs=epochs, seed=seed)
     _require(len(train_records) >= 1 and len(validation_records) >= 1, "training_records_missing")
     # every record checked and turned into tensors once, in the order the checks ran before (see ``prepare_frame``)
     train_prepared = [prepare_frame(record, device=device) for record in train_records]
     validation_prepared = [prepare_frame(record, device=device) for record in validation_records]
-    encoding = field_encoding_statistics(train_records, heads=[n for n in HEAD_NAMES if not (assoc_only and n == "existence")]) \
-        if field_encoding else None
-    pos_weight, class_counts = None, None
-    if existence_class_weight and not assoc_only:
-        gone = sum(int(round(float(p["existence"][1].sum().item()))) for p in train_prepared if p["existence"] is not None)
-        total = sum(p["existence"][2] for p in train_prepared if p["existence"] is not None)
-        _require(gone >= 1 and total - gone >= 1, "existence_class_weight_needs_both_classes")
-        class_counts = {"gone": gone, "present": total - gone, "pos_weight": (total - gone) / gone}
-        pos_weight = torch.as_tensor([(total - gone) / gone], dtype=torch.float32, device=device)
-
+    encoding = field_encoding_statistics(train_records, heads=_trained_head_names(assoc_only)) if field_encoding else None
+    pos_weight, class_counts = (_existence_class_weight(train_prepared, device=device) if existence_class_weight and not assoc_only
+                                else (None, None))
     loss_fn = prepared_loss
     if field_encoding:  # the ruling-89 recipe: one forward per head per frame (batch_prepared), same loss
         train_prepared = [batch_prepared(p, device=device) for p in train_prepared]
         validation_prepared = [batch_prepared(p, device=device) for p in validation_prepared]
         loss_fn = batched_loss
+    return _train_on_frames(
+        train_prepared, validation_prepared, loss_fn=loss_fn, encoding=encoding, pos_weight=pos_weight, class_counts=class_counts,
+        learning_rate=learning_rate, weight_decay=weight_decay, epochs=epochs, seed=seed, assoc_only=assoc_only, device=device,
+        epoch_callback=epoch_callback, best_callback=best_callback, field_encoding=field_encoding,
+        existence_class_weight=existence_class_weight, cosine_min_learning_rate=cosine_min_learning_rate,
+        gradient_clip_norm=gradient_clip_norm, existence_prior_correction=existence_prior_correction, group_selection=group_selection)
+
+
+def train_heads_streamed(
+    train_records: Callable[[], Iterable[Mapping[str, Any]]], validation_records: Callable[[], Iterable[Mapping[str, Any]]], *,
+    learning_rate: float | None, weight_decay: float | None, epochs: int | None, seed: int | None,
+    assoc_only: bool, device: str = "cpu", epoch_callback: Any = None,
+    field_encoding: bool = False, existence_class_weight: bool = False,
+    cosine_min_learning_rate: float | None = None, gradient_clip_norm: float | None = None,
+    existence_prior_correction: bool = False, group_selection: bool = False, best_callback: Any = None,
+) -> dict[str, Any]:
+    """``train_heads`` on records read one at a time (ruling 104-3; the approved reading "流式准备、留在 CPU", 2026-10-03).
+
+    ``train_records`` and ``validation_records`` are callables that return a fresh iterator over the records each time
+    they are called, in the order ``train_heads`` would get them as lists.  With the field-wise encoding the training
+    records are read twice: the first pass keeps only the columns the encoding standardises
+    (``field_encoding_statistics_streamed``); the second turns each record into its prepared (and batched) tensors and
+    drops the record.  Everything after preparation is the same function as ``train_heads``, so the weights, curves and
+    per-epoch terms are bit-identical (pinned by test, and on the server by the training equivalence probe, ruling 104-2).
+
+    白话：现行训练先把全部原始记录读进内存（每条记录约 170 KB，S3 第 1 轮每个进程约 85 GB），再转张量。这里逐条读：
+    第一遍只取算编码统计要的那几列，第二遍逐条转成张量、原始记录读完即丢，内存只剩张量（约为原来的 3%）。
+    训练本身与 ``train_heads`` 是同一段代码，结果逐位相同。它不改配方、不改选点，只改数据怎样进内存。
+    """
+
+    _check_training_values(learning_rate=learning_rate, weight_decay=weight_decay, epochs=epochs, seed=seed)
+    encoding = (field_encoding_statistics_streamed(train_records(), heads=_trained_head_names(assoc_only)) if field_encoding
+                else None)
+
+    def prepared(source: Callable[[], Iterable[Mapping[str, Any]]]) -> list[dict[str, Any]]:
+        frames = []
+        for record in source():
+            frame = prepare_frame(record, device=device)
+            frames.append(batch_prepared(frame, device=device) if field_encoding else frame)
+        return frames
+
+    train_frames = prepared(train_records)
+    validation_frames = prepared(validation_records)
+    _require(len(train_frames) >= 1 and len(validation_frames) >= 1, "training_records_missing")
+    pos_weight, class_counts = (_existence_class_weight(train_frames, device=device) if existence_class_weight and not assoc_only
+                                else (None, None))
+    return _train_on_frames(
+        train_frames, validation_frames, loss_fn=batched_loss if field_encoding else prepared_loss, encoding=encoding,
+        pos_weight=pos_weight, class_counts=class_counts, learning_rate=learning_rate, weight_decay=weight_decay, epochs=epochs,
+        seed=seed, assoc_only=assoc_only, device=device, epoch_callback=epoch_callback, best_callback=best_callback,
+        field_encoding=field_encoding, existence_class_weight=existence_class_weight, cosine_min_learning_rate=cosine_min_learning_rate,
+        gradient_clip_norm=gradient_clip_norm, existence_prior_correction=existence_prior_correction, group_selection=group_selection)
+
+
+def _train_on_frames(
+    train_prepared: Sequence[Mapping[str, Any]], validation_prepared: Sequence[Mapping[str, Any]], *, loss_fn: Any,
+    encoding: Mapping[str, Any] | None, pos_weight: Any, class_counts: Mapping[str, Any] | None,
+    learning_rate: float, weight_decay: float, epochs: int, seed: int, assoc_only: bool, device: str, epoch_callback: Any,
+    best_callback: Any, field_encoding: bool, existence_class_weight: bool, cosine_min_learning_rate: float | None,
+    gradient_clip_norm: float | None, existence_prior_correction: bool, group_selection: bool,
+) -> dict[str, Any]:
+    """The training loop of ``train_heads`` on frames already prepared (and batched under the field-wise encoding)."""
+
+    import torch
+
+    offset = -math.log(float(pos_weight.item())) if existence_prior_correction and pos_weight is not None else None
     heads = make_heads(assoc_only=assoc_only, seed=int(seed), encoding=encoding).to(device)
     optimiser = torch.optim.AdamW(heads.parameters(), lr=float(learning_rate), weight_decay=float(weight_decay))
     generator = torch.Generator(device="cpu").manual_seed(int(seed))
@@ -681,7 +805,7 @@ def train_heads(
             for group in optimiser.param_groups:
                 group["lr"] = rate
         heads.train()
-        order = torch.randperm(len(train_records), generator=generator).tolist()
+        order = torch.randperm(len(train_prepared), generator=generator).tolist()
         total, count = 0.0, 0
         epoch_terms = _TermMeans()
         for index in order:
@@ -722,6 +846,10 @@ def train_heads(
                                                            for name in members})
         if epoch_callback is not None:
             epoch_callback(epoch, heads)
+        if best_callback is not None:  # ruling 104-7: read-only, like epoch_callback
+            best_callback({"epoch": epoch, "heads": heads, "best": None if best is None else (best[1], best[2]),
+                           "best_by_group": {group: (entry[1], entry[2]) for group, entry in best_by_group.items()},
+                           "existence_logit_offset": offset, "group_selection": bool(group_selection)})
     _require(best is not None or diverged, "validation_loss_undefined_on_every_epoch")
     if best is not None:
         with torch.no_grad():
@@ -730,14 +858,14 @@ def train_heads(
     training = {"optimizer": OPTIMIZER, "learning_rate": learning_rate, "weight_decay": weight_decay, "epochs": epochs,
                 "seed": seed, "assoc_only": assoc_only, "batch": BATCH_RULE, "early_stopping": EARLY_STOPPING_RULE,
                 "initialisation": INITIALISATION_RULE,
-                "best_epoch": None if best is None else best[1], "train_frames": len(train_records),
-                "validation_frames": len(validation_records), "device": device, "diverged": diverged}
+                "best_epoch": None if best is None else best[1], "train_frames": len(train_prepared),
+                "validation_frames": len(validation_prepared), "device": device, "diverged": diverged}
     if field_encoding or existence_class_weight:
         training.update({"field_encoding": bool(field_encoding), "existence_class_weight": class_counts,
                          "existence_class_weight_rule": EXISTENCE_CLASS_WEIGHT_RULE if existence_class_weight else None,
                          "updates_taken": updates_taken})
-    if existence_prior_correction and pos_weight is not None:  # pending ruling 91 only
-        heads.existence_logit_offset = -math.log(float(pos_weight.item()))
+    if offset is not None:  # pending ruling 91 only
+        heads.existence_logit_offset = offset
     if cosine_min_learning_rate is not None or gradient_clip_norm is not None or existence_prior_correction:
         training.update({"existence_prior_correction": bool(existence_prior_correction),"cosine_min_learning_rate": cosine_min_learning_rate, "gradient_clip_norm": gradient_clip_norm,
                          "schedule_rule": COSINE_SCHEDULE_RULE})
@@ -758,6 +886,47 @@ def train_heads(
         grouped_training = dict(training, selection_rule=GROUP_SELECTION_RULE, best_epoch_by_group=epochs_by_group)
         out["grouped"] = {"weights": weights_payload(grouped, training=grouped_training), "heads": grouped,
                           "best_epoch_by_group": epochs_by_group}
+    return out
+
+
+def snapshot_weights(snapshot: Mapping[str, Any]) -> dict[str, Any]:
+    """The weights a training would return if it ended at this epoch end (ruling 104-7, speculation by weights digest).
+
+    ``snapshot`` is what ``best_callback`` receives.  The payloads are built the way ``train_heads`` builds its result -- a
+    copy of the heads with the best state loaded and the prior offset set, then, under group selection, a copy with each
+    group's best state -- so at the epoch the run finally keeps, their digests equal the final ones (pinned by test); the
+    live heads are not touched.  The ``training`` block of a snapshot only names the epochs (no digest covers ``training``).
+
+    白话：推测执行要在训练还没结束时，就知道“如果现在停，会留下哪份权重”。输入是回调拿到的当前最好检查点，输出是同样
+    构造的权重文件；训练结束时最终选中的权重若与某次快照相同，两者的摘要逐位相等，下游按摘要认领推测产物。它不改训练。
+    """
+
+    import copy
+
+    import torch
+
+    if snapshot["best"] is None:
+        return {"weights": None, "grouped": None, "best_epoch": None, "best_epoch_by_group": None}
+    best_epoch, best_state = snapshot["best"]
+    heads = copy.deepcopy(snapshot["heads"])
+    with torch.no_grad():
+        for name, state in best_state.items():
+            heads[name].load_state_dict(state)
+    if snapshot["existence_logit_offset"] is not None:
+        heads.existence_logit_offset = snapshot["existence_logit_offset"]
+    training = {"snapshot_epoch": snapshot["epoch"], "best_epoch": best_epoch}
+    out: dict[str, Any] = {"weights": weights_payload(heads, training=training), "grouped": None, "best_epoch": best_epoch,
+                           "best_epoch_by_group": None}
+    if snapshot["group_selection"]:
+        grouped = copy.deepcopy(heads)
+        epochs_by_group = {group: None for group, members, _ in GROUP_SELECTION if all(name in heads for name in members)}
+        with torch.no_grad():
+            for group, (epoch_index, states) in snapshot["best_by_group"].items():
+                for name, state in states.items():
+                    grouped[name].load_state_dict(state)
+                epochs_by_group[group] = epoch_index
+        out["grouped"] = weights_payload(grouped, training=dict(training, best_epoch_by_group=epochs_by_group))
+        out["best_epoch_by_group"] = epochs_by_group
     return out
 
 
@@ -906,6 +1075,7 @@ __all__ = [
     "GROUP_SELECTION_RULE",
     "WEIGHTS_SCHEMA_VERSION_FIELD_WISE",
     "field_encoding_statistics",
+    "field_encoding_statistics_streamed",
     "batch_prepared",
     "batched_loss",
     "INITIALISATION_RULE",
@@ -936,8 +1106,10 @@ __all__ = [
     "make_heads",
     "parameter_count",
     "recipe_matches_contract",
+    "snapshot_weights",
     "train_heads",
     "train_heads_by_updates",
+    "train_heads_streamed",
     "updates_per_pass",
     "validate_training_record",
     "weights_payload",
