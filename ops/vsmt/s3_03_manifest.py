@@ -62,8 +62,12 @@ DOCUMENT_FILES = ("README.md", "EXECUTE.md", "AGENTS.md")
 DOCUMENT_PREFIXES = ("docs/", "results/")
 #: Ruling 104-7 priorities: control jobs (gates, probes, merges) > the critical path > learned-arm audits > rule-arm audits.
 PRIORITY = {"control": 0, "critical": 1, "learned_audit": 2, "rule_audit": 3}
-#: Memory classes (GiB) before the first measurement of each; afterwards 1.25 x the measured peak (S2-06 rule).
-MEMORY_DEFAULTS_GIB = {"pass": 4.0, "audit": 4.0, "audit_full": 6.0, "train": 24.0, "gate": 6.0, "small": 2.0}
+#: Memory classes (GiB) before the first measurement of each; afterwards 1.25 x the measured peak (S2-06 rule).  S2-06 measured
+#: 2.0 GiB for one pass or audit process (1.25 x the peak of its largest episode) and 10.5 GiB for a development-scale training;
+#: S3 trainings stream, so their peak is unknown before the first one ends.  Round-1 trainings read about twice round 0's records
+#: and the probes far less, so each has its own class and no measurement lowers another's estimate.
+MEMORY_DEFAULTS_GIB = {"pass": 4.0, "audit": 4.0, "audit_full": 6.0, "train0": 24.0, "train1": 24.0, "train_probe": 12.0, "gate": 6.0,
+                       "small": 2.0}
 TIMING_TRAINING_HOUSES = 20
 TIMING_SELECTION_HOUSES = TIMING_TRAINING_HOUSES // 4  # s3_03_train.subset takes a quarter as many selection houses
 PROBE_TRAIN_HOUSES = 12
@@ -337,7 +341,7 @@ def build_jobs(ctx: RunContext) -> list[pool.Job]:
             round0_ids.append(job_id)
         jobs.append(pool.Job(f"{front}/gate-r0", "gate_round0", tuple(round0_ids), P["control"], 0.0, 1, "gate",
                              lambda f=front: ctx.manifest("gate-round0", "--front", f), exit_status={3: "gate_failed"}))
-        jobs.append(pool.Job(f"{front}/probe-train", "probe_train", (f"{front}/gate-r0", "train-threads"), P["control"], 0.0, None, "train",
+        jobs.append(pool.Job(f"{front}/probe-train", "probe_train", (f"{front}/gate-r0", "train-threads"), P["control"], 0.0, None, "train_probe",
                              lambda f=front: [ctx.python, str(TRAIN_ENTRY), "probe", "--source", f"{ctx.pass_root(f, 'round0')}:ELU-P:teacher",
                                               "--arm", "VSMT-lean", "--round", "0", "--houses", str(PROBE_TRAIN_HOUSES), "--epochs", "1",
                                               "--threads", str(ctx.train_threads()), "--out", str(ctx.gates_dir(f) / "train_probe.json")],
@@ -346,7 +350,7 @@ def build_jobs(ctx: RunContext) -> list[pool.Job]:
         round1_ids: dict[str, list[str]] = {}
         for arm in s3.TRAINED_ARMS:
             jobs.append(pool.Job(f"{front}/t0/{arm}", "train0", (f"{front}/gate-r0", "train-threads"), P["critical"], TRAINING_COST, None,
-                                 "train", lambda f=front, a=arm: ctx.train(f, a, 0, arms.SEEDS[0]),
+                                 "train0", lambda f=front, a=arm: ctx.train(f, a, 0, arms.SEEDS[0]),
                                  outputs=(str(ctx.training_dir(front, 0, arm, arms.SEEDS[0])),), retries=1, exit_status={3: "diverged"}))
             round1_ids[arm] = []
             for episode in train:
@@ -363,10 +367,10 @@ def build_jobs(ctx: RunContext) -> list[pool.Job]:
                 round1_ids[arm].append(job_id)
             for seed in arms.SEEDS:
                 jobs.append(pool.Job(f"{front}/t1/{arm}/s{seed}", "train1", (f"{front}/gate-r0", f"{front}/t0/{arm}", *round1_ids[arm]),
-                                     P["critical"], TRAINING_COST, None, "train", lambda f=front, a=arm, s=seed: ctx.train(f, a, 1, s),
+                                     P["critical"], TRAINING_COST, None, "train1", lambda f=front, a=arm, s=seed: ctx.train(f, a, 1, s),
                                      outputs=(str(ctx.training_dir(front, 1, arm, seed)),), retries=1, exit_status={3: "diverged"}))
         jobs.append(pool.Job(f"{front}/coverage", "coverage", (*round0_ids, *round1_ids["VSMT-lean"]), P["control"], 0.0, 1, "gate",
-                             lambda f=front: ctx.manifest("coverage", "--front", f)))
+                             lambda f=front: ctx.manifest("coverage", "--front", f), stops_on_failure=False))  # report only
         merge_ids = []
         for arm, seeded in s3.SELECTION_ARMS.items():
             configs = list(enumerate(audit_configs(arm)))
@@ -408,7 +412,7 @@ def build_jobs(ctx: RunContext) -> list[pool.Job]:
     first = ctx.fronts[0]
     training_houses, selection_houses = training_house_order(ctx, first)
     timing_deps = tuple(f"{first}/r0/{house}" for house in training_houses[:TIMING_TRAINING_HOUSES] + selection_houses[:TIMING_SELECTION_HOUSES])
-    jobs.append(pool.Job("timing", "timing", timing_deps, PRIORITY["control"], 0.0, 4, "train",
+    jobs.append(pool.Job("timing", "timing", timing_deps, PRIORITY["control"], 0.0, 4, "train_probe",
                          lambda: [ctx.python, str(TRAIN_ENTRY), "time", "--source", f"{ctx.pass_root(first, 'round0')}:ELU-P:teacher",
                                   "--arm", "VSMT-lean", "--round", "0", "--houses", str(TIMING_TRAINING_HOUSES), "--threads", "1,2,3,4",
                                   "--out", str(ctx.run_root / "train_timing.json")]))
@@ -418,7 +422,8 @@ def build_jobs(ctx: RunContext) -> list[pool.Job]:
         jobs.append(pool.Job("grid-reading", "grid_reading", ("instance/fit", "sam2/fit"), PRIORITY["control"], 0.0, 1, "small",
                              lambda: [ctx.python, str(GRID_REVIEW), "--calibration", str(ctx.front_dir("sam2") / "fit" / "calibration_report.json"),
                                       "--reference", str(ctx.front_dir("instance") / "fit" / "calibration_report.json"),
-                                      "--output", str(ctx.run_root / "grid_reading.json")], exit_status={4: "done"}))
+                                      "--output", str(ctx.run_root / "grid_reading.json")], exit_status={4: "done"},
+                             stops_on_failure=False))  # report only (ruling 102-6 keeps the grids)
     return jobs
 
 

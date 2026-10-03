@@ -138,6 +138,7 @@ class Job:
     exit_status: Mapping[int, str] = dataclasses.field(default_factory=dict)
     keep_partial: bool = False     # the job resumes over its own finished outputs (audits with --skip-existing)
     soft_deps: tuple[str, ...] = ()  # must have ended, in any of done / diverged / skipped (the readings over every merge)
+    stops_on_failure: bool = True    # False for a report-only job: its failure is recorded (verify names it), the run goes on
 
 
 class Pool:
@@ -352,7 +353,8 @@ class Pool:
                 state["status"] = "pending"  # ruling 104-3: a crash or an out-of-memory kill reruns once, same inputs, same seed
             elif status is None:
                 state["status"] = "failed"
-                self.stop_reason = self.stop_reason or f"failed:{job_id}"
+                if job.stops_on_failure:
+                    self.stop_reason = self.stop_reason or f"failed:{job_id}"
             else:
                 state["status"] = status
                 if status == "gate_failed":

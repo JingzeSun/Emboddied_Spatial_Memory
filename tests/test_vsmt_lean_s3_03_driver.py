@@ -141,6 +141,10 @@ class PoolTests(unittest.TestCase):
         runner = self.pool([job("t", retries=1), job("after", deps=("t",))], again, run_root=self.tmp / "refusal", retry_failed=True)
         self.assertEqual(runner.run(), 0)
         self.assertEqual(again.started, ["t", "after"])
+        launcher = FakeLauncher(codes={"reading": [1]})  # a report-only job's failure is recorded and the run goes on
+        runner = self.pool([job("reading", stops_on_failure=False), job("work", priority=3)], launcher, run_root=self.tmp / "report")
+        self.assertEqual(runner.run(), 0)
+        self.assertEqual((runner.status("reading"), runner.status("work"), runner.stop_reason), ("failed", "done", None))
 
     def test_resume_keeps_finished_jobs_sets_interrupted_ones_aside_and_guards_code_changes(self) -> None:
         state_dir = self.tmp / "run" / "jobs"
