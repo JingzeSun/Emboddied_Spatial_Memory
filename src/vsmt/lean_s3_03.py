@@ -7,14 +7,18 @@
   * 每个学习臂、每一轮的训练设置（99-1 的配方，104-1 1c／1d）：标签来源（teacher 记录或 HeuristicLabel 记录）、是否没有
     存在头（AssocOnly）、是否分组选点（第 1 轮的 VSMT-lean 与 HeuristicLabel）；
   * 清单守卫（104-6）：拟合趟、第 0／1 轮轨迹只收 S3 train 清单里的 episode，validation 审计只收 validation 清单里的，test 一律
-    不给。
-输入是已提交的清单与臂名，输出是名单与设置。例如第 1 轮的 HeuristicLabel 读 ``heuristic_training_records.jsonl.gz``，分组选点；
-一条 validation episode 被误交给第 0 轮轨迹，入口报出它不在 train 清单并以退出码 2 结束。它不读任何数据、不训练、不选配置。
+    不给；
+  * 选参读数（104-1 1f）：一套前端的全部 validation 审计（每臂每配置，学习臂与 AssocOnly 每个种子）按指标先定一份排除清单，
+    再算每次运行的 house 均值、学习臂的种子均值，给出 AssocOnly 的参照值和 S3-04 选参函数 ``select_configuration`` 的输入。
+输入是已提交的清单与臂名（读数还要各次运行的逐 episode 报告），输出是名单、设置与读数。例如第 1 轮的 HeuristicLabel 读
+``heuristic_training_records.jsonl.gz``，分组选点；一条 validation episode 被误交给第 0 轮轨迹，入口报出它不在 train 清单并以
+退出码 2 结束。它不读任何数据文件、不训练，也不选配置（选择在 S3-04）。
 """
 
 from __future__ import annotations
 
 import json
+import statistics
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
@@ -96,6 +100,112 @@ def manifest_houses(manifest: Mapping[str, Any], split: str) -> list[str]:
     return [str(house) for house in houses]
 
 
+#: Ruling 104-1 1f: the validation runs S3-03 reads per front end -- arm -> whether it runs at each registered seed.
+SELECTION_ARMS = {"VSMT-lean": True, "NoVersion": True, "HeuristicLabel": True, "AssocOnly": True,
+                  "TAF": False, "ELU-P": False, "RAC": False, "LOW": False, "HandCost": False}
+SELECTION_READING_RULE = (
+    "ruling 104-1 1f: per front end and metric one exclusion list over every validation run read (each arm and configuration, "
+    "the learned arms and AssocOnly at each seed present): a house is excluded for every run when the metric is undefined in "
+    "any applicable run (an arm without RETRACT is not applicable to the false-retract metrics); a run's reading is the mean of "
+    "its headline values over the remaining houses; an arm with seeds reads the mean over the seeds present and names a missing "
+    "seed; S3-03 writes the readings and the AssocOnly reference, S3-04 chooses with select_configuration"
+)
+
+
+def _run_key(arm: str, index: int, seed: int | None) -> str:
+    return f"{arm}|{index}|{'-' if seed is None else seed}"
+
+
+def selection_readings(runs: Sequence[Mapping[str, Any]], *, mask_source: str) -> dict[str, Any]:
+    """Ruling 104-1 1f: the validation readings of one front end, and the inputs S3-04's ``select_configuration`` takes.
+
+    ``runs`` lists every validation audit group of that front end as ``{"arm", "config_index", "config", "seed" (None for a rule
+    arm), "reports": {episode_id: report}}``; every registered configuration of every arm must be present (an arm with seeds at
+    one seed at least), and every run must cover the same episodes.
+    """
+
+    from vsmt import lean_arms as arms
+    from vsmt import lean_evaluation as ev
+    from vsmt import lean_teacher as lt
+
+    _require(bool(runs), "selection_readings_need_runs")
+    grids = {arm: arms.enumerate_configs(arm, arms.FROZEN_GRIDS[arm]) for arm in SELECTION_ARMS}
+    keys: dict[str, Mapping[str, Any]] = {}
+    houses: set[str] | None = None
+    for run in runs:
+        arm, index, seed = str(run["arm"]), int(run["config_index"]), run.get("seed")
+        _require(arm in SELECTION_ARMS, f"selection_arm_unknown:{arm}")
+        _require(0 <= index < len(grids[arm]), f"selection_config_index_invalid:{arm}:{index}")
+        _require({name: run["config"][name] for name in arms.GRID_PARAMETERS[arm]} == grids[arm][index],
+                 f"selection_config_not_the_grid_member:{arm}:{index}")
+        _require((seed in arms.SEEDS) if SELECTION_ARMS[arm] else seed is None, f"selection_seed_invalid:{arm}:{seed}")
+        key = _run_key(arm, index, seed)
+        _require(key not in keys, f"selection_run_duplicated:{key}")
+        covered = set(map(str, run["reports"]))
+        _require(houses is None or covered == houses, f"selection_runs_cover_different_episodes:{key}")
+        houses = covered
+        keys[key] = run
+    present = {(str(r["arm"]), int(r["config_index"])) for r in runs}
+    for arm, configs in grids.items():
+        missing = [index for index in range(len(configs)) if (arm, index) not in present]
+        _require(not missing, f"selection_runs_incomplete:{arm}:{missing}")
+    ordered_houses = sorted(houses or ())
+    _require(bool(ordered_houses), "selection_readings_need_episodes")
+    without_retract = set(arms.arms_without_atom("RETRACT"))
+    metrics: dict[str, Any] = {}
+    run_means: dict[str, dict[str, float | None]] = {key: {} for key in keys}
+    for metric, field in ev.HEADLINE_FIELD.items():
+        not_applicable = sorted(arm for arm in SELECTION_ARMS if metric in lt.METRIC_NOT_APPLICABLE_RULE and arm in without_retract)
+        applicable = [key for key, run in keys.items() if str(run["arm"]) not in not_applicable]
+        table = {house: {key: keys[key]["reports"][house][metric][field] for key in applicable} for house in ordered_houses}
+        excluded = lt.undefined_houses(table, arms=applicable) if applicable else list(ordered_houses)
+        kept = [house for house in ordered_houses if house not in set(excluded)]
+        metrics[metric] = {"field": field, "excluded_houses": excluded, "effective_houses": len(kept), "not_applicable_arms": not_applicable}
+        for key in keys:
+            values = [float(table[house][key]) for house in kept] if key in applicable else []
+            run_means[key][metric] = statistics.fmean(values) if values else None
+    readings: dict[str, dict[str, Any]] = {}
+    for arm, configs in grids.items():
+        readings[arm] = {}
+        for index, config in enumerate(configs):
+            seeds = sorted(int(r["seed"]) for r in runs if str(r["arm"]) == arm and int(r["config_index"]) == index and r.get("seed") is not None)
+            per_seed = {str(seed): run_means[_run_key(arm, index, seed)] for seed in seeds}
+            if SELECTION_ARMS[arm]:
+                mean = {metric: (statistics.fmean([row[metric] for row in per_seed.values()])
+                                 if all(row[metric] is not None for row in per_seed.values()) else None)
+                        for metric in ev.HEADLINE_FIELD}
+            else:
+                mean = dict(run_means[_run_key(arm, index, None)])
+            readings[arm][str(index)] = {
+                "config": config, "seeds_present": seeds,
+                "seeds_missing": [seed for seed in arms.SEEDS if seed not in seeds] if SELECTION_ARMS[arm] else [],
+                "per_seed": per_seed, "mean": mean,
+            }
+    reference = readings[arms.SELECTION_REFERENCE_ARM]["0"]
+    events = {}
+    for metric in ("identity_continuity", "retrieval_success"):  # ruling 102-0 / 102-5: one set of events for every arm
+        totals = sorted({sum(int(keys[key]["reports"][house][metric]["events"]) for house in ordered_houses) for key in keys})
+        events[metric] = {"events_per_run": totals, "equal_across_runs": len(totals) == 1}
+    return {
+        "stage": STAGE, "rule": SELECTION_READING_RULE, "mask_source": mask_source, "episodes": ordered_houses,
+        "runs": sorted(keys), "metrics": metrics, "readings": readings,
+        "reference": {"arm": arms.SELECTION_REFERENCE_ARM, "config_index": 0, "seeds_present": reference["seeds_present"],
+                      "seeds_missing": reference["seeds_missing"],
+                      arms.SELECTION_CONSTRAINT_METRIC: reference["mean"]["missing_residual_rate"],
+                      arms.SELECTION_METRIC: reference["mean"]["node_prf1"]},
+        "selection_inputs": {arm: {index: {arms.SELECTION_METRIC: row["mean"]["node_prf1"],
+                                           arms.SELECTION_CONSTRAINT_METRIC: row["mean"]["missing_residual_rate"]}
+                                   for index, row in rows.items()} for arm, rows in readings.items()},
+        "key_events": {"missing_residual_rate_houses": metrics["missing_residual_rate"]["effective_houses"], **events},
+    }
+
+
+def selection_validation(readings: Mapping[str, Any], arm: str) -> dict[int, dict[str, Any]]:
+    """The mapping ``select_configuration`` takes for ``arm`` (configuration index -> its two readings), from ``selection_readings``."""
+
+    return {int(index): dict(values) for index, values in readings["selection_inputs"][arm].items()}
+
+
 def load_manifest(path: Path = MANIFEST_PATH) -> dict[str, Any]:
     return json.loads(Path(path).read_text(encoding="utf-8"))
 
@@ -123,7 +233,9 @@ __all__ = [
     "MANIFEST_SPLIT_RULE",
     "RECORD_FILES",
     "ROUNDS",
+    "SELECTION_ARMS",
     "SELECTION_HOUSE_COUNT",
+    "SELECTION_READING_RULE",
     "STAGE",
     "TRAINED_ARMS",
     "TRAINING_HOUSE_COUNT",
@@ -131,5 +243,7 @@ __all__ = [
     "load_manifest",
     "manifest_houses",
     "manifest_split_refusal",
+    "selection_readings",
+    "selection_validation",
     "training_settings",
 ]

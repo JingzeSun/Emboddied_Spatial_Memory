@@ -161,6 +161,107 @@ class S3RulesTests(unittest.TestCase):
             s3.training_settings("NoVersion", 1)  # NoVersion uses VSMT-lean's heads (ruling 99-1)
 
 
+EPISODES = ("h1", "h2", "h3", "h4")
+
+
+def synthetic_report(arm: str, index: int, seed: int | None, house: str, *, events: int = 6) -> dict:
+    """A report with every headline field, the value a deterministic function of the run and the house."""
+
+    from vsmt import lean_evaluation as ev
+
+    base = (sum(map(ord, arm)) % 7) / 100 + index / 1000 + (seed or 0) / 10000 + int(house[1:]) / 100000
+    report = {metric: {field: base} for metric, field in ev.HEADLINE_FIELD.items()}
+    for metric in ("identity_continuity", "retrieval_success"):
+        report[metric]["events"] = events
+    if arm in ("TAF", "LOW", "AssocOnly"):  # never retract: the false-retract rates are undefined everywhere
+        report["false_retract_rate"]["false_retract_rate"] = None
+        report["false_retract_rate_in_scope"]["false_retract_rate"] = None
+    return report
+
+
+def synthetic_runs(*, skip_seed: tuple[str, int] | None = None) -> list[dict]:
+    from vsmt import lean_arms as arms
+
+    runs = []
+    for arm, seeded in s3.SELECTION_ARMS.items():
+        for index, config in enumerate(arms.enumerate_configs(arm, arms.FROZEN_GRIDS[arm])):
+            for seed in (arms.SEEDS if seeded else (None,)):
+                if skip_seed is not None and (arm, seed) == skip_seed:
+                    continue
+                runs.append({"arm": arm, "config_index": index, "config": dict(config), "seed": seed,
+                             "reports": {house: synthetic_report(arm, index, seed, house) for house in EPISODES}})
+    return runs
+
+
+class SelectionReadingTests(unittest.TestCase):
+    """Ruling 104-1 1f: the validation readings S3-04 selects from."""
+
+    def test_the_readings_exclusions_means_and_reference(self):
+        from vsmt import lean_arms as arms
+
+        runs = synthetic_runs()
+        self.assertEqual(len(runs), 208)  # 31 learned configurations x 5 seeds + 53 rule configurations
+        mrr_undefined = next(r for r in runs if r["arm"] == "RAC" and r["config_index"] == 3)
+        mrr_undefined["reports"]["h3"]["missing_residual_rate"]["missing_residual_rate"] = None
+        out = s3.selection_readings(runs, mask_source="simulator_instance_masks")
+        self.assertEqual(out["metrics"]["missing_residual_rate"]["excluded_houses"], ["h3"])  # one undefined run excludes it for all
+        self.assertEqual(out["metrics"]["node_prf1"]["excluded_houses"], [])
+        self.assertEqual(out["metrics"]["false_retract_rate"]["not_applicable_arms"], ["AssocOnly", "LOW", "TAF"])
+        self.assertEqual(out["metrics"]["false_retract_rate"]["excluded_houses"], [])
+        self.assertIsNone(out["readings"]["TAF"]["0"]["mean"]["false_retract_rate"])
+        row = out["readings"]["VSMT-lean"]["2"]
+        expected = sum(sum(synthetic_report("VSMT-lean", 2, seed, h)["node_prf1"]["node_f1"] for h in EPISODES) / 4 for seed in arms.SEEDS) / 5
+        self.assertAlmostEqual(row["mean"]["node_prf1"], expected, places=15)
+        self.assertEqual(row["seeds_present"], list(arms.SEEDS))
+        self.assertEqual(row["seeds_missing"], [])
+        mrr = sum(synthetic_report("RAC", 3, None, h)["missing_residual_rate"]["missing_residual_rate"] for h in ("h1", "h2", "h4")) / 3
+        self.assertAlmostEqual(out["readings"]["RAC"]["3"]["mean"]["missing_residual_rate"], mrr, places=15)
+        self.assertEqual(out["reference"]["arm"], "AssocOnly")
+        self.assertEqual(out["reference"]["missing_residual_rate"], out["readings"]["AssocOnly"]["0"]["mean"]["missing_residual_rate"])
+        self.assertEqual(out["key_events"]["missing_residual_rate_houses"], 3)
+        self.assertTrue(out["key_events"]["identity_continuity"]["equal_across_runs"])
+        for arm in s3.SELECTION_ARMS:  # the inputs are what select_configuration takes
+            choice = arms.select_configuration(s3.selection_validation(out, arm), arm=arm,
+                                               reference_missing_residual_rate=out["reference"]["missing_residual_rate"])
+            self.assertIn(choice["selected"], range(len(out["readings"][arm])))
+        self.assertEqual(json.loads(json.dumps(out)), out)  # JSON as written
+
+    def test_a_missing_seed_is_named_and_the_mean_uses_the_seeds_present(self):
+        out = s3.selection_readings(synthetic_runs(skip_seed=("NoVersion", 31)), mask_source="sam2")
+        row = out["readings"]["NoVersion"]["0"]
+        self.assertEqual(row["seeds_missing"], [31])
+        self.assertEqual(row["seeds_present"], [7, 19, 43, 59])
+        self.assertAlmostEqual(row["mean"]["node_prf1"], sum(v["node_prf1"] for v in row["per_seed"].values()) / 4, places=15)
+
+    def test_refusals(self):
+        runs = synthetic_runs()
+        with self.assertRaisesRegex(s3.LeanS3_03Error, "selection_runs_incomplete:LOW"):
+            s3.selection_readings([r for r in runs if not (r["arm"] == "LOW" and r["config_index"] == 4)], mask_source="sam2")
+        with self.assertRaisesRegex(s3.LeanS3_03Error, "selection_run_duplicated"):
+            s3.selection_readings(runs + [runs[0]], mask_source="sam2")
+        changed = [dict(r) for r in runs]
+        changed[5] = {**changed[5], "reports": {h: v for h, v in changed[5]["reports"].items() if h != "h4"}}
+        with self.assertRaisesRegex(s3.LeanS3_03Error, "selection_runs_cover_different_episodes"):
+            s3.selection_readings(changed, mask_source="sam2")
+        wrong = [dict(r) for r in runs]
+        taf = next(i for i, r in enumerate(wrong) if r["arm"] == "TAF")
+        wrong[taf] = {**wrong[taf], "config": {"theta_a": 0.65, "d_a": None}}
+        with self.assertRaisesRegex(s3.LeanS3_03Error, "selection_config_not_the_grid_member"):
+            s3.selection_readings(wrong, mask_source="sam2")
+        seeded_rule = [dict(r) for r in runs]
+        seeded_rule[taf] = {**seeded_rule[taf], "seed": 7}
+        with self.assertRaisesRegex(s3.LeanS3_03Error, "selection_seed_invalid:TAF"):
+            s3.selection_readings(seeded_rule, mask_source="sam2")
+
+    def test_events_that_differ_between_runs_are_reported(self):
+        runs = synthetic_runs()
+        runs[0]["reports"]["h1"]["identity_continuity"]["events"] = 7
+        out = s3.selection_readings(runs, mask_source="sam2")
+        self.assertFalse(out["key_events"]["identity_continuity"]["equal_across_runs"])
+        self.assertEqual(out["key_events"]["identity_continuity"]["events_per_run"], [24, 25])
+        self.assertTrue(out["key_events"]["retrieval_success"]["equal_across_runs"])
+
+
 class EntryTests(unittest.TestCase):
     def setUp(self) -> None:
         self.tmp = Path(tempfile.mkdtemp())
