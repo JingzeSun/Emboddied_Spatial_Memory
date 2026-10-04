@@ -7,7 +7,8 @@
 按实测峰值 ×1.25 上调；每轮派发前还看 cgroup 的实时内存与数据盘剩余，越线就暂停派发。作业结束按退出码定状态：0 完成；
 登记的特殊码（训练发散记“发散”、门不过记“门未过”）；其他非零码是工程失败——训练可同输入同种子自动重跑一次（裁决 104-3），
 其余失败即停止派发新作业、等在跑的结束。续跑时已完成的作业保留（代码自那以后只改了登记文件或文档才算，否则拒绝，除非显式
-接受）；上次中断时还在跑的作业，残留输出先挪到 ``interrupted/`` 留存再重跑。输入是作业清单与机器资源，输出是每个作业的状态
+接受）；上次中断时还在跑的作业，残留输出先挪到 ``interrupted/`` 留存再重跑；训练例外：它每个 epoch 末存档，中断或崩溃后
+留在原处、从存档接着训。输入是作业清单与机器资源，输出是每个作业的状态
 文件、日志与实测内存。例如 120 核的机器上，三个第 0 轮训练一就绪就各占 4 核先走，其余空槽由审计填满。它不决定科学口径，
 命令与依赖由 ``s3_03_manifest`` 按裁决 104 生成。
 """
@@ -137,6 +138,7 @@ class Job:
     retries: int = 0
     exit_status: Mapping[int, str] = dataclasses.field(default_factory=dict)
     keep_partial: bool = False     # the job resumes over its own finished outputs (audits with --skip-existing)
+    resumable: bool = False        # the job continues from its own checkpoint (the trainings): kept after an interruption or a crash
     soft_deps: tuple[str, ...] = ()  # must have ended, in any of done / diverged / skipped (the readings over every merge)
     stops_on_failure: bool = True    # False for a report-only job: its failure is recorded (verify names it), the run goes on
     rank: int = 1                    # among jobs of one priority, a lower rank goes first (the trainings: the longest jobs)
@@ -217,13 +219,13 @@ class Pool:
         for job_id, job in self.jobs.items():
             state = self.states[job_id]
             if state["status"] == "running":  # the pool stopped while it ran: keep its partial outputs, run it again
-                if not job.keep_partial:
+                if not (job.keep_partial or job.resumable):
                     self._set_aside(job, "interrupted", state.get("attempts", 0))
                 state["history"].append({"status": "interrupted", "commit": state.get("commit"), "at_utc": utc_now()})
                 state["status"] = "pending"
                 self._save(job_id)
             elif state["status"] in ("failed", "gate_failed") and self.retry_failed:  # asked for explicitly, never by default
-                if not job.keep_partial:
+                if not (job.keep_partial or job.resumable):
                     self._set_aside(job, "failed", state.get("attempts", 0))
                 state["history"].append({"status": f"{state['status']}_then_retried_on_request", "exit": state.get("exit"),
                                          "reason": state.get("reason"), "commit": state.get("commit"), "at_utc": utc_now()})
@@ -380,7 +382,8 @@ class Pool:
             if status is None and code not in NO_RETRY_CODES and int(state.get("crashes", 0)) < job.retries:
                 state["crashes"] = int(state.get("crashes", 0)) + 1
                 state["history"].append({"status": "failed_then_rerun", "exit": code, "attempt": state["attempts"], "at_utc": utc_now()})
-                self._set_aside(job, "failed", state["attempts"])
+                if not job.resumable:  # a training continues from its last epoch-end checkpoint instead
+                    self._set_aside(job, "failed", state["attempts"])
                 state["status"] = "pending"  # ruling 104-3: a crash or an out-of-memory kill reruns once, same inputs, same seed
             elif status is None:
                 state["status"] = "failed"

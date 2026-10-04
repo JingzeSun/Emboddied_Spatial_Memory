@@ -161,6 +161,27 @@ class PoolTests(unittest.TestCase):
         self.assertTrue((self.tmp / "run" / "failed" / "t-attempt1" / "s7" / "weights.json").exists())
         self.assertEqual(launcher.envs["t"]["OMP_NUM_THREADS"], "4")  # a training gets TRAIN_THREADS
 
+    def test_a_resumable_training_keeps_its_checkpoint_after_a_crash_or_an_interruption(self) -> None:
+        out = self.tmp / "training" / "s7"
+
+        def partial(argv):
+            (out / "checkpoint").mkdir(parents=True, exist_ok=True)
+            (out / "checkpoint" / "state.pt").write_text("epoch 5", encoding="utf-8")
+
+        launcher = FakeLauncher(codes={"t": [-9, 0]}, effects={"t": partial})
+        spec = dict(cores=None, memory="train", outputs=(str(out),), retries=1, exit_status={3: "diverged"}, resumable=True)
+        self.assertEqual(self.pool([job("t", **spec)], launcher).run(), 0)
+        self.assertEqual(launcher.started, ["t", "t"])
+        self.assertTrue((out / "checkpoint" / "state.pt").exists())  # the rerun continues from it
+        self.assertFalse((self.tmp / "run" / "failed").exists())
+        state_dir = self.tmp / "run" / "jobs"
+        pool.write_json(state_dir / "t.json", {"job_id": "t", "status": "running", "commit": "c1", "attempts": 2, "history": []})
+        launcher = FakeLauncher()
+        self.assertEqual(self.pool([job("t", **spec)], launcher).run(), 0)
+        self.assertEqual(launcher.started, ["t"])
+        self.assertTrue((out / "checkpoint" / "state.pt").exists())
+        self.assertFalse((self.tmp / "run" / "interrupted").exists())
+
     def test_divergence_skips_what_it_feeds_and_soft_dependents_still_run(self) -> None:
         launcher = FakeLauncher(codes={"t": [3]})
         jobs = [job("t", exit_status={3: "diverged"}), job("audit", deps=("t",)), job("merge", deps=("audit",)),
@@ -388,6 +409,11 @@ class GraphTests(unittest.TestCase):
         self.assertEqual((self.option(argv, "--threads"), self.option(argv, "--seed"), self.option(argv, "--round")), ("3", "19", "1"))
         for job_id in ("instance/t1/VSMT-lean/s19", "instance/t0/AssocOnly", "instance/probe-train", "timing"):
             self.assertIn("--foreach", self.argv(job_id))  # ruling 104-7: pinned by the suite, probed on real records
+        jobs = {j.job_id: j for j in driver.build_jobs(self.ctx)}
+        for job_id, item in jobs.items():  # user 2026-10-04: every training continues from its checkpoint, nothing else does
+            self.assertEqual(item.resumable, item.kind in ("train0", "train1"), job_id)
+        for job_id in ("instance/t1/VSMT-lean/s19", "instance/t0/AssocOnly"):
+            self.assertIn("--checkpoint", self.argv(job_id))
         argv = self.argv("instance/t0/HeuristicLabel")
         self.assertEqual([argv[i + 1] for i, a in enumerate(argv) if a == "--source"], [f"{self.ctx.run_root / 'instance' / 'round0'}:ELU-P:heuristic"])
         argv = self.argv(f"instance/audit/NoVersion/s31/c00-04/{episode}")

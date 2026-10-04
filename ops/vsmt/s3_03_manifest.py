@@ -289,7 +289,7 @@ class RunContext:
             argv += ["--source", source]
         return argv + ["--arm", arm, "--round", str(round_index), "--seed", str(seed),
                        "--out-dir", str(self.training_dir(front, round_index, arm, seed)), "--threads", str(self.train_threads()),
-                       "--best-so-far", *(["--foreach"] if OPTIMIZER_FOREACH else [])]
+                       "--best-so-far", "--checkpoint", *(["--foreach"] if OPTIMIZER_FOREACH else [])]
 
     def manifest(self, command: str, *extra: str) -> list[str]:
         return [self.python, str(HERE), command, "--run-root", str(self.run_root), *extra]
@@ -372,7 +372,8 @@ def build_jobs(ctx: RunContext) -> list[pool.Job]:
             jobs.append(pool.Job(f"{front}/t0/{arm}", "train0", (f"{front}/gate-r0", "train-threads", f"{front}/probe-train"),
                                  P["critical"], TRAINING_COST, None,
                                  "train0", lambda f=front, a=arm: ctx.train(f, a, 0, arms.SEEDS[0]),
-                                 outputs=(str(ctx.training_dir(front, 0, arm, arms.SEEDS[0])),), retries=1, exit_status={3: "diverged"}))
+                                 outputs=(str(ctx.training_dir(front, 0, arm, arms.SEEDS[0])),), retries=1, exit_status={3: "diverged"},
+                                 resumable=True))
             round1_ids[arm] = []
             for episode in train:
                 job_id = f"{front}/r1/{arm}/{episode}"
@@ -389,7 +390,8 @@ def build_jobs(ctx: RunContext) -> list[pool.Job]:
             for seed in arms.SEEDS:
                 jobs.append(pool.Job(f"{front}/t1/{arm}/s{seed}", "train1", (f"{front}/gate-r0", f"{front}/t0/{arm}", *round1_ids[arm]),
                                      P["critical"], TRAINING_COST, None, "train1", lambda f=front, a=arm, s=seed: ctx.train(f, a, 1, s),
-                                     outputs=(str(ctx.training_dir(front, 1, arm, seed)),), retries=1, exit_status={3: "diverged"}))
+                                     outputs=(str(ctx.training_dir(front, 1, arm, seed)),), retries=1, exit_status={3: "diverged"},
+                                     resumable=True))
         jobs.append(pool.Job(f"{front}/coverage", "coverage", (*round0_ids, *round1_ids["VSMT-lean"]), P["control"], 0.0, 1, "gate",
                              lambda f=front: ctx.manifest("coverage", "--front", f), stops_on_failure=False))  # report only
         merge_ids = []

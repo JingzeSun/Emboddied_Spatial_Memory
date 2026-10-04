@@ -7,7 +7,10 @@ registered and the ruling 99-1 recipes; ``snapshot_weights`` at the last epoch c
 changes nothing; the checkpoint split of the committed S3 train manifest is 240 / 60 in manifest order; the training settings
 are the ruling 99-1 values the evaluated entry used; the entry trains the reference weights from files, writes the receipt
 with the per-epoch terms and the best-so-far pointer, and refuses episodes outside the S3 train manifest, two mask sources, a
-wrong label source, an unregistered seed, a later seed in round 0 and a sealed root; the probe reports identical.  CPU torch.
+wrong label source, an unregistered seed, a later seed in round 0 and a sealed root; the probe reports identical.  A training
+stopped between two epochs and continued from its epoch-end checkpoint equals one trained straight through (weights, grouped
+weights, curves, terms, best epoch, update count), also from the last epoch's checkpoint and through the entry; a checkpoint of
+another training is refused; the resume probe reports identical.  CPU torch.
 """
 
 from __future__ import annotations
@@ -120,6 +123,67 @@ class StreamedTrainingTests(unittest.TestCase):
             if snapshot["best_epoch_by_group"] == plain["grouped"]["best_epoch_by_group"]:
                 self.assertEqual(snapshot["grouped"]["sha256"], plain["grouped"]["weights"]["sha256"])
         model.load_heads(json.loads(json.dumps(last["grouped"])))  # its own digest holds
+
+
+class _Stop(Exception):
+    pass
+
+
+def stop_in_epoch(epoch: int):
+    def callback(snapshot):  # runs before the checkpoint of its epoch is written, as a power-off inside that epoch would
+        if snapshot["epoch"] == epoch:
+            raise _Stop()
+    return callback
+
+
+class CheckpointTests(unittest.TestCase):
+    """User 2026-10-04: a training that is stopped continues from its last epoch end, bit for bit."""
+
+    def setUp(self) -> None:
+        self.tmp = Path(tempfile.mkdtemp())
+
+    def tearDown(self) -> None:
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+    def test_a_stopped_training_continues_bit_for_bit(self):
+        train, validation = fixture_records()
+        cases = (("registered", False, {}, False),
+                 ("ruling 99-1 VSMT-lean round 1, foreach", False, {**RECIPE_99_1, "group_selection": True}, True),
+                 ("ruling 99-1 AssocOnly, foreach", True, {**RECIPE_99_1, "existence_class_weight": False}, True))
+        for name, assoc_only, kwargs, foreach in cases:
+            values = dict(learning_rate=1e-3, weight_decay=1e-4, epochs=4, seed=7, assoc_only=assoc_only, optimizer_foreach=foreach, **kwargs)
+            streams = (lambda: iter(train), lambda: iter(validation))
+            straight = model.train_heads_streamed(*streams, **values)
+            for stop in (1, 3):
+                with self.subTest(name=name, stop=stop):
+                    path = self.tmp / f"{len(name)}-{stop}" / "state.pt"
+                    with self.assertRaises(_Stop):
+                        model.train_heads_streamed(*streams, checkpoint=model.EpochCheckpoint(path, key="k"), best_callback=stop_in_epoch(stop),
+                                                   **values)
+                    second = model.EpochCheckpoint(path, key="k")
+                    resumed = model.train_heads_streamed(*streams, checkpoint=second, **values)
+                    self.assertEqual(second.resumed_from_epoch, stop)
+                    StreamedTrainingTests.check_same(self, straight, resumed)
+
+    def test_a_checkpoint_after_the_last_epoch_gives_the_same_result_and_no_checkpoint_changes_nothing(self):
+        train, validation = fixture_records()
+        values = dict(learning_rate=1e-3, weight_decay=1e-4, epochs=3, seed=19, assoc_only=False, **RECIPE_99_1, group_selection=True)
+        streams = (lambda: iter(train), lambda: iter(validation))
+        plain = model.train_heads_streamed(*streams, **values)
+        path = self.tmp / "state.pt"
+        checked = model.train_heads_streamed(*streams, checkpoint=model.EpochCheckpoint(path, key="k"), **values)
+        StreamedTrainingTests.check_same(self, plain, checked)  # writing checkpoints changes nothing
+        again = model.EpochCheckpoint(path, key="k")  # e.g. stopped after the loop, before the receipt was written
+        StreamedTrainingTests.check_same(self, plain, model.train_heads_streamed(*streams, checkpoint=again, **values))
+        self.assertEqual(again.resumed_from_epoch, 3)
+
+    def test_a_checkpoint_of_another_training_is_refused(self):
+        train, validation = fixture_records()
+        values = dict(learning_rate=1e-3, weight_decay=1e-4, epochs=2, seed=7, assoc_only=False)
+        path = self.tmp / "state.pt"
+        model.train_heads_streamed(lambda: iter(train), lambda: iter(validation), checkpoint=model.EpochCheckpoint(path, key="a"), **values)
+        with self.assertRaisesRegex(model.LeanModelError, "checkpoint_key_mismatch"):
+            model.train_heads_streamed(lambda: iter(train), lambda: iter(validation), checkpoint=model.EpochCheckpoint(path, key="b"), **values)
 
 
 class AdamWForeachTests(unittest.TestCase):
@@ -434,6 +498,53 @@ class EntryTests(unittest.TestCase):
         self.assertEqual(timing["timings"][1]["thread_settings"]["requested"], 2)
         choice = s3_03_jobs.choose_train_threads({row["threads"]: row["epoch_seconds"] for row in timing["timings"]}, cores=8)
         self.assertIn(choice["train_threads"], (1, 2))
+
+    def test_an_interrupted_entry_training_continues_from_its_checkpoint(self):
+        from unittest import mock
+
+        round0 = self.write_pass("dagger_round_0", "ELU-P")
+        round1 = self.write_pass("dagger_round_1", "VSMT-lean")
+        argv = ["train", "--source", f"{round0}:ELU-P:teacher", "--source", f"{round1}:VSMT-lean:teacher", "--arm", "VSMT-lean",
+                "--round", "1", "--seed", "7", "--threads", "1", "--best-so-far", "--checkpoint", "--foreach"]
+        straight = self.tmp / "straight"
+        self.assertEqual(entry.main(argv + ["--out-dir", str(straight)]), 0)
+        first = json.loads((straight / "training_receipt.json").read_text(encoding="utf-8"))
+        self.assertIsNone(first["checkpoint"]["resumed_from_epoch"])
+        stopped = self.tmp / "stopped"
+        original = model.EpochCheckpoint.save
+
+        def save_then_stop(checkpoint, state):
+            original(checkpoint, state)
+            if state["next_epoch"] == 6:
+                raise _Stop()  # as a power-off right after the checkpoint of epoch 5
+
+        with mock.patch.object(model.EpochCheckpoint, "save", save_then_stop), self.assertRaises(_Stop):
+            entry.main(argv + ["--out-dir", str(stopped)])
+        self.assertFalse((stopped / "training_receipt.json").exists())
+        self.assertEqual(entry.main(argv + ["--out-dir", str(stopped)]), 0)
+        second = json.loads((stopped / "training_receipt.json").read_text(encoding="utf-8"))
+        self.assertEqual(second["checkpoint"]["resumed_from_epoch"], 6)
+        self.assertEqual(second["checkpoint"]["key"], first["checkpoint"]["key"])
+        for key in ("weights_sha256", "group_selection", "train_curve", "validation_curve", "train_curve_terms", "validation_curve_terms",
+                    "best_epoch", "updates_taken"):
+            self.assertEqual(first[key], second[key], key)
+        pointer = json.loads((stopped / "best_so_far" / "pointer.json").read_text(encoding="utf-8"))
+        self.assertEqual(pointer["grouped"]["sha256"], second["group_selection"]["weights_sha256"])
+        other = self.tmp / "other"  # a checkpoint of another training (here seed 7's under a seed-19 command) is refused
+        shutil.copytree(stopped / "checkpoint", other / "checkpoint")
+        self.assertEqual(entry.main([*argv[:argv.index("--seed")], "--seed", "19", *argv[argv.index("--seed") + 2:], "--out-dir", str(other)]), 2)
+        self.assertFalse((other / "training_receipt.json").exists())
+
+    def test_the_resume_probe_reports_identical(self):
+        round0 = self.write_pass("dagger_round_0", "ELU-P")
+        probe = self.tmp / "probe-resume.json"
+        self.assertEqual(entry.main(["probe-resume", "--source", f"{round0}:ELU-P:teacher", "--arm", "VSMT-lean", "--round", "0",
+                                     "--houses", "2", "--epochs", "3", "--stop-after", "1", "--threads", "1", "--out", str(probe),
+                                     "--foreach"]), 0)
+        report = json.loads(probe.read_text(encoding="utf-8"))
+        self.assertTrue(report["identical"])
+        self.assertEqual(report["resumed_from_epoch"], 1)
+        self.assertTrue(all(report["compared"].values()))
 
     def test_the_probe_reports_identical(self):
         round0 = self.write_pass("dagger_round_0", "ELU-P")

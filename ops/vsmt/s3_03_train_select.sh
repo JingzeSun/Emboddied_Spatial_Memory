@@ -39,8 +39,9 @@
 #   the round-1 fallback; user 2026-10-04 on the memory-bound CPU host; scheduling only; the live cgroup guard still pauses
 #   dispatch; recorded in workers.json).
 # Resume: run 'all' again; finished jobs are kept (only the fit registration files and documents may change since), jobs that
-#   were interrupted are set aside under $RUN_ROOT/interrupted and rerun, audits keep their finished configurations; the
-#   adoption choice of the first run is kept. Exit status: 0 when verify passed, otherwise the failing step's code (the status
+#   were interrupted are set aside under $RUN_ROOT/interrupted and rerun, audits keep their finished configurations, trainings
+#   continue from their last epoch-end checkpoint (bit-identical to an uninterrupted training); the adoption choice of the first
+#   run is kept. Exit status: 0 when verify passed, otherwise the failing step's code (the status
 #   JSON says which).
 set -u
 WORKTREE=$(cd "$(dirname "$0")/../.." && pwd)
