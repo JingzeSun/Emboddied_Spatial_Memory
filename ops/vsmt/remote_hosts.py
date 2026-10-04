@@ -306,10 +306,15 @@ def cmd_remote_run(args: argparse.Namespace) -> int:
     process = subprocess.Popen(ssh_argv(host, remote_job_command(command, cwd=args.cwd, env=env, pidfile=pidfile)))
     stopping = threading.Event()
 
-    def on_term(signum, frame):  # the pool was stopped: stop the job on the host too, then end
+    def on_term(signum, frame):  # the pool was stopped: stop the job on the host, bring back what it finished, then end
         stopping.set()
         subprocess.run(ssh_argv(host, stop_stale_command(pidfile, rss)), capture_output=True, timeout=60)
         process.terminate()
+        try:  # finished audit configurations and the last training checkpoint are whole files (written by rename)
+            for path in pulls:
+                subprocess.run(pull_argv(host, path), capture_output=True, timeout=300)
+        except Exception:
+            pass
         sys.exit(128 + signum)
 
     signal.signal(signal.SIGTERM, on_term)

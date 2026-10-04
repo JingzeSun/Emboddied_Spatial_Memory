@@ -416,7 +416,7 @@ class Pool:
             runner = [*self.remote_runner, "--run-root", str(self.run_root), "--host", host.name, "--rss", str(rss)]
             runner += [item for path in job.remote_push for item in ("--push", path)]
             runner += [item for path in job.remote_pull for item in ("--pull", path)]
-            if job.resumable:
+            if job.resumable or job.keep_partial:  # a training's checkpoints, an audit's finished configurations
                 runner += ["--pull-every", str(REMOTE_PULL_EVERY_SECONDS)]
             runner += [item for key, value in thread_environment(cores).items() for item in ("--env", f"{key}={value}")]
             command = [*runner, "--", *command]

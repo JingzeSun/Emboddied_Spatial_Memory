@@ -235,6 +235,11 @@ class PoolTests(unittest.TestCase):
         self.assertIn("OMP_NUM_THREADS=1", command)
         self.assertNotIn("--pull-every", command)
         self.assertEqual(command[command.index("--") + 1:][:2], ["job", "a1"])  # the same command as it would run here
+        partial = FakeLauncher()  # an audit that keeps its finished configurations has them pulled back while it runs
+        second, _ = self.remote_pool([job("here", cores=1, priority=0), job("k", kind="audit", keep_partial=True, remote_pull=("/run/k",))],
+                                     partial, [h1], budget_cores=1, run_root=self.tmp / "partial")
+        self.assertEqual(second.run(), 0)
+        self.assertIn("--pull-every", partial.commands["k"])
         self.assertEqual(launcher.commands["a3"], ["job", "a3"])
 
     def test_a_transport_failure_requeues_the_job_and_suspends_the_host(self) -> None:
