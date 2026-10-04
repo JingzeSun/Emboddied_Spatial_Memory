@@ -34,7 +34,10 @@
 #   the check reads train and validation from their roots, which must already be complete by S3-02's own rules -- so both front
 #   ends' validation caches must be done -- and records what they rest on; the first full check after the export must find the
 #   same episodes and digests or the run stops, and verify refuses inputs that are still provisional),
-#   BUDGET_CORES (the pool's core budget instead of the cgroup quota, e.g. to leave the S3-02 SAM2 cache its cores; recorded).
+#   BUDGET_CORES (the pool's core budget instead of the cgroup quota, e.g. to leave the S3-02 SAM2 cache its cores; recorded),
+#   MEMORY_FIXED_GIB ("train1=5.5 audit=2 ...": a fixed reservation per memory class instead of 1.25 x the measured peak and
+#   the round-1 fallback; user 2026-10-04 on the memory-bound CPU host; scheduling only; the live cgroup guard still pauses
+#   dispatch; recorded in workers.json).
 # Resume: run 'all' again; finished jobs are kept (only the fit registration files and documents may change since), jobs that
 #   were interrupted are set aside under $RUN_ROOT/interrupted and rerun, audits keep their finished configurations; the
 #   adoption choice of the first run is kept. Exit status: 0 when verify passed, otherwise the failing step's code (the status
@@ -109,6 +112,7 @@ OPTIONS=()
 [ -n "${ADOPT_CALIBRATION_INSTANCE:-}" ] && OPTIONS+=(--adopt-calibration "instance=$ADOPT_CALIBRATION_INSTANCE")
 [ -n "${ADOPT_CALIBRATION_SAM2:-}" ] && OPTIONS+=(--adopt-calibration "sam2=$ADOPT_CALIBRATION_SAM2")
 for ITEM in ${MEMORY_GIB:-}; do OPTIONS+=(--memory-gib "$ITEM"); done
+for ITEM in ${MEMORY_FIXED_GIB:-}; do OPTIONS+=(--memory-fixed-gib "$ITEM"); done
 [ "$ACCEPT_CODE_CHANGE" = "1" ] && OPTIONS+=(--accept-code-change)
 [ "${RETRY_FAILED:-0}" = "1" ] && OPTIONS+=(--retry-failed)
 [ -n "${BUDGET_CORES:-}" ] && OPTIONS+=(--budget-cores "$BUDGET_CORES")

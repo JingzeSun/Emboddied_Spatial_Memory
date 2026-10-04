@@ -792,6 +792,11 @@ def cmd_run(args: argparse.Namespace) -> int:
     for item in args.memory_gib or []:
         key, value = item.split("=", 1)
         defaults[key] = float(value)
+    fixed = {}
+    for item in args.memory_fixed_gib or []:  # user 2026-10-04: tighter reservations on a memory-bound host; the live guard stays
+        key, value = item.split("=", 1)
+        _require(float(value) > 0, f"memory_fixed_gib_not_positive:{item}")
+        fixed[key] = float(value)
     write_json(run_root / "workers.json", {"budget_cores": cores, "budget_gib": round(gib, 1), "reserve_cores": pool.RESERVE_CORES,
                                            "reserve_gib": pool.RESERVE_GIB, "memory_defaults_gib": defaults, "resources": info,
                                            "rule": ("ruling 104-3: cores and memory from the cgroup (cpu.max, memory.max), 2 cores and 8 GiB kept "
@@ -801,14 +806,19 @@ def cmd_run(args: argparse.Namespace) -> int:
                                            "memory_guard": ("cgroup memory.stat anon+shmem" if pool.cgroup_process_bytes() is not None else
                                                             "unavailable here (no cgroup v2 memory.stat): dispatch never pauses on memory"),
                                            "memory_fallbacks": {"train1": "2 x the measured round-0 peak until a round-1 training is measured"},
-                                           "inflight_gib_per_running_job": INFLIGHT_GIB})
+                                           "inflight_gib_per_running_job": INFLIGHT_GIB,
+                                           "memory_fixed_gib": fixed or None,
+                                           "memory_fixed_rule": ("an operator's reservation per class (MEMORY_FIXED_GIB) replaces the measured "
+                                                                 "peak x 1.25 and the fallback; scheduling only, no output changes; the live "
+                                                                 "cgroup guard still pauses dispatch") if fixed else None})
     jobs = build_jobs(ctx)
     runner = pool.Pool(jobs, run_root=run_root, log_dir=Path(args.log_dir), budget_cores=cores, budget_gib=gib, memory_defaults=defaults,
                        train_threads=ctx.train_threads, commit=head, code_change=disallowed_changes,
                        accept_code_change=args.accept_code_change, poll_seconds=args.poll_seconds, disk_root=run_root,
                        min_free_gib=args.min_free_gib, memory_limit_bytes=memory_bytes - int(pool.RESERVE_GIB * 2 ** 30),
                        wrapper=[ctx.python, str(JOBS_SCRIPT), "run-measured"], retry_failed=args.retry_failed,
-                       memory_fallbacks={"train1": ("train0", 2.0)}, inflight_gib=INFLIGHT_GIB, group_order=ctx.fronts)
+                       memory_fallbacks={"train1": ("train0", 2.0)}, inflight_gib=INFLIGHT_GIB, group_order=ctx.fronts,
+                       memory_fixed=fixed)
     print(f"[s3-03-run] {len(jobs)} jobs, {cores} cores, {round(gib, 1)} GiB, fronts {list(ctx.fronts)}, commit {head[:12]}", flush=True)
     code = runner.run()
     print(f"[s3-03-run] finished: {runner.stop_reason or 'all jobs ended'}")
@@ -1263,6 +1273,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     run.add_argument("--retry-failed", action="store_true", help="rerun failed and gate-failed jobs (their outputs set aside first)")
     run.add_argument("--adopt-calibration", action="append", help="<front>=<calibration pass root> (the S3 pre-fit), reproduced first")
     run.add_argument("--memory-gib", action="append", help="<class>=<GiB>: a default before the first measurement")
+    run.add_argument("--memory-fixed-gib", action="append", help="<class>=<GiB>: a fixed reservation (no margin, no fallback); recorded")
     run.add_argument("--budget-cores", type=int, default=None)
     run.add_argument("--memory-bytes", type=int, default=None)
     run.add_argument("--poll-seconds", type=float, default=2.0)

@@ -256,6 +256,16 @@ class PoolTests(unittest.TestCase):
         self.assertEqual(launcher.started, [])
         self.assertTrue(runner.stop_reason.startswith("disk_below"))
 
+    def test_a_fixed_reservation_replaces_the_measured_peak_and_the_fallback(self) -> None:
+        # user 2026-10-04 on the memory-bound CPU host: MEMORY_FIXED_GIB reserves exactly what the operator names
+        runner = self.pool([job("p")], FakeLauncher(), memory_fallbacks={"train1": ("pass", 2.0)},
+                           memory_fixed={"train1": 5.5, "pass": 1.5, "huge": 1e6})
+        runner.measured["pass"] = 6 * 2 ** 30
+        self.assertEqual(runner.gib_for("pass"), 1.5)  # not 7.5 (1.25 x the measured 6 GiB)
+        self.assertEqual(runner.gib_for("train1"), 5.5)  # not the 2 x fallback
+        self.assertEqual(runner.gib_for("huge"), 64.0)  # never above the budget
+        self.assertEqual(runner.gib_for("small"), 1.0)  # an unnamed class keeps the measured/default rule
+
     def test_the_thread_choice(self) -> None:
         choice = pool.choose_train_threads({1: 10.0, 2: 6.0, 3: 5.0, 4: 4.0}, cores=100)
         self.assertEqual(choice["train_threads"], 3)  # 4 threads fit only 25 at once: two waves of 4 s (8) lose to one of 5 s

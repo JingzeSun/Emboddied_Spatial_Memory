@@ -154,7 +154,7 @@ class Pool:
                  launch: Callable[..., Any] | None = None, wrapper: Sequence[str] | None = None,
                  sleep: Callable[[float], None] = time.sleep, retry_failed: bool = False,
                  memory_fallbacks: Mapping[str, tuple[str, float]] | None = None, inflight_gib: float = 0.0,
-                 group_order: Sequence[str] = ()) -> None:
+                 group_order: Sequence[str] = (), memory_fixed: Mapping[str, float] | None = None) -> None:
         self.jobs = {job.job_id: job for job in jobs}
         _require(len(self.jobs) == len(jobs), "job_ids_repeat")
         for job in jobs:
@@ -177,6 +177,7 @@ class Pool:
         self.sleep = sleep
         self.retry_failed = retry_failed
         self.memory_fallbacks = dict(memory_fallbacks or {})
+        self.memory_fixed = {name: float(value) for name, value in (memory_fixed or {}).items()}
         self.inflight_gib = float(inflight_gib)
         self.group_rank = {name: index for index, name in enumerate(group_order)}
         self.round = 0
@@ -254,6 +255,8 @@ class Pool:
         return max(1, min(int(cores), self.budget_cores))
 
     def gib_for(self, memory_class: str) -> float:
+        if memory_class in self.memory_fixed:  # an operator's reservation (MEMORY_FIXED_GIB, recorded): no margin, no fallback
+            return min(float(self.memory_fixed[memory_class]), self.budget_gib)
         default = float(self.memory_defaults.get(memory_class, self.memory_defaults.get("default", 4.0)))
         peak = self.measured.get(memory_class)
         if not peak and memory_class in self.memory_fallbacks:  # e.g. round 1 from round 0's peak, until round 1 is measured
