@@ -627,7 +627,7 @@ def finish_admission(run_root: Path, args: argparse.Namespace, kinds: list[str],
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    sub = parser.add_subparsers(dest="command", required=True)
+    sub = parser.add_subparsers(dest="action", required=True)
     run = sub.add_parser("remote-run")
     run.add_argument("--run-root", required=True)
     run.add_argument("--host", required=True)
@@ -653,7 +653,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             command.add_argument("--train-houses", type=int, default=6)
     args = parser.parse_args(argv)
     try:
-        return {"remote-run": cmd_remote_run, "setup": cmd_setup, "admit": cmd_admit}[args.command](args)
+        return {"remote-run": cmd_remote_run, "setup": cmd_setup, "admit": cmd_admit}[args.action](args)
     except RemoteError as exc:
         print(f"[remote_hosts] refused: {exc}", file=sys.stderr)
         return 2
