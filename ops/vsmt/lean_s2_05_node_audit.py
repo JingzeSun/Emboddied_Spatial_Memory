@@ -77,6 +77,13 @@ v12（裁决 104-4 ①，2026-10-03）：``run --metrics-only`` 是 S3 的正式
 metrics-only 的合并只有逐 episode 报告与三分解计数的合计，选参读数只读逐 episode 的报告。白话：输入与完整审计相同，输出
 少了只用于诊断的分类账，指标一个字节都不变；例如 TAF 一条 836 帧的 episode，省下的是按七八种备选口径重新匹配的时间。
 它不改指标、标签或任何决定。
+
+附录臂 LLM-op（裁决 105，2026-10-04）：``run --metrics-only --manifest-split validation --arm LLM-op --config '{}'
+--llm-op-archive <这条 episode 的调用存档> [--llm-op-mode live --llm-op-run-root <运行根>]`` 是它的正式闭环审计。决定来自
+``lean_llm_op.LlmOpScorer``：存档里有的调用逐条回放（请求摘要须一致），live 模式才在存档末尾之后调 DeepSeek API；runner、teacher
+与指标和其他臂完全相同。审计文件多一块 ``llm_op``（调用次数、无效回答、回退、token、费用、存档摘要），其他臂的文件不变。
+合同的 validation_run 位未按裁决打开、缺存档、live 缺运行根或试点登记的模型名、或不是 metrics-only／validation 时一律拒绝；
+STOP 文件、模型名改变、致命的 API 回答与存档问题各用自己的退出码停下（``lean_llm_op.EXIT_*``），可从存档续跑。
 """
 from __future__ import annotations
 
@@ -1442,6 +1449,17 @@ def run(args: argparse.Namespace) -> int:
     except NodeAuditError as exc:
         print(f"[node-audit] refused: {exc}", file=sys.stderr)
         return 2
+    llm = None
+    if args.arm == "LLM-op":  # ruling 105: the appendix arm's run of record, its decisions from the DeepSeek API or its archive
+        from vsmt import lean_llm_op as llm
+
+        problem = llm_op_refusal(args, plan, llm)
+        if problem:
+            print(f"[node-audit] refused: {problem}", file=sys.stderr)
+            return 2
+    elif any(getattr(args, name, None) for name in ("llm_op_archive", "llm_op_run_root")):
+        print("[node-audit] refused: the --llm-op-* options belong to --arm LLM-op", file=sys.stderr)
+        return 2
     if args.dedup_override:
         # diagnostic only: the same runner under another shared-dedup triple (a candidate for a ruling), recorded in the payload
         from vsmt import lean_memory as lm
@@ -1507,6 +1525,11 @@ def run(args: argparse.Namespace) -> int:
                                     policy=run_policy["teacher"], nuisance_meta=nuisance_meta)
         captured = None if args.metrics_only else capture_truth_table(teacher)  # ruling 104-4 (1): no diagnostic block to feed
         scorer = learned  # the heads' own scorer, before any oracle wraps it (the residual trace reads its logits)
+        if llm is not None:  # ruling 105: the LLM-op scorer, live past the archive's end or replay only
+            run_root = Path(args.llm_op_run_root) if args.llm_op_run_root else None
+            caller = llm.make_caller(archive_path=Path(args.llm_op_archive), mode=args.llm_op_mode, run_root=run_root,
+                                     expected_model=llm.registered_model(run_root) if run_root is not None else None)
+            scorer = llm.LlmOpScorer(caller, split="validation")
         oracle = None
         if oracle_requested:
             # ruling 88-2 (i), diagnostic only: the teacher's decisions become the policy (private truth before the seals)
@@ -1595,6 +1618,12 @@ def run(args: argparse.Namespace) -> int:
             "residual_trace": None if tracer is None else tracer.report(),
             "wall_seconds": round(time.time() - started, 1),
         }
+        if llm is not None:  # ruling 105: calls, invalid answers, fallbacks, tokens, cost and the archive the decisions came from
+            archive = Path(args.llm_op_archive)
+            scorer.close()  # the archive is complete: release its lock before it is digested and recorded
+            payload["llm_op"] = {**scorer.summary(), "archive": archive.name,  # no archive at all when no frame needed a call
+                                 "archive_sha256": file_sha256(archive) if archive.exists() else None,
+                                 "contract_sha256": file_sha256(llm.CONTRACT_PATH)}
         write_json_atomic(out_dir / AUDIT_FILE_NAME, payload)
         if audit is None:
             report = payload["report"]
@@ -1608,11 +1637,59 @@ def run(args: argparse.Namespace) -> int:
               f"{payload['wall_seconds']} s")
         return 0
 
+    stops = (llm.LlmOpStop,) if llm is not None else ()
     for config, out_dir in pending:
-        code = audit_one(config, out_dir)
+        try:
+            code = audit_one(config, out_dir)
+        except stops as exc:  # ruling 105: a STOP file, a changed model, a fatal API answer or an archive problem
+            print(f"[node-audit] LLM-op stopped ({type(exc).__name__}): {exc.detail}", file=sys.stderr)
+            return int(exc.exit_code)
         if code != 0:
             return code
     return 0
+
+
+def llm_op_refusal(args: argparse.Namespace, plan: Sequence[tuple[dict[str, Any], str]], llm: Any) -> str | None:
+    """Ruling 105: LLM-op's audit is a metrics-only run of record on validation, one configuration ({}), one archive per episode.
+
+    白话：LLM-op 只在 validation 上按“只出指标”的口径跑；必须给它这条 episode 的调用存档；live 模式还要运行根（里面有 STOP 文件和
+    试点登记的模型名），并且合同的 validation_run 位已经按裁决打开。缺一样就拒绝，不花一分钱。
+    """
+
+    if not args.metrics_only:
+        return "LLM-op runs only as a metrics-only run of record (ruling 105)"
+    if args.manifest_split != "validation":
+        return "LLM-op runs only on validation: give --manifest-split validation (S0-05 appendix_arm, ruling 105)"
+    if len(plan) != 1 or plan[0][0] != {}:
+        return "LLM-op has exactly one configuration, {} (no grid), and one archive per episode"
+    if args.heads:
+        return "LLM-op takes no --heads"
+    if not args.llm_op_archive:
+        return "LLM-op needs --llm-op-archive (ruling 105-7: every call is archived before it is used)"
+    try:
+        contract = llm.load_contract()
+    except llm.LlmOpError as exc:
+        return f"the LLM-op contract does not validate: {exc}"
+    if not llm.authorized(contract, "validation_run"):
+        return "the LLM-op contract's validation_run bit is closed (opened only after the user's code review)"
+    if args.llm_op_mode == "live":
+        if not args.llm_op_run_root:
+            return "a live LLM-op run needs --llm-op-run-root (its STOP file and the pilot's model.json)"
+        try:
+            if llm.registered_model(Path(args.llm_op_run_root)) is None:
+                return "no model.json in the run root: the pilot registers the model name before any validation call (ruling 105-7)"
+            llm.load_api_key()
+        except llm.LlmOpError as exc:
+            return str(exc)
+    return None
+
+
+def file_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with open(path, "rb") as handle:
+        for block in iter(lambda: handle.read(1 << 20), b""):
+            digest.update(block)
+    return digest.hexdigest()
 
 
 def config_plan(args: argparse.Namespace) -> list[tuple[dict[str, Any], str]]:
@@ -1897,6 +1974,12 @@ def main() -> int:
                                  "of v2-v10 (audit null); refused together with any diagnostic option")
     run_parser.add_argument("--manifest-split", default=None, choices=("train", "validation"),
                             help="ruling 104-6: refuse an episode that is not in this split of the S3 manifest (every S3-03 audit names it)")
+    run_parser.add_argument("--llm-op-archive", default=None,
+                            help="ruling 105, --arm LLM-op only: this (front end, episode)'s call archive; a call it holds is replayed")
+    run_parser.add_argument("--llm-op-mode", default="replay", choices=("live", "replay"),
+                            help="ruling 105: live asks the API past the archive's end (the LLM-op driver's run); replay never calls it")
+    run_parser.add_argument("--llm-op-run-root", default=None,
+                            help="ruling 105: the LLM-op run root (its STOP file and the model name the pilot registered)")
     run_parser.set_defaults(func=run)
     merge_parser = sub.add_parser("merge", help="pool the audits of one arm into a results/ report")
     merge_parser.add_argument("--output-root", required=True)

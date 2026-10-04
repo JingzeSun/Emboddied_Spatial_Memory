@@ -471,7 +471,12 @@ FROZEN_RULE_SHA256 = {
     # Re-pinned 2026-10-01 for ruling 84-1 (b), landed under ruling 100-1 (i): descriptor gains weights_sha256_by_mask_source
     # (the two S0-03 heads) and the claim that the checked digest follows the episode seal's mask source; weights_sha256 stays
     # the main table's head.  8bc99b13 -> da2ab804.
-    "S2-01": "da2ab804244b80578fb25fc13e83f7038729e8052fa7a9fbd1277e7cf98268a3",
+    # Re-pinned 2026-10-04 for ruling 105-9 (「待裁 105 全按推荐，但105-11我新租一台机器去同时做」): frame_step.appendix_arm replaces
+    # appendix_arm_refused_here -- the runner drives LLM-op with an LLM-op scorer (runner_arms, bound to lean_runner.RUNNER_ARMS,
+    # and the rule string lean_runner.APPENDIX_ARM_RULE) while runnable_arms, the list the S2-01, S2-04 and S2-05 entries accept,
+    # is unchanged.  Checked at re-pin time that with appendix_arm_refused_here restored in its place the digest is da2ab804
+    # again, so that claim is the only rule that moved.  da2ab804 -> b377c582.
+    "S2-01": "b377c582af20260b5fad1535f664d699395783e23a44231bd07d9a15cc531ff4",
     # S2-04 v1 (2026-09-24, LOG-249): the teacher and evaluator wiring -- the derivation rules for the
     # S0-04 inputs (place observability by the S2-01 sampled-box test at the S0-05 minimum, old and new
     # places from the S1-04 tracker at the window edges, recovery place per intervention kind, carriers
@@ -1325,9 +1330,13 @@ class TestS201RunnerContractBindsItsUpstreams(unittest.TestCase):
         self.assertTrue(node["truth_table_carries_in_scope_flag"])
 
     def test_the_runnable_arms_are_the_s0_05_arms_without_the_appendix_arm(self) -> None:
+        # the entries' list; ruling 105-9: the runner itself also drives the appendix arm, with its own scorer
         step = self.contract["frame_step"]
         self.assertEqual(tuple(step["runnable_arms"]), tuple(arm for arm in lean_arms.ALL_ARMS if arm != lean_arms.APPENDIX_ARM))
-        self.assertEqual(step["appendix_arm_refused_here"], lean_arms.APPENDIX_ARM)
+        self.assertEqual(step["appendix_arm"]["name"], lean_arms.APPENDIX_ARM)
+        self.assertEqual(tuple(step["appendix_arm"]["runner_arms"]), (*step["runnable_arms"], lean_arms.APPENDIX_ARM))
+        self.assertEqual(step["appendix_arm"]["rule"], lean_runner.APPENDIX_ARM_RULE)
+        self.assertNotIn("appendix_arm_refused_here", step)
         self.assertEqual(load("S0-05")["appendix_arm"]["name"], lean_arms.APPENDIX_ARM)
 
 

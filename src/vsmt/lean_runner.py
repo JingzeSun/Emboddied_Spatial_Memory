@@ -138,15 +138,20 @@ POLICY_FIELDS = (
     "entity_geometry_samples_per_axis",
 )
 
-#: Arms this runner drives.  LLM-op is validation-only and has its own entry (S2-02 interface,
-#: not called in S2); it is refused here.
+#: Arms the S2-01, S2-04 and S2-05 entries drive: every arm but the appendix arm.
 LEARNED_ARMS = tuple(arm for arm in arms.LEARNED_ARMS)
 RULE_ARMS = tuple(arms.RULE_ARMS)
 RUNNABLE_ARMS = tuple(arm for arm in arms.ALL_ARMS if arm != arms.APPENDIX_ARM)
-#: Configuration fields each arm needs, all without defaults.  ELU-P adds its three fitted scalars.
+#: Ruling 105-9 (2026-10-04): the runner also drives LLM-op, whose decision source is an LLM-op scorer
+#: (``lean_llm_op.LlmOpScorer``: association logits through the learned-arm interface, existence decisions given
+#: directly).  Only the LLM-op entries build that scorer -- the node audit's ``--arm LLM-op`` on validation and the
+#: LLM-op pilot on train -- so the entries above keep refusing the arm by their ``RUNNABLE_ARMS`` choices.
+RUNNER_ARMS = (*RUNNABLE_ARMS, arms.APPENDIX_ARM)
+#: Configuration fields each arm needs, all without defaults.  ELU-P adds its three fitted scalars; LLM-op has none.
 ARM_CONFIG_FIELDS: dict[str, tuple[str, ...]] = {
     **{arm: arms.GRID_PARAMETERS[arm] for arm in RUNNABLE_ARMS},
     "ELU-P": (*arms.GRID_PARAMETERS["ELU-P"], *arms.ELU_P_FITTED),
+    arms.APPENDIX_ARM: (),
 }
 #: A distance-gate parameter may legitimately be None (no gate); every other field must be a value.
 NULLABLE_CONFIG_FIELDS = {arm: (name,) for arm, name in arms.NO_GATE_PARAMETER.items()}
@@ -532,7 +537,7 @@ def validate_policy(policy: Mapping[str, Any]) -> dict[str, Any]:
 def validate_arm_config(arm: str, config: Mapping[str, Any]) -> dict[str, Any]:
     """The arm's registered parameters, all given (a distance gate may be None: no gate)."""
 
-    _require(arm in RUNNABLE_ARMS, f"arm_not_runnable_here:{arm}")
+    _require(arm in RUNNER_ARMS, f"arm_not_runnable_here:{arm}")
     fields = ARM_CONFIG_FIELDS[arm]
     _require(type(config) is dict and set(config) == set(fields), f"arm_config_missing:{arm}")
     nullable = set(NULLABLE_CONFIG_FIELDS.get(arm, ()))
@@ -549,7 +554,7 @@ def validate_arm_config(arm: str, config: Mapping[str, Any]) -> dict[str, Any]:
 def initial_state(*, episode_id: str, arm: str) -> dict[str, Any]:
     """M_0 plus the arm's empty temporal state and zeroed counters."""
 
-    _require(arm in RUNNABLE_ARMS, f"arm_not_runnable_here:{arm}")
+    _require(arm in RUNNER_ARMS, f"arm_not_runnable_here:{arm}")
     return {
         "arm": arm,
         "memory": lm.empty_memory(episode_id=episode_id),
@@ -603,6 +608,12 @@ def _existence(arm: str, config: Mapping[str, Any], eligible: Sequence[Mapping[s
         return result["decisions"], state
     if arm == "HandCost":
         return arms.hand_cost_existence(eligible, order, rho_h=config["rho_h"]), state
+    if arm == arms.APPENDIX_ARM:  # ruling 105-9: the LLM-op scorer answers RETRACT or NOOP per eligible row itself
+        _require(scorer is not None, f"scorer_missing_for_appendix_arm:{arm}")
+        decisions = dict(scorer.existence_decisions(eligible, order))
+        _require(set(decisions) == {str(row["entity_id"]) for row in eligible}, "scorer_existence_decisions_do_not_match_the_eligible_rows")
+        _require(all(value in ("RETRACT", "NOOP") for value in decisions.values()), "scorer_existence_decision_not_retract_or_noop")
+        return decisions, state
     _require(scorer is not None, f"scorer_missing_for_learned_arm:{arm}")
     logits = scorer.existence_logits(eligible, order)
     _require(set(logits) == {str(row["entity_id"]) for row in eligible}, "scorer_existence_logits_do_not_match_the_eligible_rows")
@@ -982,7 +993,8 @@ def validate_runner_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
         _require(step[name] is True, f"contract_frame_step_claim_weakened:{name}")
     _require(dict(step["policy_input_sources"]) == POLICY_INPUT_SOURCES, "contract_policy_sources_mismatch")
     _require(tuple(step["runnable_arms"]) == RUNNABLE_ARMS, "contract_runnable_arms_mismatch")
-    _require(step["appendix_arm_refused_here"] == arms.APPENDIX_ARM, "contract_appendix_arm_mismatch")
+    _require(step["appendix_arm"] == {"name": arms.APPENDIX_ARM, "runner_arms": list(RUNNER_ARMS), "rule": APPENDIX_ARM_RULE},
+             "contract_appendix_arm_mismatch")
     _require(step["arm_state"]["arm_state_rolled_back_with_the_frame_on_an_illegal_program"] is True,
              "contract_frame_step_claim_weakened:arm_state_rolled_back_with_the_frame_on_an_illegal_program")
     truth = contract["truth_table"]
@@ -1008,6 +1020,14 @@ def validate_runner_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
         _require(value is False or name in opened, f"contract_bit_opened_without_a_ruling:{name}")
     return clone_json(dict(contract))
 
+
+#: Ruling 105-9: how the runner drives the appendix arm (bound to the S2-01 contract's frame_step.appendix_arm).
+APPENDIX_ARM_RULE = (
+    "ruling 105-9: the runner drives LLM-op with an LLM-op scorer -- association and birth logits through the learned-arm "
+    "scorer interface, RETRACT or NOOP per eligible row given directly -- and nothing else differs from the other arms; the "
+    "S2-01, S2-04 and S2-05 entries still refuse it; it runs only through the node audit's --arm LLM-op on validation and "
+    "the LLM-op pilot on train (lean_s3_03_llm_op_v1)"
+)
 
 FRAME_STEP_ORDER = (
     "entity_geometry_from_public_volumes_and_previous_memory",
@@ -1042,6 +1062,7 @@ __all__ = [
     "POLICY_FIELDS",
     "POLICY_INPUT_SOURCES",
     "RUNNABLE_ARMS",
+    "RUNNER_ARMS",
     "STAGE_ID",
     "TRUTH_TABLE_KEY_RULE",
     "TRUTH_TABLE_OBSERVABLE_RULE",

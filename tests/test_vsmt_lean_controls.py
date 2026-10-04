@@ -7,8 +7,9 @@ clamping, and the combined fit runs only on the train split after the feature se
 rollout_config; the LLM-op rendering is deterministic, covers every sealed row and carries no private
 token, the parser accepts exactly one choice per row within the offered options and refuses anything
 else, the choices become logits the shared solver honours (with BIRTH as the fallback when two
-fragments pick one entity), and the entry refuses every split but validation while the S2-01 runner
-refuses the arm altogether.  Standard library plus the lean modules; no model is called.
+fragments pick one entity); since ruling 105 the two calls' tables, the registered instructions (their digest bound in the
+LLM-op contract) and the fallbacks.  The scorer, the caller and the split guard are tested in test_vsmt_lean_llm_op.
+Standard library plus the lean modules; no model is called.
 """
 
 from __future__ import annotations
@@ -32,7 +33,6 @@ from vsmt import lean_arms as arms  # noqa: E402
 from vsmt import lean_assignment as la  # noqa: E402
 from vsmt import lean_controls as lc  # noqa: E402
 from vsmt import lean_memory as lm  # noqa: E402
-from vsmt import lean_runner as lr  # noqa: E402
 
 CONTRACT = json.loads((PROJECT_ROOT / "configs" / "vsmt" / "lean_s0_arms_v2.json").read_text(encoding="utf-8"))
 RECALL = {"local_count": la.RECALL_LOCAL_COUNT, "global_count": la.RECALL_GLOBAL_COUNT, "local_radius_m": la.RECALL_LOCAL_RADIUS_M}
@@ -147,49 +147,87 @@ class EluPFitTests(unittest.TestCase):
 
 
 class LlmOpInterfaceTests(unittest.TestCase):
+    """Ruling 105: two calls per frame, CSV tables with one header row each, the registered instructions, strict parsers."""
+
     def setUp(self) -> None:
         self.stage_a, self.rows, self.order, self.ids = stage_a_and_rows()
         self.eligible = [str(r["entity_id"]) for r in self.rows]
 
-    def answer(self, fragment_choices: Mapping[str, str], existence_choices: Mapping[str, str]) -> str:
-        lines = [f"{k} -> {v}" for k, v in fragment_choices.items()] + [f"{k} -> {v}" for k, v in existence_choices.items()]
-        return "\n".join(lines) + "\n"
+    @staticmethod
+    def lines(choices: Mapping[str, str]) -> str:
+        return "\n".join(f"{k} -> {v}" for k, v in choices.items()) + "\n"
 
-    def test_rendering_is_deterministic_covers_every_row_and_names_no_private_thing(self) -> None:
-        text = lc.render_frame_text(self.stage_a, self.rows, existence_feature_order=self.order)
-        self.assertEqual(text, lc.render_frame_text(self.stage_a, self.rows, existence_feature_order=self.order))
-        for fragment_id in self.stage_a["rows"]:
-            self.assertIn(f"FRAGMENT {fragment_id}", text)
-        for row in self.stage_a["association_rows"]:
-            self.assertIn(f"candidate {row['entity_id']}:", text)
-        for entity_id in self.eligible:
-            self.assertIn(f"EXISTENCE {entity_id}:", text)
-        for name in la.ASSOCIATION_FEATURES + la.BIRTH_FEATURES + la.EXISTENCE_FEATURES:
-            self.assertIn(f"{name}=", text)
-        for token in ("house", "scene", "object_id", "instance", "private", "Mug", "Book", "procthor"):
-            self.assertNotIn(token, text)
+    def ordered_rows(self) -> list[dict[str, Any]]:
+        return [r for f in self.stage_a["rows"] for r in self.stage_a["association_rows"] if r["fragment_id"] == f]
+
+    def test_the_tables_are_deterministic_cover_every_row_and_name_no_private_thing(self) -> None:
+        text = lc.render_association_tables(self.stage_a)
+        self.assertEqual(text, lc.render_association_tables(self.stage_a))
+        lines = text.splitlines()
+        self.assertEqual(lines[0], "CANDIDATES")
+        self.assertEqual(lines[1], ",".join(["fragment", "candidate", *la.ASSOCIATION_FEATURES]))
+        rows = self.ordered_rows()
+        candidates = lines[2: 2 + len(rows)]
+        self.assertEqual([line.split(",")[:2] for line in candidates], [[r["fragment_id"], r["entity_id"]] for r in rows])
+        for line, row in zip(candidates, rows):
+            self.assertEqual(line.split(",")[2:], [f"{float(v):.4f}" for v in row["features"]])
+        tail = lines[2 + len(rows):]
+        self.assertEqual(tail[:3], ["", "NEW", ",".join(["fragment", *la.BIRTH_FEATURES])])
+        self.assertEqual([line.split(",")[0] for line in tail[3:]], list(self.stage_a["rows"]))
+        table = lc.render_existence_table(self.rows, self.order)
+        self.assertEqual(table.splitlines()[:2], ["ENTITIES", ",".join(["entity", *la.EXISTENCE_FEATURES])])
+        self.assertEqual([line.split(",")[0] for line in table.splitlines()[2:]], self.eligible)
+        for token in ("house", "scene", "object_id", "instance", "private", "Mug", "Book", "procthor", "train", "validation"):
+            self.assertNotIn(token, text + table)
         with self.assertRaises(lc.LeanControlsError):
-            lc.render_frame_text(self.stage_a, self.rows, existence_feature_order=list(reversed(self.order)))
+            lc.render_existence_table(self.rows, list(reversed(self.order)))
+        with self.assertRaises(lc.LeanControlsError) as caught:
+            lc.render_existence_table([{**self.rows[0], "entity_id": "entity 7"}], self.order)
+        self.assertEqual(str(caught.exception), "llm_op_id_not_renderable:entity 7")
+
+    def test_the_messages_carry_the_registered_instructions_whose_digest_the_contract_binds(self) -> None:
+        association = lc.association_messages(self.stage_a)
+        existence = lc.existence_messages(self.rows, self.order)
+        self.assertEqual([m["role"] for m in association], ["system", "user"])
+        self.assertEqual(association[0]["content"], lc.ASSOCIATION_INSTRUCTION)
+        self.assertEqual(association[1]["content"], lc.render_association_tables(self.stage_a))
+        self.assertEqual(existence[0]["content"], lc.EXISTENCE_INSTRUCTION)
+        contract = json.loads((PROJECT_ROOT / "configs" / "vsmt" / "lean_s3_03_llm_op_v1.json").read_text(encoding="utf-8"))
+        self.assertEqual(contract["input"]["instruction_sha256"], lc.INSTRUCTION_SHA256)
+        for name in (*la.ASSOCIATION_FEATURES, *la.BIRTH_FEATURES):  # every column the tables carry is defined
+            self.assertIn(name, lc.ASSOCIATION_INSTRUCTION)
+        for name in la.EXISTENCE_FEATURES:
+            self.assertIn(name, lc.EXISTENCE_INSTRUCTION)
+        for text in lc.INSTRUCTIONS.values():  # a made-up format example only; no split, teacher, label or statistic is named
+            for token in ("train", "validation", "teacher", "label", "%"):
+                self.assertNotIn(token, text)
 
     def test_parsing_accepts_exactly_one_offered_choice_per_row_and_refuses_the_rest(self) -> None:
         mug, book = self.ids["mug"], self.ids["book"]
-        good = self.answer({"f2:a": mug, "f2:b": book, "f2:c": lc.BIRTH_WORD}, {mug: "NOOP", book: "RETRACT"})
-        # every entity is an eligible candidate here because the neutral solve birthed everything
-        parsed = lc.parse_llm_response(good, self.stage_a, self.eligible)
-        self.assertEqual(parsed["fragment_choices"]["f2:c"], lc.BIRTH_WORD)
-        self.assertEqual(parsed["existence_choices"][book], "RETRACT")
+        good = {"f2:a": mug, "f2:b": book, "f2:c": lc.BIRTH_WORD}
+        self.assertEqual(lc.parse_association_answer(self.lines(good), self.stage_a), good)
+        fenced = "```text\n" + self.lines(good) + "```\n\n"
+        self.assertEqual(lc.parse_association_answer(fenced, self.stage_a), good)
         bad = (
-            (self.answer({"f2:a": mug, "f2:b": book}, {mug: "NOOP", book: "NOOP"}), "fragment_rows_incomplete"),
-            (self.answer({"f2:a": mug, "f2:b": book, "f2:c": lc.BIRTH_WORD}, {mug: "NOOP"}), "existence_rows_incomplete"),
-            (self.answer({"f2:a": "entity:nowhere", "f2:b": book, "f2:c": lc.BIRTH_WORD}, {mug: "NOOP", book: "NOOP"}), "choice_not_offered:f2:a"),
-            (self.answer({"f2:a": mug, "f2:b": book, "f2:c": lc.BIRTH_WORD}, {mug: "DELETE", book: "NOOP"}), "decision_not_retract_or_noop"),
-            (good + f"f2:a -> {book}\n", "duplicate_fragment:f2:a"),
-            (good + "f9:z -> BIRTH\n", "unknown_row:f9:z"),
-            ("garbage without an arrow\n" + good, "line:garbage"),
+            (self.lines({"f2:a": mug, "f2:b": book}), "rows_incomplete"),
+            (self.lines({**good, "f2:a": "entity:nowhere"}), "choice_not_offered:f2:a"),
+            (self.lines(good) + f"f2:a -> {book}\n", "duplicate_row:f2:a"),
+            (self.lines(good) + "f9:z -> BIRTH\n", "unknown_row:f9:z"),
+            ("Here are my choices:\n" + self.lines(good), "line:Here are my choices:"),
+            (self.lines(good).replace("BIRTH", "BIRTH."), "choice_not_offered:f2:c"),
         )
         for text, detail in bad:
             with self.subTest(detail=detail), self.assertRaises(lc.LeanControlsError) as caught:
-                lc.parse_llm_response(text, self.stage_a, self.eligible)
+                lc.parse_association_answer(text, self.stage_a)
+            self.assertIn(detail, str(caught.exception))
+        decisions = {mug: "NOOP", book: "RETRACT"}
+        self.assertEqual(lc.parse_existence_answer(self.lines(decisions), self.eligible), decisions)
+        for text, detail in ((self.lines({mug: "NOOP"}), "rows_incomplete"),
+                             (self.lines({mug: "DELETE", book: "NOOP"}), "decision_not_retract_or_noop"),
+                             (self.lines(decisions) + f"{mug} -> NOOP\n", "duplicate_row"),
+                             (self.lines({**decisions, "e:99": "NOOP"}), "unknown_row")):
+            with self.subTest(detail=detail), self.assertRaises(lc.LeanControlsError) as caught:
+                lc.parse_existence_answer(text, self.eligible)
             self.assertIn(detail, str(caught.exception))
 
     def test_choices_become_logits_the_shared_solver_honours_with_birth_as_the_conflict_fallback(self) -> None:
@@ -208,32 +246,15 @@ class LlmOpInterfaceTests(unittest.TestCase):
         with self.assertRaises(lc.LeanControlsError):
             lc.choices_to_logits({"f2:a": mug}, self.stage_a)
 
-    def test_the_entry_runs_on_validation_only_and_the_runner_refuses_the_arm(self) -> None:
-        mug, book = self.ids["mug"], self.ids["book"]
-        scripted = self.answer({"f2:a": mug, "f2:b": book, "f2:c": lc.BIRTH_WORD}, {mug: "NOOP", book: "RETRACT"})
-        seen: list[str] = []
-
-        def llm(prompt: str) -> str:
-            seen.append(prompt)
-            return scripted
-
-        out = lc.llm_op_frame(self.stage_a, self.rows, existence_feature_order=self.order, llm=llm, split="validation")
-        self.assertEqual(out["arm"], "LLM-op")
-        self.assertEqual(out["prompt_status"], "not_in_this_stage")
-        self.assertEqual(out["decisions"], {mug: "NOOP", book: "RETRACT"})
-        self.assertEqual(seen, [out["prompt_text"]])
-        program = arms.compile_program(la.solve_frame(self.stage_a, **out["logits"])["assignment"],
-                                       {eid: "active" for eid in self.ids.values()}, arm="LLM-op",
-                                       existence_decisions={})  # entities assigned this frame carry no existence decision
-        self.assertEqual(sorted(op["atom"] for op in program), ["BIND", "BIND", "BIRTH"])
-        for split in ("train", "test"):
-            with self.subTest(split=split), self.assertRaises(arms.LeanArmsError) as caught:
-                lc.llm_op_frame(self.stage_a, self.rows, existence_feature_order=self.order, llm=llm, split=split)
-            self.assertEqual(str(caught.exception), f"split_not_allowed:LLM-op:{split}")
-        self.assertNotIn("LLM-op", lr.RUNNABLE_ARMS)
-        with self.assertRaises(lr.LeanRunnerError) as caught:
-            lr.initial_state(episode_id="ep-0001", arm="LLM-op")
-        self.assertEqual(str(caught.exception), "arm_not_runnable_here:LLM-op")
+    def test_the_fallbacks_are_birth_for_every_fragment_and_noop_for_every_entity(self) -> None:
+        fallback = lc.fallback_association(self.stage_a)
+        self.assertEqual(fallback, {f: lc.BIRTH_WORD for f in self.stage_a["rows"]})
+        solved = la.solve_frame(self.stage_a, **lc.choices_to_logits(fallback, self.stage_a))
+        self.assertTrue(all(column.startswith(la.BIRTH_COLUMN_PREFIX) for column in solved["assignment"].values()))
+        self.assertEqual(lc.fallback_existence(self.eligible), {e: "NOOP" for e in self.eligible})
+        program = arms.compile_program(solved["assignment"], {eid: "active" for eid in self.ids.values()}, arm="LLM-op",
+                                       existence_decisions=lc.fallback_existence(self.eligible))
+        self.assertEqual(sorted(op["atom"] for op in program), sorted(["BIRTH"] * 3 + ["NOOP"] * len(self.eligible)))
 
 
 if __name__ == "__main__":

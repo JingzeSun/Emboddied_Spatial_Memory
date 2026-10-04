@@ -1,0 +1,175 @@
+{
+  "schema_version": "vsmt-lean-s3-03-llm-op-v1",
+  "decision_id": "D-224",
+  "stage_id": "S3-03-LLM-op",
+  "ruling": "105",
+  "ruling_text": "user 2026-10-04: 「待裁 105 全按推荐，但105-11我新租一台机器去同时做」; 104-5 revised the same day: 「LLM-op 改用 DeepSeek V4-Flash API」",
+  "arm": "LLM-op",
+  "plain_language_zh": "附录臂 LLM-op 的运行合同（裁决 105）。它回答审稿人必问的“零训练的大模型直接做记忆修订够不够”：输入是与其他臂逐字节相同的封存特征表转成的表格文本，输出是每行一个原子。两套前端各跑同一批 15 个 validation episode；DeepSeek deepseek-flash（2026-10-04 实际为 V4.1-Flash）默认推理模式；每帧问两次（先关联，求解后判存在）；每次最多三个回答，三次都无效就回退（色块全 BIRTH、实体全 NOOP）并计数；所有请求与回答先存档再用，重跑从存档回放；先在 train 上试点 200 帧，只看 token、耗时与格式合格率，按试点推算超过 150 美元就停下汇报；正式运行累计到 150 美元不再开新 episode，到 200 美元全部停（可从存档续跑）。它不进主表、不进 test、不训练、不选参；它不等于官方 DeepSeek 评测，也不是本文方法的一部分。",
+  "authorization": {
+    "pilot_run": false,
+    "validation_run": false
+  },
+  "activation_policy": null,
+  "activation_rule": "both bits stay false until the user has reviewed the LLM-op code; the commit that opens them names the ruling and the review in activation_policy (the S2 pattern) and re-pins the reviewed contract digest in tests/test_vsmt_lean_llm_op.py; the pilot entry refuses while pilot_run is false, the validation entry while validation_run is false",
+  "fronts": {
+    "instance": "simulator_instance_masks",
+    "sam2": "sam2"
+  },
+  "validation_scope": {
+    "episodes_per_front": 15,
+    "same_episodes_for_both_fronts": true,
+    "draw_salt": "vsmt-lean-llm-op-105-2|",
+    "draw_rule": "ascending sha256(draw_salt + episode_id) over the validation episodes usable in both front ends (the S3-03 check's lists); the first 15; no outcome, length or content enters the order",
+    "comparison_rule": "in the appendix every other arm is compared with LLM-op on these same episodes only",
+    "plain_language_zh": "105-2：每套前端 15 个 validation episode，两套是同一批；按“盐串＋episode ID”的 sha256 升序取前 15 个，抽之前不看任何结果。附录里其他臂也只在这同一批上比。"
+  },
+  "request": {
+    "provider": "DeepSeek",
+    "endpoint": "https://api.deepseek.com/chat/completions",
+    "model": "deepseek-flash",
+    "served_as_on_2026_10_04": "DeepSeek-V4.1-Flash (the legacy name deepseek-v4-flash is served by the same model; no dated model name exists)",
+    "thinking": {
+      "type": "enabled"
+    },
+    "stream": false,
+    "not_sent": [
+      "reasoning_effort",
+      "max_tokens",
+      "temperature",
+      "top_p",
+      "presence_penalty",
+      "frequency_penalty",
+      "response_format"
+    ],
+    "defaults_on_2026_10_04": "thinking mode on with effort high; max_tokens 64K in thinking mode; temperature and the penalties have no effect in thinking mode",
+    "repeats": 1,
+    "plain_language_zh": "105-3：用服务商默认（只显式开 thinking，effort、输出上限与采样参数都不传、取默认），只跑一遍。托管 API 的输出本来就不能逐字节复现，所以靠存档回放复现。"
+  },
+  "input": {
+    "instruction_sha256": "88fc983279364bd877c80d2236c0b9020a113775fad44f62eb6c513bee674134",
+    "instruction_source": "src/vsmt/lean_controls.py ASSOCIATION_INSTRUCTION and EXISTENCE_INSTRUCTION, sent as the system message of each call",
+    "rendering_rule": "csv tables with one header row each: CANDIDATES (fragment, candidate, the 14 association features) and NEW (fragment, the 4 birth features) for the association call, ENTITIES (entity, the 17 existence features) for the existence call; rows in sealed order, every feature in the frozen order, 4 decimals, anonymous ids only",
+    "text_decimals": 4,
+    "calls_per_frame": [
+      "association",
+      "existence"
+    ],
+    "why_two_calls": "the existence features (best_fragment_still_unassigned) exist only after the frame's solve, so the existence table is rendered and asked after the association answer has been solved",
+    "skip_a_call_without_rows": true,
+    "few_shot": false,
+    "thresholds_given": false,
+    "plain_language_zh": "105-4／105-5：每帧两次调用，关联一张候选表加一张新建表，存在一张实体表，带表头、特征与小数位不变、只有匿名 ID；指令只有任务说明、每列定义和一个人造的格式示例，不给阈值也不给数据里的例子（零训练）。指令文本的摘要钉在这里，改一个字就是改合同。"
+  },
+  "answers": {
+    "attempts_per_call": 3,
+    "invalid": "empty content, finish_reason length (truncated), content_filter or tool_calls, or a text the strict parser refuses (one line per row, each an offered choice; blank and code-fence lines are skipped, nothing else)",
+    "invalid_finish_reasons": {
+      "length": "truncated",
+      "content_filter": "content_filter",
+      "tool_calls": "tool_calls"
+    },
+    "fallback": {
+      "association": "BIRTH for every fragment of the frame",
+      "existence": "NOOP for every eligible entity of the frame"
+    },
+    "format_unreliable_fallback_rate": 0.02,
+    "format_unreliable_rule": "a front end whose fallbacks exceed 2% of its calls (either kind) is marked format unreliable in the appendix",
+    "service_errors": "HTTP 408, 429 and 5xx, a network error, an unparseable body, or finish_reason insufficient_system_resource or aborted: archived, retried with exponential backoff, never counted as an attempt",
+    "service_finish_reasons": [
+      "insufficient_system_resource",
+      "aborted"
+    ],
+    "backoff_s": [
+      2.0,
+      300.0
+    ],
+    "service_retry_limit_s": 21600.0,
+    "fatal": "any other 4xx (400, 401, 402, 422, ...) stops the whole run",
+    "plain_language_zh": "105-6：同一请求最多再问 2 次（解析失败、空回答、被截断或被过滤）；仍失败就回退并逐帧计数，某套前端回退率超过 2% 时附录标“格式不可靠”。网络或服务错误指数退避重试，不算回退；同一调用连续 6 小时都是服务错误就停下这条 episode（可续跑）；鉴权、余额、参数这类 4xx 停整趟。"
+  },
+  "record": {
+    "archive": "one append-only JSON-lines file per (front end, episode) and per pilot front end: every call record (kind, tick, attempt, request digest, response content, reasoning content, returned model, usage, finish reason, latency, cost) before it is used, every service error",
+    "one_model_name_per_run": true,
+    "model_rule": "the pilot registers the returned model name in model.json (both front ends must agree); a main-run response naming another model stops the run",
+    "replay_never_calls_the_api": true,
+    "replay_rule": "a rerun answers every archived (kind, tick, attempt) from the archive when its request digest matches, and calls the API only past the archive's end (a replay-only run refuses instead)",
+    "plain_language_zh": "105-7：每个回答先存档再用，记下返回的模型名、token 用量、耗时与费用；一趟只认一个模型名，中途变了就停；重跑从存档回放、不再花钱。"
+  },
+  "pilot": {
+    "split": "train",
+    "episodes": 1,
+    "frames": 200,
+    "episode_rule": "the first train episode, in the same salted order, that is usable in both front ends and has at least 200 frames",
+    "computes_metrics": false,
+    "reads": [
+      "tokens",
+      "latency",
+      "format compliance",
+      "returned model name"
+    ],
+    "projection_rule": "lean_llm_op.project_cost: off-peak dollars per association row and per existence row measured in the pilot, times the larger of the registered rows of a full frame (fragments per frame x 9 for association, an upper bound with all 8 candidates; the S3-03 round-0 ELU-P mean existence candidates per frame) and the pilot's own rows per frame, times the planned frames, with every call at the peak price (the worst case), plus the pilot's own spend",
+    "stop_when_projection_exceeds": 150.0,
+    "other_decision_points": "a call kind the pilot never asked (cannot be priced), a fallback rate above 0.02 in either kind, or two returned model names; the run starts only after the user accepts the decision point (--accept-pilot, recorded)",
+    "plain_language_zh": "105-8：先在 train 的 1 个 episode 上试点（每套前端前 200 帧），只看 token、耗时、格式合格率和返回的模型名，不读私有数据、不算任何指标；按每行的价钱乘满帧的行数推算，超过 150 美元就停下汇报。"
+  },
+  "cost": {
+    "prices_off_peak_usd_per_million_tokens": {
+      "input_cache_hit": 0.003,
+      "input_cache_miss": 0.15,
+      "output": 0.6
+    },
+    "peak_multiplier": 2.0,
+    "peak_windows_utc": [
+      [
+        "01:00",
+        "04:00"
+      ],
+      [
+        "06:00",
+        "10:00"
+      ]
+    ],
+    "peak_weekdays": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "prices_source": "https://api-docs.deepseek.com/quick_start/pricing, read 2026-10-04 (deepseek-flash)",
+    "holidays": "DeepSeek charges the off-peak price on Chinese public holidays; the ledger does not model them, so it can only overstate",
+    "cap_usd": 150.0,
+    "cap_rule": "once the run's ledger reaches the cap no new episode starts; running episodes finish, and an episode that has already made calls may resume after an interruption",
+    "safety_stop_usd": 200.0,
+    "safety_rule": "every live call first sums the run's ledgers: at the safety stop it writes STOP (so it holds without the driver), and every process stops before its next call; the driver also writes STOP when it is terminated or fails, and the user can write it with the stop subcommand; past the safety stop the run can resume only if a ruling raises it",
+    "plain_language_zh": "价格按 2026-10-04 官网（非峰时：输入命中缓存 0.003、未命中 0.15、输出 0.6 美元／百万 token；工作日 UTC 01–04 点与 06–10 点翻倍）；节假日的优惠不计，所以账本只会高估。累计 150 美元不再开新 episode，200 美元全部停。"
+  },
+  "host": {
+    "rule": "a separate rented host (105-11 as the user decided): no GPU needed; the plan is written on the S3-02 host from the S3-03 check's lists (non-provisional unless recorded otherwise), the inputs of the drawn and the pilot episodes are copied with ops/vsmt/llm_op.sh transfer, and the run there re-verifies every seal before the pilot",
+    "plain_language_zh": "105-11（用户改定）：另租一台机器跑，不需要 GPU；在 S3-02 那台机器上出计划和拷贝清单，只拷抽中的 episode 与试点 episode 的输入，新机器上先逐个重算封印再试点。"
+  },
+  "secrets": {
+    "key_env": "DEEPSEEK_API_KEY",
+    "key_file_env": "DEEPSEEK_API_KEY_FILE",
+    "default_key_file": "/root/.config/vsmt/deepseek.env",
+    "key_file_rule": "one line DEEPSEEK_API_KEY=..., readable by its owner only (mode 600); the user writes it, the implementer never sees it",
+    "never_in_argv_log_or_archive": true
+  },
+  "data_sent": {
+    "what": "the two registered instructions and the frame's tables: anonymous fragment and entity ids and public feature values",
+    "never": [
+      "images",
+      "depth maps",
+      "private truth",
+      "house or episode names",
+      "paths"
+    ],
+    "plain_language_zh": "105-10：发给 DeepSeek 的只有登记的指令和匿名 ID、公开特征数值；不发图像、深度图、真值、house 或 episode 名、路径。"
+  },
+  "metrics": {
+    "entry": "ops/vsmt/lean_s2_05_node_audit.py run --metrics-only --manifest-split validation --arm LLM-op",
+    "same_as_other_arms": "the runner, the teacher and the evaluator of every other arm; only the decision source differs",
+    "appendix_only": "never in the main table, never on test, no configuration budget (S0-05 appendix_arm)"
+  }
+}
