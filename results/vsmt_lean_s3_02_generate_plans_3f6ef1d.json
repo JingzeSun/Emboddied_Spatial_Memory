@@ -1,0 +1,74 @@
+{
+ "plan.json": {
+  "stage": "s3",
+  "splits": [
+   "train",
+   "validation",
+   "test"
+  ],
+  "houses": {
+   "train": 300,
+   "validation": 50,
+   "test": 100
+  },
+  "pending": 450,
+  "measure_root": "/root/autodl-tmp/vsmt_outputs/s3-02-3f6ef1d/measure",
+  "derived": {
+   "worker_count": 16,
+   "binding_constraint": "simulator_concurrency_limit",
+   "per_resource": {
+    "cpu_cores_per_worker": 25,
+    "ram_gb_per_worker": 223,
+    "vram_gb_per_worker": 1630,
+    "disk_gb_per_worker": 1358,
+    "simulator_concurrency_limit": 16
+   },
+   "concurrency_verified_at": 4,
+   "is_extrapolation": true
+  },
+  "requested_workers": null,
+  "actual_workers": 16,
+  "measurements": {
+   "cpu_logical_cores": 100,
+   "cpu_physical_cores": 104,
+   "ram_total_gb": 810.155737088,
+   "ram_available_gb": 386.203406336,
+   "gpu_count": 1,
+   "gpu_name": "NVIDIA GeForce RTX 5090",
+   "gpu_total_vram_gb": 31.8427734375,
+   "gpu_free_vram_gb": 31.8427734375,
+   "disk_free_gb_asset_root": 438.201868288,
+   "disk_free_gb_install_root": 438.201868288,
+   "python_version": "3.9.25",
+   "torch_version": "n/a-simulator-env",
+   "cuda_available": true,
+   "egl_resolves": true,
+   "vulkan_resolves": true
+  },
+  "capacity_basis": {
+   "host_cpu_logical_cores": 208,
+   "host_ram_available_gb": 733.410963456,
+   "cgroup_cpu_quota": 100.0,
+   "cgroup_memory_max_gb": 386.54705664,
+   "cgroup_memory_available_gb": 386.203406336
+  },
+  "simulator_concurrency_limit_verified": 4,
+  "simulator_concurrency_limit_assumed": 16,
+  "sharding": "one house per task in manifest order (train, validation, test); receipts merged by house id per split",
+  "projected_wall_hours": 3.05,
+  "projection_basis": "450 houses x the measured mean 391 s per house / 16 workers",
+  "commit": "3f6ef1dda3873d81df1225fed42a42ceca4f5a9e",
+  "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+  "options": {
+   "replan_blocked_edges": true,
+   "placement_tries": 32,
+   "stratify_by_kind": true,
+   "add_source": "unseen_existing",
+   "destination_points": "anywhere",
+   "placement_prescreen": "dry_run",
+   "dry_run_destinations_per_object": 8,
+   "window_mode": "transition_tail",
+   "window_segment_frames": 30
+  }
+ }
+}

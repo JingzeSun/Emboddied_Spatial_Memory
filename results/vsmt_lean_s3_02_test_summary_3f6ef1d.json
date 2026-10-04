@@ -1,0 +1,60 @@
+{
+ "stage": "vsmt.lean.s3_02.manifest.v1",
+ "step": "test-summary",
+ "written_utc": "2026-10-04T01:16:58Z",
+ "rule": "ruling 103-1: the test data are generated in S3-02 into their own roots and sealed; the S3-03 and S3-04 entries refuse them; S3-05 verifies the seal, then reads them once",
+ "counts_only": true,
+ "raw": {
+  "houses_planned": 100,
+  "succeeded": 87,
+  "failed": 13,
+  "failures_by_reason": {
+   "frame_write_failed": 1,
+   "intervention_execution_failed": 2,
+   "intervention_window_unavailable": 10
+  },
+  "null_window_episodes": 26,
+  "null_window_failed": 4,
+  "yield_house_level_non_null": 0.8783783783783784,
+  "moves_executed": 139,
+  "moves_source_first": 90,
+  "controls_total": 332,
+  "controls_outside_U": 130,
+  "actual_workers": 16
+ },
+ "geometry": {
+  "episodes": 100,
+  "succeeded": 87,
+  "failures_by_reason": {
+   "source_episode_not_succeeded": 13
+  }
+ },
+ "instance_cache": {
+  "episodes_planned": 87,
+  "episodes_succeeded": 87,
+  "episodes_failed": 0,
+  "frames_total": 101317,
+  "fragments_total": 993086,
+  "bytes_written_total": 22380106223,
+  "wall_clock_seconds": 1848.2,
+  "actual_workers": 50,
+  "mask_source": "simulator_instance_masks",
+  "complete": true,
+  "failures_by_reason": {}
+ },
+ "sam2_cache": {
+  "episodes_planned": 87,
+  "episodes_succeeded": 85,
+  "episodes_failed": 2,
+  "frames_total": 97523,
+  "fragments_total": 1023940,
+  "bytes_written_total": 23151543142,
+  "wall_clock_seconds": 17870.7,
+  "actual_workers": 16,
+  "mask_source": "sam2",
+  "complete": true,
+  "failures_by_reason": {
+   "proposal_overflow": 2
+  }
+ }
+}

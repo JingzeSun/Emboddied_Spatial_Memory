@@ -1,0 +1,38 @@
+{
+ "stage": "vsmt.lean.s3_02.manifest.v1",
+ "step": "disk",
+ "checked_utc": "2026-10-02T22:57:21Z",
+ "free_gb": 438.2,
+ "required_gb": 346.5,
+ "projection": {
+  "houses": 450,
+  "raw_gb_per_house": 0.258036491,
+  "raw_gb_per_house_committed": 0.23921926473913044,
+  "raw_gb_per_house_measured": 0.258036491,
+  "cache_gb_per_episode": {
+   "simulator_instance_masks": 0.25178756046153844,
+   "sam2": 0.26203913441025645
+  },
+  "episodes_expected": 387.0,
+  "success_rate_planning": 0.86,
+  "margin": 1.1,
+  "need_gb": 346.5,
+  "basis": [
+   "results/vsmt_lean_s1_02b_report_5f9aa71.json",
+   "results/vsmt_lean_s1_03_report_oracle_8ebbd05.json",
+   "results/vsmt_lean_s1_03_report_154776d.json"
+  ]
+ },
+ "override_gib": null,
+ "written_bytes": 0,
+ "run_roots": [
+  "/root/autodl-tmp/vsmt_outputs/s3-02-3f6ef1d/train",
+  "/root/autodl-tmp/vsmt_outputs/s3-02-3f6ef1d/validation",
+  "/root/autodl-tmp/vsmt_outputs/s3-02-3f6ef1d/test",
+  "/root/autodl-tmp/vsmt_private/s3-02-geometry-3f6ef1d",
+  "/root/autodl-tmp/vsmt_caches/s3-02-instance-3f6ef1d",
+  "/root/autodl-tmp/vsmt_caches/s3-02-sam2-3f6ef1d"
+ ],
+ "basis": "the projection of every output minus the bytes this run's roots already hold",
+ "enough": true
+}

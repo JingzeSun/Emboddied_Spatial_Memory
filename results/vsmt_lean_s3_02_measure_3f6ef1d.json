@@ -1,0 +1,80 @@
+{
+ "stage": "s3-measure",
+ "code_commit": "3f6ef1dda3873d81df1225fed42a42ceca4f5a9e",
+ "houses": [
+  "procthor10k-0.1.2-train-06630",
+  "procthor10k-0.1.2-train-05947",
+  "procthor10k-0.1.2-train-09095",
+  "procthor10k-0.1.2-train-07383"
+ ],
+ "workers": 4,
+ "wall_clock_seconds": 860.9,
+ "succeeded": 4,
+ "failed": 0,
+ "baseline": {
+  "process_memory_bytes": 341159936,
+  "gpu0_used_mib": 0.0
+ },
+ "machine": {
+  "samples": 412,
+  "cpu_cores_peak_window": 12.371795948809703,
+  "cpu_window_seconds": 30.0,
+  "process_memory_peak_bytes": 5871501312,
+  "gpu0_used_peak_mib": 64.0
+ },
+ "per_house": [
+  {
+   "house_id": "procthor10k-0.1.2-train-05947",
+   "status": "succeeded",
+   "reason": null,
+   "observations": 1032,
+   "peak_rss_gb": 1.300012,
+   "cpu_seconds": 97.365758,
+   "wall_seconds": 336.63552498817444,
+   "bytes_written": 258036491
+  },
+  {
+   "house_id": "procthor10k-0.1.2-train-06630",
+   "status": "succeeded",
+   "reason": null,
+   "observations": 808,
+   "peak_rss_gb": 1.145376,
+   "cpu_seconds": 179.35375499999998,
+   "wall_seconds": 855.174280166626,
+   "bytes_written": 202425302
+  },
+  {
+   "house_id": "procthor10k-0.1.2-train-07383",
+   "status": "succeeded",
+   "reason": null,
+   "observations": 101,
+   "peak_rss_gb": 0.168516,
+   "cpu_seconds": 15.308598,
+   "wall_seconds": 76.50962686538696,
+   "bytes_written": 25820772
+  },
+  {
+   "house_id": "procthor10k-0.1.2-train-09095",
+   "status": "succeeded",
+   "reason": null,
+   "observations": 321,
+   "peak_rss_gb": 0.488608,
+   "cpu_seconds": 39.750303,
+   "wall_seconds": 295.7295753955841,
+   "bytes_written": 84244581
+  }
+ ],
+ "mean_wall_seconds_per_house": 391.0,
+ "not_s3_data": "these four episodes only measure occupancy; the s3 stage generates the same houses again into train",
+ "occupancy": {
+  "concurrency_verified_at": 4,
+  "cpu_cores_per_worker": 3.092948987202426,
+  "ram_gb_per_worker": 1.382585344,
+  "vram_gb_per_worker": 0.015625,
+  "disk_gb_per_worker": 0.258036491,
+  "simulator_concurrency_limit": 4,
+  "statistic": "peak_not_average",
+  "workload": "a_full_episode_including_three_plane_write",
+  "failures": []
+ }
+}

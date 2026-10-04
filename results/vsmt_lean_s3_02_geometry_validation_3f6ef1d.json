@@ -1,0 +1,61 @@
+{
+ "stage": "s1-04-object-geometry",
+ "code_commit": "74905f4a9d8ae35db8a102a5c2f8741e58ed54af",
+ "episodes_planned": 50,
+ "episodes_succeeded": 43,
+ "episodes_failed": 7,
+ "failure_receipts": [
+  {
+   "episode_id": "procthor10k-0.1.2-train-01592",
+   "reason": "source_episode_not_succeeded",
+   "detail": "failed"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-03676",
+   "reason": "source_episode_not_succeeded",
+   "detail": "failed"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-04049",
+   "reason": "source_episode_not_succeeded",
+   "detail": "failed"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-05208",
+   "reason": "source_episode_not_succeeded",
+   "detail": "failed"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-07324",
+   "reason": "source_episode_not_succeeded",
+   "detail": "failed"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-07994",
+   "reason": "source_episode_not_succeeded",
+   "detail": "failed"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-09571",
+   "reason": "source_episode_not_succeeded",
+   "detail": "failed"
+  }
+ ],
+ "objects_total": 5613,
+ "objects_without_box_total": 0,
+ "drift_max_over_episodes_m": 0.23879363798369832,
+ "episodes_with_drift_over_tolerance": [
+  "procthor10k-0.1.2-train-04625",
+  "procthor10k-0.1.2-train-05042",
+  "procthor10k-0.1.2-train-05667",
+  "procthor10k-0.1.2-train-05751",
+  "procthor10k-0.1.2-train-07918",
+  "procthor10k-0.1.2-train-08800"
+ ],
+ "frame0_containment_median_over_episodes": 1.0,
+ "frame0_containment_min_over_episodes": 1.0,
+ "requested_workers": 8,
+ "actual_workers": 8,
+ "worker_basis": "ruling 103-4: the measured S1-04 setting, 8 simulator workers",
+ "wall_clock_seconds": 143.8
+}

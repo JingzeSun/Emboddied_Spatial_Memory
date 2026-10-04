@@ -1,0 +1,295 @@
+{
+ "stage": "s1-04-object-geometry",
+ "code_commit": "74905f4a9d8ae35db8a102a5c2f8741e58ed54af",
+ "episodes_planned": 300,
+ "episodes_succeeded": 252,
+ "episodes_failed": 48,
+ "failure_receipts": [
+  {
+   "episode_id": "procthor10k-0.1.2-train-00156",
+   "reason": "source_episode_not_succeeded",
+   "detail": "failed"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-00211",
+   "reason": "source_episode_not_succeeded",
+   "detail": "failed"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-00250",
+   "reason": "source_episode_not_succeeded",
+   "detail": "failed"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-00340",
+   "reason": "source_episode_not_succeeded",
+   "detail": "failed"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-00567",
+   "reason": "source_episode_not_succeeded",
+   "detail": "failed"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-00864",
+   "reason": "source_episode_not_succeeded",
+   "detail": "failed"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-02015",
+   "reason": "source_episode_not_succeeded",
+   "detail": "failed"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-02018",
+   "reason": "source_episode_not_succeeded",
+   "detail": "failed"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-02230",
+   "reason": "source_episode_not_succeeded",
+   "detail": "failed"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-02239",
+   "reason": "source_episode_not_succeeded",
+   "detail": "failed"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-02537",
+   "reason": "source_episode_not_succeeded",
+   "detail": "failed"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-03503",
+   "reason": "source_episode_not_succeeded",
+   "detail": "failed"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-03940",
+   "reason": "source_episode_not_succeeded",
+   "detail": "failed"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-04151",
+   "reason": "source_episode_not_succeeded",
+   "detail": "failed"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-04206",
+   "reason": "source_episode_not_succeeded",
+   "detail": "failed"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-04448",
+   "reason": "source_episode_not_succeeded",
+   "detail": "failed"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-04771",
+   "reason": "source_episode_not_succeeded",
+   "detail": "failed"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-04855",
+   "reason": "source_episode_not_succeeded",
+   "detail": "failed"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-05350",
+   "reason": "source_episode_not_succeeded",
+   "detail": "failed"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-05390",
+   "reason": "source_episode_not_succeeded",
+   "detail": "failed"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-05475",
+   "reason": "source_episode_not_succeeded",
+   "detail": "failed"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-05623",
+   "reason": "source_episode_not_succeeded",
+   "detail": "failed"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-06054",
+   "reason": "source_episode_not_succeeded",
+   "detail": "failed"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-06175",
+   "reason": "source_episode_not_succeeded",
+   "detail": "failed"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-06362",
+   "reason": "source_episode_not_succeeded",
+   "detail": "failed"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-06533",
+   "reason": "source_episode_not_succeeded",
+   "detail": "failed"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-06606",
+   "reason": "source_episode_not_succeeded",
+   "detail": "failed"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-06964",
+   "reason": "source_episode_not_succeeded",
+   "detail": "failed"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-06990",
+   "reason": "source_episode_not_succeeded",
+   "detail": "failed"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-07073",
+   "reason": "source_episode_not_succeeded",
+   "detail": "failed"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-07293",
+   "reason": "source_episode_not_succeeded",
+   "detail": "failed"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-07413",
+   "reason": "source_episode_not_succeeded",
+   "detail": "failed"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-07536",
+   "reason": "source_episode_not_succeeded",
+   "detail": "failed"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-07870",
+   "reason": "source_episode_not_succeeded",
+   "detail": "failed"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-07969",
+   "reason": "source_episode_not_succeeded",
+   "detail": "failed"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-07985",
+   "reason": "source_episode_not_succeeded",
+   "detail": "failed"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-08024",
+   "reason": "source_episode_not_succeeded",
+   "detail": "failed"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-08033",
+   "reason": "source_episode_not_succeeded",
+   "detail": "failed"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-08168",
+   "reason": "source_episode_not_succeeded",
+   "detail": "failed"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-08401",
+   "reason": "source_episode_not_succeeded",
+   "detail": "failed"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-08649",
+   "reason": "source_episode_not_succeeded",
+   "detail": "failed"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-08933",
+   "reason": "source_episode_not_succeeded",
+   "detail": "failed"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-08972",
+   "reason": "source_episode_not_succeeded",
+   "detail": "failed"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-09021",
+   "reason": "source_episode_not_succeeded",
+   "detail": "failed"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-09837",
+   "reason": "source_episode_not_succeeded",
+   "detail": "failed"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-09882",
+   "reason": "source_episode_not_succeeded",
+   "detail": "failed"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-09908",
+   "reason": "source_episode_not_succeeded",
+   "detail": "failed"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-09984",
+   "reason": "source_episode_not_succeeded",
+   "detail": "failed"
+  }
+ ],
+ "objects_total": 35167,
+ "objects_without_box_total": 0,
+ "drift_max_over_episodes_m": 1.5620300878340767,
+ "episodes_with_drift_over_tolerance": [
+  "procthor10k-0.1.2-train-00187",
+  "procthor10k-0.1.2-train-00314",
+  "procthor10k-0.1.2-train-00438",
+  "procthor10k-0.1.2-train-00749",
+  "procthor10k-0.1.2-train-00900",
+  "procthor10k-0.1.2-train-00919",
+  "procthor10k-0.1.2-train-01089",
+  "procthor10k-0.1.2-train-02234",
+  "procthor10k-0.1.2-train-02509",
+  "procthor10k-0.1.2-train-02877",
+  "procthor10k-0.1.2-train-03681",
+  "procthor10k-0.1.2-train-03795",
+  "procthor10k-0.1.2-train-03879",
+  "procthor10k-0.1.2-train-04116",
+  "procthor10k-0.1.2-train-04134",
+  "procthor10k-0.1.2-train-04274",
+  "procthor10k-0.1.2-train-04320",
+  "procthor10k-0.1.2-train-04355",
+  "procthor10k-0.1.2-train-05186",
+  "procthor10k-0.1.2-train-05231",
+  "procthor10k-0.1.2-train-05275",
+  "procthor10k-0.1.2-train-06346",
+  "procthor10k-0.1.2-train-06806",
+  "procthor10k-0.1.2-train-06835",
+  "procthor10k-0.1.2-train-07306",
+  "procthor10k-0.1.2-train-07316",
+  "procthor10k-0.1.2-train-07634",
+  "procthor10k-0.1.2-train-07685",
+  "procthor10k-0.1.2-train-08444",
+  "procthor10k-0.1.2-train-08570",
+  "procthor10k-0.1.2-train-08601",
+  "procthor10k-0.1.2-train-09190",
+  "procthor10k-0.1.2-train-09202",
+  "procthor10k-0.1.2-train-09491",
+  "procthor10k-0.1.2-train-09621"
+ ],
+ "frame0_containment_median_over_episodes": 1.0,
+ "frame0_containment_min_over_episodes": 1.0,
+ "requested_workers": 8,
+ "actual_workers": 8,
+ "worker_basis": "ruling 103-4: the measured S1-04 setting, 8 simulator workers",
+ "wall_clock_seconds": 825.0
+}

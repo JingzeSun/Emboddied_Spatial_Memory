@@ -1,0 +1,23 @@
+{
+ "stage": "vsmt.lean.s3_02.manifest.v1",
+ "step": "hold",
+ "checked_utc": "2026-10-03T05:01:33Z",
+ "generator_commits": {
+  "3f6ef1dda3873d81df1225fed42a42ceca4f5a9e": {
+   "registered": true,
+   "encoder_readable": true,
+   "encoder_sha256": "23932581a953cc17509d741cede30964a8bc743f8939e440d6d9549b8c50f909",
+   "encoder_equals_registered": true
+  }
+ },
+ "registered": [
+  "7c10d2c8f5d06e37c2d8fa3792f2b4058ecf2b69",
+  "5f9aa71d9328e0a1d065c61c2bc7ef54a11a468c",
+  "2339baa96c123a7676e129881d270bfab252573c",
+  "3f6ef1dda3873d81df1225fed42a42ceca4f5a9e"
+ ],
+ "reference_commit": "3f6ef1dda3873d81df1225fed42a42ceca4f5a9e",
+ "unregistered": [],
+ "encoder_changed": [],
+ "rule": "ruling 103-3: the generator commit joins public_pose_correction.correct_encoder_since_code_commits by a commit that changes only the S1-03 contract and its two pinning tests (as 2339baa -> 6b65cb1), pre-authorised; a commit whose camera_pose encoder differs from the registered one cannot be registered this way"
+}

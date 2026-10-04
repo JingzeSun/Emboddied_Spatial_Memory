@@ -1,0 +1,72 @@
+{
+ "stage": "vsmt.lean.s3_02.manifest.v1",
+ "step": "sam2-measure",
+ "measured_utc": "2026-10-03T07:21:04Z",
+ "trials": {
+  "1": {
+   "episodes": 1,
+   "succeeded": 1,
+   "frames": 60,
+   "frames_per_second": 0.9449,
+   "frames_per_second_wall": 0.8696,
+   "wall_seconds": 69.0,
+   "peak_vram_reserved_mib": 4784.0,
+   "failed": [],
+   "data_failures": 0,
+   "other_failures": 0,
+   "root": "/root/autodl-tmp/vsmt_caches/s3-02-sam2-measure-k1-3f6ef1d-trial"
+  },
+  "2": {
+   "episodes": 2,
+   "succeeded": 2,
+   "frames": 120,
+   "frames_per_second": 1.241,
+   "frames_per_second_wall": 1.165,
+   "wall_seconds": 103.0,
+   "peak_vram_reserved_mib": 4784.0,
+   "failed": [],
+   "data_failures": 0,
+   "other_failures": 0,
+   "root": "/root/autodl-tmp/vsmt_caches/s3-02-sam2-measure-k2-3f6ef1d-trial"
+  },
+  "3": {
+   "episodes": 3,
+   "succeeded": 3,
+   "frames": 180,
+   "frames_per_second": 1.3861,
+   "frames_per_second_wall": 1.3006,
+   "wall_seconds": 138.4,
+   "peak_vram_reserved_mib": 4784.0,
+   "failed": [],
+   "data_failures": 0,
+   "other_failures": 0,
+   "root": "/root/autodl-tmp/vsmt_caches/s3-02-sam2-measure-k3-3f6ef1d-trial"
+  },
+  "4": {
+   "episodes": 4,
+   "succeeded": 4,
+   "frames": 240,
+   "frames_per_second": 1.439,
+   "frames_per_second_wall": 1.3476,
+   "wall_seconds": 178.1,
+   "peak_vram_reserved_mib": 4784.0,
+   "failed": [],
+   "data_failures": 0,
+   "other_failures": 0,
+   "root": "/root/autodl-tmp/vsmt_caches/s3-02-sam2-measure-k4-3f6ef1d-trial"
+  }
+ },
+ "workers_per_card": 4,
+ "gpus": [
+  "0",
+  "1",
+  "2",
+  "3"
+ ],
+ "workers": 16,
+ "frames_to_cache": 426611,
+ "frames_per_second_all_cards": 5.756,
+ "projected_hours": 20.6,
+ "rule": "ruling 84-4: the per-card worker count with the highest processing rate on one card, times the cards; a trial whose failed episodes all failed for a data reason counts (its failures are listed), any other failure drops that trial",
+ "note": "trials process the first frames of the largest train episodes; the run continues after this measurement"
+}

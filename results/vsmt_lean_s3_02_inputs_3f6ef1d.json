@@ -1,0 +1,180 @@
+{
+ "stage": "vsmt.lean.s3_02.manifest.v1",
+ "step": "check",
+ "checked_utc": "2026-10-03T05:01:31Z",
+ "code_commit": "74905f4a9d8ae35db8a102a5c2f8741e58ed54af",
+ "run_root": "/root/autodl-tmp/vsmt_private/s3-02-run",
+ "resources": {
+  "cpu_quota": 100,
+  "cpu_quota_source": "cgroup cpu.max",
+  "memory_bytes": 386547056640,
+  "memory_source": "cgroup memory.max",
+  "disks": {
+   "/root/autodl-tmp": {
+    "free_gib": 280.7,
+    "total_gib": 470.0
+   },
+   "/root": {
+    "free_gib": 15.9,
+    "total_gib": 30.0
+   }
+  }
+ },
+ "environment": {
+  "python": "3.12.3",
+  "platform": "Linux-5.15.0-94-generic-x86_64-with-glibc2.35",
+  "threads": {
+   "OMP_NUM_THREADS": null,
+   "MKL_NUM_THREADS": null,
+   "OPENBLAS_NUM_THREADS": null,
+   "TRAIN_THREADS": null
+  },
+  "numpy": "2.3.2",
+  "torch": "2.8.0+cu128"
+ },
+ "problems": [],
+ "manifests": {
+  "train": {
+   "houses": 300,
+   "first": [
+    "procthor10k-0.1.2-train-06630"
+   ]
+  },
+  "validation": {
+   "houses": 50,
+   "first": [
+    "procthor10k-0.1.2-train-03949"
+   ]
+  },
+  "test": {
+   "houses": 100,
+   "first": [
+    "procthor10k-0.1.2-train-06463"
+   ]
+  }
+ },
+ "source": {
+  "file": "/root/autodl-tmp/vsmt_sources/procthor-10k-0.1.2/train.jsonl.gz",
+  "registered_sha256": "d64450ec821aef55351f62885e4d56b3f0d948693af467bb7f6532850ef4fa37",
+  "registered_bytes": 52316238,
+  "sha256": "d64450ec821aef55351f62885e4d56b3f0d948693af467bb7f6532850ef4fa37",
+  "bytes": 52316238
+ },
+ "salt": {
+  "file": "/root/autodl-tmp/vsmt_private/null_window_salt.txt",
+  "required_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+  "sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96"
+ },
+ "frontend_assets": {
+  "file": "/root/autodl-tmp/vsmt_private/s103_assets.json",
+  "verified": {
+   "sam2": {
+    "repository_commit": "2b90b9f5ceec907a1c18123530e92e794ad901a4",
+    "config_sha256": "0f36b91e86e58d06c87e42997166212468b88b98b60e4d816d5e4d4d088b6f55",
+    "checkpoint_sha256": "6d1aa6f30de5c92224f8172114de081d104bbd23dd9dc5c58996f0cad5dc4d38",
+    "checkpoint_bytes": 184416285
+   },
+   "dinov2": {
+    "repository_commit": "7764ea0f912e53c92e82eb78a2a1631e92725fc8",
+    "checkpoints": {
+     "vits14": {
+      "asset_id": "dinov2_vit_s14_checkpoint",
+      "sha256": "b938bf1bc15cd2ec0feacfe3a1bb553fe8ea9ca46a7e1d8d00217f29aef60cd9",
+      "bytes": 88283115
+     },
+     "vitb14": {
+      "asset_id": "dinov2_vit_b14_checkpoint",
+      "sha256": "0b8b82f85de91b424aded121c7e1dcc2b7bc6d0adeea651bf73a13307fad8c73",
+      "bytes": 346378731
+     }
+    }
+   },
+   "descriptor_asset_sha256s": {
+    "vits14": "b938bf1bc15cd2ec0feacfe3a1bb553fe8ea9ca46a7e1d8d00217f29aef60cd9",
+    "vitb14": "0b8b82f85de91b424aded121c7e1dcc2b7bc6d0adeea651bf73a13307fad8c73"
+   }
+  }
+ },
+ "reid_heads": {
+  "sam2": {
+   "file": "/root/autodl-tmp/vsmt_private/exports/reid_head_vitb14_154776d.json",
+   "pinned_sha256": "f6fc67e5f365a4f6d375d6aa16afe15cb0d9769879aa0cc1ab84ff6de9b65073",
+   "file_sha256": "823508e4f7f296a75b027676fc24fbb711de5388bb3ab9353aff4dcf1ff44e17",
+   "payload_sha256": "f6fc67e5f365a4f6d375d6aa16afe15cb0d9769879aa0cc1ab84ff6de9b65073",
+   "matches": true
+  },
+  "simulator_instance_masks": {
+   "file": "/root/autodl-tmp/vsmt_private/lean-s1-04-diagnostics-oracle-caa50c7/reid_head_vitb14.json",
+   "pinned_sha256": "5cea91cf77901f1eb38e5942ee12a2afbe14e11ba1475bd2957e1cbfe3659a88",
+   "file_sha256": "27bf6a10767f68c3b7aef6e76f91e48c9bea8de6750cfb8620e16e0c388217e0",
+   "payload_sha256": "5cea91cf77901f1eb38e5942ee12a2afbe14e11ba1475bd2957e1cbfe3659a88",
+   "matches": true
+  }
+ },
+ "simulator": {
+  "python": "/root/autodl-tmp/vsmt-envs/simulator-py39/bin/python",
+  "ai2thor_and_python": "5.0.0 3.9.25"
+ },
+ "gpus": [
+  {
+   "index": 0,
+   "name": "NVIDIA GeForce RTX 5090",
+   "memory_total_mib": 32607.0
+  },
+  {
+   "index": 1,
+   "name": "NVIDIA GeForce RTX 5090",
+   "memory_total_mib": 32607.0
+  },
+  {
+   "index": 2,
+   "name": "NVIDIA GeForce RTX 5090",
+   "memory_total_mib": 32607.0
+  },
+  {
+   "index": 3,
+   "name": "NVIDIA GeForce RTX 5090",
+   "memory_total_mib": 32607.0
+  }
+ ],
+ "disk": {
+  "free_gb": 301.4,
+  "required_gb": 208.4,
+  "projection": {
+   "houses": 450,
+   "raw_gb_per_house": 0.23921926473913044,
+   "raw_gb_per_house_committed": 0.23921926473913044,
+   "raw_gb_per_house_measured": null,
+   "cache_gb_per_episode": {
+    "simulator_instance_masks": 0.25178756046153844,
+    "sam2": 0.26203913441025645
+   },
+   "episodes_expected": 387.0,
+   "success_rate_planning": 0.86,
+   "margin": 1.1,
+   "need_gb": 337.1,
+   "basis": [
+    "results/vsmt_lean_s1_02b_report_5f9aa71.json",
+    "results/vsmt_lean_s1_03_report_oracle_8ebbd05.json",
+    "results/vsmt_lean_s1_03_report_154776d.json"
+   ]
+  },
+  "override_gib": null,
+  "written_bytes": 128719894027,
+  "run_roots": [
+   "/root/autodl-tmp/vsmt_outputs/s3-02-3f6ef1d/train",
+   "/root/autodl-tmp/vsmt_outputs/s3-02-3f6ef1d/validation",
+   "/root/autodl-tmp/vsmt_outputs/s3-02-3f6ef1d/test",
+   "/root/autodl-tmp/vsmt_private/s3-02-geometry-3f6ef1d",
+   "/root/autodl-tmp/vsmt_caches/s3-02-instance-3f6ef1d",
+   "/root/autodl-tmp/vsmt_caches/s3-02-sam2-3f6ef1d"
+  ],
+  "basis": "the projection of every output minus the bytes this run's roots already hold"
+ },
+ "pose_registry": [
+  "7c10d2c8f5d06e37c2d8fa3792f2b4058ecf2b69",
+  "5f9aa71d9328e0a1d065c61c2bc7ef54a11a468c",
+  "2339baa96c123a7676e129881d270bfab252573c",
+  "3f6ef1dda3873d81df1225fed42a42ceca4f5a9e"
+ ]
+}

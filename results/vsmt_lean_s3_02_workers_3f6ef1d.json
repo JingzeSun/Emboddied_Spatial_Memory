@@ -1,0 +1,18 @@
+{
+ "instance_cache": {
+  "workers": 50,
+  "threads": 2,
+  "by_cpu": 50,
+  "by_memory": 210,
+  "basis": "8ebbd05 measured the instance cache CPU-bound at two threads per worker (8 x 2 = its 16-CPU quota), 1,369 MiB peak RSS and 496 MiB VRAM per worker; the same rule on this host: workers = min(quota / 2, (memory - 8 GiB) / (1.25 x 1.34 GiB)), spread over every card",
+  "gpus": [
+   "0",
+   "1",
+   "2",
+   "3"
+  ],
+  "geometry_workers": 8,
+  "cpu_quota": 100,
+  "memory_bytes": 386547056640
+ }
+}

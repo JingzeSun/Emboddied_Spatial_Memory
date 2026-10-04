@@ -1,0 +1,17 @@
+{
+ "stage": "vsmt.lean.s3_02.manifest.v1",
+ "step": "movecheck",
+ "checked_utc": "2026-10-03T04:58:01Z",
+ "rule": "ruling 36: train moves >= 120 and source-first >= 60",
+ "move_minimum": {
+  "moves": 391,
+  "moves_source_first": 246,
+  "minimum_train": 120,
+  "minimum_train_source_first": 60,
+  "gate_applies": true,
+  "below_minimum": false
+ },
+ "houses_planned": 300,
+ "succeeded": 252,
+ "below_minimum": false
+}
