@@ -8,7 +8,8 @@
 登记的特殊码（训练发散记“发散”、门不过记“门未过”）；其他非零码是工程失败——训练可同输入同种子自动重跑一次（裁决 104-3），
 其余失败即停止派发新作业、等在跑的结束。续跑时已完成的作业保留（代码自那以后只改了登记文件或文档才算，否则拒绝，除非显式
 接受）；上次中断时还在跑的作业，残留输出先挪到 ``interrupted/`` 留存再重跑；训练例外：它每个 epoch 末存档，中断或崩溃后
-留在原处、从存档接着训。输入是作业清单与机器资源，输出是每个作业的状态
+留在原处、从存档接着训。运行目录里放一个 ``DRAIN`` 文件，池子就不再派发任何作业，等在跑的全部结束后停下（批次之间换代码或
+升级机器用）。输入是作业清单与机器资源，输出是每个作业的状态
 文件、日志与实测内存。例如 120 核的机器上，三个第 0 轮训练一就绪就各占 4 核先走，其余空槽由审计填满。它不决定科学口径，
 命令与依赖由 ``s3_03_manifest`` 按裁决 104 生成。
 """
@@ -38,6 +39,8 @@ NO_RETRY_CODES = (0, 2)
 #: Ruling 104-3: the reserve kept free for the system.
 RESERVE_CORES = 2
 RESERVE_GIB = 8.0
+#: The operator's switch: while this file exists in the run root the pool starts no job and ends when the running ones end.
+DRAIN_FILE = "DRAIN"
 #: Every job but a training runs one thread; numerical libraries are pinned so results never depend on the machine.
 THREAD_VARIABLES = ("OMP_NUM_THREADS", "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS", "NUMEXPR_NUM_THREADS")
 
@@ -420,6 +423,8 @@ class Pool:
             self.round += 1
             self.reap()
             self.propagate_skips()
+            if self.stop_reason is None and (self.run_root / DRAIN_FILE).exists():
+                self.stop_reason = "drained"  # the operator's switch: start nothing more, end when the running jobs end
             if self.stop_reason is None:
                 self.dispatch()
             pending = [job_id for job_id in self.jobs if self.status(job_id) in ("pending", "running")]

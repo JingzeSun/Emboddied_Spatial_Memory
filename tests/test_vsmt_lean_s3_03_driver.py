@@ -182,6 +182,28 @@ class PoolTests(unittest.TestCase):
         self.assertTrue((out / "checkpoint" / "state.pt").exists())
         self.assertFalse((self.tmp / "run" / "interrupted").exists())
 
+    def test_a_drain_starts_nothing_more_and_ends_when_the_running_jobs_end(self) -> None:
+        run_root = self.tmp / "run"
+
+        class Draining(FakeLauncher):
+            def __call__(self, argv, *, log, env):
+                process, handle = super().__call__(argv, log=log, env=env)
+                process.polls = 3
+                (run_root / pool.DRAIN_FILE).write_text("", encoding="utf-8")  # asked for while the first job runs
+                return process, None
+
+        launcher = Draining()
+        runner = self.pool([job("a", cores=4), job("b"), job("c", deps=("a",))], launcher)
+        self.assertEqual(runner.run(), 1)
+        self.assertEqual(launcher.started, ["a"])
+        self.assertEqual((runner.stop_reason, runner.status("a"), runner.status("b"), runner.status("c")), ("drained", "done", "pending", "pending"))
+        again = FakeLauncher()
+        self.assertEqual(self.pool([job("a", cores=4), job("b"), job("c", deps=("a",))], again).run(), 1)  # the file still stands
+        self.assertEqual(again.started, [])
+        (run_root / pool.DRAIN_FILE).unlink()
+        self.assertEqual(self.pool([job("a", cores=4), job("b"), job("c", deps=("a",))], again).run(), 0)
+        self.assertEqual(sorted(again.started), ["b", "c"])
+
     def test_divergence_skips_what_it_feeds_and_soft_dependents_still_run(self) -> None:
         launcher = FakeLauncher(codes={"t": [3]})
         jobs = [job("t", exit_status={3: "diverged"}), job("audit", deps=("t",)), job("merge", deps=("audit",)),

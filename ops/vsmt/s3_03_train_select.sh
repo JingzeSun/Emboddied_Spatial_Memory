@@ -38,6 +38,9 @@
 #   MEMORY_FIXED_GIB ("train1=5.5 audit=2 ...": a fixed reservation per memory class instead of 1.25 x the measured peak and
 #   the round-1 fallback; user 2026-10-04 on the memory-bound CPU host; scheduling only; the live cgroup guard still pauses
 #   dispatch; recorded in workers.json).
+# Drain (user 2026-10-04: change code or upgrade the host between training batches): touch $RUN_ROOT/DRAIN; the pool starts
+#   nothing more and ends when the running jobs end, the status says 'drained' and no fallback power-off is armed; remove the
+#   file before the next 'all' (the driver refuses while it exists).
 # Resume: run 'all' again; finished jobs are kept (only the fit registration files and documents may change since), jobs that
 #   were interrupted are set aside under $RUN_ROOT/interrupted and rerun, audits keep their finished configurations, trainings
 #   continue from their last epoch-end checkpoint (bit-identical to an uninterrupted training); the adoption choice of the first
@@ -70,6 +73,7 @@ if ps -eo args | grep -v grep | grep -E "^sleep [0-9]+$|/usr/bin/shutdown" > /de
   echo "refused: a fallback power-off may be armed (a sleep or a shutdown is pending); stop it first"; exit 2
 fi
 if pgrep -f "$JOB_PATTERN" > /dev/null; then echo "refused: an S3-03 pool or one of its jobs (or another vsmt entry) is running"; exit 2; fi
+if [ -e "$RUN_ROOT/DRAIN" ]; then echo "refused: $RUN_ROOT/DRAIN exists (a drain was asked for); remove it to run again"; exit 2; fi
 mkdir -p "$RUN_ROOT" "$EXPORT_DIR"
 exec 9> "$RUN_ROOT/.lock"  # held by this driver and its pool for the whole run; a second driver on the same root stops here
 if ! flock -n 9; then echo "refused: another driver holds $RUN_ROOT/.lock (its test suite, check or pool is running)"; exit 2; fi
@@ -87,7 +91,9 @@ finish() {  # step, exit status (0 only when verify passed)
     'fallback_shutdown_seconds': $FALLBACK_SHUTDOWN_SECONDS}, open('$STATUS', 'w'), indent=1)" "$1" "$DETAIL"
   M status --run-root "$RUN_ROOT"
   echo "[$(date)] status written ($1: $DETAIL) -> $STATUS"
-  if [ "$FALLBACK_SHUTDOWN_SECONDS" -gt 0 ] 2>/dev/null; then
+  if [ "${DRAINED:-0}" = "1" ]; then
+    echo "[$(date)] drained on request: no fallback power-off"
+  elif [ "$FALLBACK_SHUTDOWN_SECONDS" -gt 0 ] 2>/dev/null; then
     echo "[$(date)] fallback armed: power off in $FALLBACK_SHUTDOWN_SECONDS s unless another vsmt job runs"
     sleep "$FALLBACK_SHUTDOWN_SECONDS"
     if pgrep -f "$JOB_PATTERN|lean_s2_05_development.py|ruling89_train.py" > /dev/null; then
@@ -123,6 +129,7 @@ RUN_EXIT=$?
 M export --run-root "$RUN_ROOT" --export-dir "$EXPORT_DIR" --tag "$TAG"
 if [ "$RUN_EXIT" != "0" ]; then
   REASON=$($PY -c "import json; print(json.load(open('$RUN_ROOT/pool.json')).get('stop_reason'))" 2>/dev/null)
+  [ "$REASON" = "drained" ] && DRAINED=1
   DETAIL="the pool stopped (exit $RUN_EXIT): $REASON"; finish run "$RUN_EXIT"
 fi
 if M verify --run-root "$RUN_ROOT" --export-dir "$EXPORT_DIR" --tag "$TAG"; then
