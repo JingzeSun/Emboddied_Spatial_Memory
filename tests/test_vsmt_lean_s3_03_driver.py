@@ -29,6 +29,8 @@ for item in (PROJECT_ROOT / "src", PROJECT_ROOT / "tests", PROJECT_ROOT / "ops" 
     if str(item) not in sys.path:
         sys.path.insert(0, str(item))
 
+from types import SimpleNamespace  # noqa: E402
+
 import s3_03_jobs as pool  # noqa: E402
 import s3_03_manifest as driver  # noqa: E402
 from vsmt import lean_arms as arms  # noqa: E402
@@ -56,11 +58,13 @@ class FakeLauncher:
         self.effects = effects or {}
         self.started: list[str] = []
         self.envs: dict[str, dict] = {}
+        self.commands: dict[str, list] = {}
 
     def __call__(self, argv, *, log, env):
         job_id = Path(log).stem.replace("__", "/")  # the pool names each job's log after its id
         self.started.append(job_id)
         self.envs[job_id] = dict(env)
+        self.commands[job_id] = list(argv)
         if job_id in self.effects:
             self.effects[job_id](argv)
         codes = self.codes.get(job_id)
@@ -203,6 +207,73 @@ class PoolTests(unittest.TestCase):
         (run_root / pool.DRAIN_FILE).unlink()
         self.assertEqual(self.pool([job("a", cores=4), job("b"), job("c", deps=("a",))], again).run(), 0)
         self.assertEqual(sorted(again.started), ["b", "c"])
+
+    def remote_pool(self, jobs, launcher, hosts, **options):
+        suspended = []
+        runner = self.pool(jobs, launcher, hosts=lambda: hosts, remote_runner=["remote-run"], hosts_every=0.0,
+                           suspend_host=lambda name, reason: suspended.append((name, reason)), **options)
+        return runner, suspended
+
+    def test_jobs_that_may_run_elsewhere_go_to_a_host_when_this_one_is_full(self) -> None:
+        h1 = SimpleNamespace(name="h1", cores=2, gib=16.0, kinds=("audit",))
+        launcher = FakeLauncher()
+        jobs = [job("here", cores=1, priority=0), job("a1", kind="audit", remote_pull=("/run/a1",), remote_push=("/run/heads.json",)),
+                job("a2", kind="audit", remote_pull=("/run/a2",)), job("a3", kind="audit", remote_pull=("/run/a3",)),
+                job("pass", kind="round1"), job("other", kind="train1", remote_pull=("/run/t",))]
+        runner, _ = self.remote_pool(jobs, launcher, [h1], budget_cores=1)
+        self.assertEqual(runner.run(), 0)
+        states = {j: json.loads((self.tmp / "run" / "jobs" / f"{j}.json").read_text(encoding="utf-8")) for j in runner.jobs}
+        on_h1 = sorted(j for j, st in states.items() if st["host"] == "h1")
+        self.assertEqual(on_h1, ["a1", "a2"])  # two cores there; the third audit, the pass and the training (kind not allowed) ran here
+        self.assertEqual(states["pass"]["host"], "local")
+        self.assertEqual(states["other"]["host"], "local")
+        command = launcher.commands["a1"]
+        self.assertEqual(command[:7], ["remote-run", "--run-root", str(self.tmp / "run"), "--host", "h1", "--rss",
+                                       str(self.tmp / "run" / "jobs" / "a1.rss.json")])
+        self.assertEqual(command[command.index("--push") + 1], "/run/heads.json")
+        self.assertEqual(command[command.index("--pull") + 1], "/run/a1")
+        self.assertIn("OMP_NUM_THREADS=1", command)
+        self.assertNotIn("--pull-every", command)
+        self.assertEqual(command[command.index("--") + 1:][:2], ["job", "a1"])  # the same command as it would run here
+        self.assertEqual(launcher.commands["a3"], ["job", "a3"])
+
+    def test_a_transport_failure_requeues_the_job_and_suspends_the_host(self) -> None:
+        h1 = SimpleNamespace(name="h1", cores=4, gib=16.0, kinds=("audit",))
+        launcher = FakeLauncher(codes={"a1": [pool.TRANSPORT_EXIT]})
+        jobs = [job("block", cores=1, priority=0, memory="small"), job("a1", kind="audit", remote_pull=("/run/a1",))]
+        runner, suspended = self.remote_pool(jobs, launcher, [h1], budget_cores=1)
+        self.assertEqual(runner.run(), 0)
+        state = json.loads((self.tmp / "run" / "jobs" / "a1.json").read_text(encoding="utf-8"))
+        self.assertEqual((state["status"], state["host"]), ("done", "local"))  # rerun here once the host was suspended
+        self.assertEqual(state["history"][0]["status"], "transport_failed")
+        self.assertEqual([name for name, _ in suspended], ["h1"])
+        self.assertEqual(runner.snapshot()["remote"]["suspended"], ["h1"])
+
+    def test_a_resumable_remote_job_is_pulled_while_it_runs_and_the_memory_guard_holds_only_here(self) -> None:
+        h1 = SimpleNamespace(name="h1", cores=4, gib=64.0, kinds=("train1",))
+        launcher = FakeLauncher()
+        jobs = [job("t", kind="train1", cores=None, memory="train", resumable=True, remote_pull=("/run/t",)), job("p", kind="round1")]
+        runner, _ = self.remote_pool(jobs, launcher, [h1], memory_now=lambda: 10 ** 12, memory_limit_bytes=1)
+        runner.running["busy"] = (FakeProcess(0, polls=10 ** 6), None, 0, 0.0)  # makes the guard bite here
+        runner.jobs["busy"], runner.states["busy"] = job("busy"), {"status": "running", "history": []}
+        runner.load = lambda: None
+        for job_id in ("t", "p"):
+            runner.states[job_id] = {"job_id": job_id, "status": "pending", "attempts": 0, "history": []}
+        runner.dispatch()
+        self.assertEqual(launcher.started, ["t"])  # the paused guard stops "p" here, not "t" on the host
+        self.assertIn("--pull-every", launcher.commands["t"])
+
+    def test_hosts_are_read_again_while_the_run_goes_on(self) -> None:
+        listing: list = []
+        launcher = FakeLauncher()
+        runner, _ = self.remote_pool([job("a", kind="audit", remote_pull=("/run/a",))], launcher, listing, budget_cores=1,
+                                     memory_now=lambda: 10 ** 12, memory_limit_bytes=1)
+        runner.running["busy"] = (FakeProcess(0, polls=10 ** 6), None, 1, 0.0)
+        runner.jobs["busy"], runner.states["busy"] = job("busy"), {"status": "running", "history": []}
+        runner.states["a"] = {"job_id": "a", "status": "pending", "attempts": 0, "history": []}
+        self.assertEqual(runner.dispatch(), [])
+        listing.append(SimpleNamespace(name="h2", cores=1, gib=8.0, kinds=("audit",)))
+        self.assertEqual(runner.dispatch(), ["a"])
 
     def test_divergence_skips_what_it_feeds_and_soft_dependents_still_run(self) -> None:
         launcher = FakeLauncher(codes={"t": [3]})
@@ -436,6 +507,17 @@ class GraphTests(unittest.TestCase):
             self.assertEqual(item.resumable, item.kind in ("train0", "train1"), job_id)
         for job_id in ("instance/t1/VSMT-lean/s19", "instance/t0/AssocOnly"):
             self.assertIn("--checkpoint", self.argv(job_id))
+        root = self.ctx.run_root
+        for job_id, item in jobs.items():  # user 2026-10-04: audits and trainings may run on another host, nothing else
+            self.assertEqual(bool(item.remote_pull), item.kind in ("audit", "train0", "train1"), job_id)
+        t1 = jobs["instance/t1/VSMT-lean/s19"]
+        self.assertEqual(t1.remote_push, (str(root / "instance/round0"), str(root / "instance/round1")))
+        self.assertEqual(t1.remote_pull, (str(root / "instance/training/round1/VSMT-lean/s19"),))
+        learned = jobs[f"instance/audit/NoVersion/s31/c00-04/{episode}"]
+        self.assertEqual(learned.remote_push, (str(root / "instance/training/round1/VSMT-lean/s31/weights_grouped.json"),))
+        self.assertEqual(learned.remote_pull, tuple(str(root / f"instance/audit/NoVersion-c0{i}-s31" / episode) for i in range(5)))
+        rule = jobs[f"instance/audit/ELU-P/rule/c00-02/{episode}"]
+        self.assertEqual((rule.remote_push, len(rule.remote_pull)), ((), 3))
         argv = self.argv("instance/t0/HeuristicLabel")
         self.assertEqual([argv[i + 1] for i, a in enumerate(argv) if a == "--source"], [f"{self.ctx.run_root / 'instance' / 'round0'}:ELU-P:heuristic"])
         argv = self.argv(f"instance/audit/NoVersion/s31/c00-04/{episode}")

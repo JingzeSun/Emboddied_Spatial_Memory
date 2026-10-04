@@ -41,6 +41,18 @@
 # Drain (user 2026-10-04: change code or upgrade the host between training batches): touch $RUN_ROOT/DRAIN; the pool starts
 #   nothing more and ends when the running jobs end, the status says 'drained' and no fallback power-off is armed; remove the
 #   file before the next 'all' (the driver refuses while it exists).
+# Remote hosts (user 2026-10-04: more CPU hosts beside this one; the S3 stages after S3-03 that need no GPU can use the same):
+#   1. here, once: ssh-keygen -t ed25519 -N "" -f /root/.ssh/vsmt_workers_ed25519; its .pub goes into each host's
+#      /root/.ssh/authorized_keys;
+#   2. python ops/vsmt/remote_hosts.py setup --run-root $RUN_ROOT --name w1 --address <gateway> --port <port> [--kinds audit,train1]
+#      (copies the python prefix, this worktree with its repository, the validation inputs, the ReID heads and, for trainings,
+#      the round-0 records, each to the same absolute path; about 45 GB);
+#   3. python ops/vsmt/remote_hosts.py admit --run-root $RUN_ROOT --name w1 --address <gateway> --port <port> [--kinds ...]
+#      (versions, code and inputs byte for byte, two audits per front end rerun identical, a short training identical;
+#      writes $RUN_ROOT/hosts/w1.json with its budget: its cgroup less 2 cores and 8 GiB);
+#   the running pool reads $RUN_ROOT/hosts/ every 30 s: audits and trainings that do not fit here go to an admitted host (each
+#   job's state names its host); "paused": true in the host file stops new jobs there; a connection failure requeues the job
+#   and writes $RUN_ROOT/hosts/w1.suspended (remove it once the host is back).
 # Resume: run 'all' again; finished jobs are kept (only the fit registration files and documents may change since), jobs that
 #   were interrupted are set aside under $RUN_ROOT/interrupted and rerun, audits keep their finished configurations, trainings
 #   continue from their last epoch-end checkpoint (bit-identical to an uninterrupted training); the adoption choice of the first

@@ -50,6 +50,7 @@ FRONTS = {"instance": "simulator_instance_masks", "sam2": "sam2"}
 SPLITS = ("train", "validation")
 S2_04_ENTRY = HERE.parent / "lean_s2_04_evaluate_episode.py"
 NODE_AUDIT = HERE.parent / "lean_s2_05_node_audit.py"
+REMOTE_SCRIPT = HERE.parent / "remote_hosts.py"
 TRAIN_ENTRY = HERE.parent / "s3_03_train.py"
 GRID_REVIEW = HERE.parent / "s2_06_grid_review.py"
 S2_05_CONTRACT = ROOT / "configs" / "vsmt" / "lean_s2_05_development_v1.json"
@@ -373,7 +374,8 @@ def build_jobs(ctx: RunContext) -> list[pool.Job]:
                                  P["critical"], TRAINING_COST, None,
                                  "train0", lambda f=front, a=arm: ctx.train(f, a, 0, arms.SEEDS[0]),
                                  outputs=(str(ctx.training_dir(front, 0, arm, arms.SEEDS[0])),), retries=1, exit_status={3: "diverged"},
-                                 resumable=True))
+                                 resumable=True, remote_push=(str(ctx.pass_root(front, "round0")),),
+                                 remote_pull=(str(ctx.training_dir(front, 0, arm, arms.SEEDS[0])),)))
             round1_ids[arm] = []
             for episode in train:
                 job_id = f"{front}/r1/{arm}/{episode}"
@@ -391,7 +393,8 @@ def build_jobs(ctx: RunContext) -> list[pool.Job]:
                 jobs.append(pool.Job(f"{front}/t1/{arm}/s{seed}", "train1", (f"{front}/gate-r0", f"{front}/t0/{arm}", *round1_ids[arm]),
                                      P["critical"], TRAINING_COST, None, "train1", lambda f=front, a=arm, s=seed: ctx.train(f, a, 1, s),
                                      outputs=(str(ctx.training_dir(front, 1, arm, seed)),), retries=1, exit_status={3: "diverged"},
-                                     resumable=True))
+                                     resumable=True, remote_push=(str(ctx.pass_root(front, "round0")), str(ctx.pass_root(front, "round1"))),
+                                     remote_pull=(str(ctx.training_dir(front, 1, arm, seed)),)))
         jobs.append(pool.Job(f"{front}/coverage", "coverage", (*round0_ids, *round1_ids["VSMT-lean"]), P["control"], 0.0, 1, "gate",
                              lambda f=front: ctx.manifest("coverage", "--front", f), stops_on_failure=False))  # report only
         merge_ids = []
@@ -421,8 +424,11 @@ def build_jobs(ctx: RunContext) -> list[pool.Job]:
                             heads = ctx.heads_file(f, 1, heads_arm(a), s) if s is not None else None
                             return ctx.audit(f, e, a, s, chosen, heads=heads)
 
+                        heads_file = ctx.heads_file(front, 1, heads_arm(arm), seed) if seed is not None else None
                         jobs.append(pool.Job(job_id, "audit", deps, priority, validation_frames[episode] * len(part), 1, "audit",
-                                             build_audit, keep_partial=True))
+                                             build_audit, keep_partial=True,
+                                             remote_push=(str(heads_file),) if heads_file is not None else (),
+                                             remote_pull=tuple(str(ctx.group_root(front, arm, index, seed) / episode) for index, _ in part)))
                         audit_ids.append(job_id)
                 for index, _config in configs:
                     job_id = f"{front}/merge/{group_name(arm, index, seed)}"
@@ -810,9 +816,15 @@ def cmd_run(args: argparse.Namespace) -> int:
                                            "memory_fallbacks": {"train1": "2 x the measured round-0 peak until a round-1 training is measured"},
                                            "inflight_gib_per_running_job": INFLIGHT_GIB,
                                            "memory_fixed_gib": fixed or None,
+                                           "remote_hosts": {"dir": str(run_root / "hosts"), "rule": (
+                                               "user 2026-10-04: hosts admitted by remote_hosts.py admit (same environment, code and "
+                                               "inputs byte for byte, audits rerun identical) are read every 30 s; audits and trainings "
+                                               "may run there, everything else runs here; outputs are pulled back to the same paths")},
                                            "memory_fixed_rule": ("an operator's reservation per class (MEMORY_FIXED_GIB) replaces the measured "
                                                                  "peak x 1.25 and the fallback; scheduling only, no output changes; the live "
                                                                  "cgroup guard still pauses dispatch") if fixed else None})
+    import remote_hosts
+
     jobs = build_jobs(ctx)
     runner = pool.Pool(jobs, run_root=run_root, log_dir=Path(args.log_dir), budget_cores=cores, budget_gib=gib, memory_defaults=defaults,
                        train_threads=ctx.train_threads, commit=head, code_change=disallowed_changes,
@@ -820,7 +832,9 @@ def cmd_run(args: argparse.Namespace) -> int:
                        min_free_gib=args.min_free_gib, memory_limit_bytes=memory_bytes - int(pool.RESERVE_GIB * 2 ** 30),
                        wrapper=[ctx.python, str(JOBS_SCRIPT), "run-measured"], retry_failed=args.retry_failed,
                        memory_fallbacks={"train1": ("train0", 2.0)}, inflight_gib=INFLIGHT_GIB, group_order=ctx.fronts,
-                       memory_fixed=fixed)
+                       memory_fixed=fixed, hosts=lambda: remote_hosts.load_hosts(run_root),
+                       remote_runner=[ctx.python, str(REMOTE_SCRIPT), "remote-run"],
+                       suspend_host=lambda name, reason: remote_hosts.suspend(run_root, name, reason))
     print(f"[s3-03-run] {len(jobs)} jobs, {cores} cores, {round(gib, 1)} GiB, fronts {list(ctx.fronts)}, commit {head[:12]}", flush=True)
     code = runner.run()
     print(f"[s3-03-run] finished: {runner.stop_reason or 'all jobs ended'}")
