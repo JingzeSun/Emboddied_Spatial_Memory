@@ -107,8 +107,11 @@ def heads_record(ctx: s303.RunContext, front: str) -> tuple[dict[str, Any], list
             heads = ctx.heads_file(front, 1, arm, seed)
             receipt_path = ctx.training_dir(front, 1, arm, seed) / "training_receipt.json"
             row: dict[str, Any] = {"job_status": status, "heads": str(heads)}
-            if status == "diverged":
-                row["usable"] = False
+            state_file = ctx.run_root / "jobs" / f"{s303.pool.state_key(job)}.json"
+            reason = str((load_json(state_file) if state_file.exists() else {}).get("reason") or "")
+            if status == "diverged" or (status == "skipped" and reason.startswith("dependency_")):
+                row["usable"] = False  # a result (ruling 102-9): its own or its round-0 training diverged; S3-03 counts it absent
+                row["reason"] = reason or None
             elif status != "done" or not heads.exists() or not receipt_path.exists():
                 problems.append(f"training_not_done_or_files_missing:{job}:{status}")
                 row["usable"] = False
@@ -184,6 +187,7 @@ def cmd_select(args: argparse.Namespace) -> int:
     problems += [f"g2_readings_differ:{item}" for item in differing]
     problems += [f"g3_{item}" for item in s4.event_problems(recomputed)]
     selection = s4.select_front(recomputed)
+    coverage_path = ctx.front_dir(front) / "coverage.json"  # ruling 104-2 / 106-3: state coverage, report only
     # the events are the same in every run (G3), so any run names the episodes; AssocOnly's when it exists
     reference = next((run for run in runs if run["arm"] == arms.SELECTION_REFERENCE_ARM), runs[0])
     episodes = s4.probe_episodes(reference["reports"], ctx.frames(front, "validation"))
@@ -191,7 +195,9 @@ def cmd_select(args: argparse.Namespace) -> int:
         "front": front, "mask_source": s4.FRONTS[front],
         "g2": {"recorded": str(recorded_path), "recorded_sha256": s4.file_sha256(recorded_path) if recorded else None,
                "differences": differing},
-        "g3": recomputed["key_events"], "selection": selection, "test_runs": s4.test_runs(selection),
+        "g3": recomputed["key_events"], "selection": selection,
+        "test_runs": s4.test_runs(selection, elu_p_values=ctx.fit_values(front)),
+        "state_coverage": load_json(coverage_path) if coverage_path.exists() else None,
         "probe_episodes": episodes, "readings": recomputed, "problems": problems})
 
 
@@ -205,20 +211,31 @@ def probe_tasks(ctx: s303.RunContext, front: str, select: Mapping[str, Any], out
     tasks = []
     for run in select["test_runs"]:
         arm, index, seed = run["arm"], int(run["config_index"]), run["seed"]
-        config = dict(run["config"])
-        if arm == "ELU-P":  # as in S3-03 (ruling 104-1 1b): every ELU-P configuration carries the run-local fitted values
-            config = {**config, **ctx.fit_values(front)}
+        config = dict(run["config"])  # the runner configuration S3-05 will run (ELU-P with its fitted values, as in S3-03)
         heads = ctx.heads_file(front, 1, run["heads_arm"], seed) if seed is not None else None
         group = s303.group_name(arm, index, seed)
         for episode in select["probe_episodes"]:
             root = out_root / front / "probe" / group
             argv = ctx.audit(front, episode, arm, seed, [(index, config)], heads=heads)
             argv[argv.index("--configs") + 1] = json.dumps([{"config": config, "output_root": str(root)}])
+            span = next(f"c{part[0]:02d}-{part[-1]:02d}" for part in audit_chunks(arm) if index in part)
+            job = f"{front}/audit/{arm}/{'rule' if seed is None else f's{seed}'}/{span}/{episode}"
+            state_path = ctx.run_root / "jobs" / f"{s303.pool.state_key(job)}.json"
+            state = load_json(state_path) if state_path.exists() else {}
             tasks.append({"group": group, "episode": episode, "arm": arm, "argv": argv,
+                          "original_job": job, "original_host": state.get("host") or "local", "original_status": state.get("status"),
                           "original": str(ctx.group_root(front, arm, index, seed) / episode / arm / audit.AUDIT_FILE_NAME),
                           "rerun": str(root / episode / arm / audit.AUDIT_FILE_NAME),
                           "log": str(out_root / front / "probe" / "logs" / f"{group}-{episode}.log")})
     return tasks
+
+
+def audit_chunks(arm: str) -> list[list[int]]:
+    """The configuration chunks S3-03's audit jobs ran (CONFIGS_PER_AUDIT_JOB), to name the job of an original audit."""
+
+    count = len(s303.audit_configs(arm))
+    size = s303.CONFIGS_PER_AUDIT_JOB["learned" if s3.SELECTION_ARMS[arm] else "rule"]
+    return [list(range(start, min(start + size, count))) for start in range(0, count, size)]
 
 
 def worker_count(tasks: int, requested: int | None) -> dict[str, Any]:
@@ -237,7 +254,8 @@ def run_task(task: Mapping[str, Any]) -> dict[str, Any]:
     env = {**os.environ, **s303.pool.thread_environment(1)}  # exactly the S3-03 pool's environment for a single-threaded audit
     with open(task["log"], "ab") as handle:
         code = subprocess.run(task["argv"], stdout=handle, stderr=subprocess.STDOUT, cwd=str(ROOT), env=env).returncode
-    return {**{key: task[key] for key in ("group", "episode", "arm", "original", "rerun", "log")}, "exit": code}
+    keys = ("group", "episode", "arm", "original", "rerun", "log", "original_job", "original_host", "original_status")
+    return {**{key: task[key] for key in keys}, "exit": code}
 
 
 def cmd_probe(args: argparse.Namespace) -> int:
@@ -300,6 +318,7 @@ def cmd_receipt(args: argparse.Namespace) -> int:
         problems.append("worktree_not_clean")
     if problems:
         return finish(out_root, "receipt", {"problems": problems})
+    previous = load_json(Path(args.previous_receipt)) if args.previous_receipt else None
     check = load_json(step_path(out_root, "check"))
     fronts: dict[str, Any] = {}
     heads: dict[str, str] = {}
@@ -313,7 +332,8 @@ def cmd_receipt(args: argparse.Namespace) -> int:
         fronts[front] = {"mask_source": s4.FRONTS[front], "selection": select["selection"], "test_runs": select["test_runs"],
                          "runs_per_test_episode": len(select["test_runs"]), "probe_episodes": select["probe_episodes"],
                          "probe_audits_identical": sum(1 for row in probe["rows"] if row.get("identical")),
-                         "validation_events": select["g3"], "step_sha256": {
+                         "validation_events": select["g3"], "state_coverage_report_only": select.get("state_coverage"),
+                         "step_sha256": {
                              "select": s4.file_sha256(step_path(out_root, f"select_{front}")),
                              "probe": s4.file_sha256(step_path(out_root, f"probe_{front}"))}}
     for front in ctx.fronts:
@@ -337,6 +357,14 @@ def cmd_receipt(args: argparse.Namespace) -> int:
         "plain_language_zh": ("S3-04 冻结回执：两套前端每个臂进 test 的唯一配置、test 上每条 episode 要跑的 25 个运行、S3-05 要算的统计、"
                               "test 当天会运行的每个代码文件与权重文件的指纹；S3-05 解封前逐项重算，任何一项不同就不开封。"),
     }
+    if previous is not None:  # ruling 106-4 (a): a re-freeze after an ops-only fix chooses exactly what the previous one chose
+        differing = s4.selection_differences(previous, receipt)
+        receipt["refreeze"] = {"previous_receipt_sha256": previous.get("receipt_sha256"),
+                               "previous_freeze_commit": previous.get("freeze_commit"),
+                               "code_changes": s4.code_differences(previous["code"], receipt["code"]),
+                               "selection_differences": differing}
+        if differing:
+            return finish(out_root, "receipt", {"problems": [f"refreeze_selection_differs:{item}" for item in differing[:10]]})
     receipt["receipt_sha256"] = s4.receipt_body_sha256(receipt)
     write_json(out_root / "freeze_receipt.json", receipt)
     tag = head[:7]
@@ -357,12 +385,13 @@ def cmd_verify(args: argparse.Namespace) -> int:
         return finish(out_root, "verify", {"problems": problems})
     receipt = load_json(out_root / "freeze_receipt.json")
     tag = receipt["freeze_commit"][:7]
-    if s4.receipt_body_sha256(receipt) != receipt["receipt_sha256"]:
-        problems.append("receipt_digest_differs")
-    problems += [f"code_{item}" for item in s4.code_differences(receipt["code"], s4.code_digest(ROOT, tracked_code_files()))]
-    for path, digest in receipt["frozen_bytes"]["heads"].items():
-        if s4.file_sha256(Path(path)) != digest:
-            problems.append(f"frozen_file_differs:{path}")
+    contract = load_json(S0_05_CONTRACT)
+    # the same check S3-05's entry makes before it unseals (one code path)
+    problems += s4.verify_freeze(
+        receipt, code=s4.code_digest(ROOT, tracked_code_files()),
+        heads={path: s4.file_sha256(Path(path)) if Path(path).exists() else None for path in receipt["frozen_bytes"]["heads"]},
+        registered_values={front: arms.elu_p_fitted(contract, s4.FRONTS[front]) for front in receipt["frozen_bytes"]["elu_p_registered"]},
+        test_manifest_sha256=s4.test_manifest_sha256(s3.load_manifest()))
     exports = {path.name: {"sha256": s4.file_sha256(path), "bytes": path.stat().st_size}
                for path in sorted(export_dir.glob(f"vsmt_lean_s3_04_*_{tag}.json"))
                if not path.name.startswith(("vsmt_lean_s3_04_manifest_", "vsmt_lean_s3_04_verify_"))}
@@ -405,6 +434,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             command.add_argument("--front", required=True, choices=list(s4.FRONTS))
         if name == "probe":
             command.add_argument("--workers", type=int, default=None)
+        if name == "receipt":
+            command.add_argument("--previous-receipt", default=None,
+                                 help="a re-freeze after an ops-only fix (ruling 106-4 (a)): the selection must equal this receipt's")
         command.set_defaults(func=func)
     args = parser.parse_args(argv)
     try:

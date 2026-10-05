@@ -22,6 +22,7 @@ from vsmt import lean_s3_04 as s4  # noqa: E402
 
 EPISODES = ("h1", "h2", "h3", "h4")
 FRAMES = {"h1": 900, "h2": 300, "h3": 120, "h4": 500}
+FIT = {"initial_log_odds": 4.7, "persistence_log_decay_per_tick": 2e-5, "match_gain": 3.5}
 
 
 def synthetic_report(arm: str, index: int, seed: int | None, house: str, *, events: int = 6) -> dict:
@@ -85,7 +86,7 @@ class SelectionTests(unittest.TestCase):
     def test_a_missing_seed_and_an_absent_arm(self):
         out = s4.select_front(s3.selection_readings(synthetic_runs(skip_seed=("HeuristicLabel", 31)), mask_source="sam2"))
         self.assertEqual(out["report_only"]["seeds_missing"], {"HeuristicLabel": [31]})
-        runs = s4.test_runs(out)
+        runs = s4.test_runs(out, elu_p_values=FIT)
         self.assertEqual(len(runs), 24)  # 5 rule arms + 4 learned arms x 5 seeds, less the missing seed
         absent = s3.selection_readings(synthetic_runs(without="AssocOnly"), mask_source="sam2",
                                        absent_arms={"AssocOnly": "every seed's training diverged"})
@@ -93,12 +94,23 @@ class SelectionTests(unittest.TestCase):
         self.assertTrue(chosen["arms"]["AssocOnly"]["absent"])
         self.assertEqual(sorted(chosen["report_only"]["constraint_not_satisfiable"]), sorted(arms.SELECTION_CONSTRAINED_ARMS))
         self.assertEqual(chosen["report_only"]["arms_absent"], ["AssocOnly"])
-        self.assertNotIn("AssocOnly", {run["arm"] for run in s4.test_runs(chosen)})
+        self.assertNotIn("AssocOnly", {run["arm"] for run in s4.test_runs(chosen, elu_p_values=FIT)})
 
     def test_the_test_run_list(self):
         out = s4.select_front(s3.selection_readings(synthetic_runs(), mask_source="simulator_instance_masks"))
-        runs = s4.test_runs(out)
+        runs = s4.test_runs(out, elu_p_values=FIT)
         self.assertEqual(len(runs), 25)
+        elu = next(run for run in runs if run["arm"] == "ELU-P")  # the runner configuration, as S3-03 ran it and G4 verifies it
+        self.assertEqual(elu["config"], {**elu["grid_config"], **FIT})
+        taf = next(run for run in runs if run["arm"] == "TAF")
+        self.assertEqual(taf["config"], taf["grid_config"])
+        with self.assertRaises(s4.LeanS3_04Error):
+            s4.test_runs(out, elu_p_values={})
+        receipt = {"fronts": {"instance": {"test_runs": runs, "selection": out}}}
+        self.assertEqual(s4.selection_differences(receipt, copy.deepcopy(receipt)), [])
+        changed = copy.deepcopy(receipt)
+        changed["fronts"]["instance"]["test_runs"][0]["config_index"] += 1
+        self.assertEqual(s4.selection_differences(receipt, changed), ["instance:.test_runs[0].config_index"])
         self.assertEqual([run["arm"] for run in runs[:5]], list(s4.TEST_RULE_ARMS))
         self.assertTrue(all(run["seed"] is None and run["heads_arm"] is None for run in runs[:5]))
         self.assertEqual({run["heads_arm"] for run in runs if run["arm"] == "NoVersion"}, {"VSMT-lean"})
@@ -264,6 +276,13 @@ class DriverTests(unittest.TestCase):
         elu = next(task for task in tasks if task["arm"] == "ELU-P")
         entry = json.loads(elu["argv"][elu["argv"].index("--configs") + 1])
         self.assertEqual(entry[0]["config"]["match_gain"], 3.5)  # the run-local fitted values, as in S3-03
+        self.assertEqual(elu["original_host"], "local")
+        driver.write_json(self.run_root / "jobs" / "instance__audit__ELU-P__rule__c00-02__h3.json", {"status": "done", "host": "w1"})
+        tasks = driver.probe_tasks(self.ctx, "instance", select, self.out_root)
+        named = [task for task in tasks if task["arm"] == "ELU-P" and task["episode"] == "h3"]
+        self.assertTrue(all(task["original_job"].startswith("instance/audit/ELU-P/rule/c") for task in named))
+        if select["selection"]["arms"]["ELU-P"]["selected"] <= 2:
+            self.assertEqual(named[0]["original_host"], "w1")
         self.assertTrue(entry[0]["output_root"].startswith(str(self.out_root)))
         self.assertTrue(elu["original"].startswith(str(self.run_root)))
         no_version = next(task for task in tasks if task["arm"] == "NoVersion")
@@ -295,9 +314,15 @@ class DriverTests(unittest.TestCase):
         self.assertTrue(all(row["usable"] for row in rows.values()))
         driver.write_json(self.ctx.training_dir("instance", 1, "VSMT-lean", 7) / "weights_grouped.json", {"sha256": "other"})
         driver.write_json(self.run_root / "jobs" / "instance__t1__HeuristicLabel__s19.json", {"status": "diverged"})
+        # a round-0 divergence leaves every round-1 training of the arm skipped: a result, as S3-03 counts it (ruling 102-9)
+        driver.write_json(self.run_root / "jobs" / "instance__t1__AssocOnly__s31.json",
+                          {"status": "skipped", "reason": "dependency_diverged:instance/t0/AssocOnly"})
         rows, problems = driver.heads_record(self.ctx, "instance")
         self.assertEqual(problems, ["heads_differ_from_the_training_receipt:instance/t1/VSMT-lean/s7"])
         self.assertFalse(rows["HeuristicLabel|19"]["usable"])
+        self.assertFalse(rows["AssocOnly|31"]["usable"])
+        driver.write_json(self.run_root / "jobs" / "instance__t1__AssocOnly__s31.json", {"status": "skipped", "reason": "operator"})
+        self.assertIn("training_not_done_or_files_missing:instance/t1/AssocOnly/s31:skipped", driver.heads_record(self.ctx, "instance")[1])
 
     def test_no_receipt_before_every_check_passed_and_s3_05s_entry_exists(self):
         import s3_04_manifest as driver

@@ -202,9 +202,16 @@ def heads_arm(arm: str) -> str:
     return "VSMT-lean" if arm == "NoVersion" else arm
 
 
-def test_runs(selection: Mapping[str, Any]) -> list[dict[str, Any]]:
-    """Ruling 106-4: the runs S3-05 makes on every test episode of one front end, in a fixed order."""
+def test_runs(selection: Mapping[str, Any], *, elu_p_values: Mapping[str, Any]) -> list[dict[str, Any]]:
+    """Ruling 106-4: the runs S3-05 makes on every test episode of one front end, in a fixed order.
 
+    ``config`` is the runner configuration exactly as the audit receives it: for ELU-P the grid member with the front end's
+    registered fitted values (as S3-03 ran it, ruling 104-1 1b), so G4 verifies and S3-05 runs one and the same configuration;
+    ``grid_config`` is the grid member alone."""
+
+    from vsmt import lean_arms as arms
+
+    _require(set(elu_p_values) == set(arms.ELU_P_FITTED), "test_runs_need_the_elu_p_fitted_values")
     rows = []
     for arm in (*TEST_RULE_ARMS, *TEST_LEARNED_ARMS):
         row = selection["arms"][arm]
@@ -212,8 +219,9 @@ def test_runs(selection: Mapping[str, Any]) -> list[dict[str, Any]]:
             continue
         seeds: Sequence[int | None] = row["seeds_present"] if arm in TEST_LEARNED_ARMS else (None,)
         for seed in seeds:
-            rows.append({"arm": arm, "config_index": int(row["selected"]), "config": dict(row["config"]), "seed": seed,
-                         "heads_arm": heads_arm(arm) if seed is not None else None})
+            config = {**row["config"], **elu_p_values} if arm == "ELU-P" else dict(row["config"])
+            rows.append({"arm": arm, "config_index": int(row["selected"]), "config": config, "grid_config": dict(row["config"]),
+                         "seed": seed, "heads_arm": heads_arm(arm) if seed is not None else None})
     return rows
 
 
@@ -294,6 +302,21 @@ def verify_freeze(receipt: Mapping[str, Any], *, code: Mapping[str, Any], heads:
     return problems
 
 
+def selection_differences(previous: Mapping[str, Any], current: Mapping[str, Any]) -> list[str]:
+    """Ruling 106-4 (a): a re-freeze after an operations-only fix must choose exactly what the previous receipt chose."""
+
+    out = []
+    for front in sorted(set(previous["fronts"]) | set(current["fronts"])):
+        if front not in previous["fronts"] or front not in current["fronts"]:
+            out.append(f"{front}:front_missing")
+            continue
+        out += [f"{front}:{item}" for item in differences(as_json(previous["fronts"][front]["test_runs"]),
+                                                         as_json(current["fronts"][front]["test_runs"]), ".test_runs")]
+        out += [f"{front}:{item}" for item in differences(as_json(previous["fronts"][front]["selection"]["arms"]),
+                                                         as_json(current["fronts"][front]["selection"]["arms"]), ".arms")]
+    return out
+
+
 def test_manifest_sha256(manifest: Mapping[str, Any]) -> str:
     """The digest of the committed test house list (the list, not any test data)."""
 
@@ -327,6 +350,7 @@ __all__ = [
     "readings_differences",
     "receipt_body_sha256",
     "select_front",
+    "selection_differences",
     "statistics_plan",
     "test_manifest_sha256",
     "test_runs",

@@ -21,11 +21,13 @@
 # power-off (ruling 106-7). Next (ruling 106-5): commit the exports to results/, push, and wait for the user before S3-05.
 #
 # Environment (optional): AUTODL, EXPORT_DIR, S3_03_RUN_ROOT ($AUTODL/vsmt_private/s3-03-run), S3_03_TAG (10f7013),
-#   PROBE_WORKERS (default: the largest safe number from the cgroup), PY.
+#   PROBE_WORKERS (default: the largest safe number from the cgroup), PREVIOUS_RECEIPT (a re-freeze after an ops-only fix,
+#   ruling 106-4 (a): the earlier freeze_receipt.json; the new selection must equal it), PY.
+# Commit the exports to results/ from another checkout, not from this worktree: a new commit here starts a new freeze.
 set -u
 WORKTREE=$(cd "$(dirname "$0")/../.." && pwd)
 cd "$WORKTREE" || exit 2
-SHORT=$(git rev-parse --short=7 HEAD)
+SHORT=$(git rev-parse HEAD | cut -c1-7)  # always 7 characters, the export tag's length
 PY=${PY:-/root/miniconda3/bin/python3.12}
 AUTODL=${AUTODL:-/root/autodl-tmp}
 EXPORT_DIR=${EXPORT_DIR:-$AUTODL/vsmt_outputs/exports}
@@ -68,7 +70,7 @@ fi
 step check check
 for FRONT in instance sam2; do step "select_$FRONT" select --front "$FRONT"; done
 for FRONT in instance sam2; do step "probe_$FRONT" probe --front "$FRONT" ${PROBE_WORKERS:+--workers "$PROBE_WORKERS"}; done
-step receipt receipt
+step receipt receipt ${PREVIOUS_RECEIPT:+--previous-receipt "$PREVIOUS_RECEIPT"}
 M verify --out-root "$OUT" "${COMMON[@]}" 2>&1 | tee -a "$LOG_DIR/verify.log"
 CODE=${PIPESTATUS[0]}
 echo "[$(date)] S3-04 finished (verify exit $CODE); exports $EXPORT_DIR/vsmt_lean_s3_04_*_$SHORT.json"
