@@ -7,10 +7,18 @@
   "arm": "LLM-op",
   "plain_language_zh": "附录臂 LLM-op 的运行合同（裁决 105）。它回答审稿人必问的“零训练的大模型直接做记忆修订够不够”：输入是与其他臂逐字节相同的封存特征表转成的表格文本，输出是每行一个原子。两套前端各跑同一批 15 个 validation episode；DeepSeek deepseek-flash（2026-10-04 实际为 V4.1-Flash）默认推理模式；每帧问两次（先关联，求解后判存在）；每次最多三个回答，三次都无效就回退（色块全 BIRTH、实体全 NOOP）并计数；所有请求与回答先存档再用，重跑从存档回放；先在 train 上试点 200 帧，只看 token、耗时与格式合格率，按试点推算超过 150 美元就停下汇报；正式运行累计到 150 美元不再开新 episode，到 200 美元全部停（可从存档续跑）。它不进主表、不进 test、不训练、不选参；它不等于官方 DeepSeek 评测，也不是本文方法的一部分。",
   "authorization": {
-    "pilot_run": false,
-    "validation_run": false
+    "pilot_run": true,
+    "validation_run": true
   },
-  "activation_policy": null,
+  "activation_policy": {
+    "active_true_authorizations": [
+      "pilot_run",
+      "validation_run"
+    ],
+    "opened_by": "ruling 105: the user reviewed the LLM-op code on 2026-10-04 (「llm-op-impl 我审过了，推送」, merged into main as 506f1b5) and approved the run on 2026-10-06 (「LLM-op的审批通过」), confirming the 14 implementation readings of the ruling-105 landing record; the model name was checked the same day: DeepSeek's pricing page (read 2026-10-06) serves deepseek-flash as DeepSeek-V4.1-Flash at the registered prices, so request.model and the prices stay unchanged",
+    "still_bound_by": "the pilot (200 train frames per front end) is its own step and never starts the run; by the user's instruction of 2026-10-06 the validation run starts only after the user has decided the episode count from the pilot's measured cost, and the run entry still refuses a pilot that ended at a decision point (exit 3: worst-case projection over 150 USD, an unpriced call kind, a fallback rate over 2%, or two model names) unless ACCEPT_PILOT=1; the 150 USD cap (no new episode) and the 200 USD safety stop (every process stops) hold; running fewer than 15 episodes per front end is an amendment of 105-2 that needs its own ruling",
+    "plain_language_zh": "按裁决 105 打开试点与正式运行两个位：用户 2026-10-04 审过 LLM-op 代码（合入 main 为 506f1b5），2026-10-06 批准运行并确认 14 条实现读法；同日核对 deepseek-flash 即 DeepSeek-V4.1-Flash、价格与登记值相同，合同不改。打开不等于放开：试点是单独一步、不会自动接着跑正式运行；按用户 2026-10-06 的要求，试点后由用户按实测花费定条数再开正式运行；试点若停在决定点（退出码 3：最坏推算超 150 美元、某类调用无法定价、回退率超 2% 或出现两个模型名），正式运行仍要 ACCEPT_PILOT=1 才开；150 美元不开新 episode、200 美元全部停仍然有效；少于每套前端 15 条是对 105-2 的修正，须另行裁决。"
+  },
   "activation_rule": "both bits stay false until the user has reviewed the LLM-op code; the commit that opens them names the ruling and the review in activation_policy (the S2 pattern) and re-pins the reviewed contract digest in tests/test_vsmt_lean_llm_op.py; the pilot entry refuses while pilot_run is false, the validation entry while validation_run is false",
   "fronts": {
     "instance": "simulator_instance_masks",

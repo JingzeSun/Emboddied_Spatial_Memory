@@ -42,8 +42,9 @@ from vsmt import lean_runner as lr  # noqa: E402
 from test_vsmt_lean_controls import stage_a_and_rows  # noqa: E402
 from test_vsmt_lean_runner import POLICY, scenario  # noqa: E402
 
-#: The reviewed bytes of the LLM-op contract (CRLF folded to LF); both bits closed until the user's code review.
-REVIEWED_CONTRACT_SHA256 = "451956aa7f09fdf22433c79de24e0e9ff4027e3ac41f13d3861971e88a29c9ce"
+#: The reviewed bytes of the LLM-op contract (CRLF folded to LF); both bits opened under ruling 105 after the user's code
+#: review (2026-10-04) and approval (2026-10-06). The bits-closed bytes the user reviewed were 451956aa...
+REVIEWED_CONTRACT_SHA256 = "2e9e2d21c0e5f8cf45d191cd6cc94999089eccbd7c2d6f9f721f86db53a74d3c"
 SERVED = "deepseek-v4.1-flash"
 SATURDAY_NOON = dt.datetime(2026, 10, 3, 12, 0, tzinfo=dt.timezone.utc)
 
@@ -102,6 +103,15 @@ def opened_contract() -> dict[str, Any]:
     return llm.validate_contract(contract)
 
 
+def closed_contract() -> dict[str, Any]:
+    """The contract as it stood before ruling 105 opened it: both bits false, no activation policy."""
+
+    contract = json.loads(llm.CONTRACT_PATH.read_text(encoding="utf-8"))
+    contract["authorization"] = {"pilot_run": False, "validation_run": False}
+    contract["activation_policy"] = None
+    return llm.validate_contract(contract)
+
+
 class FakeTime:
     """Sleeps that only move a clock the caller reads (the service retry limit is wall time)."""
 
@@ -134,10 +144,13 @@ class TempDir(unittest.TestCase):
 
 
 class ContractTests(unittest.TestCase):
-    def test_the_contract_validates_with_both_bits_closed_and_its_bytes_are_the_reviewed_ones(self) -> None:
+    def test_the_contract_validates_with_both_bits_opened_by_ruling_105_and_its_bytes_are_the_reviewed_ones(self) -> None:
         contract = llm.load_contract()
-        self.assertEqual(contract["authorization"], {"pilot_run": False, "validation_run": False})
-        self.assertFalse(llm.authorized(contract, "pilot_run"))
+        self.assertEqual(contract["authorization"], {"pilot_run": True, "validation_run": True})
+        self.assertEqual(contract["activation_policy"]["active_true_authorizations"], ["pilot_run", "validation_run"])
+        self.assertTrue(contract["activation_policy"]["opened_by"].startswith("ruling 105:"))
+        self.assertTrue(llm.authorized(contract, "pilot_run"))
+        self.assertTrue(llm.authorized(contract, "validation_run"))
         self.assertEqual(hashlib.sha256(llm.CONTRACT_PATH.read_bytes().replace(b"\r\n", b"\n")).hexdigest(), REVIEWED_CONTRACT_SHA256)
         self.assertEqual(contract["input"]["instruction_sha256"], lc.INSTRUCTION_SHA256)
 
@@ -157,10 +170,22 @@ class ContractTests(unittest.TestCase):
                 llm.validate_contract(changed)
             self.assertEqual(str(caught.exception), code)
         opened = copy.deepcopy(base)
-        opened["authorization"]["validation_run"] = True
+        opened["activation_policy"] = None
+        opened["authorization"] = {"pilot_run": False, "validation_run": True}
         with self.assertRaises(llm.LlmOpError) as caught:
             llm.validate_contract(opened)
         self.assertEqual(str(caught.exception), "contract_bit_opened_without_a_ruling:validation_run")
+        narrowed = copy.deepcopy(base)
+        narrowed["activation_policy"]["active_true_authorizations"] = ["pilot_run"]
+        with self.assertRaises(llm.LlmOpError) as caught:
+            llm.validate_contract(narrowed)
+        self.assertEqual(str(caught.exception), "contract_bit_opened_without_a_ruling:validation_run")
+        unnamed = copy.deepcopy(base)
+        unnamed["activation_policy"]["opened_by"] = ""
+        with self.assertRaises(llm.LlmOpError) as caught:
+            llm.validate_contract(unnamed)
+        self.assertEqual(str(caught.exception), "contract_activation_policy_names_no_ruling")
+        self.assertFalse(llm.authorized(closed_contract(), "pilot_run"))
         self.assertTrue(llm.authorized(opened_contract(), "validation_run"))
 
 
