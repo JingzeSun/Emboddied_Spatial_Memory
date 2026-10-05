@@ -69,15 +69,15 @@ class ExistenceReplayTests(unittest.TestCase):
 
     def test_elu_p_accumulates_coverage_against_the_matches(self) -> None:
         values = probes.elu_p_values()
-        self.assertAlmostEqual(values["initial_log_odds"], 4.75891184514327)
+        self.assertAlmostEqual(values["initial_log_odds"], 4.715758278823018)  # the S3 refit (ruling 104-1 1b, 2026-10-05)
         replay = probes.ExistenceReplay("elup", la.EXISTENCE_FEATURES)
-        # never matched after birth: 4.76 - 5 x (1 + 2e-5) < 0 on the fifth fully seen-through frame
+        # never matched after birth: 4.72 - 5 x (1 + 2e-5) < 0 on the fifth fully seen-through frame
         decisions = [replay.decide(10 + k, [existence_row("e", coverage=1.0, observations=1, ticks_since=8 + k)])["e"] for k in range(5)]
         self.assertEqual(decisions, ["NOOP", "NOOP", "NOOP", "NOOP", "RETRACT"])
-        # one match more (observation count 2) buys match_gain = 3.1 more frames' worth
+        # one match more (observation count 2) buys match_gain = 3.52 more frames' worth: 8.24 - 9 x (1 + 2e-5) < 0 on the ninth
         replay = probes.ExistenceReplay("elup", la.EXISTENCE_FEATURES)
-        decisions = [replay.decide(10 + k, [existence_row("e", coverage=1.0, observations=2, ticks_since=8 + k)])["e"] for k in range(8)]
-        self.assertEqual(decisions.index("RETRACT"), 7)
+        decisions = [replay.decide(10 + k, [existence_row("e", coverage=1.0, observations=2, ticks_since=8 + k)])["e"] for k in range(9)]
+        self.assertEqual(decisions.index("RETRACT"), 8)
 
     def test_handcost_reads_this_frame_only(self) -> None:
         replay = probes.ExistenceReplay("handcost", la.EXISTENCE_FEATURES)

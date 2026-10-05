@@ -52,8 +52,8 @@ class TestRegisteredPassConfigurations(unittest.TestCase):
         self.assertEqual({name: sam2[name] for name in arms.ROLLOUT_CONFIG_PARAMETERS}, arms.ROLLOUT_CONFIG)
         self.assertEqual({name: sam2[name] for name in arms.ELU_P_FITTED}, arms.elu_p_fitted(contract, "sam2"))
         self.assertEqual({name: sam2[name] for name in arms.ELU_P_FITTED},
-                         {"initial_log_odds": 4.75891184514327, "persistence_log_decay_per_tick": 1.9420616347206353e-05,
-                          "match_gain": 2.920444259169415})  # registered 2026-10-02 from the S2-06 calibration pass
+                         {"initial_log_odds": 4.713527527677658, "persistence_log_decay_per_tick": 1.961980922031749e-05,
+                          "match_gain": 3.4430935995987832})  # the S3 refit registered 2026-10-05 (ruling 104-1 1b)
         # the other passes do not depend on the mask source
         for pass_name, arm in (("elu_p_fit", "TAF"), ("dagger_round_1", "VSMT-lean"), ("development_table", "RAC")):
             self.assertEqual(entry.expected_pass_config(pass_name, arm, mask_source="sam2"), entry.expected_pass_config(pass_name, arm))

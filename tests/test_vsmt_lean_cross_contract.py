@@ -557,15 +557,16 @@ FROZEN_VALUES: dict[str, dict[str, Any]] = {
         # D-224-S1 ruling 68 (2026-09-25): the two training values METHOD proposed.
         "arms.VSMT-lean.training.weight_decay": 0.0001,
         "arms.VSMT-lean.training.seeds": [7, 19, 31, 43, 59],
-        # D-224-S1 ruling 68 (10), fitted 2026-09-27 on the ruling-75 calibration pass counts (LOG-265).
-        "arms.ELU-P.fitted.initial_log_odds": 4.75891184514327,
-        "arms.ELU-P.fitted.persistence_log_decay_per_tick": 1.9420616347206353e-05,
-        "arms.ELU-P.fitted.match_gain": 3.0998616369636114,
-        # Ruling 68 (10) and 100-1 (ii), fitted 2026-10-02 on the S2-06 calibration pass counts (SAM2, 39 episodes, c0b166e);
-        # filling the slots registered while null leaves the S0-05 rule digest unchanged.
-        "arms.ELU-P.fitted_by_mask_source.sam2.initial_log_odds": 4.75891184514327,
-        "arms.ELU-P.fitted_by_mask_source.sam2.persistence_log_decay_per_tick": 1.9420616347206353e-05,
-        "arms.ELU-P.fitted_by_mask_source.sam2.match_gain": 2.920444259169415
+        # Ruling 104-1 1b (2026-10-05): the S3 refit on the S3-03 calibration pass counts (252 instance / 249 SAM2 S3 train
+        # episodes, fit at 24df324, run tag 10f7013) replaced the development sets in place -- ruling 68 (10) (2026-09-27,
+        # LOG-265) and ruling 100-1 (ii) (2026-10-02, S2-06) -- which are in SUPERSEDED_VALUES below; slot values, so the
+        # S0-05 rule digest is unchanged.
+        "arms.ELU-P.fitted.initial_log_odds": 4.715758278823018,
+        "arms.ELU-P.fitted.persistence_log_decay_per_tick": 1.9468203738496008e-05,
+        "arms.ELU-P.fitted.match_gain": 3.5202657867949485,
+        "arms.ELU-P.fitted_by_mask_source.sam2.initial_log_odds": 4.713527527677658,
+        "arms.ELU-P.fitted_by_mask_source.sam2.persistence_log_decay_per_tick": 1.961980922031749e-05,
+        "arms.ELU-P.fitted_by_mask_source.sam2.match_gain": 3.4430935995987832
     },
     "S1-04": {
         # D-224-S1 ruling 48 / S1-04 code review (2026-09-22): the ReID head's training values,
@@ -638,6 +639,15 @@ SUPERSEDED_VALUES: dict[str, dict[str, list[dict[str, Any]]]] = {
         "shared.should_be_visible_min_ratio": [
             {"value": 0.5, "frozen_by": "D-224-S1 ruling 67", "superseded_by": "D-224-S1 ruling 68", "on": "2026-09-25"},
         ],
+        # ruling 104-1 1b (2026-10-05): the development fits, replaced by the S3 refit
+        **{f"arms.ELU-P.fitted.{name}": [{"value": value, "frozen_by": "D-224-S1 ruling 68 (10)",
+                                          "superseded_by": "D-224-S1 ruling 104-1 1b", "on": "2026-10-05"}]
+           for name, value in (("initial_log_odds", 4.75891184514327), ("persistence_log_decay_per_tick", 1.9420616347206353e-05),
+                               ("match_gain", 3.0998616369636114))},
+        **{f"arms.ELU-P.fitted_by_mask_source.sam2.{name}": [{"value": value, "frozen_by": "D-224-S1 ruling 68 (10), ruling 100-1 (ii)",
+                                                              "superseded_by": "D-224-S1 ruling 104-1 1b", "on": "2026-10-05"}]
+           for name, value in (("initial_log_odds", 4.75891184514327), ("persistence_log_decay_per_tick", 1.9420616347206353e-05),
+                               ("match_gain", 2.920444259169415))},
     },
     "S0-01": {
         "shared_dedup.descriptor_cosine_min": [
@@ -742,7 +752,10 @@ class TestSupersededValues(unittest.TestCase):
             contract = load_stage(stage)
             for slot, entries in slots.items():
                 with self.subTest(stage=stage, slot=slot):
-                    rec = lookup_slot(contract, slot + "_superseded")
+                    # a slot inside a block with a fixed key set (ELU-P's fitted scalars, ruling 104-1 1b) keeps its record in
+                    # the bookkeeping block user_rulings.superseded_values instead of beside the slot
+                    ledger = (contract.get("user_rulings") or {}).get("superseded_values") or {}
+                    rec = ledger[slot] if slot in ledger else lookup_slot(contract, slot + "_superseded")
                     self.assertEqual(rec["value"], entries[-1]["value"])
                     self.assertEqual(rec["superseded_by"], entries[-1]["superseded_by"])
                     self.assertEqual(rec["frozen_by"], entries[-1]["frozen_by"])

@@ -604,15 +604,15 @@ class TestMachineContract(unittest.TestCase):
             self.assertEqual(str(caught.exception), f"contract_frozen_value_mismatch:arms.ELU-P.fitted_by_mask_source.sam2.{name}")
 
     def test_the_fitted_scalars_are_kept_per_mask_source(self) -> None:
-        # ruling 100-1 (ii): the instance-segmentation set is the ruling-68 (10) fit, the SAM2 set the S2-06 fit (2026-10-02)
+        # ruling 100-1 (ii): one set per mask source; ruling 104-1 1b (2026-10-05) replaced both development sets with the S3 refit
         from vsmt.lean_arms import ELU_P_FITTED_BY_MASK_SOURCE_RULE, elu_p_fitted
 
         contract = self._fresh()
         self.assertEqual(elu_p_fitted(contract, "simulator_instance_masks"), contract["arms"]["ELU-P"]["fitted"])
-        self.assertEqual(elu_p_fitted(contract, "simulator_instance_masks")["match_gain"], 3.0998616369636114)
-        self.assertEqual(elu_p_fitted(contract, "sam2"), {"initial_log_odds": 4.75891184514327,
-                                                          "persistence_log_decay_per_tick": 1.9420616347206353e-05,
-                                                          "match_gain": 2.920444259169415})
+        self.assertEqual(elu_p_fitted(contract, "simulator_instance_masks")["match_gain"], 3.5202657867949485)
+        self.assertEqual(elu_p_fitted(contract, "sam2"), {"initial_log_odds": 4.713527527677658,
+                                                          "persistence_log_decay_per_tick": 1.961980922031749e-05,
+                                                          "match_gain": 3.4430935995987832})
         with self.assertRaises(LeanArmsError):
             elu_p_fitted(contract, "sam")
         for edit, code in (
