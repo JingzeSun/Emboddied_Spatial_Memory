@@ -216,6 +216,29 @@ bash ops/vsmt/s3_04_freeze.sh status
 
 **输出**：输出根 `$AUTODL/vsmt_private/s3-04-<commit>`（各步 JSON、`freeze_receipt.json`、`<前端>/probe/`）；导出 `$AUTODL/vsmt_outputs/exports/vsmt_lean_s3_04_{freeze,check,selection_<前端>,probe_<前端>,manifest,verify}_<commit>.json`。**下一步（106-5）**：拉回导出、提交到 `results/` 并推送 `main` 与 `s1-02a-runner`，等用户确认后 S3-05 才解封 test。冻结后 `src/`、`configs/` 不再改；解封前若只需修 `ops/` 的运维缺陷，修好后整趟重跑 S3-04，选择必须与旧回执逐位相同（106-4）。
 
+## 怎样复现 S3-05（test 一次性运行，裁决 107）
+
+白话：S3-05 回答“冻结好的每个臂在 test 上考多少分、主门过没过”。输入是 S3-04 冻结回执钉住的代码、配置与权重，以及只读一次的 test；输出是两套前端的主表、VSMT-lean 对每个消融与规则臂的比较、主门固定顺序三步的判定、节点 F1 的差值与 90% 区间、三分解、规模与成本与逐例失败。例如回执提交之后 `src/` 里有一个文件变了，check 就停下，test 保持封存。它只跑一次，不调任何东西。
+
+**前提**：S3-04 回执已拉回、提交到 `results/` 并推送（106-5），用户确认并给出放行口令（回执摘要前 12 位）；在 B1 上建一个 detached worktree，它的 `src/`、`ops/`、`configs/` 与冻结提交相同、`results/` 里有回执。
+
+```bash
+cd /root/autodl-tmp/vsmt_worktrees/s3-05-<commit>
+setsid nohup env S3_05_GO=<回执摘要前 12 位> RECEIPT=/root/autodl-tmp/vsmt_private/s3-04-<冻结提交>/freeze_receipt.json bash ops/vsmt/s3_05_test.sh all > /root/autodl-tmp/vsmt_outputs/run_logs/s3-05.log 2>&1 < /dev/null &
+bash ops/vsmt/s3_05_test.sh status
+```
+
+| 步骤 | 做什么 |
+|---|---|
+| suite | 全量测试 |
+| check | `verify_freeze` 对照回执（代码、权重、ELU-P 登记值、test 清单）；回执已提交在 `results/`；放行口令等于回执摘要前 12 位 |
+| unseal | S3-02 封印摘要等于回执所记；逐 episode 重算四个 test 根并与封印逐项相等，才把它们打开为第 1 次读取，每个根旁写读取记录 `TEST_READ.json`（续跑是同一次读取；S3-03／S3-04 的入口照旧拒读）；再定每套前端可用的 test episode |
+| run | 作业池：每个作业是一条 test episode 上回执里的一个运行（node audit 只算指标，`--manifest-split test --test-receipt`，入口再核对配置是回执冻结的那个）；崩溃同输入自动重跑一次，仍失败记为数据失败、照记、整趟继续；运行中不打印、不导出任何指标 |
+| merge → stats | 全部作业结束后，每个运行合并一份，再一次性按 107-4 算统计（`lean_s3_05`） |
+| export | `$AUTODL/vsmt_outputs/exports/vsmt_lean_s3_05_*_<commit>.json` 与运行清单 |
+
+**工作机（107-3）**：解封之后才可能复制 test——`remote_hosts.py setup --run-root $AUTODL/vsmt_private/s3-05-run --kinds test`（B1→w4；w4 准入后可用 `--relay-from w4 --relay-key <w4 上能登录 w1 的密钥>` 接力到 w1，密钥放到 w4 上须用户同意），代码 worktree 同步到冻结提交；`admit --kinds test --reference-run-root $AUTODL/vsmt_private/s3-03-run`：在工作机上按封印逐文件核对 test（结果记进读取记录），并在冻结提交上重跑 S3-03 的 validation 审计逐位比对（不读 test）。作业池每 30 秒读 `<运行根>/hosts/`。
+
 ## 怎样跑 LLM-op（附录臂，裁决 105）
 
 白话：LLM-op 回答审稿人必问的“零训练的大模型直接做记忆修订够不够”。输入是与其他臂逐字节相同的封存特征表（转成带表头的表格文本）和两段登记的指令，模型是 DeepSeek `deepseek-flash`（2026-10-04 实际为 V4.1-Flash）默认推理模式；输出是两套前端各 15 条 validation episode 的闭环指标（与其他臂同一个 node audit、同一套指标）、全部调用存档与一份导出。每帧问两次：先关联（每个色块选一个召回实体或 BIRTH），求解后再判存在（每个可判定实体 RETRACT 或 NOOP）。它不训练、不选参、不进主表、不读 test；它独立于 S3-03 的作业池，可以在另一台机器上和 S3-03 同时跑。
