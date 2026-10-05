@@ -14,6 +14,11 @@
     （同一个 run-measured 包装）运行，训练每隔一段时间把输出（含逐 epoch 存档）拉回，结束后把输出与内存回执拉回协调机，
     以作业自己的退出码退出；连不上、推拉失败时以 75 退出，池子把作业放回队列、把这台机暂停（``hosts/<名>.suspended``）。
 
+S3-05（裁决 107-3）：作业类 ``test`` 只在 S3-05 解封之后才可能出现——它的静态输入（四类 test 根与 S3-02 的封印）写在 S3-05 解封后
+的 ``inputs.json`` 里，所以解封前 ``setup --kinds test`` 无从复制；准入时在工作机上按封印逐文件重算摘要（``verify_seal``，标记须
+为本回执所打开），结果记进 test 读取记录（``record_copy``）；准入审计用 S3-03 运行根（``--reference-run-root``）里已完成的 validation
+审计，在冻结提交上逐位比对，不读 test。
+
 输入是协调机的运行根与工作机的地址／端口；输出是 ``hosts/<名>.json``（准入记录与预算）和每个远程作业拉回的结果。
 例如一台 32 核工作机准入后，池子在本机放不下时就把审计派给它，每个审计的结果拉回协调机原来的位置，合并与读数照旧。
 它不改任何作业的命令、输入或科学口径，只改作业在哪台机上跑；工作机上的结果在准入时已核对与协调机逐位相同。
@@ -167,6 +172,19 @@ def push_argv(host: Host, path: str, *, delete: bool = False) -> list[str]:
     _require(os.path.isabs(path), f"push_path_not_absolute:{path}")
     return [*rsync_command(), "-a", "--relative", *(["--delete"] if delete else []), "-e", rsync_shell(host), path,
             f"{host.user}@{host.address}:/"]
+
+
+def relay_argv(relay: Host, target: Host, path: str, *, key: str) -> list[str]:
+    """Ruling 107-3: copy ``path`` from a relay host (which already holds it, at the same absolute path) to the target host.
+
+    The rsync runs on the relay with ``key`` there, a key the target accepts (placed on the relay by the operator, with the
+    user's consent); hosts in one region copy far faster to each other than from the coordinator's gateway."""
+
+    _require(os.path.isabs(path), f"relay_path_not_absolute:{path}")
+    inner = shlex.join(["ssh", "-i", key, "-p", str(target.port), "-o", "BatchMode=yes", "-o", "IdentitiesOnly=yes",
+                        "-o", "StrictHostKeyChecking=accept-new", "-o", "ConnectTimeout=30"])
+    command = shlex.join(["rsync", "-a", "--relative", "-e", inner, path, f"{target.user}@{target.address}:/"])
+    return ssh_argv(relay, command)
 
 
 def pull_argv(host: Host, path: str) -> list[str]:
@@ -361,16 +379,30 @@ def static_paths(run_root: Path, *, kinds: Sequence[str]) -> list[str]:
     if "audit" in kinds:
         paths += [roots["raw"]["validation"], roots["geometry"]["validation"]]
         paths += [roots["cache"][front]["validation"] for front in fronts]
+    if "test" in kinds:  # ruling 107-3: S3-05's run root after unsealing -- the opened test roots, the seal and the freeze receipt
+        _require("test" in roots["raw"] and "seal" in inputs, "test_kind_needs_the_s3_05_inputs_after_unsealing")
+        paths += [roots["raw"]["test"], roots["geometry"]["test"], *(roots["cache"][front]["test"] for front in fronts)]
+        paths += [inputs["seal"]["file"], inputs["receipt"]["path"]]
+        # the admission reruns S3-03's validation audits there: the reference run's validation inputs come along
+        reference = load_json(Path(inputs["s3_03_run_root"]) / "inputs.json")["roots"]
+        paths += [reference["raw"]["validation"], reference["geometry"]["validation"]]
+        paths += [reference["cache"][front]["validation"] for front in fronts]
     paths += [str(inputs["reid"][front]["file"]) for front in fronts]
     if any(kind.startswith("train") for kind in kinds):
         paths += [str(Path(run_root) / front / "round0") for front in fronts]
     return sorted(set(paths))
 
 
-def skipped(path: str) -> bool:
-    """Byte code written on import differs in what exists, not in what runs: never compared."""
+#: ruling 107-3: files beside an opened test root that change after opening (the read record logs every copy, a marker or record
+#: may leave a .tmp behind): never compared -- the seal check on the host covers the test bytes themselves
+UNCOMPARED_NAMES = ("TEST_READ.json", "TEST_SEALED.json")
 
-    return "/__pycache__/" in path or path.endswith(".pyc")
+
+def skipped(path: str) -> bool:
+    """Byte code written on import differs in what exists, not in what runs: never compared; nor the test roots' bookkeeping."""
+
+    name = path.replace("\\", "/").rsplit("/", 1)[-1]
+    return "/__pycache__/" in path or path.endswith((".pyc", ".tmp")) or name in UNCOMPARED_NAMES
 
 
 def digest_tree(paths: Sequence[str]) -> dict[str, list[Any]]:
@@ -452,7 +484,8 @@ out = {}
 for top in json.load(sys.stdin):
     p = Path(top)
     files = [p] if p.is_file() else (sorted(q for q in p.rglob("*") if q.is_file() and "/__pycache__/" not in str(q)
-                                            and not str(q).endswith(".pyc")) if p.exists() else [])
+                                            and not str(q).endswith((".pyc", ".tmp"))
+                                            and q.name not in ("TEST_READ.json", "TEST_SEALED.json")) if p.exists() else [])
     for f in files:
         d = hashlib.sha256()
         with open(f, "rb") as h:
@@ -481,10 +514,13 @@ def cmd_setup(args: argparse.Namespace) -> int:
                  "budget_gib": 1.0, "kinds": kinds})
     # and this worktree with the repository it belongs to, so that `git rev-parse HEAD` (the receipts' code commit) works there
     paths = [*static_paths(run_root, kinds=kinds), git_common_dir(), str(ROOT)]
-    print(f"[setup {args.name}] {len(paths)} paths to {args.address}:{args.port}", flush=True)
+    relay = host_by_name(run_root, args.relay_from) if args.relay_from else None
+    print(f"[setup {args.name}] {len(paths)} paths to {args.address}:{args.port}"
+          + (f" relayed from {relay.name}" if relay else ""), flush=True)
     for path in paths:
         started = time.time()
-        done = _run(push_argv(host, path), retries=RSYNC_RETRIES, capture=False)
+        argv = relay_argv(relay, host, path, key=args.relay_key) if relay else push_argv(host, path)
+        done = _run(argv, retries=RSYNC_RETRIES, capture=False)
         print(f"[setup {args.name}] {path}: exit {done.returncode}, {round(time.time() - started)} s", flush=True)
         if done.returncode != 0:
             return 1
@@ -504,14 +540,18 @@ def local_static_manifest(run_root: Path, paths: Sequence[str]) -> dict[str, lis
     return files
 
 
-def admission_audits(run_root: Path, per_front: int) -> list[tuple[str, str, list[str], Path]]:
-    """Finished rule-arm audits to run again on the host: (front, episode, argv with a scratch output root, original audit)."""
+def admission_audits(run_root: Path, per_front: int, *, scratch_root: Path | None = None) -> list[tuple[str, str, list[str], Path]]:
+    """Finished rule-arm audits to run again on the host: (front, episode, argv with a scratch output root, original audit).
+
+    ``run_root`` is the S3-03 run whose validation audits are the reference; the scratch outputs go under ``scratch_root`` (the
+    admitting run's root; S3-05 admits against S3-03's audits without writing into S3-03's root, ruling 107-3)."""
 
     sys.path.insert(0, str(HERE.parent))
     import lean_s2_05_node_audit as audit
     import s3_03_manifest as manifest
 
     ctx = manifest.load_context(run_root)
+    scratch_base = Path(scratch_root) if scratch_root is not None else Path(run_root)
     chosen = []
     for front in ctx.fronts:
         frames = ctx.frames(front, "validation")
@@ -526,7 +566,7 @@ def admission_audits(run_root: Path, per_front: int) -> list[tuple[str, str, lis
             if len(found) >= per_front:
                 break
         for episode, index, config, original in found:
-            scratch = run_root / HOSTS_DIR / "admission" / front / episode
+            scratch = scratch_base / HOSTS_DIR / "admission" / front / episode
             argv = ctx.audit(front, episode, "TAF", None, [(index, config)])
             argv[argv.index("--configs") + 1] = json.dumps([{"config": config, "output_root": str(scratch)}])
             chosen.append((front, episode, argv, original))
@@ -574,11 +614,30 @@ def cmd_admit(args: argparse.Namespace) -> int:
     differing = sorted(f for f in here_static if f in there_static and there_static[f] != here_static[f])
     note("static_inputs", not missing and not differing,
          {"files": len(here_static), "missing": missing[:10], "differing": differing[:10]})
-    if "audit" in kinds and not problems:
+    if "test" in kinds and not problems:  # ruling 107-3: the copied test roots equal the seal there, recorded in the read record
+        from vsmt import lean_test_seal
+
+        inputs = load_json(run_root / "inputs.json")
+        seal = {k: v for k, v in load_json(Path(inputs["seal"]["file"])).items() if k != "seal_sha256"}
+        code = (f"import json, sys; sys.path.insert(0, {str(ROOT / 'src')!r}); from vsmt import lean_test_seal as ts; "
+                f"seal = json.load(open({inputs['seal']['file']!r})); seal = {{k: v for k, v in seal.items() if k != 'seal_sha256'}}; "
+                f"print(json.dumps(ts.verify_seal(seal, opened_by={inputs['receipt_sha256']!r})))")
+        done = remote_python(probe, code)
+        found = json.loads(done.stdout) if done.returncode == 0 else [f"verify_failed_to_run:{(done.stderr or '').strip()[-200:]}"]
+        entry = lean_test_seal.record_copy(seal, host=args.name, problems=found)
+        note("test_copy_matches_the_seal", not found, entry)
+    if ("audit" in kinds or "test" in kinds) and not problems:
         import lean_s2_05_node_audit as audit
 
         rows = []
-        for front, episode, argv, original in admission_audits(run_root, args.audits_per_front):
+        if "test" in kinds:  # S3-05 admits against the S3-03 run its inputs name (ruling 107-3); a different one is refused
+            named = load_json(run_root / "inputs.json")["s3_03_run_root"]
+            _require(not args.reference_run_root or str(Path(args.reference_run_root).resolve()) == str(Path(named).resolve()),
+                     "reference_run_root_differs_from_the_s3_05_inputs")
+            reference = Path(named)
+        else:
+            reference = Path(args.reference_run_root) if args.reference_run_root else run_root
+        for front, episode, argv, original in admission_audits(reference, args.audits_per_front, scratch_root=run_root):
             scratch = json.loads(argv[argv.index("--configs") + 1])[0]["output_root"]
             command = remote_job_command(argv, cwd=str(ROOT), env={"OMP_NUM_THREADS": "1", "MKL_NUM_THREADS": "1",
                                                                       "OPENBLAS_NUM_THREADS": "1", "NUMEXPR_NUM_THREADS": "1"},
@@ -651,11 +710,19 @@ def main(argv: Sequence[str] | None = None) -> int:
         command.add_argument("--port", required=True, type=int)
         command.add_argument("--key", default=os.environ.get("VSMT_WORKER_KEY", DEFAULT_KEY))
         command.add_argument("--kinds", default="audit,train1")
+        if name == "setup":
+            command.add_argument("--relay-from", default=None,
+                                 help="ruling 107-3: an admitted host of this run root that already holds every path copies them to the "
+                                      "new host (B1 -> w4, then w4 -> w1); default: copy from this coordinator")
+            command.add_argument("--relay-key", default=DEFAULT_KEY, help="the key on the relay host that the new host accepts")
         if name == "admit":
             command.add_argument("--cores", type=int)
             command.add_argument("--gib", type=float)
             command.add_argument("--audits-per-front", type=int, default=2)
             command.add_argument("--train-houses", type=int, default=6)
+            command.add_argument("--reference-run-root", default=None,
+                                 help="the S3-03 run whose finished validation audits are rerun on the host (default: --run-root); "
+                                      "S3-05 admits with S3-03's run root here (ruling 107-3)")
     args = parser.parse_args(argv)
     try:
         return {"remote-run": cmd_remote_run, "setup": cmd_setup, "admit": cmd_admit}[args.action](args)

@@ -11,7 +11,12 @@
     cache、SAM2 cache 四类根各一份，连同根下各阶段回执的摘要写成一个封印文件；S3-05 用 ``verify_seal`` 重算并逐项比对。
 输入是四个 test 根的路径与 test 名单，输出是标记、封印与核对结果。例如有人把 SAM2 cache 的 test 根传给节点审计入口，入口报出挡住
 它的标记路径并以退出码 2 结束。它只算字节摘要，不看任何帧的内容，不删除、不移动任何文件；它也不是“永远不能读”：S3-05 的入口在核对
-封印之后另行解封，那一步在 S3-05 实现时登记。
+封印之后另行解封（裁决 107-1，见下）。
+
+解封（裁决 107-1，2026-10-05）：``open_roots`` 只在 ``verify_seal`` 逐项相等之后把四个标记改成“已打开”（``opened``，保留封印
+摘要，并记下是哪份 S3-04 冻结回执放行的），每个 test 根旁写读取记录 ``TEST_READ.json``（第 1 次读取、时间、提交、回执摘要；
+工程故障后的续跑是同一次读取，不增加次数）；复制到工作机后的核对结果用 ``record_copy`` 记进同一份记录。``refuse_sealed`` 对
+三种状态一律拒绝，所以 S3-03／S3-04 的入口照旧读不到；只有带同一份回执摘要调用 ``admit_opened`` 的 S3-05 入口能读。
 """
 
 from __future__ import annotations
@@ -28,6 +33,10 @@ MARKER_NAME = "TEST_SEALED.json"
 SEAL_KINDS = ("raw", "geometry", "instance_cache", "sam2_cache")
 STATE_PENDING = "pending"
 STATE_SEALED = "sealed"
+#: ruling 107-1: S3-05 verified the seal and opened the root for the run its freeze receipt names
+STATE_OPENED = "opened"
+#: ruling 107-1: the read record beside each opened test root (outside the seal: it did not exist when the seal was taken)
+READ_RECORD_NAME = "TEST_READ.json"
 RULE = ("ruling 103-1: the test data are generated in S3-02 into their own roots and sealed; the S3-03 and S3-04 entries refuse "
         "them; S3-05 verifies the seal, then reads them once")
 #: a seal field that changes between two identical seals and is therefore left out of the seal digest
@@ -82,7 +91,7 @@ def write_marker(root: Path, *, kind: str, state: str, seal_digest: str | None =
     """Put the marker into one test root: ``pending`` while S3-02 writes it, ``sealed`` with the seal digest afterwards."""
 
     _require(kind in SEAL_KINDS, f"unknown_kind:{kind}")
-    _require(state in (STATE_PENDING, STATE_SEALED), f"unknown_state:{state}")
+    _require(state in (STATE_PENDING, STATE_SEALED), f"unknown_state:{state}")  # opened only through open_roots
     _require((state == STATE_SEALED) == (seal_digest is not None), "sealed_marker_needs_the_seal_digest")
     root = Path(root)
     root.mkdir(parents=True, exist_ok=True)
@@ -138,7 +147,8 @@ def refusal(paths: Iterable[str | Path | None], *, reader: str) -> str | None:
 
 def _root_files(root: Path) -> dict[str, dict[str, Any]]:
     return {p.name: {"bytes": p.stat().st_size, "sha256": file_sha256(p)}
-            for p in sorted(root.iterdir()) if p.is_file() and p.name != MARKER_NAME}
+            for p in sorted(root.iterdir())
+            if p.is_file() and p.name not in (MARKER_NAME, READ_RECORD_NAME) and not p.name.endswith(".tmp")}
 
 
 def _succeeded(root: Path) -> list[str]:
@@ -175,8 +185,11 @@ def build_seal(roots: Mapping[str, str | Path], *, houses: Sequence[str], tag: s
             "sealed_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
 
 
-def verify_seal(seal: Mapping[str, Any], roots: Mapping[str, str | Path] | None = None) -> list[str]:
-    """Recompute every digest of a seal (at its own roots, or at ``roots``) and list each difference; empty means intact."""
+def verify_seal(seal: Mapping[str, Any], roots: Mapping[str, str | Path] | None = None, *,
+                opened_by: str | None = None) -> list[str]:
+    """Recompute every digest of a seal (at its own roots, or at ``roots``) and list each difference; empty means intact.
+
+    With ``opened_by`` (a freeze receipt digest, ruling 107-1) a marker opened for that receipt counts as this seal's too."""
 
     problems: list[str] = []
     if seal.get("schema_version") != SCHEMA_VERSION:
@@ -200,7 +213,9 @@ def verify_seal(seal: Mapping[str, Any], roots: Mapping[str, str | Path] | None 
             problems.append(f"marker_missing:{kind}")
         else:
             state = json.loads(marker.read_text(encoding="utf-8"))
-            if state.get("state") != STATE_SEALED or state.get("seal_sha256") != seal_sha256(seal):
+            accepted = state.get("state") == STATE_SEALED or (
+                opened_by is not None and state.get("state") == STATE_OPENED and state.get("opened_by") == opened_by)
+            if not accepted or state.get("seal_sha256") != seal_sha256(seal):
                 problems.append(f"marker_not_this_seal:{kind}")
     return problems
 
@@ -215,8 +230,95 @@ def seal_roots(roots: Mapping[str, str | Path], *, houses: Sequence[str], tag: s
     return seal, digest
 
 
+# --------------------------------------------------------------------------
+# opening the seal for S3-05 (ruling 107-1)
+# --------------------------------------------------------------------------
+
+def _utc() -> str:
+    return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+
+
+def _write(path: Path, payload: Any) -> None:
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(json.dumps(payload, indent=1, sort_keys=True), encoding="utf-8")
+    tmp.replace(path)
+
+
+def open_roots(seal: Mapping[str, Any], *, receipt_sha256: str, commit: str, purpose: str) -> dict[str, Any]:
+    """Ruling 107-1: verify the seal, then open the four test roots for the S3-05 run of one freeze receipt.
+
+    The first call verifies every digest and opens the roots as reading 1; a later call for the same receipt (a resume after an
+    engineering failure) only re-verifies and returns the same reading; a call for another receipt is refused (test is read once).
+    """
+
+    _require(bool(receipt_sha256), "open_needs_the_freeze_receipt_digest")
+    digest = seal_sha256(seal)
+    markers = {kind: Path(seal["kinds"][kind]["root"]) / MARKER_NAME for kind in SEAL_KINDS}
+    states = {kind: json.loads(path.read_text(encoding="utf-8")) if path.is_file() else {} for kind, path in markers.items()}
+    opened = [kind for kind, state in states.items() if state.get("state") == STATE_OPENED]
+    if opened:
+        others = sorted({states[kind].get("opened_by") for kind in opened} - {receipt_sha256})
+        _require(not others, f"test_already_opened_for_another_receipt:{others}")
+    problems = verify_seal(seal, opened_by=receipt_sha256)
+    _require(not problems, f"seal_not_intact:{problems[:5]}")
+    if len(opened) == len(SEAL_KINDS):  # the same reading: nothing is written
+        record = json.loads((Path(seal["kinds"]["raw"]["root"]) / READ_RECORD_NAME).read_text(encoding="utf-8"))
+        return {**record, "resumed": True}
+    record = {"schema_version": SCHEMA_VERSION, "rule": "ruling 107-1: test is read once, by the S3-05 run of one freeze receipt",
+              "reading": 1, "opened_utc": _utc(), "commit": commit, "receipt_sha256": receipt_sha256, "seal_sha256": digest,
+              "purpose": purpose, "copies": []}
+    for kind in SEAL_KINDS:
+        root = Path(seal["kinds"][kind]["root"])
+        _write(root / READ_RECORD_NAME, {**record, "kind": kind})
+        _write(markers[kind], {"schema_version": SCHEMA_VERSION, "kind": kind, "state": STATE_OPENED, "seal_sha256": digest,
+                               "opened_by": receipt_sha256, "opened_utc": record["opened_utc"], "rule": RULE})
+    return {**record, "resumed": False}
+
+
+def admit_opened(paths: Iterable[str | Path | None], *, reader: str, receipt_sha256: str) -> None:
+    """S3-05's reader guard: every given path covered by a test marker must be opened for this freeze receipt."""
+
+    for path in paths:
+        if path is None or str(path) == "":
+            continue
+        marker = sealed_marker(path)
+        if marker is None:
+            continue
+        state = json.loads(marker.read_text(encoding="utf-8"))
+        if state.get("state") != STATE_OPENED or state.get("opened_by") != receipt_sha256:
+            raise LeanTestSealError(f"test_root_not_opened_for_this_receipt:{reader}:{path} ({marker}: {state.get('state')})")
+
+
+def refusal_unless_opened(paths: Iterable[str | Path | None], *, reader: str, receipt_sha256: str) -> str | None:
+    """``admit_opened`` for an entry that reports refusals itself."""
+
+    try:
+        admit_opened(paths, reader=reader, receipt_sha256=receipt_sha256)
+    except LeanTestSealError as exc:
+        return str(exc)
+    return None
+
+
+def record_copy(seal: Mapping[str, Any], *, host: str, problems: Sequence[str]) -> dict[str, Any]:
+    """Ruling 107-1 / 107-3: one copy of the opened test roots to a remote host, and its check there, into every read record."""
+
+    entry = {"host": host, "checked_utc": _utc(), "verified": not problems, "problems": list(problems)[:10]}
+    for kind in SEAL_KINDS:
+        path = Path(seal["kinds"][kind]["root"]) / READ_RECORD_NAME
+        record = json.loads(path.read_text(encoding="utf-8"))
+        record.setdefault("copies", []).append(entry)
+        _write(path, record)
+    return entry
+
+
 __all__ = [
     "LeanTestSealError",
+    "READ_RECORD_NAME",
+    "STATE_OPENED",
+    "admit_opened",
+    "open_roots",
+    "record_copy",
+    "refusal_unless_opened",
     "MARKER_NAME",
     "RULE",
     "SCHEMA_VERSION",

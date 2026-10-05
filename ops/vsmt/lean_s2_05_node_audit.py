@@ -1410,7 +1410,10 @@ def run(args: argparse.Namespace) -> int:
     from vsmt import lean_runner as lr
     from vsmt import lean_test_seal
 
-    refusal = lean_test_seal.refusal([args.cache_root, args.episode_root, args.geometry_root], reader="node-audit run")
+    if getattr(args, "manifest_split", None) == "test" or getattr(args, "test_receipt", None):
+        refusal = test_refusal(args)  # ruling 107-1: S3-05 reads opened test roots under the freeze receipt it names, nothing else
+    else:
+        refusal = lean_test_seal.refusal([args.cache_root, args.episode_root, args.geometry_root], reader="node-audit run")
     if refusal:  # ruling 103-1: sealed S3 test roots are read only by S3-05
         print(f"[node-audit] refused: {refusal}", file=sys.stderr)
         return 2
@@ -1422,7 +1425,7 @@ def run(args: argparse.Namespace) -> int:
     if args.metrics_only and diagnostic_options:  # ruling 104-4 (1): a run of record takes no diagnostic option
         print(f"[node-audit] refused: --metrics-only takes no diagnostic option: {diagnostic_options}", file=sys.stderr)
         return 2
-    if getattr(args, "manifest_split", None):  # ruling 104-6: an S3-03 audit reads only episodes of its manifest split
+    if getattr(args, "manifest_split", None) not in (None, "test"):  # ruling 104-6: an S3-03 audit reads only its manifest split
         from vsmt import lean_s3_03
 
         problem = lean_s3_03.manifest_split_refusal(args.episode_id, args.manifest_split)
@@ -1449,6 +1452,11 @@ def run(args: argparse.Namespace) -> int:
     except NodeAuditError as exc:
         print(f"[node-audit] refused: {exc}", file=sys.stderr)
         return 2
+    if getattr(args, "test_receipt", None):  # ruling 107-2: on test only the configurations the S3-04 receipt froze
+        problem = test_config_refusal(args, plan)
+        if problem:
+            print(f"[node-audit] refused: {problem}", file=sys.stderr)
+            return 2
     llm = None
     if args.arm == "LLM-op":  # ruling 105: the appendix arm's run of record, its decisions from the DeepSeek API or its archive
         from vsmt import lean_llm_op as llm
@@ -1625,6 +1633,9 @@ def run(args: argparse.Namespace) -> int:
                                  "archive_sha256": file_sha256(archive) if archive.exists() else None,
                                  "contract_sha256": file_sha256(llm.CONTRACT_PATH)}
         write_json_atomic(out_dir / AUDIT_FILE_NAME, payload)
+        if audit is None and getattr(args, "manifest_split", None) == "test":  # ruling 107-5: no test metric before every job ended
+            print(f"[node-audit] {args.arm} {args.episode_id} (test, metrics only): {summary['frames']} frames, {payload['wall_seconds']} s")
+            return 0
         if audit is None:
             report = payload["report"]
             print(f"[node-audit] {args.arm} {args.episode_id} {json.dumps(config, sort_keys=True)} (metrics only): {summary['frames']} frames, "
@@ -1690,6 +1701,50 @@ def file_sha256(path: Path) -> str:
         for block in iter(lambda: handle.read(1 << 20), b""):
             digest.update(block)
     return digest.hexdigest()
+
+
+def load_test_receipt(args: argparse.Namespace) -> dict[str, Any]:
+    from vsmt import lean_s3_04 as s4
+
+    receipt = json.loads(Path(args.test_receipt).read_text(encoding="utf-8"))
+    _require(s4.receipt_body_sha256(receipt) == receipt.get("receipt_sha256"), "test_receipt_digest_differs")
+    return receipt
+
+
+def test_refusal(args: argparse.Namespace) -> str | None:
+    """Ruling 107-1 / 107-2: why this run may not read test, or None.  A test audit names --manifest-split test and the S3-04 freeze
+    receipt, runs metrics-only, never as LLM-op, on an episode of the committed test list, from roots opened for that receipt."""
+
+    from vsmt import lean_s3_03, lean_test_seal
+
+    if args.manifest_split != "test" or not args.test_receipt:
+        return "a test audit needs both --manifest-split test and --test-receipt (ruling 107-1)"
+    if not args.metrics_only or args.arm == "LLM-op":
+        return "a test audit runs metrics-only and never as LLM-op (rulings 104-4 (1), 105, 107-2)"
+    try:
+        receipt = load_test_receipt(args)
+    except (OSError, ValueError, NodeAuditError) as exc:
+        return f"test_receipt_unreadable:{exc}"
+    if str(args.episode_id) not in set(map(str, lean_s3_03.load_manifest()["test"])):
+        return f"episode_not_in_the_s3_test_manifest:{args.episode_id}"
+    return lean_test_seal.refusal_unless_opened([args.cache_root, args.episode_root, args.geometry_root], reader="node-audit run",
+                                                receipt_sha256=receipt["receipt_sha256"])
+
+
+def test_config_refusal(args: argparse.Namespace, plan: Sequence[tuple[dict[str, Any], str]]) -> str | None:
+    """Ruling 107-2: every configuration of a test audit is the configuration the receipt froze for this arm and front end."""
+
+    from vsmt import lean_s3_04 as s4
+
+    receipt = load_test_receipt(args)
+    fronts = [front for front, source in s4.FRONTS.items() if source == args.mask_source and front in receipt["fronts"]]
+    if not fronts:
+        return f"mask_source_not_frozen:{args.mask_source}"
+    frozen = [run["config"] for run in receipt["fronts"][fronts[0]]["test_runs"] if run["arm"] == args.arm]
+    for config, _ in plan:
+        if dict(config) not in frozen:
+            return f"configuration_not_frozen_for_test:{args.arm}:{json.dumps(config, sort_keys=True)}"
+    return None
 
 
 def config_plan(args: argparse.Namespace) -> list[tuple[dict[str, Any], str]]:
@@ -1972,8 +2027,12 @@ def main() -> int:
     run_parser.add_argument("--metrics-only", action="store_true",
                             help="ruling 104-4 (1): the run of record -- the runner and the teacher's report without the diagnostic blocks "
                                  "of v2-v10 (audit null); refused together with any diagnostic option")
-    run_parser.add_argument("--manifest-split", default=None, choices=("train", "validation"),
-                            help="ruling 104-6: refuse an episode that is not in this split of the S3 manifest (every S3-03 audit names it)")
+    run_parser.add_argument("--manifest-split", default=None, choices=("train", "validation", "test"),
+                            help="ruling 104-6: refuse an episode that is not in this split of the S3 manifest (every S3-03 audit names it); "
+                                 "test only with --test-receipt (ruling 107-1)")
+    run_parser.add_argument("--test-receipt", default=None,
+                            help="ruling 107-1 / 107-2: the S3-04 freeze receipt; the test roots must be opened for it and every "
+                                 "configuration must be one it froze for this arm and front end")
     run_parser.add_argument("--llm-op-archive", default=None,
                             help="ruling 105, --arm LLM-op only: this (front end, episode)'s call archive; a call it holds is replayed")
     run_parser.add_argument("--llm-op-mode", default="replay", choices=("live", "replay"),
