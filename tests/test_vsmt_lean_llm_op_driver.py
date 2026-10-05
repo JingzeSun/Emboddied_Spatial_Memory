@@ -30,7 +30,7 @@ for item in (PROJECT_ROOT / "src", PROJECT_ROOT / "ops" / "vsmt", PROJECT_ROOT /
 import lean_s2_05_node_audit as audit_module  # noqa: E402
 import llm_op as driver  # noqa: E402
 from vsmt import lean_llm_op as llm  # noqa: E402
-from test_vsmt_lean_llm_op import SERVED, ScriptedTransport, TempDir, opened_contract  # noqa: E402
+from test_vsmt_lean_llm_op import SERVED, ScriptedTransport, TempDir, closed_contract, opened_contract  # noqa: E402
 from test_vsmt_lean_node_audit import SyntheticEntryFixture  # noqa: E402
 
 
@@ -53,7 +53,8 @@ class NodeAuditIntegrationTests(SyntheticEntryFixture, unittest.TestCase):
         run_root = self.tmp / "refusals"
         run_root.mkdir(exist_ok=True)
         archive = run_root / "a.jsonl"
-        self.assertEqual(self.run_entry(self.llm_args(self.tmp / "r0", archive, run_root, mode="replay")), 2)  # bit closed
+        with mock.patch.object(llm, "load_contract", closed_contract):
+            self.assertEqual(self.run_entry(self.llm_args(self.tmp / "r0", archive, run_root, mode="replay")), 2)  # bit closed
         with mock.patch.object(llm, "load_contract", opened_contract):
             for override in ({"metrics_only": False}, {"manifest_split": None}, {"llm_op_archive": None}, {"config": '{"tau_r": 0.5}'}):
                 with self.subTest(override=override):
