@@ -2,7 +2,8 @@
 # LLM-op, the appendix arm on the DeepSeek API (ruling 105, user 2026-10-04: 「待裁 105 全按推荐，但105-11我新租一台机器去同时做」).
 #
 # On the S3-02 host (read-only there; it touches nothing of the S3-03 run):
-#   bash ops/vsmt/llm_op.sh plan                       draw the 15 validation episodes and the pilot episode, write
+#   bash ops/vsmt/llm_op.sh plan                       draw the validation episode (one per front end since ruling 108; 105-2
+#                                                      had 15) and the pilot episode, write
 #                                                      $RUN_ROOT/plan.json and $RUN_ROOT/transfer.txt (the paths to copy); refuses
 #                                                      S3-03 inputs with problems, and provisional ones unless ALLOW_PROVISIONAL=1
 #   bash ops/vsmt/llm_op.sh transfer <host> <port>     copy those paths, at the same absolute paths, to the LLM-op host over ssh
@@ -13,10 +14,11 @@
 #                                                      both ReID heads against the plan; the key loads and the API lists the model
 #   bash ops/vsmt/llm_op.sh pilot                      both front ends, the first 200 frames of the train pilot episode, live calls,
 #                                                      no private read and no metric; registers the model name; exit 3 at a decision
-#                                                      point: the worst-case projection plus the pilot's spend over the $150 cap, a
+#                                                      point: the worst-case projection plus the pilot's spend over the $30 cap, a
 #                                                      call kind it could not price, a fallback rate above 2%, two model names
-#   bash ops/vsmt/llm_op.sh run                        the 30 validation episodes (2 front ends x 15) as node-audit runs of record;
-#                                                      no new episode at $150 (started ones resume), STOP at $200 (every worker also
+#   bash ops/vsmt/llm_op.sh run                        the validation episodes (2 front ends x 1) as node-audit runs of record;
+#                                                      no new episode at $30 (started ones resume), STOP at $40 (ruling 108; the
+#                                                      ledger includes the pilot) (every worker also
 #                                                      checks the ledgers itself); run it again to resume (archived calls are
 #                                                      replayed, never paid twice); long: nohup ... > <log> 2>&1 &
 #   bash ops/vsmt/llm_op.sh status                     progress, spend, STOP reason
@@ -28,7 +30,8 @@
 #
 # Environment (optional): PY (/root/miniconda3/bin/python3.12), RUN_ROOT ($AUTODL/vsmt_private/llm-op-run), INPUTS (the S3-03
 #   check's inputs.json, for plan), SSH_KEY (for transfer), DEEPSEEK_API_KEY_FILE (/root/.config/vsmt/deepseek.env), WORKERS (at
-#   most the check's choice), ALLOW_PROVISIONAL=1 (plan from provisional S3-03 inputs; recorded), ACCEPT_PILOT=1 (the user accepted
+#   most the check's choice), ALLOW_PROVISIONAL=1 (plan from provisional S3-03 inputs; recorded), SUPERSEDE_PLAN=1 (ruling 108: rewrite a plan
+#   made for another episode count, the old one kept as plan.superseded.<sha12>.json), ACCEPT_PILOT=1 (the user accepted
 #   the pilot's decision point; recorded), RESUME_AFTER_STOP=1 (the user decided to go on after a STOP; the STOP file is kept as
 #   STOP.<n>; past the $200 safety stop a resumed run stops again at once unless a ruling raises it), RETRY_FAILED=1, EXPORT_OUT.
 # Exit status: 0 done; 2 refused (a closed contract bit, a missing step, a changed plan or commit); 3 a decision point (projection
@@ -49,8 +52,10 @@ mkdir -p "$RUN_ROOT/logs"
 
 case "$COMMAND" in
   plan)
-    if [ "${ALLOW_PROVISIONAL:-0}" = 1 ]; then D plan --run-root "$RUN_ROOT" --inputs "$INPUTS" --allow-provisional; exit $?; fi
-    D plan --run-root "$RUN_ROOT" --inputs "$INPUTS"; exit $? ;;
+    OPTIONS=()
+    [ "${ALLOW_PROVISIONAL:-0}" = 1 ] && OPTIONS+=(--allow-provisional)
+    [ "${SUPERSEDE_PLAN:-0}" = 1 ] && OPTIONS+=(--supersede)
+    D plan --run-root "$RUN_ROOT" --inputs "$INPUTS" "${OPTIONS[@]}"; exit $? ;;
   transfer)
     HOST=${2:?usage: transfer <host> <port>}; PORT=${3:?usage: transfer <host> <port>}
     [ -f "$RUN_ROOT/transfer.txt" ] || { echo "refused: no $RUN_ROOT/transfer.txt (run plan first)"; exit 2; }

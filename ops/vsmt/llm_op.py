@@ -2,14 +2,15 @@
 """LLM-op driver (ruling 105): the plan on the S3-02 host; check, pilot, run, status, export and replay-check on the LLM-op host.
 
 白话：附录臂 LLM-op 的整趟流程。输入是 S3-03 检查过的 train／validation 名单与数据根（只读，test 根不碰）、登记的合同和
-DeepSeek 密钥（只在新机器的文件里）；输出是每套前端 15 条 validation episode 的闭环指标（与其他臂同一个 node audit、同一套
+DeepSeek 密钥（只在新机器的文件里）；输出是每套前端 1 条 validation episode（裁决 108；原 105-2 为 15 条）的闭环指标（与其他臂同一个 node audit、同一套
 指标）、全部调用存档、试点报告和 results/ 里的一份导出。步骤：
-  plan   （S3-02 那台机器）按裁决 105-2 抽 15 条 validation episode、选试点 episode，记下各封印摘要、每帧行数（S3-03 第 0 轮
+  plan   （S3-02 那台机器）按裁决 105-2／108 抽 1 条 validation episode、选试点 episode（已有按旧条数写的计划时，
+         只有 --supersede 才把它改名保留为 plan.superseded.<sha12>.json 再重写，抽签顺序必须相同、正式运行不能已开始），记下各封印摘要、每帧行数（S3-03 第 0 轮
          ELU-P 回执的均值）和要拷的路径清单 transfer.txt；
   check  （新机器）逐条重算 cache 封印、核对原始回执、几何表和两个 ReID 头，读密钥、查 API 能否用，定并行数；
   pilot  两套前端各在试点 episode 的前 200 帧上真调 API（只跑公开阶段，不读私有、不算指标），按每行价钱推算总费用，
-         超过 150 美元就停下汇报；登记返回的模型名；
-  run    30 个作业（2 套前端 × 15 条）并行跑 node audit 的 LLM-op 正式审计；累计 150 美元不再开新作业，200 美元写 STOP
+         超过 30 美元（裁决 108）就停下汇报；登记返回的模型名；
+  run    2 个作业（2 套前端 × 1 条）并行跑 node audit 的 LLM-op 正式审计；累计（含试点）30 美元不再开新作业，40 美元写 STOP
          全部停下；中断的作业重跑时从存档回放、不重复花钱；
   status 进度、费用、回退与模型名；stop 写 STOP（所有进程在下一次调用前停下）；
   replay-check  每套前端按存档只回放最短的一条 episode，核对轨迹摘要与指标和正式运行逐字节相同（复现性），记进
@@ -173,9 +174,20 @@ def rows_per_frame(s3_03_run_root: Path, front: str) -> dict[str, Any]:
 
 def plan(args: argparse.Namespace) -> int:
     run_root = Path(args.run_root)
+    old_plan = None
     if (run_root / "plan.json").exists():
-        print(f"[llm-op] refused: {run_root / 'plan.json'} exists; a plan is written once", file=sys.stderr)
-        return 2
+        if not args.supersede:
+            print(f"[llm-op] refused: {run_root / 'plan.json'} exists; a plan is written once (--supersede only for a plan an "
+                  "amendment of the episode count made stale, ruling 108)", file=sys.stderr)
+            return 2
+        old_plan = load_json(run_root / "plan.json")
+        if len(old_plan["draw"]["episodes"]) == llm.EPISODES_PER_FRONT or old_plan["draw"]["salt"] != llm.DRAW_SALT:
+            print("[llm-op] refused: --supersede replaces only a plan with another episode count under the same salt",
+                  file=sys.stderr)
+            return 2
+        if any((run_root / "archive").glob("*/*.jsonl")):
+            print("[llm-op] refused: the run of record has started; its plan cannot be superseded", file=sys.stderr)
+            return 2
     inputs_path = Path(args.inputs)
     inputs = load_json(inputs_path)
     refusal = sealed_refusal(inputs["roots"], reader="llm-op plan")
@@ -195,6 +207,9 @@ def plan(args: argparse.Namespace) -> int:
     for episode in both:
         _require(validation["instance"][episode] == validation["sam2"][episode], f"frame_counts_differ_between_fronts:{episode}")
     order = llm.draw_order(both)
+    if old_plan is not None and old_plan["draw"]["order"] != order:
+        print("[llm-op] refused: the validation order differs from the superseded plan's; the draw must not change", file=sys.stderr)
+        return 2
     _require(len(order) >= llm.EPISODES_PER_FRONT, f"too_few_validation_episodes:{len(order)}")
     drawn = order[: llm.EPISODES_PER_FRONT]
     train_both = [e for e in llm.draw_order(set(train["instance"]) & set(train["sam2"])) if train["instance"][e] >= llm.PILOT_FRAMES]
@@ -236,6 +251,15 @@ def plan(args: argparse.Namespace) -> int:
         "planned_frames": {front: sum(validation[front][e] for e in drawn) for front in llm.FRONTS},
         "rows_per_frame": rows,
     }
+    if old_plan is not None:  # ruling 108: the stale plan and its transfer list are kept beside the new ones, never deleted
+        old_sha = file_sha256(run_root / "plan.json")
+        kept = run_root / f"plan.superseded.{old_sha[:12]}.json"
+        _require(not kept.exists(), f"superseded_plan_already_kept:{kept.name}")
+        (run_root / "plan.json").replace(kept)
+        if (run_root / "transfer.txt").exists():
+            (run_root / "transfer.txt").replace(run_root / f"transfer.superseded.{old_sha[:12]}.txt")
+        payload["supersedes"] = {"file": kept.name, "sha256": old_sha, "episodes_per_front": len(old_plan["draw"]["episodes"]),
+                                 "code_commit": old_plan.get("code_commit"), "ruling": "108"}
     lines: list[str] = []
     for episode in drawn:
         lines += [str(Path(roots["raw"]["validation"]) / episode), str(Path(roots["geometry"]["validation"]) / episode)]
@@ -555,7 +579,7 @@ def pilot(args: argparse.Namespace) -> int:
 
 
 # --------------------------------------------------------------------------
-# the run (validation, 2 front ends x 15 episodes)
+# the run (validation, 2 front ends x EPISODES_PER_FRONT episodes; one since ruling 108)
 # --------------------------------------------------------------------------
 
 def job_id(front: str, episode: str) -> str:
@@ -925,6 +949,8 @@ def main() -> int:
     p.add_argument("--run-root", required=True)
     p.add_argument("--inputs", required=True, help="the S3-03 check's inputs.json (its usable train and validation lists and roots)")
     p.add_argument("--allow-provisional", action="store_true", help="plan from provisional S3-03 inputs (recorded in the plan)")
+    p.add_argument("--supersede", action="store_true",
+                   help="ruling 108: replace a plan written for another episode count (kept as plan.superseded.<sha12>.json)")
     p.set_defaults(func=plan)
     p = sub.add_parser("check")
     p.add_argument("--run-root", required=True)
