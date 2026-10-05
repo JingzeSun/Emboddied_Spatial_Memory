@@ -826,23 +826,24 @@ FROZEN_VALUES_BY_RULING = (
     ("shared.should_be_visible_min_ratio", SHOULD_BE_VISIBLE_MIN_RATIO, "D-224-S1 ruling 68"),
     ("arms.VSMT-lean.training.weight_decay", WEIGHT_DECAY, "D-224-S1 ruling 68"),
     ("arms.VSMT-lean.training.seeds", list(SEEDS), "D-224-S1 ruling 68"),
-    # D-224-S1 ruling 68 (10) pre-authorised registering the fit; fitted 2026-09-27 on the 39 development episodes'
-    # counts of the ruling-75 calibration pass (TAF at the rollout theta_a, receipts at 850c533 x38 and 97b76b0 x1,
-    # byte-equivalent code): 123,033 of 124,088 object frames in place, 134 events in 6,899,951 object ticks,
-    # hits 279,510 of 837,517 against false matches 119 of 7,914 (results/vsmt_lean_s2_05_elu_p_fit_850c533.json).
-    *((f"arms.ELU-P.fitted.{name}", value, "D-224-S1 ruling 68 (10)") for name, value in (
-        ("initial_log_odds", 4.75891184514327),
-        ("persistence_log_decay_per_tick", 1.9420616347206353e-05),
-        ("match_gain", 3.0998616369636114),
+    # Ruling 104-1 1b (2026-10-05): the S3 refit replaces the development sets in place (the development values -- ruling
+    # 68 (10), 2026-09-27, and the SAM2 set of 2026-10-02 -- are recorded in S0-05 user_rulings.superseded_values and in the
+    # cross-contract ledger).  Counts of the S3-03 calibration pass (TAF at the rollout theta_a, no gate) over the usable S3
+    # train episodes, fit at 24df324 (run s3-03-run, tag 10f7013):
+    # instance segmentation, 252 episodes (the adopted 74905f4 pre-fit): 773,589 of 780,515 object frames in place, 804
+    # events in 41,298,511 object ticks, hits 1,699,298 of 5,448,054 against false matches 448 of 48,538.
+    *((f"arms.ELU-P.fitted.{name}", value, "D-224-S1 ruling 104-1 1b") for name, value in (
+        ("initial_log_odds", 4.715758278823018),
+        ("persistence_log_decay_per_tick", 1.9468203738496008e-05),
+        ("match_gain", 3.5202657867949485),
     )),
-    # Ruling 100-1 (ii) opened the SAM2 set; registered 2026-10-02 under ruling 68 (10) from the S2-06 calibration pass
-    # (39 development episodes, TAF at the rollout theta_a, commit c0b166e): 123,033 of 124,088 object frames in place and
-    # 134 events in 6,899,951 object ticks (truth-only counts, so equal to the instance set), hits 215,332 of 810,437
-    # against false matches 113 of 7,889 (results/vsmt_lean_s2_06_elu_p_fit_c0b166e.json).
-    *((f"{ELU_P_FITTED_PATHS['sam2']}.{name}", value, "D-224-S1 ruling 68 (10), ruling 100-1 (ii)") for name, value in (
-        ("initial_log_odds", 4.75891184514327),
-        ("persistence_log_decay_per_tick", 1.9420616347206353e-05),
-        ("match_gain", 2.920444259169415),
+    # SAM2, 249 episodes (three train caches failed, so the truth-only values differ from the instance set too): 759,272 of
+    # 766,085 object frames in place, 792 events in 40,367,761 object ticks, hits 1,298,322 of 5,158,352 against false
+    # matches 376 of 46,734.
+    *((f"{ELU_P_FITTED_PATHS['sam2']}.{name}", value, "D-224-S1 ruling 104-1 1b") for name, value in (
+        ("initial_log_odds", 4.713527527677658),
+        ("persistence_log_decay_per_tick", 1.961980922031749e-05),
+        ("match_gain", 3.4430935995987832),
     )),
 )
 

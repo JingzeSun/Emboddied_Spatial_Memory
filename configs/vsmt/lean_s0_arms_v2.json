@@ -214,9 +214,9 @@
       "reactivates_retracted": true,
       "fitted_quantities_never_grid_searched": true,
       "fitted": {
-        "initial_log_odds": 4.75891184514327,
-        "persistence_log_decay_per_tick": 1.9420616347206353e-05,
-        "match_gain": 3.0998616369636114
+        "initial_log_odds": 4.715758278823018,
+        "persistence_log_decay_per_tick": 1.9468203738496008e-05,
+        "match_gain": 3.5202657867949485
       },
       "fitted_on": "train split only",
       "grid": {
@@ -271,18 +271,18 @@
         "match_gain_fitted_at_the_rollout_config_and_shared_by_every_config": true,
         "plain_language_zh": "三个拟合量只在 train 上估一次、不进网格：初始 log-odds 是“看不见一阵子之后物体还在原处”的先验；持续性衰减由每帧被移走/搬动的风险率算出；匹配增益是“物体在时门内能配上”对“物体不在时门内仍配上”的对数似然比，门取登记的 rollout_config，因此所有 ELU-P 配置共用同一个增益。估计代码属 S2-02，数值待冻结。"
       },
-      "fitted_frozen_by": "D-224-S1 ruling 68 (10); counts of the ruling-75 calibration pass (lean-s2-05-oracle-850c533, receipts 850c533 x38 + 97b76b0 x1)",
-      "fitted_frozen_on": "2026-09-27",
+      "fitted_frozen_by": "ruling 104-1 1b (S3 refit, registered in place under D-224-S1 ruling 68 (10)); counts of the S3-03 calibration pass over the 252 usable S3 train episodes (run s3-03-run, tag 10f7013, fit at 24df324; the adopted 74905f4 instance pre-fit); the development values are recorded under user_rulings.superseded_values",
+      "fitted_frozen_on": "2026-10-05",
       "fitted_mask_source": "simulator_instance_masks",
       "fitted_by_mask_source": {
         "sam2": {
-          "initial_log_odds": 4.75891184514327,
-          "persistence_log_decay_per_tick": 1.9420616347206353e-05,
-          "match_gain": 2.920444259169415
+          "initial_log_odds": 4.713527527677658,
+          "persistence_log_decay_per_tick": 1.961980922031749e-05,
+          "match_gain": 3.4430935995987832
         }
       },
-      "fitted_by_mask_source_frozen_by": "D-224-S1 ruling 68 (10) and ruling 100-1 (ii); sam2: counts of the S2-06 calibration pass (s2-06-sam2, 39 development episodes, commit c0b166e; export vsmt_lean_s2_06_elu_p_fit_c0b166e.json)",
-      "fitted_by_mask_source_frozen_on": "2026-10-02",
+      "fitted_by_mask_source_frozen_by": "ruling 104-1 1b (S3 refit, registered in place under D-224-S1 ruling 68 (10) and ruling 100-1 (ii)); sam2: counts of the S3-03 calibration pass over the 249 usable S3 train episodes (run s3-03-run, tag 10f7013, fit at 24df324); the development values are recorded under user_rulings.superseded_values",
+      "fitted_by_mask_source_frozen_on": "2026-10-05",
       "fitted_by_mask_source_rule": "ruling 100-1 (ii): the fitted block holds the three values of the simulator_instance_masks front end (ruling 68 (10)); every other mask source keeps its own three values under fitted_by_mask_source, null until that source's calibration pass is fitted by the same registered procedure (fit-elu-p over the calibration pass, ruling 75 (1)(a)) and the values are registered in place; a pass runs ELU-P at the set of its episodes' mask source and refuses while that set is null",
       "fitted_by_mask_source_plain_language_zh": "裁决 100-1 (ii)：ELU-P 的三个拟合量按 mask 来源分存。fitted 块是实例分割前端那套（裁决 68 (10)，不动）；SAM2 那套在 fitted_by_mask_source.sam2，运行前为空，由 S2-06 的校准趟按同一登记程序（fit-elu-p 读校准趟的 ELU-P 计数，裁决 75 (1)(a)）拟合后就地填入并记入跨合同台账。第 0 轮与 ELU-P 审计按 episode 的 mask 来源读对应那套；那套仍为空时入口拒绝运行。它不改拟合公式、网格与 rollout_config。"
     },
@@ -617,7 +617,16 @@
     "ruling_72_B": "D-224-S1 裁决 72 (B)（2026-09-25 批准）：budget.selection_metric 仍为 node_f1，字节不变；其所指的 S0-04 node_prf1 改为质心 ≤ delta_moved_m 口径（主列），IoU 0.3 降为 node_prf1_iou 次级列、不选参。",
     "ruling_100_1_ii": "裁决 100-1 (ii)（2026-10-01 批准，原话「待裁 100 取 (a)，加 100-6 复现要求」）：ELU-P 三个拟合量按 mask 来源分存。arms.ELU-P.fitted 是实例分割那套，一字不变，并以 fitted_mask_source 写明来源；SAM2 那套是新增的三个值槽 arms.ELU-P.fitted_by_mask_source.sam2.*，在任何值出现之前登记（registered_value_slots_added，记账键），运行前为 null、列在 policy_values_without_defaults，由 S2-06 校准趟按同一登记程序拟合后就地填入、记入跨合同台账（裁决 68 (10) 的预授权同样适用）。新增块的结构与规则字串进入规则摘要，故重钉；值槽本身不进摘要。",
     "ruling_68_10_sam2_fit": "SAM2 那套拟合量登记（2026-10-02，裁决 68 (10) 预授权、裁决 100-1 (ii) 值槽）：S2-06 校准趟（提交 c0b166e，39 条开发 episode，TAF 取 rollout 的 theta_a、无距离门）按同一登记程序拟合，数值逐位照抄导出 vsmt_lean_s2_06_elu_p_fit_c0b166e.json。白话：ELU-P 在 SAM2 前端上用的三个数。初始 log-odds 4.75891184514327（124,088 个“隔一阵再看”的物体帧里 123,033 个仍在原处）与持续性衰减 1.9420616347206353e-05（6,899,951 个物体时刻里 134 次干预）只由私有真值和干预日志决定，与 mask 来源无关，所以和实例分割那套逐位相同；匹配增益 2.920444259169415 由门内命中率 215,332/810,437 对误配率 113/7,889 算出，比实例分割的 3.0998616369636114 低，即 SAM2 色块上“物体在时能配上”的比例更低。它不改拟合公式、网格与 rollout_config；值槽不进规则摘要。",
-    "ruling_102_4": "2026-10-02 「待裁 102 修订稿二全按推荐」: budget.selection_rule gains the constraint -- an arm with RETRACT (VSMT-lean, NoVersion, HeuristicLabel, HandCost, ELU-P, RAC) chooses only among validation configurations whose Missing residual rate is below the same front end's AssocOnly; none qualifying -> the node-F1 maximum, recorded as constraint_not_satisfiable, with no claim that its retraction reduces stale entities."
+    "ruling_102_4": "2026-10-02 「待裁 102 修订稿二全按推荐」: budget.selection_rule gains the constraint -- an arm with RETRACT (VSMT-lean, NoVersion, HeuristicLabel, HandCost, ELU-P, RAC) chooses only among validation configurations whose Missing residual rate is below the same front end's AssocOnly; none qualifying -> the node-F1 maximum, recorded as constraint_not_satisfiable, with no claim that its retraction reduces stale entities.",
+    "ruling_104_1_1b_s3_fit": "S3 拟合量登记（2026-10-05，裁决 104-1 1b 预授权；用户 2026-10-05「衔接 H1～H5 按推荐，同意推送 s3-03-run 与合并后的 main」）：S3-03 在 S3 train 上按同一登记程序（TAF 取 rollout 的 theta_a、无距离门的校准趟，fit-elu-p）重拟合的两套值，就地替换开发集那两套，数值逐位照抄运行根 instance/fit 与 sam2/fit 的 elu_p_values.json（fit 在 24df324；实例分割采用 74905f4 的预拟合校准趟）。实例分割：初始 log-odds 4.715758278823018（780,515 个物体帧里 773,589 个仍在原处）、持续性衰减 1.9468203738496008e-05（41,298,511 个物体时刻里 804 次干预）、匹配增益 3.5202657867949485（命中 1,699,298/5,448,054 对误配 448/48,538）；SAM2：4.713527527677658（766,085 里 759,272）、1.961980922031749e-05（40,367,761 里 792）、3.4430935995987832（1,298,322/5,158,352 对 376/46,734）。两套前端的 train episode 不同（252 对 249，SAM2 有 3 条 cache 失败），所以前两个数也不再逐位相同。白话：ELU-P 和 HeuristicLabel 标签在正式实验里用的三个数改为在正式 train 上估的值；S3-03 运行从一开始就用的是这两套（运行内登记），本次只是把合同写成与运行相同，verify 逐位核对。开发集的两套旧值记在 superseded_values，不删除。不改拟合公式、网格与 rollout_config；值槽不进规则摘要。",
+    "superseded_values": {
+      "arms.ELU-P.fitted.initial_log_odds": {"value": 4.75891184514327, "frozen_by": "D-224-S1 ruling 68 (10)", "superseded_by": "D-224-S1 ruling 104-1 1b", "on": "2026-10-05"},
+      "arms.ELU-P.fitted.persistence_log_decay_per_tick": {"value": 1.9420616347206353e-05, "frozen_by": "D-224-S1 ruling 68 (10)", "superseded_by": "D-224-S1 ruling 104-1 1b", "on": "2026-10-05"},
+      "arms.ELU-P.fitted.match_gain": {"value": 3.0998616369636114, "frozen_by": "D-224-S1 ruling 68 (10)", "superseded_by": "D-224-S1 ruling 104-1 1b", "on": "2026-10-05"},
+      "arms.ELU-P.fitted_by_mask_source.sam2.initial_log_odds": {"value": 4.75891184514327, "frozen_by": "D-224-S1 ruling 68 (10), ruling 100-1 (ii)", "superseded_by": "D-224-S1 ruling 104-1 1b", "on": "2026-10-05"},
+      "arms.ELU-P.fitted_by_mask_source.sam2.persistence_log_decay_per_tick": {"value": 1.9420616347206353e-05, "frozen_by": "D-224-S1 ruling 68 (10), ruling 100-1 (ii)", "superseded_by": "D-224-S1 ruling 104-1 1b", "on": "2026-10-05"},
+      "arms.ELU-P.fitted_by_mask_source.sam2.match_gain": {"value": 2.920444259169415, "frozen_by": "D-224-S1 ruling 68 (10), ruling 100-1 (ii)", "superseded_by": "D-224-S1 ruling 104-1 1b", "on": "2026-10-05"}
+    }
   },
   "continue_gate": {
     "every_method_grid_at_most_twelve_and_preregistered": true,

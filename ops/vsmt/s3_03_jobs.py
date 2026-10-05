@@ -7,7 +7,11 @@
 按实测峰值 ×1.25 上调；每轮派发前还看 cgroup 的实时内存与数据盘剩余，越线就暂停派发。作业结束按退出码定状态：0 完成；
 登记的特殊码（训练发散记“发散”、门不过记“门未过”）；其他非零码是工程失败——训练可同输入同种子自动重跑一次（裁决 104-3），
 其余失败即停止派发新作业、等在跑的结束。续跑时已完成的作业保留（代码自那以后只改了登记文件或文档才算，否则拒绝，除非显式
-接受）；上次中断时还在跑的作业，残留输出先挪到 ``interrupted/`` 留存再重跑。输入是作业清单与机器资源，输出是每个作业的状态
+接受）；上次中断时还在跑的作业，残留输出先挪到 ``interrupted/`` 留存再重跑；训练例外：它每个 epoch 末存档，中断或崩溃后
+留在原处、从存档接着训。运行目录里放一个 ``DRAIN`` 文件，池子就不再派发任何作业，等在跑的全部结束后停下（批次之间换代码或
+升级机器用）。另可接远程 CPU 机（``remote_hosts``，用户 2026-10-04）：准入过的工作机在 ``<运行根>/hosts/`` 下各有一份
+预算与允许的作业种类，池子每 30 秒重读一次（运行中可加、可停）；本机放不下而作业允许远程（带 ``remote_pull``）时派给有空的
+工作机，由 ``remote_hosts.py remote-run`` 代跑并把结果拉回原位置；连接失败的作业放回队列，那台机暂停。输入是作业清单与机器资源，输出是每个作业的状态
 文件、日志与实测内存。例如 120 核的机器上，三个第 0 轮训练一就绪就各占 4 核先走，其余空槽由审计填满。它不决定科学口径，
 命令与依赖由 ``s3_03_manifest`` 按裁决 104 生成。
 """
@@ -37,6 +41,14 @@ NO_RETRY_CODES = (0, 2)
 #: Ruling 104-3: the reserve kept free for the system.
 RESERVE_CORES = 2
 RESERVE_GIB = 8.0
+#: The operator's switch: while this file exists in the run root the pool starts no job and ends when the running ones end.
+DRAIN_FILE = "DRAIN"
+#: remote_hosts.TRANSPORT_EXIT: a remote job that could not be run or read back; requeued, its host suspended.
+TRANSPORT_EXIT = 75
+#: How often a remote resumable job's outputs (a training's epoch-end checkpoints) are pulled back while it runs.
+REMOTE_PULL_EVERY_SECONDS = 600.0
+#: What each remote job holds here (its remote-run process and ssh), charged to this host's memory budget.
+REMOTE_LOCAL_GIB = 0.05
 #: Every job but a training runs one thread; numerical libraries are pinned so results never depend on the machine.
 THREAD_VARIABLES = ("OMP_NUM_THREADS", "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS", "NUMEXPR_NUM_THREADS")
 
@@ -137,6 +149,9 @@ class Job:
     retries: int = 0
     exit_status: Mapping[int, str] = dataclasses.field(default_factory=dict)
     keep_partial: bool = False     # the job resumes over its own finished outputs (audits with --skip-existing)
+    resumable: bool = False        # the job continues from its own checkpoint (the trainings): kept after an interruption or a crash
+    remote_push: tuple[str, ...] = ()  # run elsewhere: what it reads that the run itself wrote (heads, records), pushed first
+    remote_pull: tuple[str, ...] = ()  # run elsewhere: what it writes, pulled back; a job without it always runs here
     soft_deps: tuple[str, ...] = ()  # must have ended, in any of done / diverged / skipped (the readings over every merge)
     stops_on_failure: bool = True    # False for a report-only job: its failure is recorded (verify names it), the run goes on
     rank: int = 1                    # among jobs of one priority, a lower rank goes first (the trainings: the longest jobs)
@@ -154,7 +169,9 @@ class Pool:
                  launch: Callable[..., Any] | None = None, wrapper: Sequence[str] | None = None,
                  sleep: Callable[[float], None] = time.sleep, retry_failed: bool = False,
                  memory_fallbacks: Mapping[str, tuple[str, float]] | None = None, inflight_gib: float = 0.0,
-                 group_order: Sequence[str] = ()) -> None:
+                 group_order: Sequence[str] = (), memory_fixed: Mapping[str, float] | None = None,
+                 hosts: Callable[[], Sequence[Any]] | None = None, remote_runner: Sequence[str] | None = None,
+                 suspend_host: Callable[[str, str], None] | None = None, hosts_every: float = 30.0) -> None:
         self.jobs = {job.job_id: job for job in jobs}
         _require(len(self.jobs) == len(jobs), "job_ids_repeat")
         for job in jobs:
@@ -177,6 +194,7 @@ class Pool:
         self.sleep = sleep
         self.retry_failed = retry_failed
         self.memory_fallbacks = dict(memory_fallbacks or {})
+        self.memory_fixed = {name: float(value) for name, value in (memory_fixed or {}).items()}
         self.inflight_gib = float(inflight_gib)
         self.group_rank = {name: index for index, name in enumerate(group_order)}
         self.round = 0
@@ -187,6 +205,14 @@ class Pool:
         self.stop_reason: str | None = None
         self.measured: dict[str, int] = {}
         self.memory_paused = False
+        self.hosts_loader = hosts
+        self.remote_runner = list(remote_runner or [])
+        self.suspend_host = suspend_host
+        self.hosts_every = float(hosts_every)
+        self._hosts: list[Any] = []
+        self._hosts_at = float("-inf")
+        self.placement: dict[str, str | None] = {}  # job id -> the remote host it runs on, None here
+        self.suspended_hosts: set[str] = set()
 
     # -- state ---------------------------------------------------------------
 
@@ -216,13 +242,13 @@ class Pool:
         for job_id, job in self.jobs.items():
             state = self.states[job_id]
             if state["status"] == "running":  # the pool stopped while it ran: keep its partial outputs, run it again
-                if not job.keep_partial:
+                if not (job.keep_partial or job.resumable):
                     self._set_aside(job, "interrupted", state.get("attempts", 0))
                 state["history"].append({"status": "interrupted", "commit": state.get("commit"), "at_utc": utc_now()})
                 state["status"] = "pending"
                 self._save(job_id)
             elif state["status"] in ("failed", "gate_failed") and self.retry_failed:  # asked for explicitly, never by default
-                if not job.keep_partial:
+                if not (job.keep_partial or job.resumable):
                     self._set_aside(job, "failed", state.get("attempts", 0))
                 state["history"].append({"status": f"{state['status']}_then_retried_on_request", "exit": state.get("exit"),
                                          "reason": state.get("reason"), "commit": state.get("commit"), "at_utc": utc_now()})
@@ -254,6 +280,8 @@ class Pool:
         return max(1, min(int(cores), self.budget_cores))
 
     def gib_for(self, memory_class: str) -> float:
+        if memory_class in self.memory_fixed:  # an operator's reservation (MEMORY_FIXED_GIB, recorded): no margin, no fallback
+            return min(float(self.memory_fixed[memory_class]), self.budget_gib)
         default = float(self.memory_defaults.get(memory_class, self.memory_defaults.get("default", 4.0)))
         peak = self.measured.get(memory_class)
         if not peak and memory_class in self.memory_fallbacks:  # e.g. round 1 from round 0's peak, until round 1 is measured
@@ -297,6 +325,21 @@ class Pool:
                     self._save(job_id)
                     changed = True
 
+    def current_hosts(self) -> list[Any]:
+        """The admitted remote hosts, read again every ``hosts_every`` seconds; a suspended one is left out."""
+
+        if self.hosts_loader is None:
+            return []
+        now = time.time()
+        if now - self._hosts_at >= self.hosts_every:
+            try:
+                self._hosts = list(self.hosts_loader())
+            except Exception as exc:  # a broken host file never stops the run: no remote host until it is fixed
+                print(f"[s3-03-pool] hosts not read: {type(exc).__name__}: {exc}", flush=True)
+                self._hosts = []
+            self._hosts_at = now
+        return [host for host in self._hosts if host.name not in self.suspended_hosts]
+
     def dispatch(self) -> list[str]:
         free_disk = shutil.disk_usage(self.disk_root).free / 2 ** 30 if self.disk_root is not None else None
         if free_disk is not None and free_disk < self.min_free_gib:  # below the floor itself: stop
@@ -305,11 +348,14 @@ class Pool:
         current = self.memory_now() if self.memory_limit_bytes else None
         # pause only while this pool's own jobs run: with none running, memory held elsewhere is no reason to wait for ever
         self.memory_paused = bool(current is not None and current > self.memory_limit_bytes and self.running)
-        if self.memory_paused:
-            return []
-        used_cores = sum(entry[2] for entry in self.running.values())
-        used_gib = sum(entry[3] for entry in self.running.values())
-        free_cores, free_gib = self.budget_cores - used_cores, self.budget_gib - used_gib
+        local_open = not self.memory_paused  # the live memory guard is about this host only
+        here = [entry for job_id, entry in self.running.items() if self.placement.get(job_id) is None]
+        free_cores = self.budget_cores - sum(entry[2] for entry in here)
+        free_gib = self.budget_gib - sum(entry[3] for entry in here) - REMOTE_LOCAL_GIB * (len(self.running) - len(here))
+        remote: dict[str, list[Any]] = {}
+        for host in self.current_hosts():
+            there = [entry for job_id, entry in self.running.items() if self.placement.get(job_id) == host.name]
+            remote[host.name] = [host, host.cores - sum(entry[2] for entry in there), host.gib - sum(entry[3] for entry in there)]
         started: list[str] = []
         for job in self.ready():
             # every job that starts may still write inflight_gib: start one only while the floor holds for all that may write
@@ -318,21 +364,39 @@ class Pool:
                     self.stop_reason = f"disk_below_{round(self.min_free_gib + self.inflight_gib, 1)}_gib:{round(free_disk, 1)}"
                 break
             cores, gib = self.cores_of(job), self.gib_of(job)
-            if cores <= free_cores and gib <= free_gib:
+            target: str | None = None
+            if local_open and cores <= free_cores and gib <= free_gib:
+                target = ""
+            elif job.remote_pull:  # here first; elsewhere only what may run elsewhere, on a host that allows its kind
+                for name, (host, host_cores, host_gib) in remote.items():
+                    if job.kind in host.kinds and min(cores, host.cores) <= host_cores and gib <= host_gib:
+                        target = name
+                        break
+            if target == "":
                 self.start(job, cores=cores, gib=gib)
                 if self.stop_reason:
                     break
                 free_cores -= cores
                 free_gib -= gib
                 started.append(job.job_id)
-            else:  # head-of-line reservation: what a higher job needs is not lent to a lower one
+            elif target is not None:
+                host = remote[target][0]
+                remote_cores = min(cores, host.cores)
+                self.start(job, cores=remote_cores, gib=gib, host=host)
+                if self.stop_reason:
+                    break
+                remote[target][1] -= remote_cores
+                remote[target][2] -= gib
+                free_gib -= REMOTE_LOCAL_GIB
+                started.append(job.job_id)
+            elif local_open:  # head-of-line reservation here: what a higher job needs is not lent to a lower one
                 free_cores -= cores
                 free_gib -= gib
-            if free_cores <= 0 or free_gib <= 0:
+            if (not local_open or free_cores <= 0 or free_gib <= 0) and not any(c > 0 and g > 0 for _, c, g in remote.values()):
                 break
         return started
 
-    def start(self, job: Job, *, cores: int, gib: float) -> None:
+    def start(self, job: Job, *, cores: int, gib: float, host: Any = None) -> None:
         state = self.states[job.job_id]
         try:
             argv = [str(item) for item in job.build()]
@@ -347,11 +411,23 @@ class Pool:
         rss = self.state_dir / f"{key}.rss.json"
         command = [*self.wrapper, "--out", str(rss), "--", *argv] if self.wrapper else argv
         env = {**os.environ, **thread_environment(cores)}
+        if host is not None:  # the same wrapped command on the host; the runner pushes, runs, pulls back and exits as the job did
+            _require(bool(self.remote_runner), "remote_runner_missing")
+            runner = [*self.remote_runner, "--run-root", str(self.run_root), "--host", host.name, "--rss", str(rss)]
+            runner += [item for path in job.remote_push for item in ("--push", path)]
+            runner += [item for path in job.remote_pull for item in ("--pull", path)]
+            if job.resumable or job.keep_partial:  # a training's checkpoints, an audit's finished configurations
+                runner += ["--pull-every", str(REMOTE_PULL_EVERY_SECONDS)]
+            runner += [item for key, value in thread_environment(cores).items() for item in ("--env", f"{key}={value}")]
+            command = [*runner, "--", *command]
+            env = dict(os.environ)
         state.update({"status": "running", "attempts": int(state.get("attempts", 0)) + 1, "commit": self.commit, "command": argv,
-                      "cores": cores, "gib": gib, "log": str(log), "started_utc": utc_now(), "started_at": time.time()})
+                      "cores": cores, "gib": gib, "log": str(log), "started_utc": utc_now(), "started_at": time.time(),
+                      "host": host.name if host is not None else "local"})
         self._save(job.job_id)
         process, handle = self.launch(command, log=log, env=env)
         self.running[job.job_id] = (process, handle, cores, gib)
+        self.placement[job.job_id] = host.name if host is not None else None
 
     def reap(self) -> list[str]:
         finished: list[str] = []
@@ -364,6 +440,16 @@ class Pool:
             del self.running[job_id]
             finished.append(job_id)
             job, state = self.jobs[job_id], self.states[job_id]
+            host_name = self.placement.pop(job_id, None)
+            if code == TRANSPORT_EXIT and host_name is not None:  # never ran to a readable end there: back to the queue
+                state["history"].append({"status": "transport_failed", "host": host_name, "attempt": state.get("attempts"),
+                                         "at_utc": utc_now()})
+                state.update({"status": "pending", "finished_utc": utc_now()})
+                self._save(job_id)
+                self.suspended_hosts.add(host_name)
+                if self.suspend_host is not None:
+                    self.suspend_host(host_name, f"transport failure in {job_id}")
+                continue
             peak = None
             rss = self.state_dir / f"{state_key(job_id)}.rss.json"
             if rss.exists():
@@ -377,7 +463,8 @@ class Pool:
             if status is None and code not in NO_RETRY_CODES and int(state.get("crashes", 0)) < job.retries:
                 state["crashes"] = int(state.get("crashes", 0)) + 1
                 state["history"].append({"status": "failed_then_rerun", "exit": code, "attempt": state["attempts"], "at_utc": utc_now()})
-                self._set_aside(job, "failed", state["attempts"])
+                if not job.resumable:  # a training continues from its last epoch-end checkpoint instead
+                    self._set_aside(job, "failed", state["attempts"])
                 state["status"] = "pending"  # ruling 104-3: a crash or an out-of-memory kill reruns once, same inputs, same seed
             elif status is None:
                 state["status"] = "failed"
@@ -398,6 +485,8 @@ class Pool:
         payload = {"updated_utc": utc_now(), "commit": self.commit, "stop_reason": self.stop_reason, "memory_paused": self.memory_paused,
                    "budget": {"cores": self.budget_cores, "gib": self.budget_gib},
                    "running": sorted(self.running), "counts_by_kind": counts,
+                   "remote": {"hosts": {host.name: sum(1 for name in self.placement.values() if name == host.name) for host in self._hosts},
+                              "suspended": sorted(self.suspended_hosts)},
                    "memory_estimates_gib": {name: self.gib_for(name) for name in sorted(set(self.memory_defaults) | set(self.measured))}}
         write_json(self.run_root / "pool.json", payload)
         return payload
@@ -414,6 +503,8 @@ class Pool:
             self.round += 1
             self.reap()
             self.propagate_skips()
+            if self.stop_reason is None and (self.run_root / DRAIN_FILE).exists():
+                self.stop_reason = "drained"  # the operator's switch: start nothing more, end when the running jobs end
             if self.stop_reason is None:
                 self.dispatch()
             pending = [job_id for job_id in self.jobs if self.status(job_id) in ("pending", "running")]

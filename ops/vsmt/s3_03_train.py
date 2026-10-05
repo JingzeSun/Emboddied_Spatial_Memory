@@ -11,17 +11,21 @@
   * 内存：记录流式读两遍（第一遍只取算编码统计的列，第二遍逐条转张量、读完即丢），不再把全部原始记录放进内存；
   * 输出：``weights.json``（总损失选点）、第 1 轮分组臂的 ``weights_grouped.json``、``training_receipt.json``（逐 epoch 的
     train／validation 关联损失与存在损失、选中 epoch、类别权重、输入文件摘要、线程数、峰值内存）；``--best-so-far`` 时另在
-    ``best_so_far/`` 下按摘要写出每个 epoch 末“到目前最好”的权重与指针，供调度器推测执行（裁决 104-7）。
+    ``best_so_far/`` 下按摘要写出每个 epoch 末“到目前最好”的权重与指针，供调度器推测执行（裁决 104-7）；``--checkpoint`` 时
+    每个 epoch 末把全部训练状态存进 ``checkpoint/state.pt``，被打断后同一命令重跑即从下一个 epoch 接着训（与一口气训完逐位
+    相同；输入摘要不一致就拒绝续训）。
 例如第 1 轮 VSMT-lean 种子 31：读第 0 轮 ELU-P 记录与 VSMT-lean 第 1 轮记录，训 20 个 epoch，留下分组选点的头。它不选配置、
 不读 validation 或 test 的任何记录（来源里的 episode 必须都在 S3 train 清单里），也不改配方。
 
 Usage:
   python ops/vsmt/s3_03_train.py train --source <pass root>:<arm>:<teacher|heuristic> [--source ...] --arm VSMT-lean --round 1
-      --seed 31 --out-dir <dir> [--threads 4] [--best-so-far]
+      --seed 31 --out-dir <dir> [--threads 4] [--best-so-far] [--checkpoint]
   python ops/vsmt/s3_03_train.py probe --source ... --arm VSMT-lean --round 0 --seed 7 --houses 12 [--epochs 1] --out <probe.json>
       (ruling 104-2's training equivalence probe: the list-based ``train_heads`` and the streamed path on the same records)
   python ops/vsmt/s3_03_train.py time --source ... --arm VSMT-lean --round 0 --houses 20 --threads 1,2,3,4 --out <timing.json>
       (ruling 104-3: the per-epoch time of one training at each thread count, for the TRAIN_THREADS rule)
+  python ops/vsmt/s3_03_train.py probe-resume --source ... --arm VSMT-lean --round 1 --seed 7 --houses 12 --epochs 3 --stop-after 1
+      --out <probe.json> (a training stopped after an epoch and continued from its checkpoint against one trained straight through)
 
 Exit codes: 0 trained; 3 diverged (the receipt is written: a result, ruling 102-9) or the probe differs; 2 refused.
 """
@@ -231,6 +235,24 @@ def best_so_far_writer(out_dir: Path, *, uses: str) -> Callable[[dict[str, Any]]
     return write
 
 
+def input_files(plan: dict[str, Any]) -> list[dict[str, Any]]:
+    return [{"source": source["spec"], "episode": e["episode"], "sha256": sha256_file(e["path"]), "bytes": e["path"].stat().st_size}
+            for source in plan["sources"] for e in source["episodes"]]
+
+
+def training_key(*, arm: str, round_index: int, seed: int, values: dict[str, Any], plan: dict[str, Any], files: list[dict[str, Any]],
+                 threads: dict[str, Any], foreach: bool) -> str:
+    """Everything a checkpoint must share with the training that continues it: a checkpoint of any other training is refused."""
+
+    import torch
+    from vsmt import lean_model as model
+
+    payload = {"stage": STAGE, "arm": arm, "round": round_index, "seed": seed, "values": values, "settings": plan["settings"],
+               "sources": [source["spec"] for source in plan["sources"]], "files": files, "threads": threads, "foreach": bool(foreach),
+               "torch": torch.__version__, "lean_model_sha256": sha256_file(Path(model.__file__))}
+    return hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(",", ":"), default=str).encode("utf-8")).hexdigest()
+
+
 def cmd_train(args: argparse.Namespace) -> int:
     from vsmt import lean_model as model
 
@@ -246,16 +268,26 @@ def cmd_train(args: argparse.Namespace) -> int:
     threads = set_threads(args.threads)
     values = recipe(plan["settings"])
     started = time.time()
+    files = input_files(plan)
+    checkpoint = None
+    if args.checkpoint:
+        key = training_key(arm=args.arm, round_index=args.round, seed=int(args.seed), values=values, plan=plan, files=files,
+                           threads=threads, foreach=bool(args.foreach))
+        checkpoint = model.EpochCheckpoint(out_dir / "checkpoint" / "state.pt", key=key)
     callback = best_so_far_writer(out_dir, uses=plan["settings"]["uses"]) if args.best_so_far else None
-    result = model.train_heads_streamed(record_stream(plan, "train"), record_stream(plan, "selection"), seed=int(args.seed),
-                                        device="cpu", best_callback=callback, optimizer_foreach=bool(args.foreach), **values)
+    try:
+        result = model.train_heads_streamed(record_stream(plan, "train"), record_stream(plan, "selection"), seed=int(args.seed),
+                                            device="cpu", best_callback=callback, optimizer_foreach=bool(args.foreach),
+                                            checkpoint=checkpoint, **values)
+    except model.LeanModelError as exc:
+        if str(exc).startswith("checkpoint_"):  # never continued from, never overwritten: an operator looks at it
+            raise Refusal(f"{exc}: {out_dir / 'checkpoint' / 'state.pt'} belongs to another training or format") from exc
+        raise
     wall = round(time.time() - started, 1)
     write_json_atomic(out_dir / "weights.json", result["weights"])
     grouped = result.get("grouped")
     if grouped is not None:
         write_json_atomic(out_dir / "weights_grouped.json", grouped["weights"])
-    files = [{"source": source["spec"], "episode": e["episode"], "sha256": sha256_file(e["path"]), "bytes": e["path"].stat().st_size}
-             for source in plan["sources"] for e in source["episodes"]]
     receipt = {
         "stage": STAGE, "arm": args.arm, "round": args.round, "seed": args.seed, "assoc_only": plan["settings"]["assoc_only"],
         "label_source": plan["settings"]["label_source"], "uses": plan["settings"]["uses"], "mask_source": plan["mask_source"],
@@ -275,6 +307,10 @@ def cmd_train(args: argparse.Namespace) -> int:
         "group_selection": None if grouped is None else {"rule": model.GROUP_SELECTION_RULE, "best_epoch_by_group": grouped["best_epoch_by_group"],
                                                          "weights_sha256": grouped["weights"]["sha256"], "file": "weights_grouped.json"},
         "best_so_far": "best_so_far/pointer.json" if args.best_so_far else None,
+        "checkpoint": None if checkpoint is None else {
+            "file": "checkpoint/state.pt", "key": checkpoint.key, "resumed_from_epoch": checkpoint.resumed_from_epoch,
+            "wall_seconds_covers": ("this process only, from the resumed epoch on (the input reading included)"
+                                    if checkpoint.resumed_from_epoch is not None else "the whole training")},
         "threads": threads, "device": "cpu", "files": files, "code_commit": git_commit(), "wall_seconds": wall,
         "peak_rss_bytes": peak_rss_bytes(), "script_sha256": hashlib.sha256(HERE.read_bytes()).hexdigest(),
     }
@@ -333,6 +369,67 @@ def cmd_probe(args: argparse.Namespace) -> int:
     return 0 if identical else 3
 
 
+class _StopAfter(Exception):
+    """Raised by the resume probe's callback to stop a training the way a power-off would, between two epochs."""
+
+
+def cmd_probe_resume(args: argparse.Namespace) -> int:
+    """A training stopped after ``--stop-after`` epochs and continued from its checkpoint against one trained straight through."""
+
+    import tempfile
+
+    from vsmt import lean_model as model
+
+    plan = plan_sources(args.sources, arm=args.arm, round_index=args.round, manifest=load_json(MANIFEST))
+    threads = set_threads(args.threads)
+    chosen = subset(plan, args.houses)
+    values = {**recipe(plan["settings"]), "epochs": int(args.epochs)}
+    if not 1 <= int(args.stop_after) < int(args.epochs):
+        raise Refusal("--stop-after must leave at least one epoch to continue")
+    train_stream, selection_stream = record_stream(plan, "train", houses=chosen), record_stream(plan, "selection", houses=chosen)
+    common = {"seed": int(args.seed), "device": "cpu", "optimizer_foreach": bool(args.foreach), **values}
+    straight = model.train_heads_streamed(train_stream, selection_stream, **common)
+    with tempfile.TemporaryDirectory() as folder:
+        path = Path(folder) / "state.pt"
+
+        def stop(snapshot: dict[str, Any]) -> None:
+            # best_callback runs before the checkpoint of its epoch is written: stopping in epoch stop_after leaves the
+            # checkpoint of epoch stop_after - 1, so the second process continues at epoch stop_after
+            if snapshot["epoch"] == int(args.stop_after):
+                raise _StopAfter()
+
+        try:
+            model.train_heads_streamed(train_stream, selection_stream, checkpoint=model.EpochCheckpoint(path, key="probe"),
+                                       best_callback=stop, **common)
+            raise Refusal("the probe's first training was not stopped")
+        except _StopAfter:
+            pass
+        second = model.EpochCheckpoint(path, key="probe")
+        resumed = model.train_heads_streamed(train_stream, selection_stream, checkpoint=second, **common)
+    compared = {
+        "weights_sha256": [straight["weights"]["sha256"], resumed["weights"]["sha256"]],
+        "grouped_sha256": [(straight.get("grouped") or {}).get("weights", {}).get("sha256"),
+                           (resumed.get("grouped") or {}).get("weights", {}).get("sha256")],
+        "train_curve": [straight["train_curve"], resumed["train_curve"]],
+        "validation_curve": [straight["validation_curve"], resumed["validation_curve"]],
+        "train_curve_terms": [straight["train_curve_terms"], resumed["train_curve_terms"]],
+        "validation_curve_terms": [straight["validation_curve_terms"], resumed["validation_curve_terms"]],
+        "updates_taken": [straight["updates_taken"], resumed["updates_taken"]],
+        "best_epoch": [straight["best_epoch"], resumed["best_epoch"]],
+    }
+    identical = all(a == b for a, b in compared.values()) and second.resumed_from_epoch == int(args.stop_after)
+    write_json_atomic(Path(args.out), {
+        "stage": STAGE, "check": "a training stopped after an epoch and continued from its checkpoint, against one trained straight through",
+        "optimizer_foreach": bool(args.foreach), "arm": args.arm, "round": args.round, "seed": args.seed, "epochs": args.epochs,
+        "stop_after": args.stop_after, "resumed_from_epoch": second.resumed_from_epoch, "houses": sorted(chosen),
+        "identical": identical, "compared": {k: (v[0] == v[1]) for k, v in compared.items()},
+        "weights_sha256": compared["weights_sha256"], "threads": threads, "code_commit": git_commit(),
+        "checked_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}, indent=1)
+    print(f"[s3-03-train probe-resume] {args.arm} round {args.round}: stopped in epoch {args.stop_after}, resumed at "
+          f"{second.resumed_from_epoch}, identical={identical}")
+    return 0 if identical else 3
+
+
 def cmd_time(args: argparse.Namespace) -> int:
     """Two epochs on the subset at each thread count; the second epoch's wall time is the per-epoch time."""
 
@@ -360,7 +457,7 @@ def cmd_time(args: argparse.Namespace) -> int:
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = parser.add_subparsers(dest="command", required=True)
-    for name in ("train", "probe", "time"):
+    for name in ("train", "probe", "probe-resume", "time"):
         command = sub.add_parser(name)
         command.add_argument("--source", dest="sources", action="append", required=True)
         command.add_argument("--arm", required=True, choices=list(s3.TRAINED_ARMS))
@@ -372,19 +469,23 @@ def main(argv: Sequence[str] | None = None) -> int:
             command.add_argument("--out-dir", required=True)
             command.add_argument("--threads", type=int, default=4)
             command.add_argument("--best-so-far", action="store_true")
-        elif name == "probe":
+            command.add_argument("--checkpoint", action="store_true",
+                                 help="save the training state at every epoch end and continue from it when rerun")
+        elif name in ("probe", "probe-resume"):
             command.add_argument("--seed", type=int, default=arms.SEEDS[0])
             command.add_argument("--houses", type=int, default=12)
-            command.add_argument("--epochs", type=int, default=1)
+            command.add_argument("--epochs", type=int, default=3 if name == "probe-resume" else 1)
             command.add_argument("--threads", type=int, default=4)
             command.add_argument("--out", required=True)
+            if name == "probe-resume":
+                command.add_argument("--stop-after", type=int, default=1)
         else:
             command.add_argument("--houses", type=int, default=20)
             command.add_argument("--threads", default="1,2,3,4")
             command.add_argument("--out", required=True)
     args = parser.parse_args(argv)
     try:
-        return {"train": cmd_train, "probe": cmd_probe, "time": cmd_time}[args.command](args)
+        return {"train": cmd_train, "probe": cmd_probe, "probe-resume": cmd_probe_resume, "time": cmd_time}[args.command](args)
     except (Refusal, s3.LeanS3_03Error) as exc:
         print(f"[s3-03-train] refused: {exc}", file=sys.stderr)
         return 2

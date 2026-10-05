@@ -739,7 +739,7 @@ def train_heads_streamed(
     field_encoding: bool = False, existence_class_weight: bool = False,
     cosine_min_learning_rate: float | None = None, gradient_clip_norm: float | None = None,
     existence_prior_correction: bool = False, group_selection: bool = False, best_callback: Any = None,
-    optimizer_foreach: bool = False,
+    optimizer_foreach: bool = False, checkpoint: "EpochCheckpoint | None" = None,
 ) -> dict[str, Any]:
     """``train_heads`` on records read one at a time (ruling 104-3; the approved reading "流式准备、留在 CPU", 2026-10-03).
 
@@ -777,7 +777,49 @@ def train_heads_streamed(
         seed=seed, assoc_only=assoc_only, device=device, epoch_callback=epoch_callback, best_callback=best_callback,
         field_encoding=field_encoding, existence_class_weight=existence_class_weight, cosine_min_learning_rate=cosine_min_learning_rate,
         gradient_clip_norm=gradient_clip_norm, existence_prior_correction=existence_prior_correction, group_selection=group_selection,
-        optimizer_foreach=optimizer_foreach)
+        optimizer_foreach=optimizer_foreach, checkpoint=checkpoint)
+
+
+class EpochCheckpoint:
+    """The whole training state at an epoch end, so that a stopped training continues instead of starting again.
+
+    白话：训练每跑完一个 epoch，把此刻的全部状态存成一个文件：当前权重、AdamW 的状态、洗牌用的随机数生成器、
+    已有的损失曲线与逐项损失、到目前最好的权重（总损失与分组各一份）和已走的更新步数。进程被打断（关机、升级、
+    内存不足被杀）后用同一命令重跑，先照常把记录读进内存，再从存档的下一个 epoch 接着训。接着训与一口气训完
+    逐位相同（测试钉住，服务器上用真实记录再核一次）。``key`` 是这次训练全部输入的摘要（臂、轮、种子、配方、
+    输入文件摘要、线程数、torch 版本等），与存档里的不一致就拒绝续训，绝不把别的训练的存档接上。
+    它不改配方、不改选点，不存在时训练与原来一样。
+    """
+
+    FORMAT = 1
+
+    def __init__(self, path: Any, *, key: str) -> None:
+        from pathlib import Path
+
+        _require(isinstance(key, str) and len(key) > 0, "checkpoint_key_missing")
+        self.path = Path(path)
+        self.key = key
+        self.resumed_from_epoch: int | None = None  # the epoch the loaded state continues at; None when nothing was loaded
+
+    def load(self) -> dict[str, Any] | None:
+        import torch
+
+        if not self.path.exists():
+            return None
+        state = torch.load(self.path, map_location="cpu", weights_only=True)
+        _require(isinstance(state, dict) and state.get("format") == self.FORMAT, "checkpoint_format_unknown")
+        _require(state.get("key") == self.key, "checkpoint_key_mismatch")
+        self.resumed_from_epoch = int(state["next_epoch"])
+        return state
+
+    def save(self, state: Mapping[str, Any]) -> None:
+        import os
+        import torch
+
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        temporary = self.path.with_name(self.path.name + ".tmp")
+        torch.save({"format": self.FORMAT, "key": self.key, **state}, temporary)
+        os.replace(temporary, self.path)
 
 
 def _train_on_frames(
@@ -786,6 +828,7 @@ def _train_on_frames(
     learning_rate: float, weight_decay: float, epochs: int, seed: int, assoc_only: bool, device: str, epoch_callback: Any,
     best_callback: Any, field_encoding: bool, existence_class_weight: bool, cosine_min_learning_rate: float | None,
     gradient_clip_norm: float | None, existence_prior_correction: bool, group_selection: bool, optimizer_foreach: bool = False,
+    checkpoint: EpochCheckpoint | None = None,
 ) -> dict[str, Any]:
     """The training loop of ``train_heads`` on frames already prepared (and batched under the field-wise encoding).
 
@@ -811,7 +854,22 @@ def _train_on_frames(
     train_terms: list[dict[str, float | None]] = []       # per epoch: mean of each term while the epoch updates
     validation_terms: list[dict[str, float | None]] = []  # per epoch: each term at the epoch-end weights
     best_by_group: dict[str, tuple[float, int, dict[str, Any]]] = {}  # ruling 96 (a); stays empty when group_selection is off
-    for epoch in range(int(epochs)):
+    first_epoch = 0
+    saved = checkpoint.load() if checkpoint is not None else None
+    if saved is not None:  # continue a stopped training: everything the loop carries from one epoch to the next
+        with torch.no_grad():
+            for name, state in saved["heads"].items():
+                heads[name].load_state_dict(state)
+        optimiser.load_state_dict(saved["optimiser"])
+        generator.set_state(saved["generator"])
+        torch.set_rng_state(saved["torch_rng"])
+        train_curve, validation_curve = list(saved["train_curve"]), list(saved["validation_curve"])
+        train_terms, validation_terms = list(saved["train_terms"]), list(saved["validation_terms"])
+        best = None if saved["best"] is None else tuple(saved["best"])
+        best_by_group = {group: tuple(entry) for group, entry in saved["best_by_group"].items()}
+        updates_taken = int(saved["updates_taken"])
+        first_epoch = int(saved["next_epoch"])
+    for epoch in range(first_epoch, int(epochs)):
         if cosine_min_learning_rate is not None:  # pending ruling 91 only; None keeps the registered constant rate
             rate = float(cosine_min_learning_rate) + (float(learning_rate) - float(cosine_min_learning_rate)) * (1.0 + math.cos(math.pi * epoch / int(epochs))) / 2.0
             for group in optimiser.param_groups:
@@ -862,6 +920,13 @@ def _train_on_frames(
             best_callback({"epoch": epoch, "heads": heads, "best": None if best is None else (best[1], best[2]),
                            "best_by_group": {group: (entry[1], entry[2]) for group, entry in best_by_group.items()},
                            "existence_logit_offset": offset, "group_selection": bool(group_selection)})
+        if checkpoint is not None:  # after the callbacks, so a resumed run never repeats an epoch they have seen
+            checkpoint.save({"next_epoch": epoch + 1, "heads": {name: module.state_dict() for name, module in heads.items()},
+                             "optimiser": optimiser.state_dict(), "generator": generator.get_state(), "torch_rng": torch.get_rng_state(),
+                             "train_curve": train_curve, "validation_curve": validation_curve, "train_terms": train_terms,
+                             "validation_terms": validation_terms, "best": None if best is None else list(best),
+                             "best_by_group": {group: list(entry) for group, entry in best_by_group.items()},
+                             "updates_taken": updates_taken})
     _require(best is not None or diverged, "validation_loss_undefined_on_every_epoch")
     if best is not None:
         with torch.no_grad():

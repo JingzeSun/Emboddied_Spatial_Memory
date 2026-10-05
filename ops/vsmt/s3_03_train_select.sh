@@ -34,10 +34,29 @@
 #   the check reads train and validation from their roots, which must already be complete by S3-02's own rules -- so both front
 #   ends' validation caches must be done -- and records what they rest on; the first full check after the export must find the
 #   same episodes and digests or the run stops, and verify refuses inputs that are still provisional),
-#   BUDGET_CORES (the pool's core budget instead of the cgroup quota, e.g. to leave the S3-02 SAM2 cache its cores; recorded).
+#   BUDGET_CORES (the pool's core budget instead of the cgroup quota, e.g. to leave the S3-02 SAM2 cache its cores; recorded),
+#   MEMORY_FIXED_GIB ("train1=5.5 audit=2 ...": a fixed reservation per memory class instead of 1.25 x the measured peak and
+#   the round-1 fallback; user 2026-10-04 on the memory-bound CPU host; scheduling only; the live cgroup guard still pauses
+#   dispatch; recorded in workers.json).
+# Drain (user 2026-10-04: change code or upgrade the host between training batches): touch $RUN_ROOT/DRAIN; the pool starts
+#   nothing more and ends when the running jobs end, the status says 'drained' and no fallback power-off is armed; remove the
+#   file before the next 'all' (the driver refuses while it exists).
+# Remote hosts (user 2026-10-04: more CPU hosts beside this one; the S3 stages after S3-03 that need no GPU can use the same):
+#   1. here, once: ssh-keygen -t ed25519 -N "" -f /root/.ssh/vsmt_workers_ed25519; its .pub goes into each host's
+#      /root/.ssh/authorized_keys;
+#   2. python ops/vsmt/remote_hosts.py setup --run-root $RUN_ROOT --name w1 --address <gateway> --port <port> [--kinds audit,train1]
+#      (copies the python prefix, this worktree with its repository, the validation inputs, the ReID heads and, for trainings,
+#      the round-0 records, each to the same absolute path; about 45 GB);
+#   3. python ops/vsmt/remote_hosts.py admit --run-root $RUN_ROOT --name w1 --address <gateway> --port <port> [--kinds ...]
+#      (versions, code and inputs byte for byte, two audits per front end rerun identical, a short training identical;
+#      writes $RUN_ROOT/hosts/w1.json with its budget: its cgroup less 2 cores and 8 GiB);
+#   the running pool reads $RUN_ROOT/hosts/ every 30 s: audits and trainings that do not fit here go to an admitted host (each
+#   job's state names its host); "paused": true in the host file stops new jobs there; a connection failure requeues the job
+#   and writes $RUN_ROOT/hosts/w1.suspended (remove it once the host is back).
 # Resume: run 'all' again; finished jobs are kept (only the fit registration files and documents may change since), jobs that
-#   were interrupted are set aside under $RUN_ROOT/interrupted and rerun, audits keep their finished configurations; the
-#   adoption choice of the first run is kept. Exit status: 0 when verify passed, otherwise the failing step's code (the status
+#   were interrupted are set aside under $RUN_ROOT/interrupted and rerun, audits keep their finished configurations, trainings
+#   continue from their last epoch-end checkpoint (bit-identical to an uninterrupted training); the adoption choice of the first
+#   run is kept. Exit status: 0 when verify passed, otherwise the failing step's code (the status
 #   JSON says which).
 set -u
 WORKTREE=$(cd "$(dirname "$0")/../.." && pwd)
@@ -66,6 +85,7 @@ if ps -eo args | grep -v grep | grep -E "^sleep [0-9]+$|/usr/bin/shutdown" > /de
   echo "refused: a fallback power-off may be armed (a sleep or a shutdown is pending); stop it first"; exit 2
 fi
 if pgrep -f "$JOB_PATTERN" > /dev/null; then echo "refused: an S3-03 pool or one of its jobs (or another vsmt entry) is running"; exit 2; fi
+if [ -e "$RUN_ROOT/DRAIN" ]; then echo "refused: $RUN_ROOT/DRAIN exists (a drain was asked for); remove it to run again"; exit 2; fi
 mkdir -p "$RUN_ROOT" "$EXPORT_DIR"
 exec 9> "$RUN_ROOT/.lock"  # held by this driver and its pool for the whole run; a second driver on the same root stops here
 if ! flock -n 9; then echo "refused: another driver holds $RUN_ROOT/.lock (its test suite, check or pool is running)"; exit 2; fi
@@ -83,7 +103,9 @@ finish() {  # step, exit status (0 only when verify passed)
     'fallback_shutdown_seconds': $FALLBACK_SHUTDOWN_SECONDS}, open('$STATUS', 'w'), indent=1)" "$1" "$DETAIL"
   M status --run-root "$RUN_ROOT"
   echo "[$(date)] status written ($1: $DETAIL) -> $STATUS"
-  if [ "$FALLBACK_SHUTDOWN_SECONDS" -gt 0 ] 2>/dev/null; then
+  if [ "${DRAINED:-0}" = "1" ]; then
+    echo "[$(date)] drained on request: no fallback power-off"
+  elif [ "$FALLBACK_SHUTDOWN_SECONDS" -gt 0 ] 2>/dev/null; then
     echo "[$(date)] fallback armed: power off in $FALLBACK_SHUTDOWN_SECONDS s unless another vsmt job runs"
     sleep "$FALLBACK_SHUTDOWN_SECONDS"
     if pgrep -f "$JOB_PATTERN|lean_s2_05_development.py|ruling89_train.py" > /dev/null; then
@@ -109,6 +131,7 @@ OPTIONS=()
 [ -n "${ADOPT_CALIBRATION_INSTANCE:-}" ] && OPTIONS+=(--adopt-calibration "instance=$ADOPT_CALIBRATION_INSTANCE")
 [ -n "${ADOPT_CALIBRATION_SAM2:-}" ] && OPTIONS+=(--adopt-calibration "sam2=$ADOPT_CALIBRATION_SAM2")
 for ITEM in ${MEMORY_GIB:-}; do OPTIONS+=(--memory-gib "$ITEM"); done
+for ITEM in ${MEMORY_FIXED_GIB:-}; do OPTIONS+=(--memory-fixed-gib "$ITEM"); done
 [ "$ACCEPT_CODE_CHANGE" = "1" ] && OPTIONS+=(--accept-code-change)
 [ "${RETRY_FAILED:-0}" = "1" ] && OPTIONS+=(--retry-failed)
 [ -n "${BUDGET_CORES:-}" ] && OPTIONS+=(--budget-cores "$BUDGET_CORES")
@@ -118,6 +141,7 @@ RUN_EXIT=$?
 M export --run-root "$RUN_ROOT" --export-dir "$EXPORT_DIR" --tag "$TAG"
 if [ "$RUN_EXIT" != "0" ]; then
   REASON=$($PY -c "import json; print(json.load(open('$RUN_ROOT/pool.json')).get('stop_reason'))" 2>/dev/null)
+  [ "$REASON" = "drained" ] && DRAINED=1
   DETAIL="the pool stopped (exit $RUN_EXIT): $REASON"; finish run "$RUN_EXIT"
 fi
 if M verify --run-root "$RUN_ROOT" --export-dir "$EXPORT_DIR" --tag "$TAG"; then
