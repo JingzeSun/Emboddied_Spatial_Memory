@@ -1633,6 +1633,9 @@ def run(args: argparse.Namespace) -> int:
                                  "archive_sha256": file_sha256(archive) if archive.exists() else None,
                                  "contract_sha256": file_sha256(llm.CONTRACT_PATH)}
         write_json_atomic(out_dir / AUDIT_FILE_NAME, payload)
+        if audit is None and getattr(args, "manifest_split", None) == "test":  # ruling 107-5: no test metric before every job ended
+            print(f"[node-audit] {args.arm} {args.episode_id} (test, metrics only): {summary['frames']} frames, {payload['wall_seconds']} s")
+            return 0
         if audit is None:
             report = payload["report"]
             print(f"[node-audit] {args.arm} {args.episode_id} {json.dumps(config, sort_keys=True)} (metrics only): {summary['frames']} frames, "

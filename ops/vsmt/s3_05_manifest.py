@@ -38,6 +38,7 @@ from vsmt import lean_arms as arms  # noqa: E402
 from vsmt import lean_s3_03 as s3  # noqa: E402
 from vsmt import lean_s3_04 as s4  # noqa: E402
 from vsmt import lean_s3_05 as s5  # noqa: E402
+from vsmt import lean_teacher as lt  # noqa: E402
 from vsmt import lean_test_seal  # noqa: E402
 
 STAGE = "vsmt.lean.s3_05.driver.v1"
@@ -163,6 +164,9 @@ def cmd_unseal(args: argparse.Namespace) -> int:
     run_root = Path(args.run_root)
     _require(passed(run_root, "check"), "unseal_needs_a_passed_check_at_this_commit")
     receipt = receipt_of(args)
+    # opening is irreversible: only for the very receipt check verified, and only if its body still has its digest
+    _require(load_json(step_path(run_root, "check"))["receipt"]["receipt_sha256"] == receipt["receipt_sha256"]
+             == s4.receipt_body_sha256(receipt), "unseal_receipt_is_not_the_checked_one")
     body, seal_path = seal_body(args, receipt)
     record = lean_test_seal.open_roots(body, receipt_sha256=receipt["receipt_sha256"], commit=git("rev-parse", "HEAD"),
                                        purpose="S3-05 run of record (ruling 107)")
@@ -207,11 +211,14 @@ def audit_argv(inputs: Mapping[str, Any], front: str, run: Mapping[str, Any], ep
 
 def build_jobs(run_root: Path, inputs: Mapping[str, Any], receipt: Mapping[str, Any]) -> list[pool.Job]:
     s3_03 = s303.load_context(Path(inputs["s3_03_run_root"]))
+    frozen = receipt["frozen_bytes"]["heads"]
     jobs = []
     for front in inputs["fronts"]:
+        _require(str(inputs["reid"][front]["file"]) in frozen, f"reid_head_not_frozen:{front}")
         frames = {row["episode_id"]: int(row["frames"]) for row in inputs["episodes"][front]["test"]}
         for run in receipt["fronts"][front]["test_runs"]:
             heads = s3_03.heads_file(front, 1, run["heads_arm"], run["seed"]) if run["seed"] is not None else None
+            _require(heads is None or str(heads) in frozen, f"heads_not_frozen_by_the_receipt:{heads}")  # the S3-03 root S3-04 froze
             seeded = run["seed"] is not None
             for episode in frames:
                 job_id = f"{front}/test/{run['arm']}/{'rule' if not seeded else 's%d' % run['seed']}/{episode}"
@@ -219,8 +226,10 @@ def build_jobs(run_root: Path, inputs: Mapping[str, Any], receipt: Mapping[str, 
                 def build(f: str = front, r: Mapping[str, Any] = run, e: str = episode, h: Path | None = heads) -> list[str]:
                     return audit_argv(inputs, f, r, e, run_root, h)
 
+                # exit 2 is a refusal (a guard, a checkout, a configuration): systemic, never a data failure -- it stops the run
                 jobs.append(pool.Job(job_id, "test", (), PRIORITY["learned" if seeded else "rule"], float(frames[episode]), 1, "audit",
                                      build, keep_partial=True, retries=AUDIT_RETRIES, stops_on_failure=False,
+                                     exit_status={2: "gate_failed"},
                                      remote_push=tuple(str(p) for p in ((heads,) if heads is not None else ()) + (Path(inputs["receipt"]["path"]),)),
                                      remote_pull=(str(group_root(run_root, front, run) / episode),), group=front))
     return jobs
@@ -263,16 +272,20 @@ def cmd_merge(args: argparse.Namespace) -> int:
     graph = build_jobs(run_root, inputs, receipt)
     not_ended = [job.job_id for job in graph if states.get(job.job_id, {}).get("status") not in ("done", "failed")]
     problems = [f"jobs_not_ended:{len(not_ended)}:{not_ended[:5]}"] if not_ended else []
-    rows = []
+    rows: list[dict[str, Any]] = []
     if not problems:
         for front in inputs["fronts"]:
             for run in receipt["fronts"][front]["test_runs"]:
                 target = merged_path(run_root, front, run)
                 target.parent.mkdir(parents=True, exist_ok=True)
+                if target.exists():
+                    target.unlink()  # never a merge of an earlier attempt
+                audits = list(group_root(run_root, front, run).glob(f"*/{run['arm']}/*.json"))
                 done = subprocess.run([sys.executable, str(NODE_AUDIT), "merge", "--output-root", str(group_root(run_root, front, run)),
                                        "--arm", run["arm"], "--results", str(target)], capture_output=True, text=True)
-                rows.append({"front": front, "group": target.stem, "exit": done.returncode, "merged": target.exists()})
-                # a group whose every episode failed has nothing to merge: recorded, its rows count as failures in stats
+                rows.append({"front": front, "group": target.stem, "exit": done.returncode, "merged": target.exists(), "audits": len(audits)})
+                if audits and (done.returncode != 0 or not target.exists()):  # nothing to merge only when every episode failed
+                    problems.append(f"merge_failed:{front}:{target.stem}:exit{done.returncode}:{(done.stderr or '').strip()[-160:]}")
     return finish(run_root, "merge", {"groups": rows, "problems": problems})
 
 
@@ -358,7 +371,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = parser.parse_args(argv)
     try:
         return int(args.func(args))
-    except (DriverError, s4.LeanS3_04Error, s5.LeanS3_05Error, s303.DriverError, pool.PoolError, lean_test_seal.LeanTestSealError) as exc:
+    except (DriverError, s4.LeanS3_04Error, s5.LeanS3_05Error, s303.DriverError, pool.PoolError, lean_test_seal.LeanTestSealError,
+            lt.LeanTeacherError) as exc:
         print(f"[s3-05] refused: {exc}", file=sys.stderr)
         return 2
 

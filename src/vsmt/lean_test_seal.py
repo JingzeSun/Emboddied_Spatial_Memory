@@ -147,7 +147,8 @@ def refusal(paths: Iterable[str | Path | None], *, reader: str) -> str | None:
 
 def _root_files(root: Path) -> dict[str, dict[str, Any]]:
     return {p.name: {"bytes": p.stat().st_size, "sha256": file_sha256(p)}
-            for p in sorted(root.iterdir()) if p.is_file() and p.name not in (MARKER_NAME, READ_RECORD_NAME)}
+            for p in sorted(root.iterdir())
+            if p.is_file() and p.name not in (MARKER_NAME, READ_RECORD_NAME) and not p.name.endswith(".tmp")}
 
 
 def _succeeded(root: Path) -> list[str]:

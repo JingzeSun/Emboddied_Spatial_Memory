@@ -383,16 +383,26 @@ def static_paths(run_root: Path, *, kinds: Sequence[str]) -> list[str]:
         _require("test" in roots["raw"] and "seal" in inputs, "test_kind_needs_the_s3_05_inputs_after_unsealing")
         paths += [roots["raw"]["test"], roots["geometry"]["test"], *(roots["cache"][front]["test"] for front in fronts)]
         paths += [inputs["seal"]["file"], inputs["receipt"]["path"]]
+        # the admission reruns S3-03's validation audits there: the reference run's validation inputs come along
+        reference = load_json(Path(inputs["s3_03_run_root"]) / "inputs.json")["roots"]
+        paths += [reference["raw"]["validation"], reference["geometry"]["validation"]]
+        paths += [reference["cache"][front]["validation"] for front in fronts]
     paths += [str(inputs["reid"][front]["file"]) for front in fronts]
     if any(kind.startswith("train") for kind in kinds):
         paths += [str(Path(run_root) / front / "round0") for front in fronts]
     return sorted(set(paths))
 
 
-def skipped(path: str) -> bool:
-    """Byte code written on import differs in what exists, not in what runs: never compared."""
+#: ruling 107-3: files beside an opened test root that change after opening (the read record logs every copy, a marker or record
+#: may leave a .tmp behind): never compared -- the seal check on the host covers the test bytes themselves
+UNCOMPARED_NAMES = ("TEST_READ.json", "TEST_SEALED.json")
 
-    return "/__pycache__/" in path or path.endswith(".pyc")
+
+def skipped(path: str) -> bool:
+    """Byte code written on import differs in what exists, not in what runs: never compared; nor the test roots' bookkeeping."""
+
+    name = path.replace("\\", "/").rsplit("/", 1)[-1]
+    return "/__pycache__/" in path or path.endswith((".pyc", ".tmp")) or name in UNCOMPARED_NAMES
 
 
 def digest_tree(paths: Sequence[str]) -> dict[str, list[Any]]:
@@ -474,7 +484,8 @@ out = {}
 for top in json.load(sys.stdin):
     p = Path(top)
     files = [p] if p.is_file() else (sorted(q for q in p.rglob("*") if q.is_file() and "/__pycache__/" not in str(q)
-                                            and not str(q).endswith(".pyc")) if p.exists() else [])
+                                            and not str(q).endswith((".pyc", ".tmp"))
+                                            and q.name not in ("TEST_READ.json", "TEST_SEALED.json")) if p.exists() else [])
     for f in files:
         d = hashlib.sha256()
         with open(f, "rb") as h:
@@ -619,7 +630,13 @@ def cmd_admit(args: argparse.Namespace) -> int:
         import lean_s2_05_node_audit as audit
 
         rows = []
-        reference = Path(args.reference_run_root) if args.reference_run_root else run_root
+        if "test" in kinds:  # S3-05 admits against the S3-03 run its inputs name (ruling 107-3); a different one is refused
+            named = load_json(run_root / "inputs.json")["s3_03_run_root"]
+            _require(not args.reference_run_root or str(Path(args.reference_run_root).resolve()) == str(Path(named).resolve()),
+                     "reference_run_root_differs_from_the_s3_05_inputs")
+            reference = Path(named)
+        else:
+            reference = Path(args.reference_run_root) if args.reference_run_root else run_root
         for front, episode, argv, original in admission_audits(reference, args.audits_per_front, scratch_root=run_root):
             scratch = json.loads(argv[argv.index("--configs") + 1])[0]["output_root"]
             command = remote_job_command(argv, cwd=str(ROOT), env={"OMP_NUM_THREADS": "1", "MKL_NUM_THREADS": "1",

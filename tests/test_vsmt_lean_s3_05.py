@@ -148,9 +148,15 @@ class DriverTests(unittest.TestCase):
                   "reid": {"instance": {"file": "/reid.json"}}, "episodes": {"instance": {"test": episodes["instance"]}}}
         runs = [{"arm": "TAF", "config_index": 1, "config": {"theta_a": 0.7, "d_a": 0.5}, "seed": None, "heads_arm": None},
                 {"arm": "NoVersion", "config_index": 4, "config": {"tau_r": 0.4}, "seed": 19, "heads_arm": "VSMT-lean"}]
-        jobs = driver.build_jobs(self.base / "s3-05-run", inputs, {"fronts": {"instance": {"test_runs": runs}}})
+        s3_03 = s303.load_context(s3_03_root)
+        heads = str(s3_03.heads_file("instance", 1, "VSMT-lean", 19))
+        receipt = {"fronts": {"instance": {"test_runs": runs}}, "frozen_bytes": {"heads": {heads: "x", "/reid.json": "y"}}}
+        jobs = driver.build_jobs(self.base / "s3-05-run", inputs, receipt)
         self.assertEqual(len(jobs), 6)
         self.assertTrue(all(job.kind == "test" and not job.stops_on_failure and job.retries == 1 for job in jobs))
+        self.assertTrue(all(job.exit_status == {2: "gate_failed"} for job in jobs))  # a refusal stops the run, never a data failure
+        with self.assertRaisesRegex(driver.DriverError, "heads_not_frozen_by_the_receipt"):
+            driver.build_jobs(self.base / "s3-05-run", inputs, {**receipt, "frozen_bytes": {"heads": {"/reid.json": "y"}}})
         argv = next(job for job in jobs if "NoVersion" in job.job_id).build()
         self.assertEqual(argv[argv.index("--manifest-split") + 1], "test")
         self.assertEqual(argv[argv.index("--test-receipt") + 1], str(self.base / "receipt.json"))
@@ -170,9 +176,36 @@ class DriverTests(unittest.TestCase):
             "fronts": ["instance"], "reid": {"instance": {"file": "/reid.json"}}, "seal": {"file": "/seal.json"},
             "receipt": {"path": "/receipt.json"},
             "roots": {"raw": {"test": "/t/raw"}, "geometry": {"test": "/t/geo"}, "cache": {"instance": {"test": "/t/cache"}}}})
+        with self.assertRaises(KeyError):  # the S3-05 inputs name the S3-03 run whose validation inputs come along
+            remote_hosts.static_paths(run_root, kinds=["test"])
+        s3_03_root = self.base / "s3-03-run"
+        remote_hosts.write_json(s3_03_root / "inputs.json", {"roots": {"raw": {"validation": "/v/raw"}, "geometry": {"validation": "/v/geo"},
+                                                                      "cache": {"instance": {"validation": "/v/cache"}}}})
+        inputs = remote_hosts.load_json(run_root / "inputs.json")
+        remote_hosts.write_json(run_root / "inputs.json", {**inputs, "s3_03_run_root": str(s3_03_root)})
         paths = remote_hosts.static_paths(run_root, kinds=["test"])
-        for path in ("/t/raw", "/t/geo", "/t/cache", "/seal.json", "/receipt.json", "/reid.json"):
+        for path in ("/t/raw", "/t/geo", "/t/cache", "/seal.json", "/receipt.json", "/reid.json", "/v/raw", "/v/geo", "/v/cache"):
             self.assertIn(path, paths)
+        self.assertTrue(remote_hosts.skipped("/t/raw/TEST_READ.json"))  # rewritten by every copy: outside the comparison
+        self.assertTrue(remote_hosts.skipped("/t/raw/TEST_SEALED.json.tmp"))
+        self.assertFalse(remote_hosts.skipped("/t/raw/procthor10k-0.1.2-train-00001/receipt.json"))
+
+    def test_unseal_opens_only_for_the_checked_receipt(self):
+        import s3_05_manifest as driver
+        from vsmt import lean_s3_04 as s4
+
+        run_root = self.base / "s3-05-run"
+        receipt = {"freeze_commit": "f" * 40, "fronts": {}}
+        receipt["receipt_sha256"] = s4.receipt_body_sha256(receipt)
+        other = {**receipt, "fronts": {"instance": {}}}
+        other["receipt_sha256"] = s4.receipt_body_sha256(other)
+        path = self.base / "other.json"
+        path.write_text(json.dumps(other), encoding="utf-8")
+        driver.write_json(run_root / "check.json", {"pass": True, "code_commit": driver.git("rev-parse", "HEAD"),
+                                                     "receipt": {"receipt_sha256": receipt["receipt_sha256"]}})
+        code = driver.main(["unseal", "--run-root", str(run_root), "--receipt", str(path), "--s3-03-run-root", str(self.base / "s3-03"),
+                            "--export-dir", str(self.base)])
+        self.assertEqual(code, 2)  # refused before any seal is touched
 
     def test_relay_runs_rsync_on_the_relay_host(self):
         import remote_hosts

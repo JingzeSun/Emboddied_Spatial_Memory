@@ -188,6 +188,9 @@ def front_statistics(per_metric: Mapping[str, Mapping[str, Mapping[str, Any]]], 
         decomposition[run_key] = totals
         size[run_key] = {name: statistics.fmean(values) for name, values in sorted(fields.items())}
     return {"primary_gate": primary, "original_gate": original, "exclusion_lists": lists, "main_table": table_rows,
+            "main_table_rule": ("each metric's mean over the houses its one list keeps (ruling 102-3: the list covers the main-table runs "
+                                "only); an ablation run (NoVersion, HeuristicLabel, HandCost) missing on a kept house has no mean "
+                                "(None) for that seed or arm, shown by seeds_with_values -- never a mean over fewer houses"),
             "comparisons": comparisons, "node_f1_vs_assoc_only": node_f1, "decomposition_totals": decomposition,
             "size_and_cost_episode_means": size}
 
