@@ -587,6 +587,34 @@ def confirm_provisional(previous: Mapping[str, Any], report: Mapping[str, Any], 
     return {"provisional_checked_utc": previous["provisional"].get("written_utc"), "confirmed_utc": utc_now(), "differs": differs}
 
 
+def test_seal_report(seal_path: Path, problems: list[str]) -> dict[str, Any]:
+    """The four test roots carry markers sealed with the digest of S3-02's exported seal (ruling 104-2; S3-04 G5, ruling 106-3).
+    Only the seal export (for its digest and the root paths) and the four marker files are read, never a test episode; a failure is
+    added to ``problems``."""
+
+    from vsmt import lean_test_seal
+
+    seal_report: dict[str, Any] = {"file": str(seal_path)}
+    if not seal_path.exists():
+        problems.append("test_seal_export_missing")
+        return seal_report
+    seal = load_json(seal_path)
+    body = {key: value for key, value in seal.items() if key != "seal_sha256"}
+    digest = seal.get("seal_sha256")
+    if lean_test_seal.seal_sha256(body) != digest:
+        problems.append("test_seal_export_digest_differs")
+    markers = {}
+    for kind in lean_test_seal.SEAL_KINDS:  # ruling 104-2: only the four marker files are read, never a test episode
+        marker_path = Path(body["kinds"][kind]["root"]) / lean_test_seal.MARKER_NAME
+        marker = load_json(marker_path) if marker_path.exists() else {}
+        ok = marker.get("state") == lean_test_seal.STATE_SEALED and marker.get("seal_sha256") == digest
+        markers[kind] = {"path": str(marker_path), "state": marker.get("state"), "matches": ok}
+        if not ok:
+            problems.append(f"test_root_not_sealed_by_the_exported_seal:{kind}")
+    seal_report.update({"seal_sha256": digest, "markers": markers})
+    return seal_report
+
+
 def check_inputs(*, roots: Mapping[str, Any], export_dir: Path, tag: str, reid: Mapping[str, Path],
                  fronts: Sequence[str] = tuple(FRONTS), provisional: bool = False) -> dict[str, Any]:
     """Ruling 104-2: the S3-02 products equal its run manifest, the four test roots are sealed by the exported seal, the heads match.
@@ -659,25 +687,7 @@ def check_inputs(*, roots: Mapping[str, Any], export_dir: Path, tag: str, reid: 
             episodes[front][split] = [{"episode_id": house, "frames": int(cache_ok[house].get("frames") or 0)} for house in usable]
             split_counts[f"usable_{front}"] = len(usable)
         counts[split] = split_counts
-    seal_path = name("test_seal")
-    seal_report: dict[str, Any] = {"file": str(seal_path)}
-    if not seal_path.exists():
-        problems.append("test_seal_export_missing")
-    else:
-        seal = load_json(seal_path)
-        body = {key: value for key, value in seal.items() if key != "seal_sha256"}
-        digest = seal.get("seal_sha256")
-        if lean_test_seal.seal_sha256(body) != digest:
-            problems.append("test_seal_export_digest_differs")
-        markers = {}
-        for kind in lean_test_seal.SEAL_KINDS:  # ruling 104-2: only the four marker files are read, never a test episode
-            marker_path = Path(body["kinds"][kind]["root"]) / lean_test_seal.MARKER_NAME
-            marker = load_json(marker_path) if marker_path.exists() else {}
-            ok = marker.get("state") == lean_test_seal.STATE_SEALED and marker.get("seal_sha256") == digest
-            markers[kind] = {"path": str(marker_path), "state": marker.get("state"), "matches": ok}
-            if not ok:
-                problems.append(f"test_root_not_sealed_by_the_exported_seal:{kind}")
-        seal_report.update({"seal_sha256": digest, "markers": markers})
+    seal_report = test_seal_report(name("test_seal"), problems)
     heads = reid_heads(reid, fronts, problems)
     return {"problems": problems, "s3_02": {"tag": tag, "manifest": {"file": str(manifest_path), "sha256": sha256_file(manifest_path)},
                                             "code_commit": s3_02.get("code_commit")},
@@ -1046,13 +1056,14 @@ def job_status(run_root: Path, job_id: str) -> str | None:
     return load_json(path)["status"] if path.exists() else None
 
 
-def cmd_readings(args: argparse.Namespace) -> int:
-    """Ruling 104-1 1f: the selection readings of one front end from every merged validation group (merge completeness checked)."""
+def readings_runs(ctx: RunContext, front: str) -> tuple[list[dict[str, Any]], list[str], dict[str, str]]:
+    """Every merged validation group of one front end as a selection run, the merge problems, and the arms absent because every
+    seed's training diverged (ruling 102-9); cmd_readings and S3-04's recomputation (ruling 106-3 G2) both read them here."""
 
-    ctx = load_context(Path(args.run_root))
-    front = args.front
     validation = sorted(row["episode_id"] for row in ctx.episodes(front, "validation"))
-    runs, problems, absent_seeds = [], [], {}
+    runs: list[dict[str, Any]] = []
+    problems: list[str] = []
+    absent_seeds: dict[str, set] = {}
     for arm, seeded in s3.SELECTION_ARMS.items():
         for index, config in enumerate(audit_configs(arm)):
             for seed in (arms.SEEDS if seeded else (None,)):
@@ -1074,6 +1085,16 @@ def cmd_readings(args: argparse.Namespace) -> int:
                              "seed": seed, "reports": {episode: row["report"] for episode, row in rows.items()}})
     absent_arms = {arm: "every seed's training diverged (ruling 102-9: a result)" for arm, seeds in absent_seeds.items()
                    if len(seeds) == len(arms.SEEDS)}
+    return runs, problems, absent_arms
+
+
+def cmd_readings(args: argparse.Namespace) -> int:
+    """Ruling 104-1 1f: the selection readings of one front end from every merged validation group (merge completeness checked)."""
+
+    ctx = load_context(Path(args.run_root))
+    front = args.front
+    validation = sorted(row["episode_id"] for row in ctx.episodes(front, "validation"))
+    runs, problems, absent_arms = readings_runs(ctx, front)
     if problems:
         write_json(ctx.front_dir(front) / "selection_readings.json", {"stage": STAGE, "front": front, "problems": problems})
         print(f"[s3-03-readings] {front}: {problems[:5]}", file=sys.stderr)
