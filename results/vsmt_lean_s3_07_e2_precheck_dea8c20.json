@@ -1,0 +1,102 @@
+{
+ "schema_version": "vsmt-lean-s3-07-e2-precheck-v1",
+ "purpose": "Ruling 111-7 E2 run early (user 2026-10-07: 「E2 预检现在就跑，传完直接做」): can the westd 2 x RTX 5090 host regenerate the frozen front end bit for bit? The two smallest S3-02 train episodes' caches were rebuilt with the S3-02 cache command (2 threads per worker, one worker per card, --largest-first) at the frozen commit and their episode seals compared with the committed S3-02 exports. Train data only; no 3RScan data; no metric computed.",
+ "code_commit": "dea8c20f58144882752f2bc3936b87fd6568ef45",
+ "worktree_dirty_files": 0,
+ "host": {
+  "ssh": "connect.westd.seetacloud.com:46737",
+  "cpu": "Intel(R) Xeon(R) Platinum 8470Q",
+  "gpus": [
+   "NVIDIA GeForce RTX 5090, 580.105.08",
+   "NVIDIA GeForce RTX 5090, 580.105.08"
+  ],
+  "cgroup_cpu_max": "5000000 100000",
+  "cgroup_memory_max": "197568495616"
+ },
+ "environment": {
+  "python": "3.12.3",
+  "torch": "2.8.0+cu128",
+  "numpy": "2.3.2",
+  "interpreter": "/root/miniconda3/bin/python3.12",
+  "source": "B1:/root/autodl-tmp/archive-system-disk/miniconda3 (the S3-02 4 x RTX 5090 host's interpreter, per its env-records/README.txt), copied by rsync; the host's own AutoDL base environment kept at /root/miniconda3.autodl-base",
+  "pip_freeze_identical_to_s3_02_record": true
+ },
+ "assets": {
+  "root": "/root/sh05-assets-v1 (copied from B1:/root/autodl-tmp/archive-system-disk/sh05-assets-v1)",
+  "sam2.1_hiera_small.pt": "6d1aa6f30de5c92224f8172114de081d104bbd23dd9dc5c58996f0cad5dc4d38",
+  "dinov2_vitb14_pretrain.pth": "0b8b82f85de91b424aded121c7e1dcc2b7bc6d0adeea651bf73a13307fad8c73",
+  "dinov2_vits14_pretrain.pth": "b938bf1bc15cd2ec0feacfe3a1bb553fe8ea9ca46a7e1d8d00217f29aef60cd9",
+  "sam2.1_hiera_s.yaml": "0f36b91e86e58d06c87e42997166212468b88b98b60e4d816d5e4d4d088b6f55",
+  "sam2_repository_commit": "2b90b9f5ceec907a1c18123530e92e794ad901a4",
+  "dinov2_repository_commit": "7764ea0f912e53c92e82eb78a2a1631e92725fc8",
+  "repositories_dirty_files": 0
+ },
+ "reference_exports": {
+  "simulator_instance_masks": "results/vsmt_lean_s3_02_instance_cache_train_3f6ef1d.json",
+  "sam2": "results/vsmt_lean_s3_02_sam2_cache_train_3f6ef1d.json"
+ },
+ "episodes": [
+  {
+   "mask_source": "simulator_instance_masks",
+   "episode_id": "procthor10k-0.1.2-train-03642",
+   "status": "succeeded",
+   "frames": 100,
+   "fragments": 532,
+   "episode_seal_sha256": "230a6f03ed8dbb69fba6d343f8bc86282ca2ded0e634a98255e6055450ceaadb",
+   "s3_02_episode_seal_sha256": "230a6f03ed8dbb69fba6d343f8bc86282ca2ded0e634a98255e6055450ceaadb",
+   "s3_02_code_commit": "74905f4a9d8ae35db8a102a5c2f8741e58ed54af",
+   "identical": true,
+   "wall_seconds": 34.7,
+   "seconds_per_frame": 0.347,
+   "peak_vram_reserved_mib": 496.0,
+   "receipt_sha256": "2452d6eec92a23aeb2567d2555a60d4e4068508264c09f36ba3a8705fe5fd446"
+  },
+  {
+   "mask_source": "simulator_instance_masks",
+   "episode_id": "procthor10k-0.1.2-train-00946",
+   "status": "succeeded",
+   "frames": 101,
+   "fragments": 554,
+   "episode_seal_sha256": "c82dd0225338b452c276b5c0f3b892217d19cd82d55b6031b934aecb1879b309",
+   "s3_02_episode_seal_sha256": "c82dd0225338b452c276b5c0f3b892217d19cd82d55b6031b934aecb1879b309",
+   "s3_02_code_commit": "74905f4a9d8ae35db8a102a5c2f8741e58ed54af",
+   "identical": true,
+   "wall_seconds": 37.8,
+   "seconds_per_frame": 0.374,
+   "peak_vram_reserved_mib": 496.0,
+   "receipt_sha256": "ff69558c786f4282b5492addeae156d76ce4f8c3b48ed9b03a1e2fa0e6477d07"
+  },
+  {
+   "mask_source": "sam2",
+   "episode_id": "procthor10k-0.1.2-train-03642",
+   "status": "succeeded",
+   "frames": 100,
+   "fragments": 1403,
+   "episode_seal_sha256": "4df686c7769f577d7c716a07ceb5d6e0a83741e305839c94fb8dbd6ed3e12e8c",
+   "s3_02_episode_seal_sha256": "4df686c7769f577d7c716a07ceb5d6e0a83741e305839c94fb8dbd6ed3e12e8c",
+   "s3_02_code_commit": "74905f4a9d8ae35db8a102a5c2f8741e58ed54af",
+   "identical": true,
+   "wall_seconds": 114.2,
+   "seconds_per_frame": 1.142,
+   "peak_vram_reserved_mib": 4784.0,
+   "receipt_sha256": "6e8b34b1814e59b91e9b672944e6e98abc53b2b3c6e4dc9c6b8e8c3cf9b41996"
+  },
+  {
+   "mask_source": "sam2",
+   "episode_id": "procthor10k-0.1.2-train-00946",
+   "status": "succeeded",
+   "frames": 101,
+   "fragments": 548,
+   "episode_seal_sha256": "43c808e0ed8cf70807e6f0c08e2e5093d1fbf0cbd0a1204041e49e95aa940ef1",
+   "s3_02_episode_seal_sha256": "43c808e0ed8cf70807e6f0c08e2e5093d1fbf0cbd0a1204041e49e95aa940ef1",
+   "s3_02_code_commit": "74905f4a9d8ae35db8a102a5c2f8741e58ed54af",
+   "identical": true,
+   "wall_seconds": 102.9,
+   "seconds_per_frame": 1.019,
+   "peak_vram_reserved_mib": 4784.0,
+   "receipt_sha256": "70d8fae9f1d3a0238b61a3272950d18856c38ef5cc86455959006e5a963b5ab0"
+  }
+ ],
+ "verdict": "PASS",
+ "reads": "S3-02 train raw episodes and caches of these two episodes only (copied from B1); validation, test and 3RScan untouched"
+}
