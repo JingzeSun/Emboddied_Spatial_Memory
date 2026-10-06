@@ -6,7 +6,8 @@ LLM-op asks a frozen general LLM to make the five-atom decisions from the same s
 rendering, the two instructions and the strict parsers live in ``lean_controls``), at most three answers per call and
 then the fallback, every request and response appended to an archive that a rerun replays without calling the API, one
 model name per run, a train pilot of 200 frames before anything else, a $150 cap and a $200 safety stop, validation
-only for the runs of record.  This module holds the parts that touch the network or keep state across calls:
+only for the runs of record.  Ruling 108 (2026-10-06) amended 105-2 and 105-8: one validation episode per front end (the
+first of the same salted order), a $30 cap and a $40 safety stop, both on the ledger including the pilot.  This module holds the parts that touch the network or keep state across calls:
 
 1. **The stage contract** (``configs/vsmt/lean_s3_03_llm_op_v1.json``): every value above, bound to the constants here
    and to the instruction digest in ``lean_controls``; the authorization bits open only by a ruling named in
@@ -30,7 +31,8 @@ only for the runs of record.  This module holds the parts that touch the network
 白话：附录臂 LLM-op 让一个冻结的通用大模型，直接看和其他臂完全相同的封存特征表来做五原子决定。裁决 105 定了怎么调：
 DeepSeek ``deepseek-flash``（2026-10-04 实际是 V4.1-Flash），默认推理模式；每帧问两次（先关联、求解后再判存在）；每次
 最多要三个回答，三次都无效就回退；每个请求和回答先存档再用，重跑从存档回放、不再花钱；一趟只认一个模型名；先在 train
-上试点 200 帧；费用到 150 美元不再开新 episode，到 200 美元全部停；正式运行只在 validation 上。本模块管合同、计价、
+上试点 200 帧；费用到 150 美元不再开新 episode，到 200 美元全部停；正式运行只在 validation 上。裁决 108 改为每套前端
+1 条 episode、上限 30 美元、安全停 40 美元（都含试点花费），其余不变。本模块管合同、计价、
 密钥、网络调用、存档和给 runner 的打分器。例如某帧关联回答被截断，就同一请求再问；第三次还不行，这一帧的色块全记
 BIRTH 并计一次回退。它不训练、不读私有数据，密钥只进请求头。
 """
@@ -62,8 +64,9 @@ ARM = arms.APPENDIX_ARM
 
 #: 105-1: both front ends, each against its own cache and ReID head.
 FRONTS = {"instance": "simulator_instance_masks", "sam2": "sam2"}
-#: 105-2: fifteen validation episodes, the same for both front ends, in the order of sha256(salt + episode id).
-EPISODES_PER_FRONT = 15
+#: 105-2 as amended by ruling 108: one validation episode (105-2 had fifteen), the same for both front ends, the first in
+#: the order of sha256(salt + episode id).
+EPISODES_PER_FRONT = 1
 DRAW_SALT = "vsmt-lean-llm-op-105-2|"
 #: 105-3 / 105-7: the request.
 ENDPOINT = "https://api.deepseek.com/chat/completions"
@@ -80,11 +83,11 @@ BACKOFF_FIRST_S = 2.0
 BACKOFF_MAX_S = 300.0
 SERVICE_RETRY_LIMIT_S = 6 * 3600.0
 REQUEST_TIMEOUT_S = 1800.0
-#: 105-8: the pilot, the cap and the safety stop.
+#: 105-8: the pilot, the cap and the safety stop (ruling 108: $150 -> $30 and $200 -> $40, the ledger includes the pilot).
 PILOT_SPLIT = "train"
 PILOT_FRAMES = 200
-CAP_USD = 150.0
-SAFETY_STOP_USD = 200.0
+CAP_USD = 30.0
+SAFETY_STOP_USD = 40.0
 #: Prices in USD per million tokens, off peak (2026-10-04, https://api-docs.deepseek.com/quick_start/pricing).
 PRICES_OFF_PEAK = {"input_cache_hit": 0.003, "input_cache_miss": 0.15, "output": 0.6}
 PEAK_MULTIPLIER = 2.0
