@@ -43,8 +43,9 @@ from test_vsmt_lean_controls import stage_a_and_rows  # noqa: E402
 from test_vsmt_lean_runner import POLICY, scenario  # noqa: E402
 
 #: The reviewed bytes of the LLM-op contract (CRLF folded to LF); both bits opened under ruling 105 after the user's code
-#: review (2026-10-04) and approval (2026-10-06). The bits-closed bytes the user reviewed were 451956aa...
-REVIEWED_CONTRACT_SHA256 = "2e9e2d21c0e5f8cf45d191cd6cc94999089eccbd7c2d6f9f721f86db53a74d3c"
+#: review (2026-10-04) and approval (2026-10-06), then amended in place by ruling 108 (one episode per front end, $30 cap,
+#: $40 safety stop). Earlier pins: 451956aa... (bits closed), 2e9e2d21... (bits opened, fifteen episodes per front end).
+REVIEWED_CONTRACT_SHA256 = "6105911836c2dc2af4b06aa01ea5a361eddc7ee7763f2fb491285a86918c8691"
 SERVED = "deepseek-v4.1-flash"
 SATURDAY_NOON = dt.datetime(2026, 10, 3, 12, 0, tzinfo=dt.timezone.utc)
 
@@ -151,6 +152,9 @@ class ContractTests(unittest.TestCase):
         self.assertTrue(contract["activation_policy"]["opened_by"].startswith("ruling 105:"))
         self.assertTrue(llm.authorized(contract, "pilot_run"))
         self.assertTrue(llm.authorized(contract, "validation_run"))
+        self.assertEqual((contract["validation_scope"]["episodes_per_front"], contract["cost"]["cap_usd"],
+                          contract["cost"]["safety_stop_usd"]), (1, 30.0, 40.0))  # ruling 108
+        self.assertEqual(contract["amendments"]["108"]["approved"], "user 2026-10-06: 「待裁 108 取 (a)」")
         self.assertEqual(hashlib.sha256(llm.CONTRACT_PATH.read_bytes().replace(b"\r\n", b"\n")).hexdigest(), REVIEWED_CONTRACT_SHA256)
         self.assertEqual(contract["input"]["instruction_sha256"], lc.INSTRUCTION_SHA256)
 

@@ -241,18 +241,19 @@ bash ops/vsmt/s3_05_test.sh status
 
 ## 怎样跑 LLM-op（附录臂，裁决 105）
 
-白话：LLM-op 回答审稿人必问的“零训练的大模型直接做记忆修订够不够”。输入是与其他臂逐字节相同的封存特征表（转成带表头的表格文本）和两段登记的指令，模型是 DeepSeek `deepseek-flash`（2026-10-04 实际为 V4.1-Flash）默认推理模式；输出是两套前端各 15 条 validation episode 的闭环指标（与其他臂同一个 node audit、同一套指标）、全部调用存档与一份导出。每帧问两次：先关联（每个色块选一个召回实体或 BIRTH），求解后再判存在（每个可判定实体 RETRACT 或 NOOP）。它不训练、不选参、不进主表、不读 test；它独立于 S3-03 的作业池，可以在另一台机器上和 S3-03 同时跑。
+白话：LLM-op 回答审稿人必问的“零训练的大模型直接做记忆修订够不够”。输入是与其他臂逐字节相同的封存特征表（转成带表头的表格文本）和两段登记的指令，模型是 DeepSeek `deepseek-flash`（2026-10-04 实际为 V4.1-Flash）默认推理模式；输出是两套前端各 1 条 validation episode（裁决 108；原为 15 条）的闭环指标（与其他臂同一个 node audit、同一套指标）、全部调用存档与一份导出。每帧问两次：先关联（每个色块选一个召回实体或 BIRTH），求解后再判存在（每个可判定实体 RETRACT 或 NOOP）。它不训练、不选参、不进主表、不读 test；它独立于 S3-03 的作业池，可以在另一台机器上和 S3-03 同时跑。
 
 **前提**：合同 [`configs/vsmt/lean_s3_03_llm_op_v1.json`](configs/vsmt/lean_s3_03_llm_op_v1.json) 的两个运行位（`pilot_run`、`validation_run`）在用户审过代码后由一个提交打开，之前试点与正式运行都会拒绝；S3-03 的 check 已写出 `inputs.json`（validation 两套前端都已完成）；新机器（不需要 GPU；建议 ≥16 核、≥64 GB 内存、数据盘 ≥50 GB）上用户自己写好密钥文件 `/root/.config/vsmt/deepseek.env`（一行 `DEEPSEEK_API_KEY=...`，权限 600）。
 
 ```bash
 # S3-02 主机（只读；在审过的提交上新建干净的 detached worktree）
-bash ops/vsmt/llm_op.sh plan                         # 抽 15 条 validation episode 与试点 episode，写 plan.json 与 transfer.txt
-SSH_KEY=<新机器认可的私钥> bash ops/vsmt/llm_op.sh transfer <新机器地址> <端口>   # 按原绝对路径拷过去（约 11 GB）
+bash ops/vsmt/llm_op.sh plan                         # 抽 1 条 validation episode 与试点 episode，写 plan.json 与 transfer.txt
+# 已有按 15 条写的计划时（裁决 108 之前）：SUPERSEDE_PLAN=1 bash ops/vsmt/llm_op.sh plan，旧计划改名为 plan.superseded.<sha12>.json 保留
+SSH_KEY=<新机器认可的私钥> bash ops/vsmt/llm_op.sh transfer <新机器地址> <端口>   # 按原绝对路径拷过去（15 条时约 8 GB，已在的文件 rsync 跳过）
 # 新机器（同一提交的干净 checkout）
 bash ops/vsmt/llm_op.sh test                         # 全量测试
 bash ops/vsmt/llm_op.sh check                        # 逐条重算 cache 封印、核对回执／几何表／两个 ReID 头，读密钥、查 API
-bash ops/vsmt/llm_op.sh pilot                        # 两套前端各 200 帧 train 试点；遇到决定点以退出码 3 停下汇报
+bash ops/vsmt/llm_op.sh pilot                        # 两套前端各 200 帧 train 试点；遇到决定点以退出码 3 停下汇报（存档里有的调用回放、不重复付费）
 nohup bash ops/vsmt/llm_op.sh run > /root/autodl-tmp/vsmt_outputs/run_logs/llm-op.log 2>&1 &
 bash ops/vsmt/llm_op.sh status                       # 进度、费用、STOP 原因；要停就 bash ops/vsmt/llm_op.sh stop
 bash ops/vsmt/llm_op.sh replay-check                 # 每套前端只用存档回放最短的一条，须与正式运行逐字节相同（在 export 之前）
@@ -261,10 +262,10 @@ bash ops/vsmt/llm_op.sh export                       # results/vsmt_lean_llm_op_
 
 | 步骤 | 做什么 | 停点 |
 |---|---|---|
-| plan | 按 sha256(“vsmt-lean-llm-op-105-2\|” + episode ID) 升序取两套前端都可用的前 15 条 validation episode；试点取同一顺序里 train 上第一条至少 200 帧的；记下各封印摘要、每帧行数（本前端 S3-03 第 0 轮 ELU-P 回执的均值）与要拷的路径（试点只拷公开面和生成回执） | 计划只写一次；S3-03 的输入记有问题，或仍是 provisional（除非 `ALLOW_PROVISIONAL=1`，记进计划） |
-| check | 30＋2 条 cache 逐帧重算封印并等于计划；原始回执与几何表摘要；两个 ReID 头是 S0-03 按来源钉住的；密钥能读、API 列出 `deepseek-flash`；按内存与核数定并行数 | 任一项不符 |
-| pilot | 两套前端各在试点 episode 前 200 帧上真调 API，只跑公开阶段、不读私有、不算指标；统计 token、耗时、无效回答与回退、返回的模型名；按每行价钱 × 满帧行数（登记值与试点自己的取大者）× 计划帧数推算，全部按峰时价（最坏情况）再加试点本身的花费；登记模型名 | 推算超过 150 美元；某类调用试点里没问过、没法定价；某类回退率超过 2%；两套前端返回的模型名不同（用户决定后 `ACCEPT_PILOT=1`，记进运行记录） |
-| run | 30 个作业（2 × 15）并行跑 node audit 的 LLM-op 正式审计（metrics-only、validation）；存档里有的调用一律回放，存档中间缺调用即拒绝；中断后再跑一次 `run` 从存档续跑 | 账本到 150 美元不再开新作业（已开跑的中断后仍可续跑）；到 200 美元写 STOP，所有进程在下一次调用前停下（每个进程调用前自己也核账，驱动不在也成立）；模型名改变或致命 4xx 写 STOP；驱动被杀或出错也写 STOP；工程失败不再派发新作业 |
+| plan | 按 sha256(“vsmt-lean-llm-op-105-2\|” + episode ID) 升序取两套前端都可用的第 1 条 validation episode（裁决 108；原 105-2 取前 15 条）；试点取同一顺序里 train 上第一条至少 200 帧的；记下各封印摘要、每帧行数（本前端 S3-03 第 0 轮 ELU-P 回执的均值）与要拷的路径（试点只拷公开面和生成回执） | 计划只写一次（`SUPERSEDE_PLAN=1` 只替换条数不同、盐串与抽签顺序相同、正式运行未开始的旧计划，旧计划改名保留）；S3-03 的输入记有问题，或仍是 provisional（除非 `ALLOW_PROVISIONAL=1`，记进计划） |
+| check | 抽中的与试点的 cache 逐帧重算封印并等于计划；原始回执与几何表摘要；两个 ReID 头是 S0-03 按来源钉住的；密钥能读、API 列出 `deepseek-flash`；按内存与核数定并行数 | 任一项不符 |
+| pilot | 两套前端各在试点 episode 前 200 帧上真调 API，只跑公开阶段、不读私有、不算指标；统计 token、耗时、无效回答与回退、返回的模型名；按每行价钱 × 满帧行数（登记值与试点自己的取大者）× 计划帧数推算，全部按峰时价（最坏情况）再加试点本身的花费；登记模型名 | 推算超过 30 美元（裁决 108；原 150）；某类调用试点里没问过、没法定价；某类回退率超过 2%；两套前端返回的模型名不同（用户决定后 `ACCEPT_PILOT=1`，记进运行记录） |
+| run | 2 个作业（2 套前端 × 1 条）并行跑 node audit 的 LLM-op 正式审计（metrics-only、validation）；存档里有的调用一律回放，存档中间缺调用即拒绝；中断后再跑一次 `run` 从存档续跑 | 账本（含试点）到 30 美元不再开新作业（已开跑的中断后仍可续跑）；到 40 美元写 STOP（裁决 108；原 150／200），所有进程在下一次调用前停下（每个进程调用前自己也核账，驱动不在也成立）；模型名改变或致命 4xx 写 STOP；驱动被杀或出错也写 STOP；工程失败不再派发新作业 |
 | replay-check | 每套前端只用存档回放最短的一条 episode（一次 API 也不调），轨迹摘要与指标须与正式运行逐字节相同，记进 `replay/check.json` | 不同即退出码 3 |
 | export | 逐 episode 指标与合并、每套前端的调用统计（回退率超过 2% 标“格式不可靠”）、费用、模型名、试点报告、回放核对与运行记录 | 有 episode 没跑完；没有通过的回放核对 |
 

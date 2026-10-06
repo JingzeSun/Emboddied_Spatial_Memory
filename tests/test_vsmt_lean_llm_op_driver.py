@@ -131,8 +131,8 @@ class DriverPlanTests(TempDir):
         path.write_text(json.dumps(inputs), encoding="utf-8")
         return path
 
-    def plan_args(self, run_root: Path, inputs: Path, *, allow_provisional: bool = True) -> argparse.Namespace:
-        return argparse.Namespace(run_root=str(run_root), inputs=str(inputs), allow_provisional=allow_provisional)
+    def plan_args(self, run_root: Path, inputs: Path, *, allow_provisional: bool = True, supersede: bool = False) -> argparse.Namespace:
+        return argparse.Namespace(run_root=str(run_root), inputs=str(inputs), allow_provisional=allow_provisional, supersede=supersede)
 
     def test_the_plan_refuses_a_sealed_test_root_problems_and_unflagged_provisional_inputs(self) -> None:
         inputs = self.build()
@@ -146,7 +146,7 @@ class DriverPlanTests(TempDir):
             self.assertEqual(driver.plan(self.plan_args(self.tmp / "run", inputs)), 2)
         self.assertFalse((self.tmp / "run" / "plan.json").exists())
 
-    def test_the_plan_draws_fifteen_by_the_salted_order_and_lists_what_to_copy(self) -> None:
+    def test_the_plan_draws_the_registered_count_by_the_salted_order_and_lists_what_to_copy(self) -> None:
         inputs = self.build()
         run_root = self.tmp / "run"
         with mock.patch.object(driver, "git", lambda *a: "c0ffee"):
@@ -156,22 +156,63 @@ class DriverPlanTests(TempDir):
         self.assertTrue(plan["inputs"]["provisional"] and plan["inputs"]["allow_provisional"])
         everyone = [f"procthor10k-0.1.2-train-{i:05d}" for i in range(20)]
         order = sorted(everyone, key=lambda e: hashlib.sha256((llm.DRAW_SALT + e).encode()).hexdigest())
-        self.assertEqual([row["episode_id"] for row in plan["draw"]["episodes"]], order[:15])
+        drawn = order[: llm.EPISODES_PER_FRONT]
+        self.assertEqual(llm.EPISODES_PER_FRONT, 1)  # ruling 108 (105-2 had 15)
+        self.assertEqual([row["episode_id"] for row in plan["draw"]["episodes"]], drawn)
         self.assertEqual(plan["draw"]["order"], order)
         train_ok = [e for e in llm.draw_order([f"procthor10k-0.1.2-train-{5000 + i:05d}" for i in range(5)])
                     if 180 + (int(e[-5:]) - 5000) * 10 >= 200]
         self.assertEqual(plan["pilot"]["episode_id"], train_ok[0])
-        self.assertEqual(plan["planned_frames"]["instance"], sum(300 + int(e[-5:]) * 10 for e in order[:15]))
+        self.assertEqual(plan["planned_frames"]["instance"], sum(300 + int(e[-5:]) * 10 for e in drawn))
         self.assertAlmostEqual(plan["rows_per_frame"]["sam2"]["existence_rows"], 36.0)
         self.assertAlmostEqual(plan["rows_per_frame"]["sam2"]["association_rows"], 9 * 9.8)
         lines = set((run_root / "transfer.txt").read_text(encoding="utf-8").split())
-        for episode in order[:15]:
+        for episode in drawn:
             self.assertIn(str(self.tmp / "raw" / "validation" / episode), lines)
             self.assertIn(str(self.tmp / "cache-sam2" / "validation" / episode), lines)
         pilot = plan["pilot"]["episode_id"]
         self.assertIn(str(self.tmp / "raw" / "train" / pilot / "public"), lines)
         self.assertNotIn(str(self.tmp / "raw" / "train" / pilot), lines)  # never the pilot's private plane
         self.assertIn(str(run_root / "plan.json"), lines)
+
+    def test_supersede_keeps_the_fifteen_episode_plan_and_rewrites_the_first_of_the_same_order(self) -> None:
+        inputs = self.build()
+        run_root = self.tmp / "run"
+        with mock.patch.object(driver, "git", lambda *a: "c0ffee"):
+            with mock.patch.object(llm, "EPISODES_PER_FRONT", 15):  # the plan ruling 105-2 wrote
+                self.assertEqual(driver.plan(self.plan_args(run_root, inputs)), 0)
+            old_sha = driver.file_sha256(run_root / "plan.json")
+            old = json.loads((run_root / "plan.json").read_text(encoding="utf-8"))
+            self.assertEqual(driver.plan(self.plan_args(run_root, inputs)), 2)  # written once without --supersede
+            self.assertEqual(driver.plan(self.plan_args(run_root, inputs, supersede=True)), 0)
+            plan = json.loads((run_root / "plan.json").read_text(encoding="utf-8"))
+            self.assertEqual([row["episode_id"] for row in plan["draw"]["episodes"]], old["draw"]["order"][:1])
+            self.assertEqual(plan["draw"]["episodes"][0], old["draw"]["episodes"][0])
+            self.assertEqual(plan["supersedes"], {"file": f"plan.superseded.{old_sha[:12]}.json", "sha256": old_sha,
+                                                  "episodes_per_front": 15, "code_commit": "c0ffee", "ruling": "108"})
+            kept = run_root / f"plan.superseded.{old_sha[:12]}.json"
+            self.assertEqual(driver.file_sha256(kept), old_sha)
+            self.assertTrue((run_root / f"transfer.superseded.{old_sha[:12]}.txt").exists())
+            # the new plan has the registered count: superseding it again is refused, and so is a plan of a started run
+            self.assertEqual(driver.plan(self.plan_args(run_root, inputs, supersede=True)), 2)
+            with mock.patch.object(llm, "EPISODES_PER_FRONT", 15):
+                (run_root / "archive" / "instance").mkdir(parents=True)
+                (run_root / "archive" / "instance" / "x.jsonl").write_text("", encoding="utf-8")
+                self.assertEqual(driver.plan(self.plan_args(run_root, inputs, supersede=True)), 2)
+            self.assertEqual(driver.file_sha256(kept), old_sha)
+
+    def test_supersede_refuses_a_changed_validation_order(self) -> None:
+        inputs = self.build()
+        run_root = self.tmp / "run"
+        with mock.patch.object(driver, "git", lambda *a: "c0ffee"):
+            with mock.patch.object(llm, "EPISODES_PER_FRONT", 15):
+                self.assertEqual(driver.plan(self.plan_args(run_root, inputs)), 0)
+            old = json.loads((run_root / "plan.json").read_text(encoding="utf-8"))
+            driver.write_json(run_root / "plan.json", {**old, "draw": {**old["draw"], "order": list(reversed(old["draw"]["order"]))}})
+            changed = driver.file_sha256(run_root / "plan.json")
+            self.assertEqual(driver.plan(self.plan_args(run_root, inputs, supersede=True)), 2)
+            self.assertEqual(driver.file_sha256(run_root / "plan.json"), changed)  # nothing renamed
+            self.assertEqual(list(run_root.glob("plan.superseded.*")), [])
 
     def test_workers_exit_codes_and_the_call_totals(self) -> None:
         chosen = driver.choose_workers({"cpu_quota": 16, "memory_bytes": 64 * 2 ** 30}, 30, None)
@@ -187,7 +228,7 @@ class DriverPlanTests(TempDir):
 
     def test_the_pilot_report_checks_the_worst_case_plus_the_pilot_spend_against_the_cap(self) -> None:
         run_root = self.tmp / "run"
-        driver.write_json(run_root / "plan.json", {"planned_frames": {"instance": 10000, "sam2": 10000},
+        driver.write_json(run_root / "plan.json", {"planned_frames": {"instance": 4000, "sam2": 4000},
                                                    "rows_per_frame": {f: {"association_rows": 90.0, "existence_rows": 36.0} for f in llm.FRONTS}})
 
         def pilot(output_tokens: int, fallbacks: int = 0, existence_rows: int = 3600) -> dict[str, Any]:
@@ -203,8 +244,9 @@ class DriverPlanTests(TempDir):
             for front in llm.FRONTS:
                 driver.write_json(run_root / "pilot" / f"{front}.json", pilot(100_000))
             report = driver.pilot_report(run_root, driver.Plan(run_root))
-            # per frame off peak: 0.15 / 18000 * 90 + 0.6 * 0.1 / 3600 * 36 = 0.00075 + 0.0006; x 10000 frames x 2 fronts x 2 (peak)
-            self.assertAlmostEqual(report["projected_usd_worst_total"], (0.00075 + 0.0006) * 10000 * 2 * 2)
+            # per frame off peak: 0.15 / 18000 * 90 + 0.6 * 0.1 / 3600 * 36 = 0.00075 + 0.0006; x 4000 frames x 2 fronts x 2 (peak)
+            self.assertAlmostEqual(report["projected_usd_worst_total"], (0.00075 + 0.0006) * 4000 * 2 * 2)
+            self.assertLess(report["projected_total_with_pilot_usd"], llm.CAP_USD)
             self.assertAlmostEqual(report["projected_total_with_pilot_usd"], report["projected_usd_worst_total"] + 1.0)
             self.assertTrue(report["within_cap"] and report["format_ok"] and report["one_model"])
             for front in llm.FRONTS:
@@ -275,7 +317,7 @@ class DriverRunLoopTests(TempDir):
         self.assertEqual(len(self.started), 6)
 
     def test_no_new_episode_once_the_ledger_reaches_the_cap(self) -> None:
-        self.spend_per_job = 80.0  # the first two finished episodes bring the ledger to $160, over the $150 cap
+        self.spend_per_job = (llm.CAP_USD + llm.SAFETY_STOP_USD) / 4  # two finished episodes: over the cap, under the safety stop
         self.assertEqual(self.run_loop(workers=2), driver.EXIT_DECISION)
         self.assertEqual(len(self.started), 2)
         self.assertFalse((self.run_root / llm.STOP_FILE).exists())
@@ -283,8 +325,8 @@ class DriverRunLoopTests(TempDir):
         self.assertEqual(len(self.started), 2)
 
     def test_a_started_episode_resumes_after_the_cap_but_a_new_one_does_not_start(self) -> None:
-        self.spend_per_job = 80.0
-        self.assertEqual(self.run_loop(workers=2), driver.EXIT_DECISION)  # two done, $160
+        self.spend_per_job = (llm.CAP_USD + llm.SAFETY_STOP_USD) / 4
+        self.assertEqual(self.run_loop(workers=2), driver.EXIT_DECISION)  # two done, over the cap
         interrupted = driver.archive_path(self.run_root, "instance", "ep-0")  # an episode that made calls before an interruption
         interrupted.parent.mkdir(parents=True, exist_ok=True)
         interrupted.write_text("", encoding="utf-8")
@@ -293,7 +335,7 @@ class DriverRunLoopTests(TempDir):
         self.assertEqual(resumed, ["ep-0:simulator_instance_masks"])
 
     def test_the_safety_stop_writes_stop_and_a_rerun_waits_for_the_user(self) -> None:
-        self.spend_per_job = 120.0  # $240, over the $200 safety stop
+        self.spend_per_job = 0.6 * llm.SAFETY_STOP_USD  # two jobs: over the safety stop
         self.assertEqual(self.run_loop(workers=2), driver.EXIT_DECISION)
         self.assertIn("safety_stop_usd", (self.run_root / llm.STOP_FILE).read_text(encoding="utf-8"))
         self.assertEqual(self.run_loop(workers=2), driver.EXIT_DECISION)  # refused while STOP stands

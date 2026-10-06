@@ -5,7 +5,16 @@
   "ruling": "105",
   "ruling_text": "user 2026-10-04: 「待裁 105 全按推荐，但105-11我新租一台机器去同时做」; 104-5 revised the same day: 「LLM-op 改用 DeepSeek V4-Flash API」",
   "arm": "LLM-op",
-  "plain_language_zh": "附录臂 LLM-op 的运行合同（裁决 105）。它回答审稿人必问的“零训练的大模型直接做记忆修订够不够”：输入是与其他臂逐字节相同的封存特征表转成的表格文本，输出是每行一个原子。两套前端各跑同一批 15 个 validation episode；DeepSeek deepseek-flash（2026-10-04 实际为 V4.1-Flash）默认推理模式；每帧问两次（先关联，求解后判存在）；每次最多三个回答，三次都无效就回退（色块全 BIRTH、实体全 NOOP）并计数；所有请求与回答先存档再用，重跑从存档回放；先在 train 上试点 200 帧，只看 token、耗时与格式合格率，按试点推算超过 150 美元就停下汇报；正式运行累计到 150 美元不再开新 episode，到 200 美元全部停（可从存档续跑）。它不进主表、不进 test、不训练、不选参；它不等于官方 DeepSeek 评测，也不是本文方法的一部分。",
+  "amendments": {
+    "108": {
+      "approved": "user 2026-10-06: 「待裁 108 取 (a)」",
+      "changes": "105-2: one validation episode per front end instead of fifteen, the first of the same registered salted order (the draw rule and the salt are unchanged, so the episode was fixed before any result); 105-8: cap 150 -> 30 USD and safety stop 200 -> 40 USD, both counted on the run's ledger including the pilot; everything else of ruling 105 is unchanged (thinking, instructions, attempts, fallback, archive, model rule)",
+      "why": "the appendix needs a descriptive comparison only; the pilot measured about 0.006 USD and a median of 14-72 s per call with thinking on, so fifteen episodes per front end would cost several hundred USD and take days",
+      "replan": "the 105-2 plan (fifteen episodes) is kept beside the new one as plan.superseded.<sha12>.json; the new plan is written at the commit that carries this amendment, and the pilot reruns there from its archive (replayed, not paid again)",
+      "plain_language_zh": "裁决 108（2026-10-06，取 (a)）：LLM-op 只是附录，做描述性对比即可；试点实测每次调用约 0.006 美元、中位 14～72 秒，15 条要几百美元、几天。所以改为每套前端 1 条（同一个已登记的抽签顺序的第 1 条，抽签规则不变、抽之前没看结果），上限 30 美元、安全停 40 美元（都含试点花费），其余口径不变。旧的 15 条计划改名保留，新计划在本修正的提交上重写，试点在新提交上从存档回放、不重复付费。"
+    }
+  },
+  "plain_language_zh": "附录臂 LLM-op 的运行合同（裁决 105）。它回答审稿人必问的“零训练的大模型直接做记忆修订够不够”：输入是与其他臂逐字节相同的封存特征表转成的表格文本，输出是每行一个原子。两套前端各跑同一条 validation episode（裁决 108 由 15 条改为 1 条）；DeepSeek deepseek-flash（2026-10-04 实际为 V4.1-Flash）默认推理模式；每帧问两次（先关联，求解后判存在）；每次最多三个回答，三次都无效就回退（色块全 BIRTH、实体全 NOOP）并计数；所有请求与回答先存档再用，重跑从存档回放；先在 train 上试点 200 帧，只看 token、耗时与格式合格率，按试点推算超过 30 美元就停下汇报；累计（含试点）到 30 美元不再开新 episode，到 40 美元全部停（可从存档续跑；裁决 108 由 150／200 美元改定）。附录只做描述性对比、不做显著性检验。它不进主表、不进 test、不训练、不选参；它不等于官方 DeepSeek 评测，也不是本文方法的一部分。",
   "authorization": {
     "pilot_run": true,
     "validation_run": true
@@ -16,8 +25,8 @@
       "validation_run"
     ],
     "opened_by": "ruling 105: the user reviewed the LLM-op code on 2026-10-04 (「llm-op-impl 我审过了，推送」, merged into main as 506f1b5) and approved the run on 2026-10-06 (「LLM-op的审批通过」), confirming the 14 implementation readings of the ruling-105 landing record; the model name was checked the same day: DeepSeek's pricing page (read 2026-10-06) serves deepseek-flash as DeepSeek-V4.1-Flash at the registered prices, so request.model and the prices stay unchanged",
-    "still_bound_by": "the pilot (200 train frames per front end) is its own step and never starts the run; by the user's instruction of 2026-10-06 the validation run starts only after the user has decided the episode count from the pilot's measured cost, and the run entry still refuses a pilot that ended at a decision point (exit 3: worst-case projection over 150 USD, an unpriced call kind, a fallback rate over 2%, or two model names) unless ACCEPT_PILOT=1; the 150 USD cap (no new episode) and the 200 USD safety stop (every process stops) hold; running fewer than 15 episodes per front end is an amendment of 105-2 that needs its own ruling",
-    "plain_language_zh": "按裁决 105 打开试点与正式运行两个位：用户 2026-10-04 审过 LLM-op 代码（合入 main 为 506f1b5），2026-10-06 批准运行并确认 14 条实现读法；同日核对 deepseek-flash 即 DeepSeek-V4.1-Flash、价格与登记值相同，合同不改。打开不等于放开：试点是单独一步、不会自动接着跑正式运行；按用户 2026-10-06 的要求，试点后由用户按实测花费定条数再开正式运行；试点若停在决定点（退出码 3：最坏推算超 150 美元、某类调用无法定价、回退率超 2% 或出现两个模型名），正式运行仍要 ACCEPT_PILOT=1 才开；150 美元不开新 episode、200 美元全部停仍然有效；少于每套前端 15 条是对 105-2 的修正，须另行裁决。"
+    "still_bound_by": "the pilot (200 train frames per front end) is its own step and never starts the run; by the user's instruction of 2026-10-06 the validation run starts only after the user has decided the episode count from the pilot's measured cost, and the run entry still refuses a pilot that ended at a decision point (exit 3: worst-case projection over 150 USD, an unpriced call kind, a fallback rate over 2%, or two model names) unless ACCEPT_PILOT=1; the 150 USD cap (no new episode) and the 200 USD safety stop (every process stops) hold; running fewer than 15 episodes per front end is an amendment of 105-2 that needs its own ruling (ruling 108, 2026-10-06, made it one episode per front end with a 30 USD cap and a 40 USD safety stop; see amendments)",
+    "plain_language_zh": "按裁决 105 打开试点与正式运行两个位：用户 2026-10-04 审过 LLM-op 代码（合入 main 为 506f1b5），2026-10-06 批准运行并确认 14 条实现读法；同日核对 deepseek-flash 即 DeepSeek-V4.1-Flash、价格与登记值相同，合同不改。打开不等于放开：试点是单独一步、不会自动接着跑正式运行；按用户 2026-10-06 的要求，试点后由用户按实测花费定条数再开正式运行；试点若停在决定点（退出码 3：最坏推算超 150 美元、某类调用无法定价、回退率超 2% 或出现两个模型名），正式运行仍要 ACCEPT_PILOT=1 才开；150 美元不开新 episode、200 美元全部停仍然有效；少于每套前端 15 条是对 105-2 的修正，须另行裁决（裁决 108 已改为每套前端 1 条、上限 30／安全停 40 美元，见 amendments）。"
   },
   "activation_rule": "both bits stay false until the user has reviewed the LLM-op code; the commit that opens them names the ruling and the review in activation_policy (the S2 pattern) and re-pins the reviewed contract digest in tests/test_vsmt_lean_llm_op.py; the pilot entry refuses while pilot_run is false, the validation entry while validation_run is false",
   "fronts": {
@@ -25,12 +34,12 @@
     "sam2": "sam2"
   },
   "validation_scope": {
-    "episodes_per_front": 15,
+    "episodes_per_front": 1,
     "same_episodes_for_both_fronts": true,
     "draw_salt": "vsmt-lean-llm-op-105-2|",
-    "draw_rule": "ascending sha256(draw_salt + episode_id) over the validation episodes usable in both front ends (the S3-03 check's lists); the first 15; no outcome, length or content enters the order",
-    "comparison_rule": "in the appendix every other arm is compared with LLM-op on these same episodes only",
-    "plain_language_zh": "105-2：每套前端 15 个 validation episode，两套是同一批；按“盐串＋episode ID”的 sha256 升序取前 15 个，抽之前不看任何结果。附录里其他臂也只在这同一批上比。"
+    "draw_rule": "ascending sha256(draw_salt + episode_id) over the validation episodes usable in both front ends (the S3-03 check's lists); the first 1 (ruling 108; 105-2 took the first 15); no outcome, length or content enters the order",
+    "comparison_rule": "in the appendix every other arm is compared with LLM-op on these same episodes only; with one episode per front end the comparison is descriptive (no significance test, no claim beyond this episode)",
+    "plain_language_zh": "105-2（裁决 108 修正）：每套前端 1 个 validation episode，两套是同一条；按“盐串＋episode ID”的 sha256 升序取第 1 个，抽之前不看任何结果。附录里其他臂也只在这同一条上比，只做描述、不做显著性检验。"
   },
   "request": {
     "provider": "DeepSeek",
@@ -117,9 +126,9 @@
       "returned model name"
     ],
     "projection_rule": "lean_llm_op.project_cost: off-peak dollars per association row and per existence row measured in the pilot, times the larger of the registered rows of a full frame (fragments per frame x 9 for association, an upper bound with all 8 candidates; the S3-03 round-0 ELU-P mean existence candidates per frame) and the pilot's own rows per frame, times the planned frames, with every call at the peak price (the worst case), plus the pilot's own spend",
-    "stop_when_projection_exceeds": 150.0,
+    "stop_when_projection_exceeds": 30.0,
     "other_decision_points": "a call kind the pilot never asked (cannot be priced), a fallback rate above 0.02 in either kind, or two returned model names; the run starts only after the user accepts the decision point (--accept-pilot, recorded)",
-    "plain_language_zh": "105-8：先在 train 的 1 个 episode 上试点（每套前端前 200 帧），只看 token、耗时、格式合格率和返回的模型名，不读私有数据、不算任何指标；按每行的价钱乘满帧的行数推算，超过 150 美元就停下汇报。"
+    "plain_language_zh": "105-8：先在 train 的 1 个 episode 上试点（每套前端前 200 帧），只看 token、耗时、格式合格率和返回的模型名，不读私有数据、不算任何指标；按每行的价钱乘满帧的行数推算，超过 30 美元（裁决 108；原 150）就停下汇报。"
   },
   "cost": {
     "prices_off_peak_usd_per_million_tokens": {
@@ -147,11 +156,11 @@
     ],
     "prices_source": "https://api-docs.deepseek.com/quick_start/pricing, read 2026-10-04 (deepseek-flash)",
     "holidays": "DeepSeek charges the off-peak price on Chinese public holidays; the ledger does not model them, so it can only overstate",
-    "cap_usd": 150.0,
+    "cap_usd": 30.0,
     "cap_rule": "once the run's ledger reaches the cap no new episode starts; running episodes finish, and an episode that has already made calls may resume after an interruption",
-    "safety_stop_usd": 200.0,
+    "safety_stop_usd": 40.0,
     "safety_rule": "every live call first sums the run's ledgers: at the safety stop it writes STOP (so it holds without the driver), and every process stops before its next call; the driver also writes STOP when it is terminated or fails, and the user can write it with the stop subcommand; past the safety stop the run can resume only if a ruling raises it",
-    "plain_language_zh": "价格按 2026-10-04 官网（非峰时：输入命中缓存 0.003、未命中 0.15、输出 0.6 美元／百万 token；工作日 UTC 01–04 点与 06–10 点翻倍）；节假日的优惠不计，所以账本只会高估。累计 150 美元不再开新 episode，200 美元全部停。"
+    "plain_language_zh": "价格按 2026-10-04 官网（非峰时：输入命中缓存 0.003、未命中 0.15、输出 0.6 美元／百万 token；工作日 UTC 01–04 点与 06–10 点翻倍）；节假日的优惠不计，所以账本只会高估。累计（含试点）30 美元不再开新 episode，40 美元全部停（裁决 108；原 150／200）。"
   },
   "host": {
     "rule": "a separate rented host (105-11 as the user decided): no GPU needed; the plan is written on the S3-02 host from the S3-03 check's lists (non-provisional unless recorded otherwise), the inputs of the drawn and the pilot episodes are copied with ops/vsmt/llm_op.sh transfer, and the run there re-verifies every seal before the pilot",
