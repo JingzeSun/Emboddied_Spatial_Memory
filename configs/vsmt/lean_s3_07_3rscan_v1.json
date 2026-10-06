@@ -78,7 +78,7 @@
  "sample_check_rules": {
   "alignment_translation_unit": "align the rescan mesh to the reference mesh under m and under mm; take the unit with the smaller median nearest-vertex distance over objects in no change list; stop if both exceed 0.10 m",
   "obb_axes_layout": "rows or columns: the layout whose OBB contains more of the object's own annotated mesh vertices (median over objects); stop if neither contains at least 95%",
-  "image_rotation_confirmed": "after the clockwise turn the image's up direction is within 45 degrees of world +Z on at least 95% of frames; otherwise stop and report, never try another direction",
+  "image_rotation_confirmed": "pending amendment 1 of ruling 111 (DECISIONS): per sample scan, the median roll cosine (lean_s3_07_3rscan.image_roll_cosine: the image up axis against world up projected onto the image plane; frames looking within about 12 degrees of straight up or down not judged) is at least cos 45 deg under the clockwise turn and the largest of the four candidate turns (turned_rotation); every sample scan must pass, otherwise stop and report, never pick another direction. The approved wording (up axis within 45 deg of world +Z on 95% of frames) mixes in the camera pitch: on the 2026-10-07 preview of the sample scene (cameras about 55 deg down) the right turn read about 0.5",
   "ambiguity_structure_confirmed": "the ambiguity value names instances under instance_source / instance_target as ambiguity_ids reads them"
  },
  "authorization": {

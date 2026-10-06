@@ -33,7 +33,7 @@ from vsmt import lean_teacher as lt  # noqa: E402
 COLOR = {"fx": 756.832, "fy": 756.026, "cx": 492.889, "cy": 270.419}
 DEPTH = {"fx": 176.594, "fy": 240.808, "cx": 114.613, "cy": 85.7915}
 #: the reviewed contract, digest of its canonical JSON (re-pinned only with a ruling or a registration commit)
-CONTRACT_SHA256 = "bf37877353ce079a08a7481720cf54b2d2395cc5a34b8e236d445a0ad51c0245"
+CONTRACT_SHA256 = "1d39dc7eab845ba4b0472ccaf2045dba8a555fadf6c4622ba7c1cf7157d74e03"
 
 INFO_TEXT = """m_versionNumber = 4
 m_sensorName = StructureSensor
@@ -259,15 +259,21 @@ class CameraTests(unittest.TestCase):
         self.assertLess(float(np.max(np.abs(out[..., 0] * 959.0 / 255.0 - u_raw))), 6.0)
         self.assertLess(float(np.max(np.abs(out[..., 1] * 539.0 / 255.0 - v_raw))), 4.0)
 
-    def test_image_up_of_a_sideways_handheld_frame_is_world_up(self) -> None:
-        """A phone held upright records a sideways raw frame: raw +x points down (world -Z), the camera looks along +X."""
+    def test_roll_of_a_sideways_handheld_frame_ignores_pitch(self) -> None:
+        """A phone held upright records a sideways raw frame (raw +x points down, world -Z).  Turned clockwise the image has no
+        roll however far the camera looks down; the other turns read 0 or -1."""
 
-        sideways = rigid(np.asarray([[0.0, 0.0, 1.0], [0.0, 1.0, 0.0], [-1.0, 0.0, 0.0]]), [1.0, 2.0, 1.5])
-        rotation, _position, _res = r3.camera_pose(sideways)
-        self.assertAlmostEqual(r3.image_up_cosine(rotation), 1.0, places=12)
-        level = rigid(np.asarray([[0.0, 0.0, 1.0], [-1.0, 0.0, 0.0], [0.0, -1.0, 0.0]]), [1.0, 2.0, 1.5])  # raw frame upright
-        rotation, _position, _res = r3.camera_pose(level)
-        self.assertAlmostEqual(r3.image_up_cosine(rotation), 0.0, places=12)
+        sideways = np.asarray([[0.0, 0.0, 1.0], [0.0, 1.0, 0.0], [-1.0, 0.0, 0.0]])  # raw camera looking along world +X
+        for pitch in (0.0, -0.5, -1.0, -1.3):  # tilt down about the raw camera's horizontal axis (raw y, world +Y)
+            pose = rigid(sideways @ rotation_about([0.0, 1.0, 0.0], pitch), [1.0, 2.0, 1.5])
+            rotation, _position, _res = r3.camera_pose(pose)
+            self.assertAlmostEqual(r3.image_roll_cosine(rotation), 1.0, places=9)
+            self.assertTrue(np.allclose(rotation, r3.turned_rotation(pose, "clockwise_90")))
+            self.assertAlmostEqual(r3.image_roll_cosine(r3.turned_rotation(pose, "none")), 0.0, places=9)
+            self.assertAlmostEqual(r3.image_roll_cosine(r3.turned_rotation(pose, "counterclockwise_90")), -1.0, places=9)
+            self.assertAlmostEqual(r3.image_roll_cosine(r3.turned_rotation(pose, "half_turn")), 0.0, places=9)
+        straight_down = rigid(sideways @ rotation_about([0.0, 1.0, 0.0], -math.pi / 2), [1.0, 2.0, 1.5])
+        self.assertTrue(math.isnan(r3.image_roll_cosine(r3.camera_pose(straight_down)[0])))
 
     def test_world_up_becomes_project_up(self) -> None:
         self.assertTrue(np.allclose(r3.to_project_world([0.0, 0.0, 1.0]), [0.0, 1.0, 0.0]))

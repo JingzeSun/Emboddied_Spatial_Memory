@@ -478,14 +478,37 @@ def camera_pose(pose_raw: np.ndarray, *, alignment: np.ndarray | None = None) ->
     return rotation, position, residual
 
 
-def image_up_cosine(rotation: np.ndarray) -> float:
-    """Cosine between the upright target image's up direction and world up (sample check of the clockwise turn, ★).
+#: frames whose forward axis is within this sine of straight up or down have no defined roll and are not judged
+ROLL_UNDEFINED_BELOW = 0.2
+#: the camera turns the sample check compares (ruling 111-5 amendment, pending): image up is camera +y after each turn
+ROLL_CANDIDATE_TURNS = ("clockwise_90", "none", "counterclockwise_90", "half_turn")
 
-    The target camera's +y is the image's up; in the project world (+Y up) its world-up component is ``rotation[1, 1]``.  A
-    handheld frame turned the right way gives a value near 1; turned the wrong way, near -1 or 0.
+
+def image_roll_cosine(rotation: np.ndarray) -> float:
+    """Cosine of the image's roll: the target image's up axis against world up projected onto the image plane (★ sample check).
+
+    白话：判断“转正之后画面是不是正的”，要看滚转而不是俯仰。把世界向上方向投影到图像平面上，和图像的上方向比：转对了接近 1，
+    差 90° 接近 0，转反了接近 -1；相机低头多少都不影响它。相机几乎正对天花板或地面时滚转没有定义，返回 NaN、不参与判断。
+    它不是“图像上方向与世界向上的夹角”——那个量混进了俯仰，手持扫描低头 55° 时转对了也只有约 0.5（2026-10-07 小样本预演）。
     """
 
-    return float(np.asarray(rotation, dtype=np.float64)[1, 1])
+    r = np.asarray(rotation, dtype=np.float64)
+    forward, up = r[:, 2], np.asarray([0.0, 1.0, 0.0])
+    projected = up - float(up @ forward) * forward
+    norm = float(np.linalg.norm(projected))
+    if norm < ROLL_UNDEFINED_BELOW:
+        return float("nan")
+    return float(r[:, 1] @ (projected / norm))
+
+
+def turned_rotation(pose_raw: np.ndarray, turn: str) -> np.ndarray:
+    """The converted camera rotation under one candidate turn (sample check only; conversion always uses the registered turn)."""
+
+    _require(turn in ROLL_CANDIDATE_TURNS, "turn_unknown")
+    matrix = _rigid(np.asarray(pose_raw, dtype=np.float64), "pose_not_rigid")
+    turns = {"clockwise_90": Q, "none": np.eye(3), "counterclockwise_90": Q.T, "half_turn": Q @ Q}
+    rotation, _residual = nearest_rotation(W @ matrix[:3, :3] @ turns[turn].T @ S)
+    return rotation
 
 
 def relative_pose(rotation: np.ndarray, position: np.ndarray, origin_position: Sequence[float]) -> dict[str, Any]:
