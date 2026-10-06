@@ -522,6 +522,18 @@ S4 论文
 | 输出 | 主表（含与主比较并列的 `AssocOnly` 行）、消融表、三分解、规模与成本、逐例失败 |
 | 继续门 | 只跑一次；失败照实报告，不换样本、不改方法、不改指标 |
 
+### S3-05R 公开发布到 Hugging Face（裁决 108，planned）
+
+| 项 | 内容 |
+|---|---|
+| 状态 | 裁决 108 批准（2026-10-06）；planned，S3-05 跑完、解封记录写好之后才开始；现在只做 B1 到 huggingface.co 的连通测试并写 `ops/vsmt/hf_release.py`／`hf_fetch.py`（单职责提交，用户审） |
+| 输入 | S3-02 数据（train／validation／test 的原始 episode 公开面与私有面、几何表、两套 cache）、S3-03 运行根（训练记录、权重、审计）、S3-04 冻结回执、S3-05 统计与合并审计、B1 存档的环境清单（conda／pip） |
+| 完整动作 | 分四层、各自独立下载：T0 结果与权重（约 0.5 GB，模型仓库 `Jsun0632/vsmt-lean`）；T1 评估输入（validation 与 test 的原始 episode、几何、两套 cache，约 75 GB，`…-s3-eval`）；T2 训练记录（约 24 GB，`…-s3-records`）；T3 训练输入（train 的原始 episode、几何、两套 cache，约 195 GB，`…-s3-train`）。每条 episode 打成一个确定性 tar（文件排序、时间与属主固定）并记 sha256，解包后用已有的逐 episode 目录摘要核对（test 用封印，train／validation 用 S3-02 导出）；GitHub 打标签（如 `s3-v1`），README 写死每个 HF 仓库的 revision 哈希与两条复现路径（只用 GitHub 从 ProcTHOR-10K 起全部重跑；或从 HF 任一层切入：T0 重算统计、T0＋T1 重跑审计、T2 重训、T3 重跑 S3-03）；先以 private 上传，逐文件核对后转 public；数据许可 CC-BY-4.0（发布前核对 ProcTHOR-10K 与 AI2-THOR 渲染图的再分发许可，SAM 2.1、DINOv2 为 Apache-2.0）；从 B1 上传（出口约 11 MB/s，约 316 GB 至少 8 小时），HF 令牌由用户自己在 B1 登录，执行者不经手 |
+| 输出 | 四个 HF 仓库及其 revision、`results/` 里的发布清单（每个 tar 的 sha256 与对应的 S3 清单项）、README“从 HF 复现” |
+| 继续门 | test 字节在 S3-05 解封之前绝不离开 B1；上传完成并逐文件核对之前不释放 B1；逐位一致只在 Intel AVX-512＋MKL 上验证过，AMD 需 w1 的 LD_PRELOAD 修复，其他 CPU 可能有末位差异，发布说明照实写 |
+
+白话：这一步让别人不必重做我们三天的计算也能核对结果。输入是 S3 全部产物，输出是四个可单独下载的 HF 仓库和一份把每个文件对上 GitHub 清单的发布清单。例如审稿人只下 0.5 GB 的 T0 就能重算主门；想确认审计没做手脚，再下 75 GB 的 T1 在 CPU 上重跑。它不改任何结果、不新增实验，也不是在 S3-05 之前公开 test。
+
 ### S3-06 主张审计
 
 | 项 | 内容 |
