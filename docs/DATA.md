@@ -233,14 +233,72 @@
 
 当前没有生成任何 episode、cache、标签或评价文件；SAM 2.1 与 DINOv2 ViT-B/14 资产尚未下载；所有数值待 S0 登记。
 
-## 十、外部验证数据源（裁决 83-4，planned，待调研）
+## 十、外部验证数据源（裁决 83-4，planned；2026-10-03 文档级调研，2026-10-07 官方资料与源码核对，待小样本核实；范围见待裁 111）
+
+调研只读了官方 README／FAQ／工具源码、RIO 论文、使用条款，并用 HTTP 头量了文件大小，**没有下载任何数据**；标 ★ 的项要下载小样本才能核实。
 
 | 项 | 内容 |
 |---|---|
-| 首选来源 | 3RScan：同一真实室内场景相隔一段时间的多次 RGB-D 重扫描，带实例级标注与物体变化（搬动、移除、新增）；DSG（arXiv 2609.00619）用其中 5 对做真实数据评价 |
-| 待调研 | 许可证是否允许本项目使用与发布派生结果；重扫描对的物体变化标注能否转成本项目私有真值表（`object_geometry`、在场／缺席、搬动前后位置）；深度、内参与位姿能否喂给 S1-03 的 SAM 2.1 前端；序列长度与本项目 episode 的对应 |
+| 首选来源 | 3RScan：同一真实室内场景相隔几分钟到几个月的多次 RGB-D 扫描（Tango 手机手持），1,482 次扫描／478 个场景，约 36.3 万帧（每次扫描平均约 245 帧）；官方划分 train 385 场景／793 次重扫描、validation 47／110、test 46／101（test 的重扫描不发布标注，不能用）；3,289 次实例变换、涉及 1,947 个物体，位移从几厘米到几米。DSG（arXiv 2609.00619）只用其中 5 对、1,866 个关键帧，用真值位姿与真值实例 mask |
+| 许可 | 数据 CC BY-NC-SA 4.0 加 TUM 使用条款：只限非商业研究与教育；给合作者访问须对方先同意条款；无担保、使用者自担责任；德国法。论文里报告指标与少量示例图属研究用途；转换后的帧、cache、真值表不公开发布，只公开转换代码与扫描 ID 清单 |
+| 每次扫描的文件 | `sequence.zip`：`frame-NNNNNN.color.jpg` 960×540、`.depth.pgm` 224×172（16 位、毫米）、`.pose.txt`（RGB 相机到世界的 4×4，米）、`_info.txt`（彩色与深度两套内参；两者已配准，只差分辨率）；`mesh.refined.v2.obj`；`labels.instances.annotated.v2.ply`（逐顶点 `objectId`，同一场景各次扫描的 ID 一致）；`semseg.v2.json`（每个实例的标签与 OBB）。场景级 `3RScan.json`：重扫描到参考扫描的对齐 `transform`（平移单位是毫米）、`rigid`（搬动及其变换；官方源码注释说方向是参考到重扫描，读时取逆）、`removed`、`nonrigid`、`ambiguity`（可互换的同款物体）；新增物体＝只在重扫描里出现的 ID。逐帧 2D 实例图不提供，要用标注网格按每帧位姿渲染（官方 `rio_renderer` 为 C++／OpenGL） |
+| 与 episode 的对应 | 参考扫描＝扫掠一；两次扫描之间＝不可观测窗口（窗口内 0 帧）；重扫描＝扫掠二（整屋重扫，原位置一定会再被看到）。重扫描的位姿乘对齐变换后改为相对观测 0。对齐由两次完整重建离线求得并经人工核对，属于“位姿已知”的假设，与 ProcTHOR 的精确位姿同类，报告时须写明 |
+| 本项目读入口的硬约束（2026-10-03 只读核对源码） | ① 公开 RGB、深度与实例图必须在同一 224×224 网格、共用一套内参（D-223 前端字节钉死），所以要旋正（同行代码有专门的 90° 旋转开关 ★）、裁成正方形、深度最近邻重采样；彩色内参的一个公开样例算出视场约 65°×39°，裁方后约 39°，ProcTHOR 是 90° ★。② 相机系是 x 右、y 上、z 前，世界 y 向上；3RScan 是 OpenCV 系，要翻轴，真值位置与框同样处理，代码不会核对，须有测试。③ 位姿登记表（S1-03 合同 `public_pose_correction`）只认已登记的生成提交，转换器提交须登记，规则摘要会变，须另裁。④ S1-03 cache 生成器只扫描 `procthor10k-*` 目录名。⑤ 色块的有效深度点少于 max(32, 色块像素的 25%)，或一帧超过 64 个色块、出现重复色块，都会让整条 episode 失败；ProcTHOR 深度没有空洞所以从未触发，真实 ToF 深度在深色、反光、远处表面有空洞，风险高 ★。⑥ 真值框＝初始框加平移，不含旋转；没有“开头不存在”和“非刚性变化”两种状态：新增物体只能记成 `add`（在场但未被看到前不进范围，指标照常），非刚性须预先登记处理规则；结构件清单只有 `Ceiling_room／door／room／wall／window` 五类，3RScan 的标签要预先映射。⑦ 新增第三种 mask 来源要改合同与摘要；渲染出的标注实例图可以按 `simulator_instance_masks` 原路径读、方法代码不变，但封印里的来源名不符实，须登记。⑧ 没有读取 S3-04 冻结回执的入口，需要新写 S3-07 驱动，不改方法代码 |
+| 真值性质 | 渲染出的实例图、物体位置与框来自人工网格标注和离线配准，是代理真值，不是传感器级 ground truth |
+| 体积 | validation 的 47 个参考扫描实测：所需四类文件（`sequence.zip`、OBJ、标注 PLY、`semseg.v2.json`，不含贴图）合计 3.0 GB，平均 64 MB／次扫描；validation 全部 157 次扫描估约 10 GB（重扫描的 ID 在 `3RScan.json` 里，未量）。`3RScan.json` 3,155,995 字节 |
 | 读取边界 | 与 ProcTHOR 数据同一套三面读取：公开面只含 RGB-D、内参、位姿；私有面只给评价器；不生成训练记录、不选参 |
-| 备选 | 自采一段带若干次搬动的 RGB-D 序列（SAM 2.1 前端），真值靠人工标注，规模小、只作定性与少量定量 |
+| 备选 | ObChange（CC-BY-4.0，约 109 GB，5 个房间、机器人多次巡视，标注的是 YCB 小物体）；或自采一段带搬动的 RGB-D 序列、人工标注，只作定性与少量定量 |
 | 不做 | 真实机器人闭环、导航或操作 |
 
 白话：这一节回答“外部验证用什么数据”。输入是公开的真实重扫描数据与它们的变化标注，输出是能被本项目评价器直接读的私有真值表和能被前端直接读的公开帧。它不是新的训练数据，也不改变 S3 的划分。
+
+### 2026-10-07 核对（S3-07 会话，只读；没有下载数据、没有填表、没有接受条款）
+
+核对读了 3RScan 仓库（README、FAQ、LICENSE、`splits/`、`c++/`、issue #8／#13／#18、PR #5）、RIO 论文与补充材料、RIO10 论文、使用条款 PDF 与表单正文、下载脚本正文（未运行），以及 3DSSG、SceneGraphFusion、sgaligner、ObjectsCanMove、3rscan-triplet-dataset-toolkit 的读取代码；本项目的读入口逐条对照 `s3-07-impl` 分支上的源码（与 S3-04 冻结提交 `dea8c20` 的 `src/`、`ops/`、`configs/` 相同）。上表保留 2026-10-03 原文，更正与补充写在下面。
+
+**更正与补充**
+
+| 项 | 2026-10-03 写法 | 核对结果 | 依据 |
+|---|---|---|---|
+| 许可 | 数据 CC BY-NC-SA 4.0 加 TUM 条款 | CC BY-NC-SA 4.0 只出现在官方下载脚本的文件头注释里，使用条款与表单都不提 CC。条款共七条：只限非商业研究与教育；TUM 不担保；使用者对 TUM 免责（含受版权保护的三维模型的副本）；同事与合作者须先同意条款才可接触数据；TUM 可随时终止；营利雇主同受约束；适用德国法。条款**没有写派生数据（渲染帧、转换后的标注）能否再分发，也没有写论文图表**。仓库代码 `LICENSE` 是 MIT，`rio_lib`／`rio_renderer` 源文件头写 LGPL v3.0，两者不一致 | 条款 PDF `3RScanTOU.pdf`、表单正文、下载脚本 gist 第 4 行、`c++/rio_lib/.../types.h` 1～8 行 |
+| 发布口径 | 帧、cache、真值表不公开 | 维持，并补一条：裁决 110 的 Hugging Face 发布**不得**包含任何 3RScan 派生字节（帧、cache、私有表、审计记录）；只发布转换代码、扫描 ID 清单与指标；论文示例图只放少量帧并注明出处；若以后要发派生数据，先写信问维护者（3RScan@googlegroups.com）并另裁 | 条款对派生数据无明文 |
+| 划分 | train 385／793、validation 47／110、test 46／101 | 属实（RIO 论文表 2：validation 157 次扫描）。`splits/val.txt` 只列 47 个参考扫描；`3RScan.json` 每个场景有 `type`（train／validation／test）。test 重扫描只发布网格与序列、不发布标注，官方读取代码对 test 不读重扫描的变化项 | RIO 论文表 2、下载脚本 29～35 行、issue #8、`data.cc` 30～31 行 |
+| 彩色与深度 | 960×540；224×172、16 位毫米 | 属实；深度 0 为无效。一个官方样例 `_info.txt`：彩色内参 fx 756.832、fy 756.026、cx 492.889、cy 270.419，深度内参 fx 176.594、fy 240.808、cx 114.613、cy 85.7915，外参单位阵。**深度内参就是彩色内参按 224/960、172/540 缩放**，所以深度与彩色同视场、像素不是正方形；**内参逐扫描不同**（另一扫描 fx＝fy＝877.5） | 旧版 `sequence.cc` 47～58 行注释（PR #5 删除前）、FAQ、ObjectsCanMove `initialDetection.py` |
+| 视场 | 约 65°×39°，裁方后约 39° | 按上面两组内参：横向 64.8°／57.4°，纵向 39.3°／34.2°；裁成短边正方形后约 **34°～39°，逐扫描不同**（ProcTHOR 90°）★ | 由内参计算 |
+| 旋转 | 同行代码有 90° 旋转开关 ★ | 原始帧按横向存储、画面侧躺；官方 `rio_renderer` 把每张输出顺时针转 90°（`renderer.cc` 277～311 行），3DSSG 用 `np.rot90(img, 3)`，RIO10 的内参是交换后的竖向值；**本仓库没有任何旋转、裁剪或缩放开关**，旋正与裁方只能在转换器里做 ★ | 上述源码；本仓库 grep |
+| 网格与标注 | — | `mesh.refined.v2.obj` 与标注 PLY 都是 **+Z 朝上、米**；PLY 逐顶点有 `objectId`（同一场景各次扫描一致）、`globalId`（类别 ID，不是实例）、`NYU40`、`Eigen13`、`RIO27`；`semseg.v2.json` 的 OBB 是 `centroid`、`axesLengths`、`normalizedAxes`（三个单位轴） | README、FAQ、issue #13 |
+| `3RScan.json` 的平移单位 | 毫米 | **官方资料自相矛盾**：FAQ 写毫米；官方 `rio_lib`（`sequence.cc` 21～24 行只在转成毫米时乘 1000）、SceneGraphFusion、sgaligner 都按米直接作用在米制顶点上，benchmark 样例的平移是 −2.1、1.4、3.4。按代码推断是米。**用小样本按几何残差定**（见待裁 111-5），不按任何方法输出定 ★ | FAQ“How to align the rescan 3D models”、`rio.cc` 58～88 行 |
+| 对齐矩阵 | — | 16 个数、**列主序**，方向是重扫描到参考扫描 | `data.cc` 36～49 行、sgaligner、benchmark 样例 |
+| `rigid` | 参考到重扫描，读时取逆 | 方向属实（README 写反，`data.cc` 54～56 行注释更正并取逆）；每项有 `instance_reference`、`instance_rescan`、`symmetry`（0＝无，其余整数码未写明）、`transform`；**这个变换在哪个坐标系里未写明**（官方 `TransformInstance` 把它的逆作用在未对齐的重扫描网格上，可能已含场景对齐）★。待裁 111 的真值规则不用这个变换，只用它判“哪个实例被搬动”，位置取重扫描自己的标注 | README、`data.cc`、`rio.cc` 200～241 行 |
+| `ambiguity` | 可互换的同款物体 | README 写成“列表的列表”，每项 `instance_source`、`instance_target`、`transform`；SceneGraphFusion 按平铺列表解析。语义按字面是“这些实例之间的对应不唯一”，**确切结构要看真文件** ★ | README、SceneGraphFusion `Scan3R_json_loader.h` 104～110 行 |
+| 新增物体 | 只在重扫描里出现的 ID | 属实（没有 `added` 字段，社区代码同样按 ID 差集算） | ObjectsCanMove `create_GTchanges.py` 130～144 行 |
+| 变化标注完整性 | — | **变化标注不完整**（Adam 等，arXiv 2312.01148 第 4 节）：有的搬动没有标进 `rigid`。所以私有真值的事件集合也是代理量；转换器另报“标注之外的大位移”计数（见待裁 111-3） | 同左 |
+| `rio_renderer` | C++／OpenGL | 属实，另：依赖 GLFW 窗口、没有无头（EGL）路径，服务器上要虚拟显示；输出分辨率固定为彩色原尺寸、没有参数；issue 里有多例全黑输出。待裁 111 改用 CPU 光线投射在目标网格上直接渲染 | `CMakeLists.txt`、`renderer.cc` 57～183 行、issue #21／#23／#24／#28 |
+| 深度质量 | 真实 ToF 有空洞，风险高 ★ | 原始 Tango 深度经标定与中值滤波；**官方 FAQ 自己建议深度太差时从网格渲染深度，RIO10 也用渲染深度**。设备型号 3RScan 没写；224×172 与 Phab 2 Pro 的 pmd ToF 一致属推断 | RIO 补充材料“RGB-D sequences”、FAQ、RIO10 论文 |
+| 时间间隔 | 几分钟到几个月 | 属实；没有逐扫描时间戳 | RIO 论文 3.1 节 |
+
+**本项目读入口的八条约束：代码证据与解决方案**（代码位置均在本分支；“方案”是待裁 111 的推荐口径，未实现）
+
+| # | 约束 | 代码证据 | 方案 |
+|---|---|---|---|
+| ① | 公开 RGB（uint8，224×224×3）、米制轴向深度（float32）、实例图在同一 224×224 网格，同一套内参；不查视场，不支持旋转、裁剪、缩放 | DINO 预处理 `l1_entities.py` 144～150 行；mask 形状 183～187 行；自由空间要求正方形且能被 14 整除 `l1_structures.py` 717～725 行；内参只查 `{fx,fy,cx,cy}` 有限且 fx、fy>0（`l1_entities.py` 240～267 行）；有效深度 [0.05, 20] m（294～299 行）；90° 视场只写在 ProcTHOR 生成器里 | 转换器做：顺时针转 90°、取短边中心正方形、面积平均缩到 224；内参按旋转、裁剪、缩放逐扫描推出（像素中心约定，与 ProcTHOR 的 cx＝111.5 一致）；实例图与深度在同一目标相机下直接渲染。视场 34°～39° 照记、不调 |
+| ② | 相机系 x 右、y 上、z 前（Unity 左手系），世界 y 朝上（`UP_AXIS_INDEX = 1`），位姿必须是真旋转、单位四元数（容差 1e-6） | `l1_entities.py` 277～283 行、`lean_assignment.py` 191～194 行、`lean_public_pose.py` 51～62 行 | 世界换轴 W（交换 y、z：+Z 朝上 → +Y 朝上，是一次镜像）、相机换轴 S＝diag(1,−1,1)（OpenCV y 向下 → y 向上），旋转部分 R′＝W·R·Qᵀ·S 行列式为 +1（Q 是图像旋正对应的相机转动）；真值位置与盒同样乘 W。测试用冻结的反投影函数核对：已知三维点按换算后的位姿与内参投影，落点与原始相机一致 |
+| ③ | 位姿登记表只认已登记的生成提交，未登记即整趟拒绝（cache 生成器、S2-04 深度视图、node audit 都查） | `lean_public_pose.py` 128～146 行；`lean_s1_03_cache.py` 1140～1151、779～782 行；`lean_s2_04_evaluate_episode.py` 208～214 行（策略从磁盘上的 S1-03 合同读） | 一个登记提交（分支上做，S3-04 回执推送后、GPU 段前；S3-05 结束后随分支合入 main）：把转换器提交追加到 `correct_encoder_since_code_commits`（与 S3-02 的登记提交 `4ad0233` 同类），S1-03 规则摘要随之变、测试重钉；S3-07 在该提交上运行，用代码差异白名单与逐位探针证明各臂未变（待裁 111-7） |
+| ④ | cache 生成器只扫描 `procthor10k-*` 目录（另有 S1-04、导出等处同样的 glob） | `lean_s1_03_cache.py` 1139 行（另 479、504 行） | 不给 3RScan 目录冒用 ProcTHOR 名。推荐在同一登记提交里把发现规则扩成 `procthor10k-*` 或 `3rscan-*`（一行）；备选是 S3-07 包装器直接调用冻结的 `build_episode(task)`。两种都用 E2 证明 ProcTHOR 封印逐位不变 |
+| ⑤ | ≥196 像素的色块若有效深度点少于 max(32, 25%) 即 `fragment_depth_support_insufficient`，整条 episode 失败（不丢弃该色块）；一帧超过 64 个色块 `proposal_overflow`、重复色块 `duplicate_proposal_mask` 同样整条失败 | `l1_entities.py` 100～106、301～303 行；`lean_frontend_cache.py` 175～204、300～304 行；合同 `any_frame_failure_fails_the_episode` | 深度推荐用该次扫描自己的标注网格在目标相机下渲染（与实例图同源、无传感器空洞；官方 FAQ 与 RIO10 同做法），传感器深度只作转换器诊断（报告“若用它会失败”的帧比例，不跑方法）；64 上限与重复规则不动，触发即记数据失败 |
+| ⑥ | 真值盒＝初始盒加平移、不旋转；所有表内物体从第 0 帧在场；没有非刚性状态；`move`／`add` 必须有 `point`；有干预就必须有窗口；窗口只用终点；结构件只认五个键前缀；键不在几何表里又不是结构件即整条失败 | `lean_object_geometry.py` 203～218、286～335 行；`lean_evaluation.py` 58～62、288～311 行；`lean_teacher.py` 257、1033～1050 行；`lean_runner.py` 893～942 行 | 见待裁 111-3：remove→`remove`；新增→`add`（看见前不进范围，与 ProcTHOR 的 add 同义）；`rigid` 按节点主列同一把尺子分 `move` 与小搬动；非刚性与 ambiguity 不记干预、只计数；窗口写成退化的 `[n_ref−1, n_ref−1]`（代码允许起点等于终点）；结构件按 NYU40 映射到五个前缀 |
+| ⑦ | mask 来源只有 `simulator_instance_masks` 与 `sam2`；改名要动 `MASK_SOURCES`、按来源钉的 ReID 头与 ELU-P 登记值、`FRONTS`、`FIXED_SEQUENCE` 等冻结字节 | `lean_frontend_cache.py` 64～66、474～500 行；`lean_assignment.py` 238～241 行；`lean_arms.py` 172～181 行（另：`fragments_are_whole_objects` 只在未批准的待裁 86 原稿里，代码里没有） | 渲染的标注实例图走 `simulator_instance_masks` 原读路径，名称不改；S3-07 合同、回执与论文写明“该名称在 S3-07 中指标注网格渲染”，ReID 头与 ELU-P 值取实例列的冻结值 |
+| ⑧ | 没有按 S3-04 回执在新数据根上跑冻结配置的入口；node audit 只在 ProcTHOR test 模式读回执 | `s3_05_manifest.py` 102～125、201～209 行；`lean_s2_05_node_audit.py` 1403～1747 行 | 新写 S3-07 驱动：核回执（摘要、已提交在 `results/`）、核代码差异白名单、按回执 `test_runs` 的配置／权重／ReID 头／ELU-P 值调用 node audit `run --metrics-only`（不带 `--manifest-split`），作业池复用 `s3_03_jobs` 与远程主机 |
+
+另外两项转换器必须照做、代码会核的：`frame_digest` 按生成器公式重算（`lean_s1_02a_pilot.py` 248～249 行；S2-04 与 node audit 会从字节重算比对）；`object_geometry.json`、`provenance/interventions.json`、`provenance/window_verdicts.json`、episode `receipt.json` 按现有 schema 写（`TABLE_FIELDS`、`OBJECT_FIELDS` 由 `validate_geometry_table` 逐键核对）。
+
+**能不能转成本项目的私有真值表：能，但是代理真值，且有三处登记的残差**——盒不随物体旋转（冻结口径）、变化标注不完整、重扫描对齐是离线全局配准（“位姿已知”假设）。逐类规则与备选见待裁 111-3。
+
+**需要你下载的文件**（条款须你本人签；我不填表、不运行下载脚本）
+
+| 批次 | 文件 | 大小 | 用途 |
+|---|---|---|---|
+| 0 元数据 | `3RScan.json` | 3,155,995 字节 | 157 次扫描的清单、对齐矩阵、变化与 ambiguity 的真实结构；定平移单位的候选 |
+| 1 小样本 | `splits/val.txt` 排序后第 1 个参考扫描及其全部重扫描，每次扫描四个文件：`sequence.zip`、`mesh.refined.v2.obj`、`labels.instances.annotated.v2.ply`、`semseg.v2.json`（不要贴图） | 约 64 MB／次扫描，一个场景通常 2～4 次扫描，约 150～250 MB | 核旋转方向、内参、平移单位（几何残差）、ambiguity 结构、网格渲染深度与传感器深度的一致性、每帧色块数与深度支撑；只看数据，不跑任何方法 |
+| 2 全量 | validation 全部 157 次扫描的同四个文件 | 约 10 GB（参考扫描实测 3.0 GB，重扫描按均值估） | S3-07 正式转换 |
+| 不需要 | 贴图、`*.rendered.*`、test 与 train 划分的任何文件 | — | — |
