@@ -1,0 +1,11 @@
+{
+ "by_status": {
+  "done": 4300
+ },
+ "failed": [],
+ "hosts": [
+  "local",
+  "w4",
+  "w5"
+ ]
+}

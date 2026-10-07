@@ -1,0 +1,14 @@
+{
+ "stage": "vsmt.lean.s3_05.driver.v1",
+ "step": "check",
+ "code_commit": "8d5847593dc44e87f5c076083be1f0fddfecb500",
+ "written_utc": "2026-10-07T01:13:59Z",
+ "receipt": {
+  "path": "/root/autodl-tmp/vsmt_private/s3-04-dea8c20/freeze_receipt.json",
+  "receipt_sha256": "4fd08d4fc6d00c0063fc210a1ad4e8e8cbf0382b1d93d0e0e8331487b32910e0",
+  "freeze_commit": "dea8c20f58144882752f2bc3936b87fd6568ef45",
+  "committed_as": "results/vsmt_lean_s3_04_freeze_dea8c20.json"
+ },
+ "problems": [],
+ "pass": true
+}
