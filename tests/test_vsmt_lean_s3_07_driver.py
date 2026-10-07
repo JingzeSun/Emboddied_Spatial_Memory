@@ -72,6 +72,10 @@ class RegistrationTests(unittest.TestCase):
                                                                       ("diff", "--name-only", "a" * 40, "HEAD"):
                                                                       "configs/vsmt/lean_s1_03_frontend_cache_v1.json\nsrc/vsmt/lean_memory.py"}[a]):
                 self.assertFalse(drv.passed(run_root, "reader-check"))
+            with mock.patch.object(drv, "git", side_effect=lambda *a: {("rev-parse", "HEAD"): "b" * 40,
+                                                                      ("diff", "--name-only", "a" * 40, "HEAD"):
+                                                                      "ops/vsmt/s3_07_manifest.py\nsrc/vsmt/lean_s3_07.py"}[a]):
+                self.assertTrue(drv.passed(run_root, "reader-check"))  # the S3-07 files are not frozen code
             with mock.patch.object(drv, "git", return_value="a" * 40):
                 self.assertTrue(drv.passed(run_root, "reader-check"))
 

@@ -66,6 +66,8 @@ PROBE_GIB = 2.0
 #: the 3RScan roots are stored under the split key "validation" because the shared tools (remote_hosts kind "audit") read it
 SPLIT_KEY = "validation"
 SPLIT_MEANING = "3RScan validation (external data, ruling 111); not the ProcTHOR validation split"
+#: the GPU phase's hand-over document (digests, usable episodes); "handoff.json" is the handoff step's own record
+HANDOVER_FILE = "handover.json"
 
 load_json = s303.load_json
 write_json = s303.write_json
@@ -104,13 +106,15 @@ REGISTRATION_PATHS = ("configs/vsmt/lean_s1_03_frontend_cache_v1.json", "tests/"
 
 
 def registration_only_changes(since_commit: str) -> bool:
-    """True when every file changed between ``since_commit`` and HEAD is a registration path."""
+    """True when every file changed between ``since_commit`` and HEAD is a registration path or an S3-07 file (the driver and
+    the converter are not frozen code; what they wrote stays valid while the frozen code is the frozen code -- E1 checks that)."""
 
     try:
         changed = [name for name in git("diff", "--name-only", since_commit, "HEAD").splitlines() if name]
     except subprocess.CalledProcessError:
         return False
-    return all(any(name == path or name.startswith(path) for path in REGISTRATION_PATHS) for name in changed)
+    return all(any(name == path or name.startswith(path) for path in REGISTRATION_PATHS) or code_change_allowed(name)
+               for name in changed)
 
 
 def passed(run_root: Path, name: str) -> bool:
@@ -384,9 +388,9 @@ def cmd_handoff(args: argparse.Namespace) -> int:
                "digests": root_digests(roots), "episodes": {front: cache[front]["usable"] for front in FRONTS},
                "cache_data_failures": {front: cache[front]["data_failures"] for front in FRONTS},
                "e2": load_json(step_path(run_root, "e2"))["rows"], "split_key": SPLIT_KEY, "split_meaning": SPLIT_MEANING}
-    write_json(run_root / "handoff.json", handoff)
+    write_json(run_root / HANDOVER_FILE, handoff)  # not handoff.json: that name is the step record finish() writes
     return finish(run_root, "handoff", {"roots": handoff["roots"], "episodes": {f: len(v) for f, v in handoff["episodes"].items()},
-                                        "problems": []})
+                                        "handover": str(run_root / HANDOVER_FILE), "problems": []})
 
 
 # --------------------------------------------------------------------------
@@ -398,7 +402,7 @@ def cmd_receive(args: argparse.Namespace) -> int:
 
     run_root = Path(args.run_root)
     _require(passed(run_root, "check"), "receive_needs_a_passed_check_at_this_commit")
-    handoff = load_json(run_root / "handoff.json")
+    handoff = load_json(run_root / HANDOVER_FILE)
     problems = []
     if handoff.get("receipt_sha256") != receipt_of(args)["receipt_sha256"]:
         problems.append("handoff_of_another_receipt")
@@ -424,7 +428,7 @@ def cmd_inputs(args: argparse.Namespace) -> int:
     run_root = Path(args.run_root)
     _require(passed(run_root, "receive"), "inputs_needs_a_passed_receive_at_this_commit")
     receipt = receipt_of(args)
-    handoff = load_json(run_root / "handoff.json")
+    handoff = load_json(run_root / HANDOVER_FILE)
     s3_03 = s303.load_context(Path(args.s3_03_run_root))
     fronts = [front for front in FRONTS if front in receipt["fronts"]]
     reader = run_root / "reader_check_report.json"
@@ -624,7 +628,7 @@ def cmd_export(args: argparse.Namespace) -> int:
     exports = {f"vsmt_lean_s3_07_statistics_{tag}.json": load_json(run_root / "statistics.json"),
                f"vsmt_lean_s3_07_inputs_{tag}.json": inputs,
                f"vsmt_lean_s3_07_check_{tag}.json": load_json(step_path(run_root, "check")),
-               f"vsmt_lean_s3_07_handoff_{tag}.json": load_json(run_root / "handoff.json"),
+               f"vsmt_lean_s3_07_handover_{tag}.json": load_json(run_root / HANDOVER_FILE),
                f"vsmt_lean_s3_07_e3_{tag}.json": load_json(step_path(run_root, "e3")),
                f"vsmt_lean_s3_07_jobs_{tag}.json": {"by_status": by_status, "failed": sorted(k for k, s in states.items() if s["status"] == "failed"),
                                                     "hosts": sorted({s.get("host") or "local" for s in states.values()})}}

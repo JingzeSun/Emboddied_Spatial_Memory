@@ -260,7 +260,7 @@ bash ops/vsmt/s3_07_external.sh status
 | GPU | render → convert → reader-check | `s3_07_render.py --purpose formal`、`s3_07_convert.py convert --purpose formal`（失败的对照记、不换）、冻结读入口逐帧回读 |
 | GPU | cache | 两套前端的 S1-03 cache（`lean_s1_03_cache.py`，每 worker 2 线程）；构造失败按冻结原因码（`proposal_overflow` 等）照记，从该前端的可用清单去掉 |
 | GPU | e2 | 在本提交上重建 S3-02 两条最小 train episode（`train-03642`、`train-00946`）的两套 cache，封印与已提交的 S3-02 导出逐位相同 |
-| GPU | handoff | 每个根的树摘要与每套前端的可用 episode 清单（`<运行根>/handoff.json`） |
+| GPU | handoff | 每个根的树摘要与每套前端的可用 episode 清单（交接单 `<运行根>/handover.json`；`handoff.json` 是该步骤自己的记录） |
 | 审计 | check → receive → inputs | 同样的 check（另核权重与 ELU-P 登记值）；复制过来的根与交接单摘要逐项相同；写运行输入（3RScan 根放在 `validation` 键下，因为共享工具按这个键读；`split_meaning` 写明它是 3RScan） |
 | 审计 | e3 | 回执 `probe_episodes` 上的 G4 探针审计在本提交重跑，与 S3-03 原审计逐字节相同；工作机用 `remote_hosts.py setup/admit --kinds audit --reference-run-root $AUTODL/vsmt_private/s3-03-run` |
 | 审计 | run → merge → stats → export | 作业池：每条 episode 上回执 `test_runs` 的每个运行一个作业（node audit 只算指标，不带 `--manifest-split`）；崩溃重跑一次、再失败记数据失败；退出码 2 停整趟；合并后 `lean_s3_07` 按场景合并、只报告（没有“通过”）；导出 `$AUTODL/vsmt_outputs/exports/vsmt_lean_s3_07_*_<commit>.json` |
