@@ -75,8 +75,15 @@ SAMPLE_CHECK_SLOTS = ("alignment_translation_unit", "obb_axes_layout", "image_ro
 #: ruling 111-3: per-object outcomes of the change classification (only the first four become intervention rows);
 #: ``remove_unlisted`` = in the reference, absent from the rescan's own annotation, missing from the official ``removed`` list
 #: (111-3: "参考有、重扫描没有" is a removal; change lists are not exhaustive, so it is counted on its own)
-CHANGE_OUTCOMES = ("remove", "remove_unlisted", "move", "add", "small_rigid", "ambiguous_rigid", "nonrigid",
+CHANGE_OUTCOMES = ("remove", "remove_unlisted", "not_rescanned", "move", "add", "small_rigid", "ambiguous_rigid", "nonrigid",
                    "unlisted_displacement", "structural_change_ignored")
+#: amendment 2 of ruling 111 (2026-10-07): an object absent from the rescan annotation and not in the official removed list is a
+#: removal only when the rescan covered its place -- a rescan mesh vertex within this radius (= delta_moved) of the reference box
+#: centre; otherwise the rescan did not look there and the object stays present (``not_rescanned``)
+COVERAGE_RADIUS_M = 0.5
+#: amendment 2: an OBB value that is not finite or exceeds this magnitude (metres) is annotation garbage; the object is dropped
+#: from that scan and counted (``obb_invalid``), the pair is not refused
+OBB_SANITY_MAX_ABS_M = 1e4
 #: input 4 x 4 matrices come from text; a rotation farther than this from orthonormal is refused, a nearer one is projected
 RIGID_TOLERANCE = 1e-4
 
@@ -136,6 +143,8 @@ def validate_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
              "contract_structural_prefix_mismatch")
     _require(truth["delta_moved_m"] == lt.DELTA_MOVED_M and truth["node_box_pad_m"] == lt.NODE_BOX_PAD_M,
              "contract_place_rule_mismatch")
+    _require(truth["coverage_radius_m"] == COVERAGE_RADIUS_M and truth["obb_sanity_max_abs_m"] == OBB_SANITY_MAX_ABS_M,
+             "contract_amendment_2_mismatch")
     mapping_sha = truth["label_mapping_sha256"]
     _require(isinstance(mapping_sha, str) and re.fullmatch(r"[0-9a-f]{64}", mapping_sha) is not None, "contract_label_mapping_sha256_invalid")
     _require(contract["public"]["action_summary"] == ACTION_SUMMARY, "contract_action_summary_mismatch")
@@ -311,8 +320,13 @@ def parse_label_mapping(csv_text: str) -> dict[str, int]:
     return mapping
 
 
-def semseg_objects(semseg: Mapping[str, Any]) -> dict[int, dict[str, Any]]:
-    """``semseg.v2.json`` -> objectId -> {label, obb}; ids must be unique positive integers."""
+def semseg_objects(semseg: Mapping[str, Any], *, invalid: list[int] | None = None) -> dict[int, dict[str, Any]]:
+    """``semseg.v2.json`` -> objectId -> {label, obb}; ids must be unique positive integers.
+
+    Amendment 2 of ruling 111: an OBB with a non-finite value, a value beyond ``OBB_SANITY_MAX_ABS_M`` or a negative length is
+    annotation garbage (one validation rescan carries a door centred at 1e290 m); the object is left out and its id appended to
+    ``invalid`` (counted by the converter) instead of refusing the pair.
+    """
 
     out: dict[int, dict[str, Any]] = {}
     for group in semseg.get("segGroups", []):
@@ -323,7 +337,12 @@ def semseg_objects(semseg: Mapping[str, Any]) -> dict[int, dict[str, Any]]:
         lengths = [float(v) for v in obb["axesLengths"]]
         axes = [float(v) for v in obb["normalizedAxes"]]
         _require(len(centroid) == 3 and len(lengths) == 3 and len(axes) == 9, f"semseg_obb_invalid:{object_id}")
-        _require(all(math.isfinite(v) for v in centroid + lengths + axes) and min(lengths) >= 0.0, f"semseg_obb_invalid:{object_id}")
+        sane = (all(math.isfinite(v) for v in centroid + lengths + axes) and min(lengths) >= 0.0
+                and max(abs(v) for v in centroid + lengths) <= OBB_SANITY_MAX_ABS_M)
+        if not sane:
+            _require(invalid is not None, f"semseg_obb_invalid:{object_id}")
+            invalid.append(object_id)
+            continue
         out[object_id] = {"label": str(group["label"]), "obb": {"centroid": centroid, "axesLengths": lengths, "normalizedAxes": axes}}
     return out
 
@@ -632,14 +651,18 @@ def _holds(old: Mapping[str, Any], new: Mapping[str, Any]) -> bool:
 
 
 def classify_changes(reference: Mapping[int, Mapping[str, Any]], rescan: Mapping[int, Mapping[str, Any]],
-                     changes: Mapping[str, Any], *, structural: Iterable[int]) -> dict[str, Any]:
-    """Ruling 111-3: each object's outcome and the intervention rows the frozen evaluator reads.
+                     changes: Mapping[str, Any], *, structural: Iterable[int], covered: Mapping[int, bool] | None = None,
+                     residual_ratio: Mapping[int, float] | None = None) -> dict[str, Any]:
+    """Ruling 111-3 with amendment 2: each object's outcome and the intervention rows the frozen evaluator reads.
 
     ``reference`` / ``rescan`` map objectId -> box (``object_box`` output, both in the reference-aligned project world);
-    ``changes`` is ``rescan_changes`` output; ``structural`` the objectIds mapped to a structural prefix.
+    ``changes`` is ``rescan_changes`` output; ``structural`` the objectIds mapped to a structural prefix; ``covered`` says per
+    reference object whether the rescan mesh reached its place (``COVERAGE_RADIUS_M``; None = every place covered, the pre-amendment
+    reading); ``residual_ratio`` gives, for an official removal still annotated in the rescan, its rescan-to-reference vertex ratio.
 
-    白话：输入两次扫描的物体盒与官方变化项，输出每个物体的归类和要写进干预日志的行。规则：参考里有、重扫描标注里没有的记 remove
-    （在官方 ``removed`` 里记 remove，不在则记 remove_unlisted，两者都写 remove 行、分开计数）；只在重扫描里出现记 add（point 是重扫描
+    白话：输入两次扫描的物体盒与官方变化项，输出每个物体的归类和要写进干预日志的行。规则：官方 ``removed`` 里的记 remove（重扫描里
+    仍有残留标注也以官方表为准，残留比例记录在 ``residual_annotations``）；不在官方表、重扫描标注里也没有的，重扫描扫到过它的位置
+    （参考盒中心 0.5 m 内有重扫描顶点）才记 remove_unlisted，没扫到记 not_rescanned、物体按参考位置继续在场（修订二）；只在重扫描里出现记 add（point 是重扫描
     盒中心）；rigid 用节点主列同一把尺子（``lean_teacher.place_holds``：旧质心离新质心不超过 δ_moved，或落在新盒外扩 0.25 m 内）——
     不成立记 move，成立只计 small_rigid；ambiguity 里的实例 rigid 不记 move（对应不唯一），移除照记；nonrigid 只计数；不在任何列表里
     却超出地点规则的只计 unlisted_displacement；结构件的任何变化都不进干预日志，只计 structural_change_ignored。变化项自相矛盾（例如
@@ -670,13 +693,16 @@ def classify_changes(reference: Mapping[int, Mapping[str, Any]], rescan: Mapping
     outcomes: dict[int, str] = {}
     rows: list[dict[str, Any]] = []
     used_rescan_ids: set[int] = set()
+    residuals: dict[int, float] = {}
     for object_id in sorted(reference):
         new = rescan_box(object_id)
         if object_id in removed:
-            _require(new is None, f"removed_instance_present_in_rescan:{object_id}")
-            outcome = "remove"
+            outcome = "remove"  # the official list wins over a residual annotation (amendment 2), the residual is recorded
+            if new is not None:
+                residuals[object_id] = float((residual_ratio or {}).get(object_id, float("nan")))
+                used_rescan_ids.add(rescan_of.get(object_id, object_id))
         elif new is None:
-            outcome = "remove_unlisted"
+            outcome = "remove_unlisted" if (covered is None or covered.get(object_id, True)) else "not_rescanned"
         else:
             used_rescan_ids.add(rescan_of.get(object_id, object_id))
             holds = _holds(reference[object_id], new)
@@ -703,5 +729,6 @@ def classify_changes(reference: Mapping[int, Mapping[str, Any]], rescan: Mapping
         rows.append({"object_id": rescan_id, "kind": "add", "point": _place_state(rescan[rescan_id])["centroid_m"], "executed": True})
     counts = {name: sum(1 for value in outcomes.values() if value == name) for name in CHANGE_OUTCOMES}
     return {"interventions": rows, "outcomes": {str(k): v for k, v in sorted(outcomes.items())}, "counts": counts,
-            "rescan_id_of": {str(k): v for k, v in sorted(rescan_of.items()) if k != v}}
+            "rescan_id_of": {str(k): v for k, v in sorted(rescan_of.items()) if k != v},
+            "residual_annotations": {str(k): v for k, v in sorted(residuals.items())}}
 

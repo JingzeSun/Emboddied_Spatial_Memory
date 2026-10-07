@@ -33,7 +33,7 @@ from vsmt import lean_teacher as lt  # noqa: E402
 COLOR = {"fx": 756.832, "fy": 756.026, "cx": 492.889, "cy": 270.419}
 DEPTH = {"fx": 176.594, "fy": 240.808, "cx": 114.613, "cy": 85.7915}
 #: the reviewed contract, digest of its canonical JSON (re-pinned only with a ruling or a registration commit)
-CONTRACT_SHA256 = "cbc664671513f81b681fafc5637532a473b3598df0c0f6bd37c48686d12d1a23"
+CONTRACT_SHA256 = "88821f3d62784517074db281cff4846e021f839d280b740e614887f533ac9ba4"
 
 INFO_TEXT = """m_versionNumber = 4
 m_sensorName = StructureSensor
@@ -157,6 +157,13 @@ class ParsingTests(unittest.TestCase):
         self.assertEqual(objects[7]["label"], "chair")
         with self.assertRaisesRegex(r3.LeanS307Error, "semseg_object_id_invalid:7"):
             r3.semseg_objects({"segGroups": [group, dict(group, id=1)]})
+        garbage = dict(group, objectId=9, obb={"centroid": [-0.1, 1.9958e290, -8.98e305], "axesLengths": [0.03, 2e-8, 0.01],
+                                                "normalizedAxes": [1, 0, 0, 0, 1, 0, 0, 0, 1]})
+        with self.assertRaisesRegex(r3.LeanS307Error, "semseg_obb_invalid:9"):
+            r3.semseg_objects({"segGroups": [group, garbage]})
+        invalid: list[int] = []
+        objects = r3.semseg_objects({"segGroups": [group, garbage]}, invalid=invalid)  # amendment 2: dropped and counted
+        self.assertEqual((sorted(objects), invalid), ([7], [9]))
 
     def test_rescan_changes_read_the_observed_ambiguity_structure(self) -> None:
         # the structure 3RScan.json has (scene-level list of lists of instance pairs); the numbers are made up
@@ -363,12 +370,32 @@ class TruthTests(unittest.TestCase):
         reference = {1: box([0, 0, 0], [1, 1, 1]), 2: box([2, 0, 0], [1, 1, 1])}
         rescan = {1: box([0, 0, 0], [1, 1, 1]), 2: box([2, 0, 0], [1, 1, 1])}
         base = {"removed": [], "nonrigid": [], "rigid": [], "ambiguity": []}
-        for changes, code in ((dict(base, removed=[1]), "removed_instance_present_in_rescan:1"),
-                              (dict(base, rigid=[(3, 3)]), "rigid_reference_instance_missing:3"),
+        for changes, code in ((dict(base, rigid=[(3, 3)]), "rigid_reference_instance_missing:3"),
                               (dict(base, rigid=[(1, 1), (1, 2)]), "rigid_instance_listed_twice:1"),
                               (dict(base, rigid=[(1, 2)]), "rescan_instance_unresolved:1")):
             with self.assertRaisesRegex(r3.LeanS307Error, code):
                 r3.classify_changes(reference, rescan, changes, structural=[])
+
+    def test_amendment_2_official_removal_wins_over_a_residual_annotation(self) -> None:
+        reference = {1: box([0, 0, 0], [1, 1, 1]), 2: box([2, 0, 0], [1, 1, 1])}
+        rescan = {1: box([0, 0, 0], [1, 1, 1]), 2: box([2, 0, 0], [1, 1, 1])}
+        changes = {"removed": [1], "nonrigid": [], "rigid": [], "ambiguity": []}
+        result = r3.classify_changes(reference, rescan, changes, structural=[], residual_ratio={1: 0.3})
+        self.assertEqual(result["outcomes"], {"1": "remove"})
+        self.assertEqual(result["residual_annotations"], {"1": 0.3})
+        self.assertEqual([(row["object_id"], row["kind"]) for row in result["interventions"]], [(1, "remove")])
+        self.assertEqual(result["counts"]["add"], 0)  # the residual annotation is not a new object
+
+    def test_amendment_2_unlisted_absence_needs_coverage(self) -> None:
+        reference = {1: box([0, 0, 0], [1, 1, 1]), 2: box([4, 0, 0], [1, 1, 1]), 3: box([8, 0, 0], [1, 1, 1])}
+        rescan = {3: box([8, 0, 0], [1, 1, 1])}
+        changes = {"removed": [], "nonrigid": [], "rigid": [], "ambiguity": []}
+        result = r3.classify_changes(reference, rescan, changes, structural=[], covered={1: True, 2: False, 3: True})
+        self.assertEqual(result["outcomes"], {"1": "remove_unlisted", "2": "not_rescanned"})
+        self.assertEqual([row["object_id"] for row in result["interventions"]], [1])
+        self.assertEqual((result["counts"]["remove_unlisted"], result["counts"]["not_rescanned"]), (1, 1))
+        everywhere = r3.classify_changes(reference, rescan, changes, structural=[])  # no coverage given: the earlier reading
+        self.assertEqual(everywhere["outcomes"], {"1": "remove_unlisted", "2": "remove_unlisted"})
 
     def test_episode_id_and_degenerate_window(self) -> None:
         ref, rescan = "095821f7-e2c2-2de1-9568-b9ce59920e29", "2e369567-e133-204c-909a-c5da44bb58df"

@@ -164,6 +164,10 @@ class EndToEndTests(unittest.TestCase):
         self.assertEqual((receipt["status"], receipt["observations"], receipt["frames_reference"], receipt["window"]),
                          ("succeeded", 5, 3, [2, 2]))
         self.assertEqual(receipt["interventions"], {"remove": 1, "move": 1, "add": 1})
+        # the synthetic meshes are 8-vertex cuboids: the floor centre, the moved chair and the removed cup have no rescan vertex
+        # within 0.5 m (not_covered = 3), which changes no intervention (the cup is an official removal, the chair is rigid)
+        self.assertEqual((receipt["not_covered_objects"], receipt["obb_invalid"], receipt["residual_annotations"]), (3, 0, {}))
+        self.assertEqual(receipt["change_outcomes"]["not_rescanned"], 0)
         self.assertEqual((receipt["source_index"], receipt["house_id"]), (0, REFERENCE))
         log = json.loads((out / episode / "provenance" / "interventions.json").read_text())
         self.assertEqual([(row["object_id"], row["kind"]) for row in log["executed"]],
@@ -272,6 +276,15 @@ class EpisodeFunctionTests(unittest.TestCase):
         far = ep.translation_unit_check({2: np.zeros((3, 3))}, {2: np.full((3, 3), 5.0)}, [2], list(np.eye(4).reshape(-1)))
         self.assertIsNone(far["chosen"])
         self.assertFalse(ep.ambiguity_structure_ok([{"reference": "x", "ambiguity": [[{"source": 1}]]}])["passed"])
+
+    def test_coverage_and_residuals_from_meshes(self) -> None:
+        reference = {1: {"obb": {"centroid": [0.0, 0.0, 0.0], "axesLengths": [1, 1, 1], "normalizedAxes": [1, 0, 0, 0, 1, 0, 0, 0, 1]}},
+                     2: {"obb": {"centroid": [5.0, 0.0, 0.0], "axesLengths": [1, 1, 1], "normalizedAxes": [1, 0, 0, 0, 1, 0, 0, 0, 1]}}}
+        vertices = np.asarray([[0.2, 0.1, 0.0], [0.3, -0.2, 0.1], [9.0, 9.0, 9.0]])
+        self.assertEqual(ep.coverage_of(reference, vertices), {1: True, 2: False})
+        self.assertEqual(ep.coverage_of(reference, np.zeros((0, 3))), {1: False, 2: False})
+        ratios = ep.residual_ratios({4: np.zeros((100, 3)), 5: np.zeros((10, 3))}, {4: np.zeros((30, 3))}, [4, 5])
+        self.assertEqual(ratios, {4: 0.3})
 
     def test_geometry_table_passes_the_frozen_validator(self) -> None:
         rows = [ep._table_row("chair|3", "chair", box([1, 0.4, 2], [0.5, 0.9, 0.5]))]

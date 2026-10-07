@@ -79,11 +79,41 @@ def object_boxes(objects: Mapping[int, Mapping[str, Any]], *, layout: str | None
     return {oid: r3.object_box(row["obb"], layout=layout, alignment=alignment) for oid, row in sorted(objects.items())}
 
 
+def coverage_of(reference: Mapping[int, Mapping[str, Any]], rescan_vertices_aligned: np.ndarray) -> dict[int, bool]:
+    """Amendment 2: per reference object, whether a rescan mesh vertex (aligned to the reference frame) lies within
+    ``COVERAGE_RADIUS_M`` of its OBB centre -- the rescan looked at that place."""
+
+    sample = _sample(np.asarray(rescan_vertices_aligned, dtype=np.float64)) if len(rescan_vertices_aligned) else np.zeros((0, 3))
+    out = {}
+    for oid, row in reference.items():
+        centre = np.asarray(row["obb"]["centroid"], dtype=np.float64)
+        if not len(sample):
+            out[oid] = False
+            continue
+        d2 = (sample[:, 0] - centre[0]) ** 2 + (sample[:, 1] - centre[1]) ** 2 + (sample[:, 2] - centre[2]) ** 2
+        out[oid] = bool(float(d2.min()) <= r3.COVERAGE_RADIUS_M ** 2)
+    return out
+
+
+def residual_ratios(reference_vertices: Mapping[int, np.ndarray], rescan_vertices: Mapping[int, np.ndarray],
+                    removed: Iterable[int]) -> dict[int, float]:
+    """Amendment 2: for each official removal still annotated in the rescan, rescan vertices / reference vertices."""
+
+    out = {}
+    for oid in removed:
+        if oid in rescan_vertices and len(rescan_vertices[oid]):
+            out[oid] = len(rescan_vertices[oid]) / max(1, len(reference_vertices.get(oid, ())))
+    return out
+
+
 def plan_pair(scene: Mapping[str, Any], rescan_scan: str, reference: Mapping[int, Mapping[str, Any]],
               rescan: Mapping[int, Mapping[str, Any]], labels: Mapping[str, int], *, unit: str | None,
-              layout: str | None) -> dict[str, Any]:
+              layout: str | None, reference_mesh: Mapping[str, np.ndarray] | None = None,
+              rescan_mesh: Mapping[str, np.ndarray] | None = None) -> dict[str, Any]:
     """Everything about a pair that does not depend on its frames: alignment, boxes, keys, change classification, intervention
-    rows (keyed), and the geometry-table rows (every non-structural object of both scans, structure stays out like ProcTHOR's)."""
+    rows (keyed), and the geometry-table rows (every non-structural object of both scans, structure stays out as in ProcTHOR).
+    With both meshes (``read_ply`` output) the amendment-2 coverage and residual readings enter the classification; without them
+    every place counts as covered (the synthetic tests)."""
 
     changes = r3.rescan_changes(scene, rescan_scan)
     alignment = r3.alignment_matrix(changes["transform"], unit=unit)
@@ -91,7 +121,12 @@ def plan_pair(scene: Mapping[str, Any], rescan_scan: str, reference: Mapping[int
     box_rescan = object_boxes(rescan, layout=layout, alignment=alignment)
     structural = {oid for oid, row in reference.items() if r3.is_structural(labels[row["label"]])} | \
                  {oid for oid, row in rescan.items() if r3.is_structural(labels[row["label"]])}
-    classified = r3.classify_changes(box_reference, box_rescan, changes, structural=structural)
+    covered = residual = None
+    if reference_mesh is not None and rescan_mesh is not None:
+        aligned = r3.transform_points(r3.orthonormal_rigid(alignment)[0], np.asarray(rescan_mesh["vertices"], dtype=np.float64))
+        covered = coverage_of(reference, aligned)
+        residual = residual_ratios(vertices_by_object(reference_mesh), vertices_by_object(rescan_mesh), changes["removed"])
+    classified = r3.classify_changes(box_reference, box_rescan, changes, structural=structural, covered=covered, residual_ratio=residual)
     keys = object_keys(reference, rescan, labels, classified["rescan_id_of"])
     rows = []
     for row in classified["interventions"]:
@@ -110,7 +145,8 @@ def plan_pair(scene: Mapping[str, Any], rescan_scan: str, reference: Mapping[int
     table_rows.sort(key=lambda row: row["object_id"])
     _require(len({row["object_id"] for row in table_rows}) == len(table_rows), "geometry_key_repeated")
     return {"changes": changes, "alignment": alignment, "box_reference": box_reference, "box_rescan": box_rescan,
-            "keys": keys, "classified": classified, "interventions": rows, "table_rows": table_rows}
+            "keys": keys, "classified": classified, "interventions": rows, "table_rows": table_rows,
+            "coverage": None if covered is None else {str(k): v for k, v in sorted(covered.items())}}
 
 
 def _table_row(key: str, label: str, box: Mapping[str, Sequence[float]]) -> dict[str, Any]:

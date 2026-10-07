@@ -78,7 +78,9 @@ def scan_inputs(scans_root: Path, scan: str) -> dict[str, Any]:
     """What one scan contributes without rendering: semseg objects, _info, the pose texts by frame stem."""
 
     directory = Path(scans_root) / scan
-    objects = r3.semseg_objects(json.loads((directory / "semseg.v2.json").read_text(encoding="utf-8")))
+    invalid: list[int] = []
+    objects = r3.semseg_objects(json.loads((directory / "semseg.v2.json").read_text(encoding="utf-8")), invalid=invalid)
+    mesh = rr.read_ply((directory / "labels.instances.annotated.v2.ply").read_bytes())
     with zipfile.ZipFile(directory / "sequence.zip") as archive:
         names = archive.namelist()
         info_name = [name for name in names if name.endswith("_info.txt")]
@@ -88,7 +90,7 @@ def scan_inputs(scans_root: Path, scan: str) -> dict[str, Any]:
         info = r3.parse_info(archive.read(info_name[0]).decode("utf-8"))
         stems = render_cli.frame_names(names)
         poses = {stem: r3.parse_pose(archive.read(f"{prefix}{stem}.pose.txt").decode("utf-8")) for stem in stems}
-    return {"objects": objects, "info": info, "stems": stems, "poses": poses, "prefix": prefix}
+    return {"objects": objects, "info": info, "stems": stems, "poses": poses, "prefix": prefix, "mesh": mesh, "obb_invalid": invalid}
 
 
 # --------------------------------------------------------------------------
@@ -169,7 +171,8 @@ def convert_pair(task: dict[str, Any]) -> dict[str, Any]:
         geometry = frozen_geometry()
         inputs = {scan: scan_inputs(Path(task["scans_root"]), scan) for scan in (reference, rescan)}
         plan = ep.plan_pair(meta_scene, rescan, inputs[reference]["objects"], inputs[rescan]["objects"], labels,
-                            unit=task["slots"]["alignment_translation_unit"], layout=task["slots"]["obb_axes_layout"])
+                            unit=task["slots"]["alignment_translation_unit"], layout=task["slots"]["obb_axes_layout"],
+                            reference_mesh=inputs[reference]["mesh"], rescan_mesh=inputs[rescan]["mesh"])
         renders = {scan: load_render(Path(task["render_root"]), scan, inputs[scan]["stems"]) for scan in (reference, rescan)}
         public, private, provenance = out_dir / "public", out_dir / "private", out_dir / "provenance"
         for directory in (public, private, provenance):
@@ -227,6 +230,8 @@ def convert_pair(task: dict[str, Any]) -> dict[str, Any]:
         (provenance / "interventions.json").write_text(json.dumps({
             "executed": plan["interventions"], "outcomes": classified["outcomes"], "counts": classified["counts"],
             "rescan_id_of": classified["rescan_id_of"], "label_changed": keys["label_changed"],
+            "residual_annotations": classified["residual_annotations"], "coverage": plan["coverage"],
+            "obb_invalid": {"reference": inputs[reference]["obb_invalid"], "rescan": inputs[rescan]["obb_invalid"]},
             "changes": {key: plan["changes"][key] for key in ("removed", "nonrigid", "rigid", "ambiguity")}}, indent=1),
             encoding="utf-8")
         table = ep.geometry_table(episode_id=episode_id, house_id=reference, source_index=int(task["source_index"]),
@@ -243,6 +248,9 @@ def convert_pair(task: dict[str, Any]) -> dict[str, Any]:
             "status": "succeeded", "observations": index, "reference_scan": reference, "rescan": rescan,
             "frames_reference": n_reference, "frames_rescan": index - n_reference, "window": window["window"],
             "interventions": kinds, "change_outcomes": classified["counts"], "label_changed": len(keys["label_changed"]),
+            "residual_annotations": classified["residual_annotations"],
+            "obb_invalid": len(inputs[reference]["obb_invalid"]) + len(inputs[rescan]["obb_invalid"]),
+            "not_covered_objects": sum(1 for v in (plan["coverage"] or {}).values() if not v),
             "unknown_label_pixels": int(unknown_pixels), "vertical_fov_deg": fov, "orthonormality_residual_max": residual_max,
             "geometry_objects": len(table["objects"]), "frame_digests_sha256": hashlib.sha256("".join(digests).encode()).hexdigest(),
             "diagnostics": {
