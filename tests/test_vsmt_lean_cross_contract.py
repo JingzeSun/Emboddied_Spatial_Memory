@@ -437,7 +437,10 @@ FROZEN_RULE_SHA256 = {
     # camera_pose encoder untouched (the driver's hold stage checks the encoding against the last registration),
     # so it joins correct_encoder_since_code_commits and the S3 episodes are read as written; no reading rule
     # changes. 32550212 -> 458aa609.
-    "S1-03": "458aa6094bb75ae8461bd52ed9d51343e934bad3d687fa5159a55c7d08e5499f",
+    # Re-pinned 2026-10-07 (ruling 111-7, S3-07): the 3RScan converter commit d12707f joins
+    # correct_encoder_since_code_commits -- its own pose encoder (the scan pose turned upright, axes swapped
+    # to the project convention, made orthonormal), read as written; no reading rule changes. 458aa609 -> 3b24223e.
+    "S1-03": "3b24223ec1fbd433c1d2c70d4343f344fbb11c56f504bdb6873f51f942bc231a",
     # S1-04 v1 (2026-09-22, rulings 45/46/47): first pinned with every bit closed
     # (2fff2d19...); re-pinned the same day when ruling 48 and the user's code review opened
     # all six bits by name in activation_policy (the bits are rules of who may run what, as

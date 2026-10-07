@@ -62,7 +62,8 @@
       "7c10d2c8f5d06e37c2d8fa3792f2b4058ecf2b69",
       "5f9aa71d9328e0a1d065c61c2bc7ef54a11a468c",
       "2339baa96c123a7676e129881d270bfab252573c",
-      "3f6ef1dda3873d81df1225fed42a42ceca4f5a9e"
+      "3f6ef1dda3873d81df1225fed42a42ceca4f5a9e",
+      "d12707f360b84dad0edc46d9347ee417be0cea18"
     ],
     "an_episode_from_an_unlisted_commit_is_refused": true,
     "position_is_unchanged": true,
@@ -76,6 +77,7 @@
     "superseded_cache_root": "lean-s1-03-c993959 (geometry in the wrong frame; masks and descriptors valid; renamed and kept, never resumed)",
     "plain_language_zh": "S1-02 生成器把相机的俯仰角符号写反了：agent 低头 30 度，公开帧里的四元数却是抬头 30 度，位置没错。裁决 49 不改任何已生成文件，而是让所有用位姿反投影公开帧的读者在读取时把符号翻回来：由四元数算前向量，前向量的 y 分量是 sin(俯仰角)，再右乘绕 x 轴两倍俯仰角的旋转，结果就是 Ry(yaw)·Rx(+pitch)。只对这里登记的旧编码器提交（c222c51、a397d16）生成的 episode 做；以后修好符号的编码器生成的数据登记到 correct_encoder_since_code_commits 后照原样读；不在两张表里的提交直接拒绝，避免修正被做两次或做到不该做的数据上。旧 cache 根 lean-s1-03-c993959 的质心、盒、表面与体积都在错误的系里，改名保留、不续跑；描述子与回收的 mask 不受影响，重建时复用。",
     "correct_encoder_registered_on": "2026-09-23",
+    "s3_07_converter_registered_on": "2026-10-07 (ruling 111-7): d12707f is the S3-07 3RScan converter commit (ops/vsmt/s3_07_convert.py); its public pose is the 3RScan camera-to-world pose turned upright, axes swapped to the project convention and made orthonormal (src/vsmt/lean_s3_07_3rscan.py camera_pose), read as written; pinned by the test that the frozen D-223 back-projection of a converted frame recovers the scan point, and by the frozen-reader check of the sample conversion at d05f337 (results/vsmt_lean_s3_07_sample_d05f337.json)",
     "correct_encoder_evidence": "the encoder at this commit builds Ry(yaw)*Rx(+pitch); checked on the server before generation (cameraHorizon +30 gives a forward y of -0.5, the camera looking down) and pinned by the test that the old encoding plus the correction equals this encoder"
   },
   "sam2_nms_supersession": {
