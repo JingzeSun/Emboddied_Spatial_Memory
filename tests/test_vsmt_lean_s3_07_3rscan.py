@@ -33,7 +33,7 @@ from vsmt import lean_teacher as lt  # noqa: E402
 COLOR = {"fx": 756.832, "fy": 756.026, "cx": 492.889, "cy": 270.419}
 DEPTH = {"fx": 176.594, "fy": 240.808, "cx": 114.613, "cy": 85.7915}
 #: the reviewed contract, digest of its canonical JSON (re-pinned only with a ruling or a registration commit)
-CONTRACT_SHA256 = "1d39dc7eab845ba4b0472ccaf2045dba8a555fadf6c4622ba7c1cf7157d74e03"
+CONTRACT_SHA256 = "2494711fc3833b7fe90a66d92ac76e406d4367fbacd17cde6f607b062279a6ea"
 
 INFO_TEXT = """m_versionNumber = 4
 m_sensorName = StructureSensor
