@@ -1,0 +1,2628 @@
+{
+ "stage": "vsmt.lean.s3_04.driver.v1",
+ "ruling": "106 (2026-10-05, \u300c\u5f85\u88c1 106 \u5168\u6309\u63a8\u8350\u300d)",
+ "freeze_commit": "dea8c20f58144882752f2bc3936b87fd6568ef45",
+ "written_utc": "2026-10-07T00:26:29Z",
+ "rules": {
+  "selection": "ruling 106-2: per front end every arm chooses on its own validation readings with lean_arms.select_configuration (ruling 102-4: the six arms with RETRACT only among configurations whose Missing residual rate is below the same front end's AssocOnly, node F1 on the main node column, ties to the smallest index; NoVersion and HeuristicLabel choose their own tau_r); learned arms and AssocOnly read the mean over the seeds present, a missing seed is named and the S3-05 gate involving that arm is not evaluable (ruling 102-9); a constraint that cannot be met takes the node-F1 maximum and is recorded (ruling 102-1 bounds the claim); VSMT-lean-ctx and LLM-op are not frozen",
+  "checks": "ruling 106-3: G1 S3-03's verify at the registration commit reported no problem, its exports equal its manifest and every round-1 weights file equals its training receipt; G2 the readings recomputed by the frozen code from the merged audits equal S3-03's value for value; G3 the identity-continuity and retrieval-success event counts take one value over every run of a front end; G4 the frozen code reruns every selected run (learned arms at every seed) on the two validation episodes with the fewest frames among those with an identity-continuity event and reproduces S3-03's audits bit for bit (wall time, commit and head path excluded); G5 the four test roots still carry sealed markers with the seal digest S3-02 exported (marker files only). All five must pass before a freeze receipt is written; a failure stops for a read-only diagnosis and a ruling, never a wider line",
+  "changes": "ruling 106-4 (a): src/ and configs/ never change after the freeze; before the test roots are unsealed an operations-only fix (ops/) is followed by a complete new S3-04 run whose selection must equal the previous receipt bit for bit, the difference recorded; after unsealing any change needs a ruling first and is recorded as a deviation",
+  "publication": "ruling 106-5 (a): the freeze receipt and its exports are committed to results/ and pushed to main and s1-02a-runner, and the user confirms, before S3-05 unseals any test root"
+ },
+ "checks": {
+  "g1_g5": "824b8bd8a93e8a789b1b3506467220cbb531c1d98db27f0c146e6922cb605e14",
+  "all_passed": true
+ },
+ "s3_03": {
+  "tag": "10f7013",
+  "verify": "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_s3_03_verify_10f7013.json",
+  "manifest": "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_s3_03_manifest_10f7013.json",
+  "verify_sha256": "af54b1fb28f0987ba49991e7892e40d86a4ca4be25926950def5c991c849142b",
+  "manifest_sha256": "06ec637e9ed8f7875daf186fd44d7f74a9fdab52381089c5a44443e165328acd",
+  "verified_at_commit": "5a9fd9431d57a1e422105eaeaadf5413b7875f59"
+ },
+ "fronts": {
+  "instance": {
+   "mask_source": "simulator_instance_masks",
+   "selection": {
+    "stage": "vsmt.lean.s3_04.v1",
+    "rule": "ruling 106-2: per front end every arm chooses on its own validation readings with lean_arms.select_configuration (ruling 102-4: the six arms with RETRACT only among configurations whose Missing residual rate is below the same front end's AssocOnly, node F1 on the main node column, ties to the smallest index; NoVersion and HeuristicLabel choose their own tau_r); learned arms and AssocOnly read the mean over the seeds present, a missing seed is named and the S3-05 gate involving that arm is not evaluable (ruling 102-9); a constraint that cannot be met takes the node-F1 maximum and is recorded (ruling 102-1 bounds the claim); VSMT-lean-ctx and LLM-op are not frozen",
+    "mask_source": "simulator_instance_masks",
+    "reference": {
+     "arm": "AssocOnly",
+     "config_index": 0,
+     "seeds_present": [
+      7,
+      19,
+      31,
+      43,
+      59
+     ],
+     "seeds_missing": [],
+     "missing_residual_rate": 0.7270967741935485,
+     "node_f1": 0.8531763075505984
+    },
+    "arms": {
+     "VSMT-lean": {
+      "arm": "VSMT-lean",
+      "rule": "one configuration per method by node F1 on validation (D-224-SW ruling V); ruling 102-4: an arm whose vocabulary has RETRACT (VSMT-lean, NoVersion, HeuristicLabel, HandCost, ELU-P, RAC) chooses only among configurations whose validation Missing residual rate is below the same front end's AssocOnly validation Missing residual rate (learned arms and AssocOnly as five-seed means); when none qualifies the node-F1 maximum is chosen and recorded as constraint_not_satisfiable, and its result cannot support a claim that the arm's retraction reduces stale entities; ties to the smallest configuration index; main-gate metrics select nothing else",
+      "constrained": true,
+      "reference_missing_residual_rate": 0.7270967741935485,
+      "admissible": [
+       0,
+       1,
+       2,
+       3,
+       4,
+       5,
+       6,
+       7,
+       8,
+       9
+      ],
+      "selected": 8,
+      "constraint_satisfiable": true,
+      "absent": false,
+      "config": {
+       "tau_r": 0.8
+      },
+      "seeds_present": [
+       7,
+       19,
+       31,
+       43,
+       59
+      ],
+      "seeds_missing": [],
+      "validation_mean": {
+       "node_prf1": 0.8577308665345903,
+       "node_prf1_iou": 0.4852092474209268,
+       "missing_residual_rate": 0.1760215053763441,
+       "false_retract_rate": 0.22800015460729747,
+       "false_retract_rate_in_scope": 0.21959750566893424,
+       "identity_continuity": 0.20763888888888887,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.22986111111111113,
+       "recovery_latency_frames": 139.8694117647059,
+       "contamination_auc": 0.30175582017781466
+      },
+      "validation_per_seed": {
+       "7": {
+        "node_prf1": 0.8570755262935006,
+        "node_prf1_iou": 0.4853563128968062,
+        "missing_residual_rate": 0.15967741935483873,
+        "false_retract_rate": 0.25029761904761905,
+        "false_retract_rate_in_scope": 0.24759070294784583,
+        "identity_continuity": 0.24305555555555555,
+        "identity_continuity_conditional": null,
+        "retrieval_success": 0.2152777777777778,
+        "recovery_latency_frames": 141.57745098039214,
+        "contamination_auc": 0.30247756238240403
+       },
+       "19": {
+        "node_prf1": 0.8640392097180164,
+        "node_prf1_iou": 0.48642789346210147,
+        "missing_residual_rate": 0.17150537634408602,
+        "false_retract_rate": 0.2627473716759431,
+        "false_retract_rate_in_scope": 0.2359410430839002,
+        "identity_continuity": 0.2152777777777778,
+        "identity_continuity_conditional": null,
+        "retrieval_success": 0.22916666666666666,
+        "recovery_latency_frames": 145.97352941176473,
+        "contamination_auc": 0.292950726593974
+       },
+       "31": {
+        "node_prf1": 0.8554401883963958,
+        "node_prf1_iou": 0.48287179604593566,
+        "missing_residual_rate": 0.16666666666666669,
+        "false_retract_rate": 0.21428571428571427,
+        "false_retract_rate_in_scope": 0.21428571428571427,
+        "identity_continuity": 0.23611111111111113,
+        "identity_continuity_conditional": null,
+        "retrieval_success": 0.2916666666666667,
+        "recovery_latency_frames": 127.03431372549021,
+        "contamination_auc": 0.30412025566255957
+       },
+       "43": {
+        "node_prf1": 0.859549326085809,
+        "node_prf1_iou": 0.487336201428173,
+        "missing_residual_rate": 0.2118279569892473,
+        "false_retract_rate": 0.2110544217687075,
+        "false_retract_rate_in_scope": 0.2110544217687075,
+        "identity_continuity": 0.10069444444444443,
+        "identity_continuity_conditional": null,
+        "retrieval_success": 0.15625,
+        "recovery_latency_frames": 136.76568627450982,
+        "contamination_auc": 0.3001228917484973
+       },
+       "59": {
+        "node_prf1": 0.8525500821792302,
+        "node_prf1_iou": 0.48405403327161756,
+        "missing_residual_rate": 0.17043010752688173,
+        "false_retract_rate": 0.20161564625850342,
+        "false_retract_rate_in_scope": 0.18911564625850338,
+        "identity_continuity": 0.24305555555555555,
+        "identity_continuity_conditional": null,
+        "retrieval_success": 0.2569444444444445,
+        "recovery_latency_frames": 147.99607843137255,
+        "contamination_auc": 0.3091076645016384
+       }
+      },
+      "grid_edge": []
+     },
+     "NoVersion": {
+      "arm": "NoVersion",
+      "rule": "one configuration per method by node F1 on validation (D-224-SW ruling V); ruling 102-4: an arm whose vocabulary has RETRACT (VSMT-lean, NoVersion, HeuristicLabel, HandCost, ELU-P, RAC) chooses only among configurations whose validation Missing residual rate is below the same front end's AssocOnly validation Missing residual rate (learned arms and AssocOnly as five-seed means); when none qualifies the node-F1 maximum is chosen and recorded as constraint_not_satisfiable, and its result cannot support a claim that the arm's retraction reduces stale entities; ties to the smallest configuration index; main-gate metrics select nothing else",
+      "constrained": true,
+      "reference_missing_residual_rate": 0.7270967741935485,
+      "admissible": [
+       0,
+       1,
+       2,
+       3,
+       4,
+       5,
+       6,
+       7,
+       8,
+       9
+      ],
+      "selected": 9,
+      "constraint_satisfiable": true,
+      "absent": false,
+      "config": {
+       "tau_r": 0.9
+      },
+      "seeds_present": [
+       7,
+       19,
+       31,
+       43,
+       59
+      ],
+      "seeds_missing": [],
+      "validation_mean": {
+       "node_prf1": 0.8581767425548931,
+       "node_prf1_iou": 0.4851494385991403,
+       "missing_residual_rate": 0.16838709677419356,
+       "false_retract_rate": 0.205254329004329,
+       "false_retract_rate_in_scope": 0.20205782312925172,
+       "identity_continuity": 0.06944444444444445,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.18055555555555555,
+       "recovery_latency_frames": 142.8619607843137,
+       "contamination_auc": 0.30138338237788803
+      },
+      "validation_per_seed": {
+       "7": {
+        "node_prf1": 0.8576369942579058,
+        "node_prf1_iou": 0.48505955083198043,
+        "missing_residual_rate": 0.14516129032258066,
+        "false_retract_rate": 0.23159013605442175,
+        "false_retract_rate_in_scope": 0.22967687074829932,
+        "identity_continuity": 0.1111111111111111,
+        "identity_continuity_conditional": null,
+        "retrieval_success": 0.18055555555555555,
+        "recovery_latency_frames": 143.34117647058824,
+        "contamination_auc": 0.3019063646495626
+       },
+       "19": {
+        "node_prf1": 0.8646071601833732,
+        "node_prf1_iou": 0.4862482867787193,
+        "missing_residual_rate": 0.17043010752688173,
+        "false_retract_rate": 0.2337121212121212,
+        "false_retract_rate_in_scope": 0.21964285714285717,
+        "identity_continuity": 0.06944444444444443,
+        "identity_continuity_conditional": null,
+        "retrieval_success": 0.18055555555555555,
+        "recovery_latency_frames": 149.75392156862745,
+        "contamination_auc": 0.29254744571903757
+       },
+       "31": {
+        "node_prf1": 0.855724499843561,
+        "node_prf1_iou": 0.4828462314382674,
+        "missing_residual_rate": 0.1586021505376344,
+        "false_retract_rate": 0.1814625850340136,
+        "false_retract_rate_in_scope": 0.1814625850340136,
+        "identity_continuity": 0.05555555555555555,
+        "identity_continuity_conditional": null,
+        "retrieval_success": 0.18055555555555555,
+        "recovery_latency_frames": 132.66960784313724,
+        "contamination_auc": 0.3039580978255227
+       },
+       "43": {
+        "node_prf1": 0.8601271071981142,
+        "node_prf1_iou": 0.4874621027029272,
+        "missing_residual_rate": 0.20376344086021506,
+        "false_retract_rate": 0.19974489795918365,
+        "false_retract_rate_in_scope": 0.19974489795918365,
+        "identity_continuity": 0.05555555555555555,
+        "identity_continuity_conditional": null,
+        "retrieval_success": 0.16666666666666666,
+        "recovery_latency_frames": 138.8205882352941,
+        "contamination_auc": 0.29938497544059106
+       },
+       "59": {
+        "node_prf1": 0.8527879512915105,
+        "node_prf1_iou": 0.4841310212438071,
+        "missing_residual_rate": 0.1639784946236559,
+        "false_retract_rate": 0.17976190476190476,
+        "false_retract_rate_in_scope": 0.17976190476190476,
+        "identity_continuity": 0.05555555555555555,
+        "identity_continuity_conditional": null,
+        "retrieval_success": 0.19444444444444445,
+        "recovery_latency_frames": 149.72450980392156,
+        "contamination_auc": 0.3091200282547262
+       }
+      },
+      "grid_edge": [
+       {
+        "parameter": "tau_r",
+        "value": 0.9,
+        "position": "last"
+       }
+      ]
+     },
+     "HeuristicLabel": {
+      "arm": "HeuristicLabel",
+      "rule": "one configuration per method by node F1 on validation (D-224-SW ruling V); ruling 102-4: an arm whose vocabulary has RETRACT (VSMT-lean, NoVersion, HeuristicLabel, HandCost, ELU-P, RAC) chooses only among configurations whose validation Missing residual rate is below the same front end's AssocOnly validation Missing residual rate (learned arms and AssocOnly as five-seed means); when none qualifies the node-F1 maximum is chosen and recorded as constraint_not_satisfiable, and its result cannot support a claim that the arm's retraction reduces stale entities; ties to the smallest configuration index; main-gate metrics select nothing else",
+      "constrained": true,
+      "reference_missing_residual_rate": 0.7270967741935485,
+      "admissible": [
+       0,
+       1,
+       2,
+       3,
+       4,
+       5,
+       6,
+       7,
+       8,
+       9
+      ],
+      "selected": 1,
+      "constraint_satisfiable": true,
+      "absent": false,
+      "config": {
+       "tau_r": 0.2
+      },
+      "seeds_present": [
+       7,
+       19,
+       31,
+       43,
+       59
+      ],
+      "seeds_missing": [],
+      "validation_mean": {
+       "node_prf1": 0.6485688446318525,
+       "node_prf1_iou": 0.40769044950522637,
+       "missing_residual_rate": 0.1827956989247312,
+       "false_retract_rate": 0.9194722041499117,
+       "false_retract_rate_in_scope": 0.8944578397320828,
+       "identity_continuity": 0.2875,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.3263888888888889,
+       "recovery_latency_frames": 133.23529411764704,
+       "contamination_auc": 0.3028108145514821
+      },
+      "validation_per_seed": {
+       "7": {
+        "node_prf1": 0.6484473324910273,
+        "node_prf1_iou": 0.40794991076144377,
+        "missing_residual_rate": 0.18064516129032257,
+        "false_retract_rate": 0.9211919797990548,
+        "false_retract_rate_in_scope": 0.8963250030724491,
+        "identity_continuity": 0.3125,
+        "identity_continuity_conditional": null,
+        "retrieval_success": 0.3263888888888889,
+        "recovery_latency_frames": 133.86176470588236,
+        "contamination_auc": 0.30276069299155467
+       },
+       "19": {
+        "node_prf1": 0.6491417835042635,
+        "node_prf1_iou": 0.4079725630148807,
+        "missing_residual_rate": 0.18064516129032257,
+        "false_retract_rate": 0.920049840689737,
+        "false_retract_rate_in_scope": 0.8947028469887525,
+        "identity_continuity": 0.2708333333333333,
+        "identity_continuity_conditional": null,
+        "retrieval_success": 0.3263888888888889,
+        "recovery_latency_frames": 132.33529411764704,
+        "contamination_auc": 0.3023474734189378
+       },
+       "31": {
+        "node_prf1": 0.6486521531050309,
+        "node_prf1_iou": 0.4066230400274814,
+        "missing_residual_rate": 0.18064516129032257,
+        "false_retract_rate": 0.9181506453082278,
+        "false_retract_rate_in_scope": 0.8932582664141039,
+        "identity_continuity": 0.3125,
+        "identity_continuity_conditional": null,
+        "retrieval_success": 0.3263888888888889,
+        "recovery_latency_frames": 131.97156862745098,
+        "contamination_auc": 0.3029147462198906
+       },
+       "43": {
+        "node_prf1": 0.6478906799123053,
+        "node_prf1_iou": 0.4083173637252432,
+        "missing_residual_rate": 0.1913978494623656,
+        "false_retract_rate": 0.9187777470033583,
+        "false_retract_rate_in_scope": 0.893625784493527,
+        "identity_continuity": 0.2708333333333333,
+        "identity_continuity_conditional": null,
+        "retrieval_success": 0.3263888888888889,
+        "recovery_latency_frames": 136.30784313725488,
+        "contamination_auc": 0.30297021801050816
+       },
+       "59": {
+        "node_prf1": 0.6487122741466353,
+        "node_prf1_iou": 0.407589369997083,
+        "missing_residual_rate": 0.18064516129032257,
+        "false_retract_rate": 0.9191908079491807,
+        "false_retract_rate_in_scope": 0.894377297691582,
+        "identity_continuity": 0.2708333333333333,
+        "identity_continuity_conditional": null,
+        "retrieval_success": 0.3263888888888889,
+        "recovery_latency_frames": 131.70000000000002,
+        "contamination_auc": 0.30306094211651935
+       }
+      },
+      "grid_edge": []
+     },
+     "AssocOnly": {
+      "arm": "AssocOnly",
+      "rule": "one configuration per method by node F1 on validation (D-224-SW ruling V); ruling 102-4: an arm whose vocabulary has RETRACT (VSMT-lean, NoVersion, HeuristicLabel, HandCost, ELU-P, RAC) chooses only among configurations whose validation Missing residual rate is below the same front end's AssocOnly validation Missing residual rate (learned arms and AssocOnly as five-seed means); when none qualifies the node-F1 maximum is chosen and recorded as constraint_not_satisfiable, and its result cannot support a claim that the arm's retraction reduces stale entities; ties to the smallest configuration index; main-gate metrics select nothing else",
+      "constrained": false,
+      "reference_missing_residual_rate": 0.7270967741935485,
+      "admissible": [
+       0
+      ],
+      "selected": 0,
+      "constraint_satisfiable": null,
+      "absent": false,
+      "config": {},
+      "seeds_present": [
+       7,
+       19,
+       31,
+       43,
+       59
+      ],
+      "seeds_missing": [],
+      "validation_mean": {
+       "node_prf1": 0.8531763075505984,
+       "node_prf1_iou": 0.4812803161253325,
+       "missing_residual_rate": 0.7270967741935485,
+       "false_retract_rate": null,
+       "false_retract_rate_in_scope": null,
+       "identity_continuity": 0.09583333333333333,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.11944444444444442,
+       "recovery_latency_frames": 174.76196078431371,
+       "contamination_auc": 0.30978525181968275
+      },
+      "validation_per_seed": {
+       "7": {
+        "node_prf1": 0.8511775102364258,
+        "node_prf1_iou": 0.48184058107951205,
+        "missing_residual_rate": 0.717741935483871,
+        "false_retract_rate": null,
+        "false_retract_rate_in_scope": null,
+        "identity_continuity": 0.10416666666666667,
+        "identity_continuity_conditional": null,
+        "retrieval_success": 0.09722222222222221,
+        "recovery_latency_frames": 189.72058823529412,
+        "contamination_auc": 0.3133416422712225
+       },
+       "19": {
+        "node_prf1": 0.8597240859126817,
+        "node_prf1_iou": 0.48234920104863127,
+        "missing_residual_rate": 0.739247311827957,
+        "false_retract_rate": null,
+        "false_retract_rate_in_scope": null,
+        "identity_continuity": 0.10416666666666667,
+        "identity_continuity_conditional": null,
+        "retrieval_success": 0.13888888888888887,
+        "recovery_latency_frames": 167.5343137254902,
+        "contamination_auc": 0.30455602593351233
+       },
+       "31": {
+        "node_prf1": 0.8468884660818057,
+        "node_prf1_iou": 0.47974701797967695,
+        "missing_residual_rate": 0.7043010752688171,
+        "false_retract_rate": null,
+        "false_retract_rate_in_scope": null,
+        "identity_continuity": 0.11805555555555554,
+        "identity_continuity_conditional": null,
+        "retrieval_success": 0.15277777777777776,
+        "recovery_latency_frames": 177.42156862745097,
+        "contamination_auc": 0.31226545657561244
+       },
+       "43": {
+        "node_prf1": 0.8483328622443288,
+        "node_prf1_iou": 0.4797675446485673,
+        "missing_residual_rate": 0.6935483870967742,
+        "false_retract_rate": null,
+        "false_retract_rate_in_scope": null,
+        "identity_continuity": 0.07638888888888888,
+        "identity_continuity_conditional": null,
+        "retrieval_success": 0.1111111111111111,
+        "recovery_latency_frames": 168.23627450980393,
+        "contamination_auc": 0.3162691712729259
+       },
+       "59": {
+        "node_prf1": 0.8597586132777496,
+        "node_prf1_iou": 0.48269723587027513,
+        "missing_residual_rate": 0.7806451612903226,
+        "false_retract_rate": null,
+        "false_retract_rate_in_scope": null,
+        "identity_continuity": 0.07638888888888888,
+        "identity_continuity_conditional": null,
+        "retrieval_success": 0.09722222222222221,
+        "recovery_latency_frames": 170.89705882352942,
+        "contamination_auc": 0.3024939630451404
+       }
+      },
+      "grid_edge": []
+     },
+     "TAF": {
+      "arm": "TAF",
+      "rule": "one configuration per method by node F1 on validation (D-224-SW ruling V); ruling 102-4: an arm whose vocabulary has RETRACT (VSMT-lean, NoVersion, HeuristicLabel, HandCost, ELU-P, RAC) chooses only among configurations whose validation Missing residual rate is below the same front end's AssocOnly validation Missing residual rate (learned arms and AssocOnly as five-seed means); when none qualifies the node-F1 maximum is chosen and recorded as constraint_not_satisfiable, and its result cannot support a claim that the arm's retraction reduces stale entities; ties to the smallest configuration index; main-gate metrics select nothing else",
+      "constrained": false,
+      "reference_missing_residual_rate": 0.7270967741935485,
+      "admissible": [
+       0,
+       1,
+       2,
+       3,
+       4,
+       5,
+       6,
+       7,
+       8,
+       9,
+       10,
+       11
+      ],
+      "selected": 2,
+      "constraint_satisfiable": null,
+      "absent": false,
+      "config": {
+       "theta_a": 0.6,
+       "d_a": 1.0
+      },
+      "seeds_present": [],
+      "seeds_missing": [],
+      "validation_mean": {
+       "node_prf1": 0.6766318501006406,
+       "node_prf1_iou": 0.4314575290690314,
+       "missing_residual_rate": 0.756989247311828,
+       "false_retract_rate": null,
+       "false_retract_rate_in_scope": null,
+       "identity_continuity": 0.09722222222222222,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.11805555555555557,
+       "recovery_latency_frames": 159.77254901960782,
+       "contamination_auc": 0.3143514337583232
+      },
+      "validation_per_seed": {},
+      "grid_edge": [
+       {
+        "parameter": "theta_a",
+        "value": 0.6,
+        "position": "first"
+       }
+      ]
+     },
+     "ELU-P": {
+      "arm": "ELU-P",
+      "rule": "one configuration per method by node F1 on validation (D-224-SW ruling V); ruling 102-4: an arm whose vocabulary has RETRACT (VSMT-lean, NoVersion, HeuristicLabel, HandCost, ELU-P, RAC) chooses only among configurations whose validation Missing residual rate is below the same front end's AssocOnly validation Missing residual rate (learned arms and AssocOnly as five-seed means); when none qualifies the node-F1 maximum is chosen and recorded as constraint_not_satisfiable, and its result cannot support a claim that the arm's retraction reduces stale entities; ties to the smallest configuration index; main-gate metrics select nothing else",
+      "constrained": true,
+      "reference_missing_residual_rate": 0.7270967741935485,
+      "admissible": [
+       0,
+       1,
+       2,
+       3,
+       4,
+       5,
+       6,
+       7,
+       8,
+       9,
+       10,
+       11
+      ],
+      "selected": 10,
+      "constraint_satisfiable": true,
+      "absent": false,
+      "config": {
+       "theta_a": 0.7,
+       "d_a": 1.0,
+       "free_space_weight": 2.0,
+       "retract_threshold": 0.0
+      },
+      "seeds_present": [],
+      "seeds_missing": [],
+      "validation_mean": {
+       "node_prf1": 0.678785309750042,
+       "node_prf1_iou": 0.4257751293918723,
+       "missing_residual_rate": 0.10430107526881721,
+       "false_retract_rate": 0.9587855922305835,
+       "false_retract_rate_in_scope": 0.9211357877990748,
+       "identity_continuity": 0.09722222222222222,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.2777777777777778,
+       "recovery_latency_frames": 144.771568627451,
+       "contamination_auc": 0.3107813281830216
+      },
+      "validation_per_seed": {},
+      "grid_edge": [
+       {
+        "parameter": "d_a",
+        "value": 1.0,
+        "position": "last"
+       },
+       {
+        "parameter": "free_space_weight",
+        "value": 2.0,
+        "position": "last"
+       },
+       {
+        "parameter": "retract_threshold",
+        "value": 0.0,
+        "position": "first"
+       }
+      ]
+     },
+     "RAC": {
+      "arm": "RAC",
+      "rule": "one configuration per method by node F1 on validation (D-224-SW ruling V); ruling 102-4: an arm whose vocabulary has RETRACT (VSMT-lean, NoVersion, HeuristicLabel, HandCost, ELU-P, RAC) chooses only among configurations whose validation Missing residual rate is below the same front end's AssocOnly validation Missing residual rate (learned arms and AssocOnly as five-seed means); when none qualifies the node-F1 maximum is chosen and recorded as constraint_not_satisfiable, and its result cannot support a claim that the arm's retraction reduces stale entities; ties to the smallest configuration index; main-gate metrics select nothing else",
+      "constrained": true,
+      "reference_missing_residual_rate": 0.7270967741935485,
+      "admissible": [
+       0,
+       1,
+       2,
+       3,
+       4,
+       5,
+       6,
+       7,
+       8,
+       9,
+       10,
+       11
+      ],
+      "selected": 6,
+      "constraint_satisfiable": true,
+      "absent": false,
+      "config": {
+       "theta_a": 0.7,
+       "d_a": 1.0,
+       "rho_rac": 0.7,
+       "n_rac": 2
+      },
+      "seeds_present": [],
+      "seeds_missing": [],
+      "validation_mean": {
+       "node_prf1": 0.6568462817049703,
+       "node_prf1_iou": 0.41964872274073767,
+       "missing_residual_rate": 0.09784946236559139,
+       "false_retract_rate": 0.8539038633197583,
+       "false_retract_rate_in_scope": 0.7635663010282316,
+       "identity_continuity": 0.041666666666666664,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.17361111111111113,
+       "recovery_latency_frames": 128.56176470588235,
+       "contamination_auc": 0.29982709410620706
+      },
+      "validation_per_seed": {},
+      "grid_edge": [
+       {
+        "parameter": "d_a",
+        "value": 1.0,
+        "position": "last"
+       },
+       {
+        "parameter": "rho_rac",
+        "value": 0.7,
+        "position": "first"
+       },
+       {
+        "parameter": "n_rac",
+        "value": 2,
+        "position": "first"
+       }
+      ]
+     },
+     "LOW": {
+      "arm": "LOW",
+      "rule": "one configuration per method by node F1 on validation (D-224-SW ruling V); ruling 102-4: an arm whose vocabulary has RETRACT (VSMT-lean, NoVersion, HeuristicLabel, HandCost, ELU-P, RAC) chooses only among configurations whose validation Missing residual rate is below the same front end's AssocOnly validation Missing residual rate (learned arms and AssocOnly as five-seed means); when none qualifies the node-F1 maximum is chosen and recorded as constraint_not_satisfiable, and its result cannot support a claim that the arm's retraction reduces stale entities; ties to the smallest configuration index; main-gate metrics select nothing else",
+      "constrained": false,
+      "reference_missing_residual_rate": 0.7270967741935485,
+      "admissible": [
+       0,
+       1,
+       2,
+       3,
+       4
+      ],
+      "selected": 2,
+      "constraint_satisfiable": null,
+      "absent": false,
+      "config": {
+       "d_low": 0.5
+      },
+      "seeds_present": [],
+      "seeds_missing": [],
+      "validation_mean": {
+       "node_prf1": 0.7724455710289498,
+       "node_prf1_iou": 0.4554800704792413,
+       "missing_residual_rate": 0.6779569892473118,
+       "false_retract_rate": null,
+       "false_retract_rate_in_scope": null,
+       "identity_continuity": 0.0,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.13194444444444445,
+       "recovery_latency_frames": 207.77450980392155,
+       "contamination_auc": 0.35973006458489676
+      },
+      "validation_per_seed": {},
+      "grid_edge": []
+     },
+     "HandCost": {
+      "arm": "HandCost",
+      "rule": "one configuration per method by node F1 on validation (D-224-SW ruling V); ruling 102-4: an arm whose vocabulary has RETRACT (VSMT-lean, NoVersion, HeuristicLabel, HandCost, ELU-P, RAC) chooses only among configurations whose validation Missing residual rate is below the same front end's AssocOnly validation Missing residual rate (learned arms and AssocOnly as five-seed means); when none qualifies the node-F1 maximum is chosen and recorded as constraint_not_satisfiable, and its result cannot support a claim that the arm's retraction reduces stale entities; ties to the smallest configuration index; main-gate metrics select nothing else",
+      "constrained": true,
+      "reference_missing_residual_rate": 0.7270967741935485,
+      "admissible": [
+       0,
+       1,
+       2,
+       3,
+       4,
+       5,
+       6,
+       7,
+       8,
+       9,
+       10,
+       11
+      ],
+      "selected": 7,
+      "constraint_satisfiable": true,
+      "absent": false,
+      "config": {
+       "theta_b": 0.7,
+       "rho_h": 0.9
+      },
+      "seeds_present": [],
+      "seeds_missing": [],
+      "validation_mean": {
+       "node_prf1": 0.6348868671425492,
+       "node_prf1_iou": 0.40283745312505065,
+       "missing_residual_rate": 0.10698924731182795,
+       "false_retract_rate": 0.8843201840195363,
+       "false_retract_rate_in_scope": 0.8455026947121508,
+       "identity_continuity": 0.3125,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.3194444444444444,
+       "recovery_latency_frames": 115.36470588235295,
+       "contamination_auc": 0.31137834142459336
+      },
+      "validation_per_seed": {},
+      "grid_edge": [
+       {
+        "parameter": "rho_h",
+        "value": 0.9,
+        "position": "last"
+       }
+      ]
+     }
+    },
+    "report_only": {
+     "constraint_not_satisfiable": [],
+     "seeds_missing": {},
+     "arms_absent": [],
+     "grid_edge": {
+      "NoVersion": [
+       {
+        "parameter": "tau_r",
+        "value": 0.9,
+        "position": "last"
+       }
+      ],
+      "TAF": [
+       {
+        "parameter": "theta_a",
+        "value": 0.6,
+        "position": "first"
+       }
+      ],
+      "ELU-P": [
+       {
+        "parameter": "d_a",
+        "value": 1.0,
+        "position": "last"
+       },
+       {
+        "parameter": "free_space_weight",
+        "value": 2.0,
+        "position": "last"
+       },
+       {
+        "parameter": "retract_threshold",
+        "value": 0.0,
+        "position": "first"
+       }
+      ],
+      "RAC": [
+       {
+        "parameter": "d_a",
+        "value": 1.0,
+        "position": "last"
+       },
+       {
+        "parameter": "rho_rac",
+        "value": 0.7,
+        "position": "first"
+       },
+       {
+        "parameter": "n_rac",
+        "value": 2,
+        "position": "first"
+       }
+      ],
+      "HandCost": [
+       {
+        "parameter": "rho_h",
+        "value": 0.9,
+        "position": "last"
+       }
+      ]
+     },
+     "consequences": "report only, consequences fixed before the freeze: constraint_not_satisfiable -> the arm's result cannot support 'its retraction reduces stale entities', and on VSMT-lean no primary claim (rulings 102-1, 102-4); a missing seed -> the S3-05 gate involving the arm is not evaluable (ruling 102-9); a grid edge -> reported beside the grid, the grids stay (ruling 102-6)"
+    },
+    "not_frozen": {
+     "VSMT-lean-ctx": "optional arm, never trained in S3-03 (D-224-EFG): not frozen, not run on test",
+     "LLM-op": "appendix arm, validation only (S0-05 appendix_arm, ruling 105): not frozen, not run on test"
+    }
+   },
+   "test_runs": [
+    {
+     "arm": "TAF",
+     "config_index": 2,
+     "config": {
+      "theta_a": 0.6,
+      "d_a": 1.0
+     },
+     "grid_config": {
+      "theta_a": 0.6,
+      "d_a": 1.0
+     },
+     "seed": null,
+     "heads_arm": null
+    },
+    {
+     "arm": "ELU-P",
+     "config_index": 10,
+     "config": {
+      "theta_a": 0.7,
+      "d_a": 1.0,
+      "free_space_weight": 2.0,
+      "retract_threshold": 0.0,
+      "initial_log_odds": 4.715758278823018,
+      "persistence_log_decay_per_tick": 1.9468203738496008e-05,
+      "match_gain": 3.5202657867949485
+     },
+     "grid_config": {
+      "theta_a": 0.7,
+      "d_a": 1.0,
+      "free_space_weight": 2.0,
+      "retract_threshold": 0.0
+     },
+     "seed": null,
+     "heads_arm": null
+    },
+    {
+     "arm": "RAC",
+     "config_index": 6,
+     "config": {
+      "theta_a": 0.7,
+      "d_a": 1.0,
+      "rho_rac": 0.7,
+      "n_rac": 2
+     },
+     "grid_config": {
+      "theta_a": 0.7,
+      "d_a": 1.0,
+      "rho_rac": 0.7,
+      "n_rac": 2
+     },
+     "seed": null,
+     "heads_arm": null
+    },
+    {
+     "arm": "LOW",
+     "config_index": 2,
+     "config": {
+      "d_low": 0.5
+     },
+     "grid_config": {
+      "d_low": 0.5
+     },
+     "seed": null,
+     "heads_arm": null
+    },
+    {
+     "arm": "HandCost",
+     "config_index": 7,
+     "config": {
+      "theta_b": 0.7,
+      "rho_h": 0.9
+     },
+     "grid_config": {
+      "theta_b": 0.7,
+      "rho_h": 0.9
+     },
+     "seed": null,
+     "heads_arm": null
+    },
+    {
+     "arm": "VSMT-lean",
+     "config_index": 8,
+     "config": {
+      "tau_r": 0.8
+     },
+     "grid_config": {
+      "tau_r": 0.8
+     },
+     "seed": 7,
+     "heads_arm": "VSMT-lean"
+    },
+    {
+     "arm": "VSMT-lean",
+     "config_index": 8,
+     "config": {
+      "tau_r": 0.8
+     },
+     "grid_config": {
+      "tau_r": 0.8
+     },
+     "seed": 19,
+     "heads_arm": "VSMT-lean"
+    },
+    {
+     "arm": "VSMT-lean",
+     "config_index": 8,
+     "config": {
+      "tau_r": 0.8
+     },
+     "grid_config": {
+      "tau_r": 0.8
+     },
+     "seed": 31,
+     "heads_arm": "VSMT-lean"
+    },
+    {
+     "arm": "VSMT-lean",
+     "config_index": 8,
+     "config": {
+      "tau_r": 0.8
+     },
+     "grid_config": {
+      "tau_r": 0.8
+     },
+     "seed": 43,
+     "heads_arm": "VSMT-lean"
+    },
+    {
+     "arm": "VSMT-lean",
+     "config_index": 8,
+     "config": {
+      "tau_r": 0.8
+     },
+     "grid_config": {
+      "tau_r": 0.8
+     },
+     "seed": 59,
+     "heads_arm": "VSMT-lean"
+    },
+    {
+     "arm": "NoVersion",
+     "config_index": 9,
+     "config": {
+      "tau_r": 0.9
+     },
+     "grid_config": {
+      "tau_r": 0.9
+     },
+     "seed": 7,
+     "heads_arm": "VSMT-lean"
+    },
+    {
+     "arm": "NoVersion",
+     "config_index": 9,
+     "config": {
+      "tau_r": 0.9
+     },
+     "grid_config": {
+      "tau_r": 0.9
+     },
+     "seed": 19,
+     "heads_arm": "VSMT-lean"
+    },
+    {
+     "arm": "NoVersion",
+     "config_index": 9,
+     "config": {
+      "tau_r": 0.9
+     },
+     "grid_config": {
+      "tau_r": 0.9
+     },
+     "seed": 31,
+     "heads_arm": "VSMT-lean"
+    },
+    {
+     "arm": "NoVersion",
+     "config_index": 9,
+     "config": {
+      "tau_r": 0.9
+     },
+     "grid_config": {
+      "tau_r": 0.9
+     },
+     "seed": 43,
+     "heads_arm": "VSMT-lean"
+    },
+    {
+     "arm": "NoVersion",
+     "config_index": 9,
+     "config": {
+      "tau_r": 0.9
+     },
+     "grid_config": {
+      "tau_r": 0.9
+     },
+     "seed": 59,
+     "heads_arm": "VSMT-lean"
+    },
+    {
+     "arm": "HeuristicLabel",
+     "config_index": 1,
+     "config": {
+      "tau_r": 0.2
+     },
+     "grid_config": {
+      "tau_r": 0.2
+     },
+     "seed": 7,
+     "heads_arm": "HeuristicLabel"
+    },
+    {
+     "arm": "HeuristicLabel",
+     "config_index": 1,
+     "config": {
+      "tau_r": 0.2
+     },
+     "grid_config": {
+      "tau_r": 0.2
+     },
+     "seed": 19,
+     "heads_arm": "HeuristicLabel"
+    },
+    {
+     "arm": "HeuristicLabel",
+     "config_index": 1,
+     "config": {
+      "tau_r": 0.2
+     },
+     "grid_config": {
+      "tau_r": 0.2
+     },
+     "seed": 31,
+     "heads_arm": "HeuristicLabel"
+    },
+    {
+     "arm": "HeuristicLabel",
+     "config_index": 1,
+     "config": {
+      "tau_r": 0.2
+     },
+     "grid_config": {
+      "tau_r": 0.2
+     },
+     "seed": 43,
+     "heads_arm": "HeuristicLabel"
+    },
+    {
+     "arm": "HeuristicLabel",
+     "config_index": 1,
+     "config": {
+      "tau_r": 0.2
+     },
+     "grid_config": {
+      "tau_r": 0.2
+     },
+     "seed": 59,
+     "heads_arm": "HeuristicLabel"
+    },
+    {
+     "arm": "AssocOnly",
+     "config_index": 0,
+     "config": {},
+     "grid_config": {},
+     "seed": 7,
+     "heads_arm": "AssocOnly"
+    },
+    {
+     "arm": "AssocOnly",
+     "config_index": 0,
+     "config": {},
+     "grid_config": {},
+     "seed": 19,
+     "heads_arm": "AssocOnly"
+    },
+    {
+     "arm": "AssocOnly",
+     "config_index": 0,
+     "config": {},
+     "grid_config": {},
+     "seed": 31,
+     "heads_arm": "AssocOnly"
+    },
+    {
+     "arm": "AssocOnly",
+     "config_index": 0,
+     "config": {},
+     "grid_config": {},
+     "seed": 43,
+     "heads_arm": "AssocOnly"
+    },
+    {
+     "arm": "AssocOnly",
+     "config_index": 0,
+     "config": {},
+     "grid_config": {},
+     "seed": 59,
+     "heads_arm": "AssocOnly"
+    }
+   ],
+   "runs_per_test_episode": 25,
+   "probe_episodes": [
+    "procthor10k-0.1.2-train-02318",
+    "procthor10k-0.1.2-train-00359"
+   ],
+   "probe_audits_identical": 50,
+   "validation_events": {
+    "missing_residual_rate_houses": 31,
+    "identity_continuity": {
+     "events_per_run": [
+      50
+     ],
+     "equal_across_runs": true
+    },
+    "retrieval_success": {
+     "events_per_run": [
+      50
+     ],
+     "equal_across_runs": true
+    }
+   },
+   "state_coverage_report_only": {
+    "stage": "vsmt.lean.s3_03.driver.v1",
+    "reading": "ruling 89-3 (1) state coverage in events, report only",
+    "front": "instance",
+    "training_houses": 205,
+    "train": {
+     "retracted": {
+      "events": 9098,
+      "houses": 195,
+      "labelled_target_rows": 68770
+     },
+     "dormant": {
+      "events": 189296,
+      "houses": 205,
+      "labelled_target_rows": 829222
+     }
+    },
+    "pass": true,
+    "lines": {
+     "events_per_state": 200,
+     "training_houses_per_state": 15
+    },
+    "written_utc": "2026-10-04T03:30:00Z"
+   },
+   "step_sha256": {
+    "select": "3ba0baa2e722aae9aa8d0a5c9d5df08508d4874d38148fa16fbc94f42d9d7582",
+    "probe": "95e87e00ec370d3c9110e7655b6c8acae7d99a6b7f15bd370ca88cc0c744b5f9"
+   }
+  },
+  "sam2": {
+   "mask_source": "sam2",
+   "selection": {
+    "stage": "vsmt.lean.s3_04.v1",
+    "rule": "ruling 106-2: per front end every arm chooses on its own validation readings with lean_arms.select_configuration (ruling 102-4: the six arms with RETRACT only among configurations whose Missing residual rate is below the same front end's AssocOnly, node F1 on the main node column, ties to the smallest index; NoVersion and HeuristicLabel choose their own tau_r); learned arms and AssocOnly read the mean over the seeds present, a missing seed is named and the S3-05 gate involving that arm is not evaluable (ruling 102-9); a constraint that cannot be met takes the node-F1 maximum and is recorded (ruling 102-1 bounds the claim); VSMT-lean-ctx and LLM-op are not frozen",
+    "mask_source": "sam2",
+    "reference": {
+     "arm": "AssocOnly",
+     "config_index": 0,
+     "seeds_present": [
+      7,
+      19,
+      31,
+      43,
+      59
+     ],
+     "seeds_missing": [],
+     "missing_residual_rate": 0.2631182795698925,
+     "node_f1": 0.5189985567015599
+    },
+    "arms": {
+     "VSMT-lean": {
+      "arm": "VSMT-lean",
+      "rule": "one configuration per method by node F1 on validation (D-224-SW ruling V); ruling 102-4: an arm whose vocabulary has RETRACT (VSMT-lean, NoVersion, HeuristicLabel, HandCost, ELU-P, RAC) chooses only among configurations whose validation Missing residual rate is below the same front end's AssocOnly validation Missing residual rate (learned arms and AssocOnly as five-seed means); when none qualifies the node-F1 maximum is chosen and recorded as constraint_not_satisfiable, and its result cannot support a claim that the arm's retraction reduces stale entities; ties to the smallest configuration index; main-gate metrics select nothing else",
+      "constrained": true,
+      "reference_missing_residual_rate": 0.2631182795698925,
+      "admissible": [
+       0,
+       1,
+       2,
+       3,
+       4,
+       5,
+       6,
+       7,
+       8,
+       9
+      ],
+      "selected": 2,
+      "constraint_satisfiable": true,
+      "absent": false,
+      "config": {
+       "tau_r": 0.25
+      },
+      "seeds_present": [
+       7,
+       19,
+       31,
+       43,
+       59
+      ],
+      "seeds_missing": [],
+      "validation_mean": {
+       "node_prf1": 0.527778638291965,
+       "node_prf1_iou": 0.24691906415784487,
+       "missing_residual_rate": 0.0703225806451613,
+       "false_retract_rate": 0.5706978591090655,
+       "false_retract_rate_in_scope": 0.448036147289909,
+       "identity_continuity": 0.06527777777777778,
+       "identity_continuity_conditional": 0.2333333333333333,
+       "retrieval_success": 0.1196969696969697,
+       "recovery_latency_frames": 129.54380952380953,
+       "contamination_auc": 0.44441451373137425
+      },
+      "validation_per_seed": {
+       "7": {
+        "node_prf1": 0.5229350925616877,
+        "node_prf1_iou": 0.24624699241737025,
+        "missing_residual_rate": 0.06290322580645161,
+        "false_retract_rate": 0.6451441468092384,
+        "false_retract_rate_in_scope": 0.5067657213674157,
+        "identity_continuity": 0.09027777777777778,
+        "identity_continuity_conditional": 0.3333333333333333,
+        "retrieval_success": 0.1212121212121212,
+        "recovery_latency_frames": 133.8468253968254,
+        "contamination_auc": 0.44895266626089786
+       },
+       "19": {
+        "node_prf1": 0.5330254319210553,
+        "node_prf1_iou": 0.24788302011017,
+        "missing_residual_rate": 0.07580645161290323,
+        "false_retract_rate": 0.6427694268211687,
+        "false_retract_rate_in_scope": 0.5129098772492972,
+        "identity_continuity": 0.1111111111111111,
+        "identity_continuity_conditional": 0.5,
+        "retrieval_success": 0.20454545454545456,
+        "recovery_latency_frames": 129.33333333333334,
+        "contamination_auc": 0.44446126805219816
+       },
+       "31": {
+        "node_prf1": 0.5256511713379095,
+        "node_prf1_iou": 0.24758670215510664,
+        "missing_residual_rate": 0.059139784946236555,
+        "false_retract_rate": 0.3207856598016781,
+        "false_retract_rate_in_scope": 0.2244107744107744,
+        "identity_continuity": 0.05555555555555555,
+        "identity_continuity_conditional": 0.0,
+        "retrieval_success": 0.13636363636363635,
+        "recovery_latency_frames": 121.34920634920636,
+        "contamination_auc": 0.44205156521603106
+       },
+       "43": {
+        "node_prf1": 0.5310647225204755,
+        "node_prf1_iou": 0.2462826133115431,
+        "missing_residual_rate": 0.0989247311827957,
+        "false_retract_rate": 0.624959241547153,
+        "false_retract_rate_in_scope": 0.4823351355593727,
+        "identity_continuity": 0.020833333333333332,
+        "identity_continuity_conditional": 0.0,
+        "retrieval_success": 0.0606060606060606,
+        "recovery_latency_frames": 127.27619047619048,
+        "contamination_auc": 0.44033101599035107
+       },
+       "59": {
+        "node_prf1": 0.5262167731186971,
+        "node_prf1_iou": 0.24659599279503433,
+        "missing_residual_rate": 0.054838709677419356,
+        "false_retract_rate": 0.6198308205660887,
+        "false_retract_rate_in_scope": 0.513759227862685,
+        "identity_continuity": 0.048611111111111105,
+        "identity_continuity_conditional": 0.3333333333333333,
+        "retrieval_success": 0.07575757575757575,
+        "recovery_latency_frames": 135.91349206349207,
+        "contamination_auc": 0.44627605313739305
+       }
+      },
+      "grid_edge": []
+     },
+     "NoVersion": {
+      "arm": "NoVersion",
+      "rule": "one configuration per method by node F1 on validation (D-224-SW ruling V); ruling 102-4: an arm whose vocabulary has RETRACT (VSMT-lean, NoVersion, HeuristicLabel, HandCost, ELU-P, RAC) chooses only among configurations whose validation Missing residual rate is below the same front end's AssocOnly validation Missing residual rate (learned arms and AssocOnly as five-seed means); when none qualifies the node-F1 maximum is chosen and recorded as constraint_not_satisfiable, and its result cannot support a claim that the arm's retraction reduces stale entities; ties to the smallest configuration index; main-gate metrics select nothing else",
+      "constrained": true,
+      "reference_missing_residual_rate": 0.2631182795698925,
+      "admissible": [
+       0,
+       1,
+       2,
+       3,
+       4,
+       5,
+       6,
+       7,
+       8,
+       9
+      ],
+      "selected": 2,
+      "constraint_satisfiable": true,
+      "absent": false,
+      "config": {
+       "tau_r": 0.25
+      },
+      "seeds_present": [
+       7,
+       19,
+       31,
+       43,
+       59
+      ],
+      "seeds_missing": [],
+      "validation_mean": {
+       "node_prf1": 0.5303735142271574,
+       "node_prf1_iou": 0.24686726376521206,
+       "missing_residual_rate": 0.04505376344086022,
+       "false_retract_rate": 0.5700288198188014,
+       "false_retract_rate_in_scope": 0.44476376559776265,
+       "identity_continuity": 0.02361111111111111,
+       "identity_continuity_conditional": 0.1,
+       "retrieval_success": 0.09242424242424242,
+       "recovery_latency_frames": 131.60555555555555,
+       "contamination_auc": 0.4440389511227578
+      },
+      "validation_per_seed": {
+       "7": {
+        "node_prf1": 0.5270538483579236,
+        "node_prf1_iou": 0.24506438678797704,
+        "missing_residual_rate": 0.04301075268817204,
+        "false_retract_rate": 0.6092147448648567,
+        "false_retract_rate_in_scope": 0.4572331290311586,
+        "identity_continuity": 0.020833333333333332,
+        "identity_continuity_conditional": 0.0,
+        "retrieval_success": 0.06818181818181818,
+        "recovery_latency_frames": 123.04206349206349,
+        "contamination_auc": 0.44863011888169235
+       },
+       "19": {
+        "node_prf1": 0.5342470483732258,
+        "node_prf1_iou": 0.24798093707353705,
+        "missing_residual_rate": 0.07096774193548387,
+        "false_retract_rate": 0.6406926940171207,
+        "false_retract_rate_in_scope": 0.5197260548012693,
+        "identity_continuity": 0.05555555555555555,
+        "identity_continuity_conditional": 0.5,
+        "retrieval_success": 0.11363636363636363,
+        "recovery_latency_frames": 135.71428571428572,
+        "contamination_auc": 0.4446409454030071
+       },
+       "31": {
+        "node_prf1": 0.5272237212102762,
+        "node_prf1_iou": 0.24702812311532057,
+        "missing_residual_rate": 0.024193548387096774,
+        "false_retract_rate": 0.37692871209495243,
+        "false_retract_rate_in_scope": 0.27142857142857146,
+        "identity_continuity": 0.0,
+        "identity_continuity_conditional": 0.0,
+        "retrieval_success": 0.08333333333333333,
+        "recovery_latency_frames": 129.92857142857142,
+        "contamination_auc": 0.4422281269509457
+       },
+       "43": {
+        "node_prf1": 0.5333308189945108,
+        "node_prf1_iou": 0.24691214855248816,
+        "missing_residual_rate": 0.07096774193548387,
+        "false_retract_rate": 0.6109041306432033,
+        "false_retract_rate_in_scope": 0.47902240312954597,
+        "identity_continuity": 0.020833333333333332,
+        "identity_continuity_conditional": 0.0,
+        "retrieval_success": 0.07575757575757575,
+        "recovery_latency_frames": 127.35952380952382,
+        "contamination_auc": 0.4397599927953025
+       },
+       "59": {
+        "node_prf1": 0.5300121341998504,
+        "node_prf1_iou": 0.2473507232967374,
+        "missing_residual_rate": 0.016129032258064516,
+        "false_retract_rate": 0.6124038174738738,
+        "false_retract_rate_in_scope": 0.496408669598268,
+        "identity_continuity": 0.020833333333333332,
+        "identity_continuity_conditional": 0.0,
+        "retrieval_success": 0.1212121212121212,
+        "recovery_latency_frames": 141.98333333333335,
+        "contamination_auc": 0.4449355715828413
+       }
+      },
+      "grid_edge": []
+     },
+     "HeuristicLabel": {
+      "arm": "HeuristicLabel",
+      "rule": "one configuration per method by node F1 on validation (D-224-SW ruling V); ruling 102-4: an arm whose vocabulary has RETRACT (VSMT-lean, NoVersion, HeuristicLabel, HandCost, ELU-P, RAC) chooses only among configurations whose validation Missing residual rate is below the same front end's AssocOnly validation Missing residual rate (learned arms and AssocOnly as five-seed means); when none qualifies the node-F1 maximum is chosen and recorded as constraint_not_satisfiable, and its result cannot support a claim that the arm's retraction reduces stale entities; ties to the smallest configuration index; main-gate metrics select nothing else",
+      "constrained": true,
+      "reference_missing_residual_rate": 0.2631182795698925,
+      "admissible": [
+       0,
+       1,
+       2,
+       3,
+       4,
+       5,
+       6,
+       7,
+       8,
+       9
+      ],
+      "selected": 5,
+      "constraint_satisfiable": true,
+      "absent": false,
+      "config": {
+       "tau_r": 0.5
+      },
+      "seeds_present": [
+       7,
+       19,
+       31,
+       43,
+       59
+      ],
+      "seeds_missing": [],
+      "validation_mean": {
+       "node_prf1": 0.40809433465075495,
+       "node_prf1_iou": 0.21971251411193352,
+       "missing_residual_rate": 0.11720430107526883,
+       "false_retract_rate": 0.9527209758590314,
+       "false_retract_rate_in_scope": 0.9120030562502764,
+       "identity_continuity": 0.0625,
+       "identity_continuity_conditional": 0.0,
+       "retrieval_success": 0.19848484848484851,
+       "recovery_latency_frames": 131.3069841269841,
+       "contamination_auc": 0.3769024229110554
+      },
+      "validation_per_seed": {
+       "7": {
+        "node_prf1": 0.40836422704426817,
+        "node_prf1_iou": 0.21913130745225518,
+        "missing_residual_rate": 0.14193548387096774,
+        "false_retract_rate": 0.9548074759460338,
+        "false_retract_rate_in_scope": 0.9145662168327243,
+        "identity_continuity": 0.0625,
+        "identity_continuity_conditional": 0.0,
+        "retrieval_success": 0.21212121212121213,
+        "recovery_latency_frames": 134.62936507936507,
+        "contamination_auc": 0.37712629211560633
+       },
+       "19": {
+        "node_prf1": 0.40809974376317437,
+        "node_prf1_iou": 0.22015471109459714,
+        "missing_residual_rate": 0.10967741935483871,
+        "false_retract_rate": 0.9523714466968515,
+        "false_retract_rate_in_scope": 0.9126503617371337,
+        "identity_continuity": 0.0625,
+        "identity_continuity_conditional": 0.0,
+        "retrieval_success": 0.18939393939393942,
+        "recovery_latency_frames": 129.86349206349206,
+        "contamination_auc": 0.377025619860741
+       },
+       "31": {
+        "node_prf1": 0.408185842047815,
+        "node_prf1_iou": 0.21948429980268863,
+        "missing_residual_rate": 0.11505376344086021,
+        "false_retract_rate": 0.9509457878986186,
+        "false_retract_rate_in_scope": 0.9100564454389558,
+        "identity_continuity": 0.0625,
+        "identity_continuity_conditional": 0.0,
+        "retrieval_success": 0.21212121212121213,
+        "recovery_latency_frames": 130.1531746031746,
+        "contamination_auc": 0.3770180491769084
+       },
+       "43": {
+        "node_prf1": 0.4078059329714827,
+        "node_prf1_iou": 0.2201785855475421,
+        "missing_residual_rate": 0.10967741935483871,
+        "false_retract_rate": 0.9528293894168923,
+        "false_retract_rate_in_scope": 0.9113530990218438,
+        "identity_continuity": 0.0625,
+        "identity_continuity_conditional": 0.0,
+        "retrieval_success": 0.18939393939393942,
+        "recovery_latency_frames": 130.1174603174603,
+        "contamination_auc": 0.37677054575542224
+       },
+       "59": {
+        "node_prf1": 0.40801592742703463,
+        "node_prf1_iou": 0.21961366666258456,
+        "missing_residual_rate": 0.10967741935483871,
+        "false_retract_rate": 0.9526507793367606,
+        "false_retract_rate_in_scope": 0.9113891582207242,
+        "identity_continuity": 0.0625,
+        "identity_continuity_conditional": 0.0,
+        "retrieval_success": 0.18939393939393942,
+        "recovery_latency_frames": 131.77142857142857,
+        "contamination_auc": 0.3765716076465991
+       }
+      },
+      "grid_edge": []
+     },
+     "AssocOnly": {
+      "arm": "AssocOnly",
+      "rule": "one configuration per method by node F1 on validation (D-224-SW ruling V); ruling 102-4: an arm whose vocabulary has RETRACT (VSMT-lean, NoVersion, HeuristicLabel, HandCost, ELU-P, RAC) chooses only among configurations whose validation Missing residual rate is below the same front end's AssocOnly validation Missing residual rate (learned arms and AssocOnly as five-seed means); when none qualifies the node-F1 maximum is chosen and recorded as constraint_not_satisfiable, and its result cannot support a claim that the arm's retraction reduces stale entities; ties to the smallest configuration index; main-gate metrics select nothing else",
+      "constrained": false,
+      "reference_missing_residual_rate": 0.2631182795698925,
+      "admissible": [
+       0
+      ],
+      "selected": 0,
+      "constraint_satisfiable": null,
+      "absent": false,
+      "config": {},
+      "seeds_present": [
+       7,
+       19,
+       31,
+       43,
+       59
+      ],
+      "seeds_missing": [],
+      "validation_mean": {
+       "node_prf1": 0.5189985567015599,
+       "node_prf1_iou": 0.2485206704036199,
+       "missing_residual_rate": 0.2631182795698925,
+       "false_retract_rate": null,
+       "false_retract_rate_in_scope": null,
+       "identity_continuity": 0.08333333333333333,
+       "identity_continuity_conditional": 0.06666666666666667,
+       "retrieval_success": 0.10757575757575757,
+       "recovery_latency_frames": 150.13396825396825,
+       "contamination_auc": 0.446749827262508
+      },
+      "validation_per_seed": {
+       "7": {
+        "node_prf1": 0.5204007921581724,
+        "node_prf1_iou": 0.2500481152818252,
+        "missing_residual_rate": 0.2903225806451613,
+        "false_retract_rate": null,
+        "false_retract_rate_in_scope": null,
+        "identity_continuity": 0.11805555555555557,
+        "identity_continuity_conditional": 0.0,
+        "retrieval_success": 0.11363636363636363,
+        "recovery_latency_frames": 147.61031746031745,
+        "contamination_auc": 0.445432079603181
+       },
+       "19": {
+        "node_prf1": 0.5188983878225005,
+        "node_prf1_iou": 0.24907245613663512,
+        "missing_residual_rate": 0.24462365591397847,
+        "false_retract_rate": null,
+        "false_retract_rate_in_scope": null,
+        "identity_continuity": 0.07638888888888888,
+        "identity_continuity_conditional": 0.0,
+        "retrieval_success": 0.11363636363636363,
+        "recovery_latency_frames": 142.9738095238095,
+        "contamination_auc": 0.44806180397503953
+       },
+       "31": {
+        "node_prf1": 0.5184319977502022,
+        "node_prf1_iou": 0.24795740111981382,
+        "missing_residual_rate": 0.2553763440860215,
+        "false_retract_rate": null,
+        "false_retract_rate_in_scope": null,
+        "identity_continuity": 0.09027777777777778,
+        "identity_continuity_conditional": 0.3333333333333333,
+        "retrieval_success": 0.12878787878787878,
+        "recovery_latency_frames": 143.16984126984127,
+        "contamination_auc": 0.44910432327744065
+       },
+       "43": {
+        "node_prf1": 0.5196746103164195,
+        "node_prf1_iou": 0.24752724590206432,
+        "missing_residual_rate": 0.25806451612903225,
+        "false_retract_rate": null,
+        "false_retract_rate_in_scope": null,
+        "identity_continuity": 0.05555555555555555,
+        "identity_continuity_conditional": 0.0,
+        "retrieval_success": 0.06818181818181818,
+        "recovery_latency_frames": 163.66984126984127,
+        "contamination_auc": 0.44303037316832017
+       },
+       "59": {
+        "node_prf1": 0.5175869954605047,
+        "node_prf1_iou": 0.24799813357776096,
+        "missing_residual_rate": 0.2672043010752688,
+        "false_retract_rate": null,
+        "false_retract_rate_in_scope": null,
+        "identity_continuity": 0.07638888888888888,
+        "identity_continuity_conditional": 0.0,
+        "retrieval_success": 0.11363636363636363,
+        "recovery_latency_frames": 153.24603174603175,
+        "contamination_auc": 0.44812055628855846
+       }
+      },
+      "grid_edge": []
+     },
+     "TAF": {
+      "arm": "TAF",
+      "rule": "one configuration per method by node F1 on validation (D-224-SW ruling V); ruling 102-4: an arm whose vocabulary has RETRACT (VSMT-lean, NoVersion, HeuristicLabel, HandCost, ELU-P, RAC) chooses only among configurations whose validation Missing residual rate is below the same front end's AssocOnly validation Missing residual rate (learned arms and AssocOnly as five-seed means); when none qualifies the node-F1 maximum is chosen and recorded as constraint_not_satisfiable, and its result cannot support a claim that the arm's retraction reduces stale entities; ties to the smallest configuration index; main-gate metrics select nothing else",
+      "constrained": false,
+      "reference_missing_residual_rate": 0.2631182795698925,
+      "admissible": [
+       0,
+       1,
+       2,
+       3,
+       4,
+       5,
+       6,
+       7,
+       8,
+       9,
+       10,
+       11
+      ],
+      "selected": 3,
+      "constraint_satisfiable": null,
+      "absent": false,
+      "config": {
+       "theta_a": 0.6,
+       "d_a": 2.0
+      },
+      "seeds_present": [],
+      "seeds_missing": [],
+      "validation_mean": {
+       "node_prf1": 0.45526123407175845,
+       "node_prf1_iou": 0.2413728650516254,
+       "missing_residual_rate": 0.6322580645161291,
+       "false_retract_rate": null,
+       "false_retract_rate_in_scope": null,
+       "identity_continuity": 0.013888888888888888,
+       "identity_continuity_conditional": 0.0,
+       "retrieval_success": 0.045454545454545456,
+       "recovery_latency_frames": 143.9,
+       "contamination_auc": 0.3841004030323992
+      },
+      "validation_per_seed": {},
+      "grid_edge": [
+       {
+        "parameter": "theta_a",
+        "value": 0.6,
+        "position": "first"
+       },
+       {
+        "parameter": "d_a",
+        "value": 2.0,
+        "position": "last"
+       }
+      ]
+     },
+     "ELU-P": {
+      "arm": "ELU-P",
+      "rule": "one configuration per method by node F1 on validation (D-224-SW ruling V); ruling 102-4: an arm whose vocabulary has RETRACT (VSMT-lean, NoVersion, HeuristicLabel, HandCost, ELU-P, RAC) chooses only among configurations whose validation Missing residual rate is below the same front end's AssocOnly validation Missing residual rate (learned arms and AssocOnly as five-seed means); when none qualifies the node-F1 maximum is chosen and recorded as constraint_not_satisfiable, and its result cannot support a claim that the arm's retraction reduces stale entities; ties to the smallest configuration index; main-gate metrics select nothing else",
+      "constrained": true,
+      "reference_missing_residual_rate": 0.2631182795698925,
+      "admissible": [
+       0,
+       2,
+       3,
+       4,
+       5,
+       8,
+       9,
+       10,
+       11
+      ],
+      "selected": 10,
+      "constraint_satisfiable": true,
+      "absent": false,
+      "config": {
+       "theta_a": 0.7,
+       "d_a": 1.0,
+       "free_space_weight": 2.0,
+       "retract_threshold": 0.0
+      },
+      "seeds_present": [],
+      "seeds_missing": [],
+      "validation_mean": {
+       "node_prf1": 0.43538999453148935,
+       "node_prf1_iou": 0.23045179713576935,
+       "missing_residual_rate": 0.09086021505376343,
+       "false_retract_rate": 0.979787427348224,
+       "false_retract_rate_in_scope": 0.9431409584875283,
+       "identity_continuity": 0.0,
+       "identity_continuity_conditional": 0.0,
+       "retrieval_success": 0.16666666666666666,
+       "recovery_latency_frames": 117.35793650793651,
+       "contamination_auc": 0.39771566139013076
+      },
+      "validation_per_seed": {},
+      "grid_edge": [
+       {
+        "parameter": "d_a",
+        "value": 1.0,
+        "position": "last"
+       },
+       {
+        "parameter": "free_space_weight",
+        "value": 2.0,
+        "position": "last"
+       },
+       {
+        "parameter": "retract_threshold",
+        "value": 0.0,
+        "position": "first"
+       }
+      ]
+     },
+     "RAC": {
+      "arm": "RAC",
+      "rule": "one configuration per method by node F1 on validation (D-224-SW ruling V); ruling 102-4: an arm whose vocabulary has RETRACT (VSMT-lean, NoVersion, HeuristicLabel, HandCost, ELU-P, RAC) chooses only among configurations whose validation Missing residual rate is below the same front end's AssocOnly validation Missing residual rate (learned arms and AssocOnly as five-seed means); when none qualifies the node-F1 maximum is chosen and recorded as constraint_not_satisfiable, and its result cannot support a claim that the arm's retraction reduces stale entities; ties to the smallest configuration index; main-gate metrics select nothing else",
+      "constrained": true,
+      "reference_missing_residual_rate": 0.2631182795698925,
+      "admissible": [
+       0,
+       1,
+       2,
+       3,
+       4,
+       5,
+       6,
+       7,
+       8,
+       9,
+       10,
+       11
+      ],
+      "selected": 6,
+      "constraint_satisfiable": true,
+      "absent": false,
+      "config": {
+       "theta_a": 0.7,
+       "d_a": 1.0,
+       "rho_rac": 0.7,
+       "n_rac": 2
+      },
+      "seeds_present": [],
+      "seeds_missing": [],
+      "validation_mean": {
+       "node_prf1": 0.4172429454929747,
+       "node_prf1_iou": 0.22693645419007777,
+       "missing_residual_rate": 0.128494623655914,
+       "false_retract_rate": 0.9618463875550397,
+       "false_retract_rate_in_scope": 0.8541582563533455,
+       "identity_continuity": 0.0,
+       "identity_continuity_conditional": 0.0,
+       "retrieval_success": 0.10606060606060605,
+       "recovery_latency_frames": 110.8563492063492,
+       "contamination_auc": 0.3877593821659173
+      },
+      "validation_per_seed": {},
+      "grid_edge": [
+       {
+        "parameter": "d_a",
+        "value": 1.0,
+        "position": "last"
+       },
+       {
+        "parameter": "rho_rac",
+        "value": 0.7,
+        "position": "first"
+       },
+       {
+        "parameter": "n_rac",
+        "value": 2,
+        "position": "first"
+       }
+      ]
+     },
+     "LOW": {
+      "arm": "LOW",
+      "rule": "one configuration per method by node F1 on validation (D-224-SW ruling V); ruling 102-4: an arm whose vocabulary has RETRACT (VSMT-lean, NoVersion, HeuristicLabel, HandCost, ELU-P, RAC) chooses only among configurations whose validation Missing residual rate is below the same front end's AssocOnly validation Missing residual rate (learned arms and AssocOnly as five-seed means); when none qualifies the node-F1 maximum is chosen and recorded as constraint_not_satisfiable, and its result cannot support a claim that the arm's retraction reduces stale entities; ties to the smallest configuration index; main-gate metrics select nothing else",
+      "constrained": false,
+      "reference_missing_residual_rate": 0.2631182795698925,
+      "admissible": [
+       0,
+       1,
+       2,
+       3,
+       4
+      ],
+      "selected": 3,
+      "constraint_satisfiable": null,
+      "absent": false,
+      "config": {
+       "d_low": 1.0
+      },
+      "seeds_present": [],
+      "seeds_missing": [],
+      "validation_mean": {
+       "node_prf1": 0.5052611514649537,
+       "node_prf1_iou": 0.250311526070963,
+       "missing_residual_rate": 0.16075268817204302,
+       "false_retract_rate": null,
+       "false_retract_rate_in_scope": null,
+       "identity_continuity": 0.013888888888888888,
+       "identity_continuity_conditional": 0.0,
+       "retrieval_success": 0.022727272727272728,
+       "recovery_latency_frames": 144.16666666666666,
+       "contamination_auc": 0.5025985452894961
+      },
+      "validation_per_seed": {},
+      "grid_edge": []
+     },
+     "HandCost": {
+      "arm": "HandCost",
+      "rule": "one configuration per method by node F1 on validation (D-224-SW ruling V); ruling 102-4: an arm whose vocabulary has RETRACT (VSMT-lean, NoVersion, HeuristicLabel, HandCost, ELU-P, RAC) chooses only among configurations whose validation Missing residual rate is below the same front end's AssocOnly validation Missing residual rate (learned arms and AssocOnly as five-seed means); when none qualifies the node-F1 maximum is chosen and recorded as constraint_not_satisfiable, and its result cannot support a claim that the arm's retraction reduces stale entities; ties to the smallest configuration index; main-gate metrics select nothing else",
+      "constrained": true,
+      "reference_missing_residual_rate": 0.2631182795698925,
+      "admissible": [
+       0,
+       1,
+       2,
+       3,
+       4,
+       5,
+       6,
+       7,
+       8,
+       9,
+       10,
+       11
+      ],
+      "selected": 2,
+      "constraint_satisfiable": true,
+      "absent": false,
+      "config": {
+       "theta_b": 0.6,
+       "rho_h": 0.8
+      },
+      "seeds_present": [],
+      "seeds_missing": [],
+      "validation_mean": {
+       "node_prf1": 0.44235252348282167,
+       "node_prf1_iou": 0.23141224585767356,
+       "missing_residual_rate": 0.07473118279569892,
+       "false_retract_rate": 0.9516621365310844,
+       "false_retract_rate_in_scope": 0.8809870447163574,
+       "identity_continuity": 0.11805555555555554,
+       "identity_continuity_conditional": 0.6666666666666666,
+       "retrieval_success": 0.17424242424242423,
+       "recovery_latency_frames": 114.55714285714285,
+       "contamination_auc": 0.39378298740308576
+      },
+      "validation_per_seed": {},
+      "grid_edge": [
+       {
+        "parameter": "theta_b",
+        "value": 0.6,
+        "position": "first"
+       }
+      ]
+     }
+    },
+    "report_only": {
+     "constraint_not_satisfiable": [],
+     "seeds_missing": {},
+     "arms_absent": [],
+     "grid_edge": {
+      "TAF": [
+       {
+        "parameter": "theta_a",
+        "value": 0.6,
+        "position": "first"
+       },
+       {
+        "parameter": "d_a",
+        "value": 2.0,
+        "position": "last"
+       }
+      ],
+      "ELU-P": [
+       {
+        "parameter": "d_a",
+        "value": 1.0,
+        "position": "last"
+       },
+       {
+        "parameter": "free_space_weight",
+        "value": 2.0,
+        "position": "last"
+       },
+       {
+        "parameter": "retract_threshold",
+        "value": 0.0,
+        "position": "first"
+       }
+      ],
+      "RAC": [
+       {
+        "parameter": "d_a",
+        "value": 1.0,
+        "position": "last"
+       },
+       {
+        "parameter": "rho_rac",
+        "value": 0.7,
+        "position": "first"
+       },
+       {
+        "parameter": "n_rac",
+        "value": 2,
+        "position": "first"
+       }
+      ],
+      "HandCost": [
+       {
+        "parameter": "theta_b",
+        "value": 0.6,
+        "position": "first"
+       }
+      ]
+     },
+     "consequences": "report only, consequences fixed before the freeze: constraint_not_satisfiable -> the arm's result cannot support 'its retraction reduces stale entities', and on VSMT-lean no primary claim (rulings 102-1, 102-4); a missing seed -> the S3-05 gate involving the arm is not evaluable (ruling 102-9); a grid edge -> reported beside the grid, the grids stay (ruling 102-6)"
+    },
+    "not_frozen": {
+     "VSMT-lean-ctx": "optional arm, never trained in S3-03 (D-224-EFG): not frozen, not run on test",
+     "LLM-op": "appendix arm, validation only (S0-05 appendix_arm, ruling 105): not frozen, not run on test"
+    }
+   },
+   "test_runs": [
+    {
+     "arm": "TAF",
+     "config_index": 3,
+     "config": {
+      "theta_a": 0.6,
+      "d_a": 2.0
+     },
+     "grid_config": {
+      "theta_a": 0.6,
+      "d_a": 2.0
+     },
+     "seed": null,
+     "heads_arm": null
+    },
+    {
+     "arm": "ELU-P",
+     "config_index": 10,
+     "config": {
+      "theta_a": 0.7,
+      "d_a": 1.0,
+      "free_space_weight": 2.0,
+      "retract_threshold": 0.0,
+      "initial_log_odds": 4.713527527677658,
+      "persistence_log_decay_per_tick": 1.961980922031749e-05,
+      "match_gain": 3.4430935995987832
+     },
+     "grid_config": {
+      "theta_a": 0.7,
+      "d_a": 1.0,
+      "free_space_weight": 2.0,
+      "retract_threshold": 0.0
+     },
+     "seed": null,
+     "heads_arm": null
+    },
+    {
+     "arm": "RAC",
+     "config_index": 6,
+     "config": {
+      "theta_a": 0.7,
+      "d_a": 1.0,
+      "rho_rac": 0.7,
+      "n_rac": 2
+     },
+     "grid_config": {
+      "theta_a": 0.7,
+      "d_a": 1.0,
+      "rho_rac": 0.7,
+      "n_rac": 2
+     },
+     "seed": null,
+     "heads_arm": null
+    },
+    {
+     "arm": "LOW",
+     "config_index": 3,
+     "config": {
+      "d_low": 1.0
+     },
+     "grid_config": {
+      "d_low": 1.0
+     },
+     "seed": null,
+     "heads_arm": null
+    },
+    {
+     "arm": "HandCost",
+     "config_index": 2,
+     "config": {
+      "theta_b": 0.6,
+      "rho_h": 0.8
+     },
+     "grid_config": {
+      "theta_b": 0.6,
+      "rho_h": 0.8
+     },
+     "seed": null,
+     "heads_arm": null
+    },
+    {
+     "arm": "VSMT-lean",
+     "config_index": 2,
+     "config": {
+      "tau_r": 0.25
+     },
+     "grid_config": {
+      "tau_r": 0.25
+     },
+     "seed": 7,
+     "heads_arm": "VSMT-lean"
+    },
+    {
+     "arm": "VSMT-lean",
+     "config_index": 2,
+     "config": {
+      "tau_r": 0.25
+     },
+     "grid_config": {
+      "tau_r": 0.25
+     },
+     "seed": 19,
+     "heads_arm": "VSMT-lean"
+    },
+    {
+     "arm": "VSMT-lean",
+     "config_index": 2,
+     "config": {
+      "tau_r": 0.25
+     },
+     "grid_config": {
+      "tau_r": 0.25
+     },
+     "seed": 31,
+     "heads_arm": "VSMT-lean"
+    },
+    {
+     "arm": "VSMT-lean",
+     "config_index": 2,
+     "config": {
+      "tau_r": 0.25
+     },
+     "grid_config": {
+      "tau_r": 0.25
+     },
+     "seed": 43,
+     "heads_arm": "VSMT-lean"
+    },
+    {
+     "arm": "VSMT-lean",
+     "config_index": 2,
+     "config": {
+      "tau_r": 0.25
+     },
+     "grid_config": {
+      "tau_r": 0.25
+     },
+     "seed": 59,
+     "heads_arm": "VSMT-lean"
+    },
+    {
+     "arm": "NoVersion",
+     "config_index": 2,
+     "config": {
+      "tau_r": 0.25
+     },
+     "grid_config": {
+      "tau_r": 0.25
+     },
+     "seed": 7,
+     "heads_arm": "VSMT-lean"
+    },
+    {
+     "arm": "NoVersion",
+     "config_index": 2,
+     "config": {
+      "tau_r": 0.25
+     },
+     "grid_config": {
+      "tau_r": 0.25
+     },
+     "seed": 19,
+     "heads_arm": "VSMT-lean"
+    },
+    {
+     "arm": "NoVersion",
+     "config_index": 2,
+     "config": {
+      "tau_r": 0.25
+     },
+     "grid_config": {
+      "tau_r": 0.25
+     },
+     "seed": 31,
+     "heads_arm": "VSMT-lean"
+    },
+    {
+     "arm": "NoVersion",
+     "config_index": 2,
+     "config": {
+      "tau_r": 0.25
+     },
+     "grid_config": {
+      "tau_r": 0.25
+     },
+     "seed": 43,
+     "heads_arm": "VSMT-lean"
+    },
+    {
+     "arm": "NoVersion",
+     "config_index": 2,
+     "config": {
+      "tau_r": 0.25
+     },
+     "grid_config": {
+      "tau_r": 0.25
+     },
+     "seed": 59,
+     "heads_arm": "VSMT-lean"
+    },
+    {
+     "arm": "HeuristicLabel",
+     "config_index": 5,
+     "config": {
+      "tau_r": 0.5
+     },
+     "grid_config": {
+      "tau_r": 0.5
+     },
+     "seed": 7,
+     "heads_arm": "HeuristicLabel"
+    },
+    {
+     "arm": "HeuristicLabel",
+     "config_index": 5,
+     "config": {
+      "tau_r": 0.5
+     },
+     "grid_config": {
+      "tau_r": 0.5
+     },
+     "seed": 19,
+     "heads_arm": "HeuristicLabel"
+    },
+    {
+     "arm": "HeuristicLabel",
+     "config_index": 5,
+     "config": {
+      "tau_r": 0.5
+     },
+     "grid_config": {
+      "tau_r": 0.5
+     },
+     "seed": 31,
+     "heads_arm": "HeuristicLabel"
+    },
+    {
+     "arm": "HeuristicLabel",
+     "config_index": 5,
+     "config": {
+      "tau_r": 0.5
+     },
+     "grid_config": {
+      "tau_r": 0.5
+     },
+     "seed": 43,
+     "heads_arm": "HeuristicLabel"
+    },
+    {
+     "arm": "HeuristicLabel",
+     "config_index": 5,
+     "config": {
+      "tau_r": 0.5
+     },
+     "grid_config": {
+      "tau_r": 0.5
+     },
+     "seed": 59,
+     "heads_arm": "HeuristicLabel"
+    },
+    {
+     "arm": "AssocOnly",
+     "config_index": 0,
+     "config": {},
+     "grid_config": {},
+     "seed": 7,
+     "heads_arm": "AssocOnly"
+    },
+    {
+     "arm": "AssocOnly",
+     "config_index": 0,
+     "config": {},
+     "grid_config": {},
+     "seed": 19,
+     "heads_arm": "AssocOnly"
+    },
+    {
+     "arm": "AssocOnly",
+     "config_index": 0,
+     "config": {},
+     "grid_config": {},
+     "seed": 31,
+     "heads_arm": "AssocOnly"
+    },
+    {
+     "arm": "AssocOnly",
+     "config_index": 0,
+     "config": {},
+     "grid_config": {},
+     "seed": 43,
+     "heads_arm": "AssocOnly"
+    },
+    {
+     "arm": "AssocOnly",
+     "config_index": 0,
+     "config": {},
+     "grid_config": {},
+     "seed": 59,
+     "heads_arm": "AssocOnly"
+    }
+   ],
+   "runs_per_test_episode": 25,
+   "probe_episodes": [
+    "procthor10k-0.1.2-train-02318",
+    "procthor10k-0.1.2-train-00359"
+   ],
+   "probe_audits_identical": 50,
+   "validation_events": {
+    "missing_residual_rate_houses": 31,
+    "identity_continuity": {
+     "events_per_run": [
+      49
+     ],
+     "equal_across_runs": true
+    },
+    "retrieval_success": {
+     "events_per_run": [
+      44
+     ],
+     "equal_across_runs": true
+    }
+   },
+   "state_coverage_report_only": {
+    "stage": "vsmt.lean.s3_03.driver.v1",
+    "reading": "ruling 89-3 (1) state coverage in events, report only",
+    "front": "sam2",
+    "training_houses": 202,
+    "train": {
+     "retracted": {
+      "events": 14719,
+      "houses": 197,
+      "labelled_target_rows": 56552
+     },
+     "dormant": {
+      "events": 237833,
+      "houses": 202,
+      "labelled_target_rows": 752054
+     }
+    },
+    "pass": true,
+    "lines": {
+     "events_per_state": 200,
+     "training_houses_per_state": 15
+    },
+    "written_utc": "2026-10-05T05:27:28Z"
+   },
+   "step_sha256": {
+    "select": "7543adb6e74f3d189767ccbacd9fabb64b8180cb3ba663e549883792e851f817",
+    "probe": "6ddd0c23b863e6d505264b017ddd75ab71029d702ed59d4f06e8c315fe01e8fe"
+   }
+  }
+ },
+ "not_frozen": {
+  "VSMT-lean-ctx": "optional arm, never trained in S3-03 (D-224-EFG): not frozen, not run on test",
+  "LLM-op": "appendix arm, validation only (S0-05 appendix_arm, ruling 105): not frozen, not run on test"
+ },
+ "statistics": {
+  "primary_gate": {
+   "function": "lean_teacher.primary_gate",
+   "comparison": [
+    "VSMT-lean",
+    "AssocOnly"
+   ],
+   "metrics": [
+    [
+     "missing_residual_rate",
+     "lower"
+    ],
+    [
+     "identity_continuity",
+     "higher"
+    ]
+   ],
+   "seeds": [
+    7,
+    19,
+    31,
+    43,
+    59
+   ],
+   "rule": "per front end, VSMT-lean against the same-recipe AssocOnly: on both main-gate metrics the two-level lower bound of the seed-averaged paired advantage exceeds 0 and the 82-1 seed-stability condition holds; the target is the training procedure under fixed training data, recipe and selection (ruling 99-2, ruling 102-3)"
+  },
+  "fixed_sequence": {
+   "function": "lean_teacher.fixed_sequence",
+   "steps": [
+    [
+     "simulator_instance_masks",
+     [
+      "missing_residual_rate",
+      "identity_continuity"
+     ]
+    ],
+    [
+     "sam2",
+     [
+      "missing_residual_rate"
+     ]
+    ],
+    [
+     "sam2",
+     [
+      "identity_continuity"
+     ]
+    ]
+   ],
+   "rule": "fixed-sequence testing at one-sided 5% per step: (1) instance segmentation, both main-gate metrics together; (2) only if (1) passed, SAM 2.1 Missing residual rate; (3) only if (2) passed, SAM 2.1 identity continuity; a step not reached is reported with its difference and interval only; the order (designed after the S2-06 development readings, frozen before validation and test) follows the main-table front end of rulings 72 / 83-3 and the metric order of main_gate"
+  },
+  "original_gate": {
+   "function": "lean_teacher.original_gate",
+   "role": "reported, never gating; strongest control per metric on test"
+  },
+  "ablations": {
+   "function": "lean_teacher.ablation_report",
+   "arms": [
+    "NoVersion",
+    "HandCost",
+    "HeuristicLabel",
+    "AssocOnly"
+   ],
+   "role": "reported, never gating"
+  },
+  "bootstrap_seed": 20261002,
+  "bootstrap_iterations": 10000,
+  "confidence_one_sided": 0.95,
+  "eighth_metric": "retrieval_success (ruling 102-5), computed with the others, no gate, no selection"
+ },
+ "code": {
+  "directories": [
+   "src",
+   "ops",
+   "configs"
+  ],
+  "files": {
+   "configs/vsmt/lean_ruling81_confirmation_houses.json": "f461d01e972318cf5beefc05a2cb4d15440508fae5fb4078154cef2374958cee",
+   "configs/vsmt/lean_s0_arms_v1.json": "498f063b5ba3920d7771ed36a96443678f67d04d0f5dc982ee7448c47738a203",
+   "configs/vsmt/lean_s0_arms_v2.json": "93983fe6eecdba257e1d3946d75b25dfb0b4d18cc31b4718ad26950fbece8802",
+   "configs/vsmt/lean_s0_assignment_v1.json": "e6d8e3808365e4bd2f99b15d7394c4b13399e311f85d41e0ade30443861db6ca",
+   "configs/vsmt/lean_s0_assignment_v2.json": "7c6bfaaba4826fc48f1fc917b7961a90d05bf72385c0e2aa96b10a0ce11dedd2",
+   "configs/vsmt/lean_s0_entity_memory_v1.json": "b9d23c33a63dffcc722584ac9d3db700bfe3bbfc054f90390e505775292d8220",
+   "configs/vsmt/lean_s0_entity_memory_v2.json": "0c4dc70ffc936fbc45455bd397a6ca418706bd8cab8ed15400c3e3a5cb4c7611",
+   "configs/vsmt/lean_s0_intervention_data_v1.json": "ca951ff941abc1fa920f52b292902a3904fb751aa7a39ff4328cd6be576dddd8",
+   "configs/vsmt/lean_s0_intervention_data_v2.json": "b74ecb00bfc512309af4b13820267e5ac508aa18f26625fe19e32e40cc092fa6",
+   "configs/vsmt/lean_s0_intervention_data_v3.json": "9661b95f8ea6ff3d517db7216ae9a8aae6c34d91a2bd5a081960b11f0e4395a9",
+   "configs/vsmt/lean_s0_teacher_metrics_v1.json": "cf2b4426dab8e5d7a4e19859b5e6a44ef2b6d4403740335fed47d0a19d17c32c",
+   "configs/vsmt/lean_s0_teacher_metrics_v2.json": "bbe2ee377bdb96b24a25bfec48138c586543ba288050ced0881a1493fc62842b",
+   "configs/vsmt/lean_s1_02a_pilot_v1.json": "c44db4e46bc29b9d4288560b36d20868783b5eaff34d5d8957958aed8dc7f8ff",
+   "configs/vsmt/lean_s1_02a_pilot_v2.json": "df70e2189033da07f94c3aec099e7dde0edcd2eafc3de54c106050ca5dd59e6b",
+   "configs/vsmt/lean_s1_03_frontend_cache_v1.json": "8ed889866222748bf906f1ac8c778b7b18d7d8577631b441834cd68b11e5fe74",
+   "configs/vsmt/lean_s1_04_frontend_diagnostics_v1.json": "9d381330645ccf03f9221812863c0b80b60c5d5ac4eef344c01c2cb399f75fa0",
+   "configs/vsmt/lean_s1_assets_capacity_v1.json": "3414efef90a6f354b0a6c600626371b0ab6b3da92faddb77176fb19bfa12eff8",
+   "configs/vsmt/lean_s1_assets_capacity_v2.json": "f8a55ba43a46d2d0f6d998a87c131f9b791193605487cda8c1549b7824c7ae76",
+   "configs/vsmt/lean_s2_01_runner_v1.json": "225159b1232d1e5c66a89b34e7f093d58e547460795b662cfc816cfe21aaa26a",
+   "configs/vsmt/lean_s2_04_evaluation_v1.json": "7ed9797ece4c803f56ea1999d7b25d9790f2b094623bf41d92afc45e433969a2",
+   "configs/vsmt/lean_s2_05_development_v1.json": "3c415fc4e09052ec43162907032a68604de641a4732bb750034bcb1fc8e0df46",
+   "configs/vsmt/lean_s3_01_manifests.json": "ae24613edde5871f15cae9e37b5e052ec564eeb52103915607ca8507832cb4d9",
+   "configs/vsmt/lean_s3_03_llm_op_v1.json": "6105911836c2dc2af4b06aa01ea5a361eddc7ee7763f2fb491285a86918c8691",
+   "configs/vsmt/vm04_action_capability_probe_proposal_v1.json": "34133f67f93aa8649a2a5fc4e24e21a15cb08696bea4125c8ebe73a4c2776ba9",
+   "configs/vsmt/vm04_d210_dual_layer_p0_v1.json": "d93f43b654eac64469aa87d6e9b6542531ab3ab463588bb9a53199fef911b60c",
+   "configs/vsmt/vm04_d211_p0_seal_single_smoke_v1.json": "09c5f44b65a958d1913d38632fc47423e0a54ae54926bdbedb5ea0f34d186f39",
+   "configs/vsmt/vm04_d211_p0_seal_single_smoke_v2.json": "9742dba79f2e72880221fe5cd5d63b00a219ebf77a8160461b9ef960e21e8711",
+   "configs/vsmt/vm04_d213_unified_typed_graph_v1.json": "e67105a1460309b0681e23ae4c5098a1306ca74a59e135ae7b88cca94a33a12d",
+   "configs/vsmt/vm04_d214_shared_rgbd_frontend_v1.json": "b13ea10b79e3879c85e716dc60474f5f12cdf010189e1f6cb953e971c1e4ff95",
+   "configs/vsmt/vm04_d215_frontend_freeze_v1.json": "c3d6736f67b300eca03882c081e56e6bf4d65ad1913bcc411df8477fbd188db8",
+   "configs/vsmt/vm04_d216_estimator_training_seal_v1.json": "22b85ed79ae6b89e2c05a55b7878962171d47e9b7a49202ff10d4d09f00c04ea",
+   "configs/vsmt/vm04_d217_estimator_development_rgbd_v1.json": "1499806b8a34eb71ec0785128111b28236f8cee8b95b61a94f624c608702643d",
+   "configs/vsmt/vm04_d218_estimator_annotation_features_v1.json": "309c5ae03d272c456f1a12def5610d7dbc59eb63cb87db999e0ebaf52ea6d734",
+   "configs/vsmt/vm04_d219_structural_only_estimator_v1.json": "2567254bb8b08be23c22de8ca80e19933c8d175f1575248df22438ac2547a5b1",
+   "configs/vsmt/vm04_d221_estimator_scale_rule_v1.json": "dffe64221ccac69bbdf5b88fe687a09929c3a7fa253dbc93412fe10af46f6450",
+   "configs/vsmt/vm04_d222_structural_audit_v1.json": "24c450309cdf2d8720fffc2a26444d56028283c57d065e9c1b3ee2b2428a5514",
+   "configs/vsmt/vm04_d223_f00_topology_precheck_v1.json": "52c5daef8cee309cb99fc0e4edaf98ffafc8e0f4a3c0ae4c1ce85ee6391591dd",
+   "configs/vsmt/vm04_d223_f01_production_reader_v1.json": "b6327a344ac87a22129d0275fca999b7deb79f05de0dac26e8fa41cf79d8e4b7",
+   "configs/vsmt/vm04_d223_p08_topological_qualification_v1.json": "737b4a7e108dca30931884460d294d36cc571c2d50fe5bc12daa0ebf9f288b18",
+   "configs/vsmt/vm04_d224_frozen_sam2_asset_acquisition_v1.json": "2bb14214165bfb2415003b437f08e0ff618ea33db7d3f615364e4df08310b537",
+   "configs/vsmt/vm04_data_protocol_proposal_v1.json": "13e0efc74ea173c04b1ff182ea65677217bc2247cadb3bc703b35d3e9d8ec08d",
+   "configs/vsmt/vm04_fixed_slot_raw_stage_v1.json": "95f1127576fa345781fce463495774fbb10f3c4ac2a95dd4b72ca1597f056146",
+   "configs/vsmt/vm04_l1_action_symmetry_v1.json": "e95704d6855401afb720f83dcad4022e328e87eef78b3697f68dd9187f2c1de1",
+   "configs/vsmt/vm04_l1_contract_proposal_v1.json": "a24ff6b13c27f0ebf0064dc2552480b50a21b2c1d84b8c011dc92ed05afbfe33",
+   "configs/vsmt/vm04_l1_environment_v1.json": "acecc33b5f4982830219f7f325334fb9311579ddd75551a7de3a1f450c06000a",
+   "configs/vsmt/vm04_l1_non_entity_geometry_review_v1.json": "9ef7bdfdade97b50a2e1da53ad8b11183427bf9b383feea4f223d9bf4eee5148",
+   "configs/vsmt/vm04_l1_threshold_review_v1.json": "0d70b9cd0d03d249755bb4ae6538f772f6421acc345051ade184ac8958d14c66",
+   "configs/vsmt/vm04_l1_two_house_audit_proposal_v1.json": "825d65ef054b28554232368ebf9a9f8e251dbaadeb1e9d3ee9e7f86bf484092f",
+   "configs/vsmt/vm04_l1_two_house_audit_proposal_v2.json": "8438449e393cf8ec24a90d940ac6a18005ccbccc7a8e97b0c0b07f2b88bd29bc",
+   "configs/vsmt/vm04_observation_suitability_d183_amendment_proposal_v1.json": "72502d6d690ac9e1b96239d6a6a2553c979569abd91e153016425c28c44f7c49",
+   "configs/vsmt/vm04_observation_suitability_proposal_v1.json": "2d99d51995e1b8f0ded5e66f1f0df9b8fab94c452655324ba289105eb38ba4c3",
+   "configs/vsmt/vm04_observation_suitability_v2.json": "48b50df4adc162e2896145a01d2ab4eb8c87d4dbb943898abab29bb18079fa59",
+   "configs/vsmt/vm04_observation_suitability_v3.json": "31d2e156b8a4c1ca39837aadc004c804a3e016e0bf9d55c0d211f96054130723",
+   "configs/vsmt/vm04_observation_suitability_v4.json": "dd653ff5e8f569710f6323c387e7ce03e10b1ddc355e90f12007ea88de741b6a",
+   "configs/vsmt/vm04_physical_relink_endpoint_contract_v1.json": "2cb0dd75775c65442401dfcb12eb047cb5ecbeb4cb4a982ed3479e7dc40c647d",
+   "configs/vsmt/vm04_public_seal_parallel_recovery_v1.json": "c0f98e81537d36f2e98a4eb34e79d3c656d1e6d5dc314ee3193b04d3ca7aa2c5",
+   "configs/vsmt/vm04_relink_endpoint_two_house_probe_v1.json": "6c67f3cf928e03edeb606a44a106444d71c0208c963444b9690b2fba10e305ee",
+   "configs/vsmt/vm04_relink_force_prereg_v1.json": "88cd65ade36d1b866b12be79f6b6796bd2f8b40161cbc933db0aa7205b2b9091",
+   "configs/vsmt/vm04_relink_interaction_probe_proposal_v1.json": "0ddb56c79073b5d785cd364e24ba4509c4ae86eac9876407fc7b4724b34a809e",
+   "configs/vsmt/vm04_relink_mechanism_probe_v1.json": "68318b5ce6f2bd9adee9e991eb85210759bb90a1c83ebd4fbcd0c9fd321af47e",
+   "configs/vsmt/vm04_relink_physics_step_probe_v1.json": "4438d28844003bb14820cf95a64efa343570a926620d8cd59ea4bba82b3332a5",
+   "configs/vsmt/vm04_relink_put_api_smoke_v1.json": "8f4e1e1f0ecb6f6b391762fcc02dc8a493f2b5637992ee70d3b8b101956e5951",
+   "configs/vsmt/vm04_root_cause_audit_v1.json": "89a68097ea78cd5a5b6e4603c86242f018290c724dab8c4cce4338f78a759f5b",
+   "configs/vsmt/vm04_source_audit_v1.json": "967ede2f673e98d19f304dd9e6208b045f41136bb38246825c1f186a3c8b3596",
+   "configs/vsmt/vm04_target_action_probe_proposal_v1.json": "cfc0de4e648725099a37ee0b80a5d517db11f3d7ecaa40afec39c8463fdf01a8",
+   "configs/vsmt/vm04_target_action_probe_proposal_v2.json": "8e7893754514b80eab3305f4beb076e8b2fc404089f8752ef7fb6beb55053b74",
+   "configs/vsmt/vm04_target_boundary_proposal_v3.json": "7d11335be9a8b85cc26dd1c2058c36f71c93d9db0cef4f33fdda2ec7cfa6dbac",
+   "configs/vsmt/vm05_d220_protocol_simplification_v1.json": "7fbbc55470e5e635879f4a035dccc018affbedb339f2838e3c254267d650c780",
+   "configs/vsmt/vm05_training_validation_readiness_v1.json": "d52e6f280d4e38470cffaee96ebb3070b857feb175a43efb9f7c0554cce7c695",
+   "ops/remote/README.md": "d5a3598bcf01e2d5d5a71a148a91ac2c50ebd64787e36a777c71b7c800dae479",
+   "ops/remote/_ssh.py": "bea085e73c0e16bb768075c68289067eec256d5f0525b8ecf775cc5b0bed74b3",
+   "ops/remote/pull.py": "61a25a59b74ed6e85da256ffe2a57ec5ee15e2cdf5b09d43a50809d175e8a659",
+   "ops/remote/push.py": "cdfac838d2316cbd5b054fe1fa3e2c7fb14ea13789861b2375c59e072205862d",
+   "ops/remote/run.py": "faf4f5b71efbb06f2e6d1bf53158c465e6344a7e3997a73280057d1e4b7dd5cc",
+   "ops/vsmt/lean_s1_02a_pilot.py": "1b23695e0fb05429696853752775a2d9e40d28447619f1c98628a7c1a81d18f8",
+   "ops/vsmt/lean_s1_02b_export.py": "0a41988d706f4e9923bbd4d9e5f6af04c3a402a225b03a78e3a541844a029360",
+   "ops/vsmt/lean_s1_03_cache.py": "b0713c1640d1f9f9a3f3dd5e28927879a9a70bd5bda02d17564e9405c165c02f",
+   "ops/vsmt/lean_s1_03_export.py": "3b0af20ca46a71b1a67eb78b2cf43a27a1ac49e24a1798028485a98d52e5d22e",
+   "ops/vsmt/lean_s1_04_diagnostics.py": "accb6b8cc8c0552a709f6176bde12724ae01afa637267e1d820f1434320348c8",
+   "ops/vsmt/lean_s1_04_object_geometry.py": "95f164515162cb4d44c564876943583087196a815813a73b08a583ecdddcb3da",
+   "ops/vsmt/lean_s1_05_select_descriptor.py": "bc3f5efd0461cc5b4be9e7135e6ecea301ad7ff6b55e25beb05dd3339bf9daf9",
+   "ops/vsmt/lean_s2_01_runner.py": "61e77d281749396f57bd21804137c86ba96970e1b98ff5d90bbb7834dae8d18d",
+   "ops/vsmt/lean_s2_04_evaluate_episode.py": "2452aa2469f5fcf9b415bb0c773f9e5ef7c58fe2898e4e5e5c6019f383294a87",
+   "ops/vsmt/lean_s2_05_development.py": "231255d0e354114df9c256e18a779c61b6557c06ce8cafc77df01ca735939b3d",
+   "ops/vsmt/lean_s2_05_export.py": "539abce7609e514999c6828802441a9a36c955b6a0660ef64f131cdf28c4f02d",
+   "ops/vsmt/lean_s2_05_node_audit.py": "e64c36c9c16df060936e71165a475aedb48961bdae42a245eb0d5b6e56ba5a0f",
+   "ops/vsmt/llm_op.py": "63c1ef41d7e95ce1836ece8d3b06933263d563ef0f7d2cf608772fb0970b075d",
+   "ops/vsmt/llm_op.sh": "cd4f6892f4c7eec7f6fb6541e03688b029b9977fa79113f8c372091ef32e0c93",
+   "ops/vsmt/remote_hosts.py": "408c50e0abccdd4cda7eea152d9dfbce05ec2c1948449b26ba5efcb3c150eb8e",
+   "ops/vsmt/residual_trace.py": "3adcec6b2cfb2bec9aae8904ca152992647b4491d49ec54327270f2fa1c39a8a",
+   "ops/vsmt/ruling82_seed_analysis.py": "aacf488a4795b2b4574a13ddb9cba167908ab007d8aa5d9a8941c734bf7cbe52",
+   "ops/vsmt/ruling88_analysis.py": "e746a9794320668f847609baac01e2644360a973df04dfb0a5de9bdb4ab4912f",
+   "ops/vsmt/ruling88_label_partition.py": "22e7460ef097636e3bccb01520d0384b9b7770f325bcb9598869129d33910c95",
+   "ops/vsmt/ruling88_probes.py": "04724b5ef632f0f049bf4afc0d582be065f06ee719b179ecdae1eda0ac7d4e6b",
+   "ops/vsmt/ruling89_checks.py": "79af27f314082c6726d3b478992b85e01b93e74bd1992490a13af60eb5d10102",
+   "ops/vsmt/ruling89_history_audit.py": "77bc223d7d29c7c3132f968ec148ff40cd4bf2befa919c848dd8bba4549e668b",
+   "ops/vsmt/ruling89_probes.py": "724bd53e923dc275e4236d13b24efed0d6dec7c1089d53cd4266593876b64124",
+   "ops/vsmt/ruling89_recall.py": "7a7a32dd13e21556df4335bd942181a35092e62a242925dd7bc2ed7504b1fe82",
+   "ops/vsmt/ruling89_train.py": "febab5cd33b3f815de3b0e46772340f68ef90a9c1721f7d20ae326b0d3e1e81e",
+   "ops/vsmt/ruling93_chain.sh": "3c5a4931da08204cf0d1b828259e62b2507a9d58cf4633113e5758a2caed0b62",
+   "ops/vsmt/ruling95_compare.sh": "aac7059178c77b52e321d7061aca77d4f19a45d11ccb52a7abffac44c0f13c6e",
+   "ops/vsmt/ruling95_reading.py": "58053f49731b69eaf13056ffad4866c5314c70398d0e949bc290f2ea600b96a9",
+   "ops/vsmt/ruling96_selection.sh": "c4b7f270b4819255a5906accaf10056b18555b3193e8d4dac8fc5cb5b22e18bc",
+   "ops/vsmt/ruling96_selection_check.py": "b3c2c85d660eda1861b6cd36dae57366ac00b7070f9c9a57dfe4df1b44caa43d",
+   "ops/vsmt/ruling97_confirmation.sh": "89f185ee515397265c7d7ee05e4fd34a415a9b1c6e70fa532f84d7c798f820ba",
+   "ops/vsmt/ruling97_freeze.json": "1f70f3cac214edb7d9f447e6e1590a7a8cae24dca335fd1b9d99b188ac8168d9",
+   "ops/vsmt/ruling97_verify.py": "3b7beef69bdc2028f9bdfbbcb7749ce503a2cdfd8cf823ba06add8bf583f3c0c",
+   "ops/vsmt/s2_06_grid_review.py": "16f444592ac376e57f756300c54ce13f3f33ee887a62f3abcee2784000a1b4f8",
+   "ops/vsmt/s2_06_manifest.py": "cbb83f8b464b5ff92ba1e39378d9e348240bcfa1fe2aed96f0f66eef8228fb1f",
+   "ops/vsmt/s2_06_reading.py": "ab28c27e34fcfc92bb7aafbc87f5f0da601471c88546d6bfbf2fc6d22eb067d6",
+   "ops/vsmt/s2_06_sam2.sh": "6a26d94ef4503eccc8a682075bdbb62c008d553edf89f1607609b0888b69ec2c",
+   "ops/vsmt/s3_01_manifests.py": "02f9eb32bcaf37cb221e5ff55c2f4f1d6576b5d6e29e68e70e1f0f848107966c",
+   "ops/vsmt/s3_01_planning.py": "9a3ea361447feaacee37828d20fa0c68e3b1af4147b93683b7b16e2664bb484d",
+   "ops/vsmt/s3_02_bench.py": "de9b440b5b8d9d4d70b06f24ae38cd12c591cff08145f7637b8748ea8fc3837c",
+   "ops/vsmt/s3_02_bench.sh": "2cd5ea38847a793238f175e34b3acc9e24720bfef5427d991350edb7033e1c4a",
+   "ops/vsmt/s3_02_data.sh": "6003fe75220c215b2af743993aafbd7c5a09fb6c7916860cd8971951ce8e8753",
+   "ops/vsmt/s3_02_manifest.py": "7d528b3c4f56fdd6687bff2a49e64ce8c81d97b529facf3177dad239eacd2728",
+   "ops/vsmt/s3_03_jobs.py": "f7282934f67ef23fac4e91fa85f18cb81883dffd994f26798a1956c12c1d48fa",
+   "ops/vsmt/s3_03_manifest.py": "ed0f0e00ccee3460c042d08c7b4c9100d36c8ccb824325e9759b3ed150c35c32",
+   "ops/vsmt/s3_03_train.py": "81673f56a7a4b5728f86df94b32477de5e46a0d2551b9757bf7308fa80625b1c",
+   "ops/vsmt/s3_03_train_select.sh": "bb5a803282f1520514d9c7608179a9648fefa7eb6ea9c4f0e146989d13aff894",
+   "ops/vsmt/s3_04_freeze.sh": "deda76c5f05a4e06d6f38bfdd3bacf76014defab3d64f136163b0b85a3f73651",
+   "ops/vsmt/s3_04_manifest.py": "36db6a0ceb3a7a23b9f2c1c1c455b04c00da49ff367d4a3916de917d9cdb1421",
+   "ops/vsmt/s3_05_manifest.py": "42d77f2163e4a02e12d73788e7ce1c8d81ef72c0f761b4fc25d8f5140bfe4da7",
+   "ops/vsmt/s3_05_test.sh": "3d2c3d558cda260f2ac816721a3c13bb71044d7ad686a8d0b876dd37b5cf6622",
+   "ops/vsmt/vm04_d217_rgbd_worker.py": "aa609d8adfbec5e9d45ee7bc96b9aea46bd3234c9a0a3d90dd8f104f69360ea0",
+   "ops/vsmt/vm04_multiview_materializer.py": "5ed31e51833e082f3036d34cc00ed1232d54e193722b9c6f7a8873f37c2b1d80",
+   "ops/vsmt/vm04_multiview_raw.py": "e4f157667364c4305d7b1a8375d11959a55997dc1626a9fb605698e02c83e8c0",
+   "ops/vsmt/vm04_multiview_worker.py": "ed1c175146a98576ec86556584be2a17e45763ba79deadd573ae19e023c9cca2",
+   "ops/vsmt/vm04_observation_stage.py": "42b2d15e66e93b4ff671341156062ea0b8755ae5087c4c78f98debc9158ecd17",
+   "ops/vsmt/vm04_two_house_worker.py": "6c4ade3c49e9184cc79afd7d13729af7b4766815c0eaa646ecf07a887e27af3f",
+   "src/README.md": "621b9d3e0aa9595a900769cc4c2cddd60d5b09fb07b154eac22960e40f2ba5c7",
+   "src/cpmt/__init__.py": "29fc67d601880427ba12b5bb9d42777bddd01de9e3fa0921f14d1cee4735211b",
+   "src/cpmt/equivalence.py": "dba388f49dd8bba400d27625a587a43ac51700e9f68b937a74dc15696c64c4f0",
+   "src/cpmt/errors.py": "9bec0a19e78806d9b2ae09bf4d6af82aa5f462cc65f196dd828ca40d4f76a3a3",
+   "src/cpmt/executor.py": "e05984e89c223e74c63b52fe1c85feb1c3379d4e550e300383ade9325afa07af",
+   "src/cpmt/hashing.py": "5403e11f50b788ef244f165f7338917973104b25623501a30b6c680d40e6fded",
+   "src/cpmt/maintenance.py": "5a29125721feb1715dcfed773445c518417714a9261a3aadfd2864cf88a4d71a",
+   "src/cpmt/pending.py": "95c6f7b71c27ad30f4d8f3119aa89f71801c7e6f8e36008296208d937d5e03e2",
+   "src/vsmt/__init__.py": "ee137f10f2090b9cdd95b3d5886327b317c74d1f2130a21343d713f9824b1b59",
+   "src/vsmt/baselines.py": "77fe9b93e53ab413cd507127f91a74bc4e942a370e78c8f3dd5b3e6f7463de59",
+   "src/vsmt/causal_prior.py": "487c25cbe46410ca7ab0bc02aaf911edce5ef2696ba9db97df8dc2468b857ae5",
+   "src/vsmt/contracts.py": "cd6345f74da9a2192d6c8f1988221defcfe03e2f9d8217e692577e8b0cf6461f",
+   "src/vsmt/d210_place_memory.py": "da94a6bdf263869cab4d01439afe3999a0276f7c1edb38656871750cd46654ee",
+   "src/vsmt/d211_p0_smoke.py": "c490b2fadae73ba05b08504dd952258d2323b80efd97f234ba8d7c70b9d5e8c0",
+   "src/vsmt/d212_route_survey.py": "a1a28cf46735c1ce997c50e94629f7441b1faef26e052d1bdefb04464d6cde9d",
+   "src/vsmt/d213_unified_graph.py": "46ca4c1e54538c4b6d1e1d2ab61962ae8c058dc973b8bcd5b44e1c44c01fac1a",
+   "src/vsmt/d214_shared_frontend.py": "04f57bf7cdbe7569c4f95edc76ba8addcc66432e8d1797f8cbc8a8a2beb8817c",
+   "src/vsmt/d215_frontend_freeze.py": "a3a6f59e1ed4bd0536f8604f2dcf34e24d5687f76e60a3ec7a77c9b9114f3596",
+   "src/vsmt/d216_estimator_training.py": "c3963e67daaf3cb31b28ed11ec6af6b6949a763643ec6dbb01ae6a3e481d39e5",
+   "src/vsmt/d217_estimator_development.py": "a9783d0a2d68d8d0898abd9f9d8f048d5c20c753f3b2f40814b2e519d6a30c57",
+   "src/vsmt/d218_estimator_frontend.py": "27b5648e194ba5d71b4ee702253fd16efec18cda8ead37f0feecbd871c9b6a97",
+   "src/vsmt/d219_estimator_training.py": "03710521368c7a88fabddaec3bb18e2ea8791c03a45a57d1f794f75a2e5e2390",
+   "src/vsmt/d221_scale_extension.py": "027ee21213900e706d9724437f77f6869f06bbb8ec0c5f30c8d02fd33ea1413a",
+   "src/vsmt/d222_audit_evaluation.py": "e1c8ef6a75f38dc8390d1df05b0baf9bd21439d82c946fd1367215b48c89a042",
+   "src/vsmt/d223_f00_topology_precheck.py": "8a533c38d0e4a3db539d6a73fd7351200e0cf4db60b028089ea3ef3ee07472ad",
+   "src/vsmt/d223_f01_production_reader.py": "64c8bdc2a02f1e17594b55b58588a0d11102d1796a9572d1344957bd8133fa76",
+   "src/vsmt/graph_ops.py": "746ecdede3aa2a612e4eac6cb5c54dff924ca5dc487349631d3b855f2af2264a",
+   "src/vsmt/l1_entities.py": "3d0ad329cfc77e94ebf3b952ca3fbe257b058bf918713a0fca18c30325869f53",
+   "src/vsmt/l1_masks.py": "ffe1f7383e1b057759671ff8ab4b4ec1dc5a3870d29fde28908b2c109694f0d7",
+   "src/vsmt/l1_structures.py": "44213bb5e82399970d0814b5a432e3afa23051fa889954cceb0baba3dc74e674",
+   "src/vsmt/lean_arms.py": "4ec5c039180aaf849fa86a3812f68be6932ae70fdf572fc973f83714db7cd226",
+   "src/vsmt/lean_assets.py": "e6edfacf76e81c8f8a5bab3a739d7a664bc799effce25a9a56c3343e28eb33aa",
+   "src/vsmt/lean_assignment.py": "4f375ab2639fa2a848ad964e013f95c5e0be7ec3ceb3ca2d90f6f3ca18c30920",
+   "src/vsmt/lean_controls.py": "2072bd954930e24a94e9efedc2eff0a56c1bb1f3f7a85c4a9c4914926d8c3c49",
+   "src/vsmt/lean_development.py": "2d9e46dbff9195fdc08c695e5a61ce262775952b42df39712b45687f0c53aef6",
+   "src/vsmt/lean_evaluation.py": "ad0ce9436efd5f47d104d93e098ea5b5906e183b85c4ec971469059f4f6aa43c",
+   "src/vsmt/lean_frontend_cache.py": "d414b7808beebfa2171d73ae4bc8a0edd8dda82ee8bcb9470ea5aae022561065",
+   "src/vsmt/lean_frontend_diagnostics.py": "8839cc2871f139a06b55941e8a1bbe689b04509921556b19e818ccb645b20034",
+   "src/vsmt/lean_geometry.py": "2c482f99cc7cf2c9d340bedabdca3a138f2fb942b465f29e1cdd4da9c66903bc",
+   "src/vsmt/lean_heuristic_label.py": "678944c1b3f90d280e4df8e66c21ca4d31ed7a3d4600e753ef22141efdd5d292",
+   "src/vsmt/lean_intervention.py": "bcf074aba94fd738d95780f1561d5c42fda70bd6af968dc82a794cdb5f550adc",
+   "src/vsmt/lean_interventions.py": "4da1e2acdbe672680238684e81c236368dec965a203f74c34e20f6d5b5a37ec8",
+   "src/vsmt/lean_llm_op.py": "f84acedb475c095459bcef34bfb6386c2f48399189ace2bbbab0a23c2f9317f7",
+   "src/vsmt/lean_memory.py": "4f59cdc147b51770b2a846a8031ba739873a69e3a3afd00447f9cdca46dfde26",
+   "src/vsmt/lean_model.py": "f9ad8160b43024b46fef9932277963f355db934fce1a87666e29b2de73767759",
+   "src/vsmt/lean_object_geometry.py": "7585a64de225374c6661b16c5477e0b09b81128986c11ed190b56858189054a2",
+   "src/vsmt/lean_pilot.py": "4f0af335493f280457e949437eb5319388ddd48dbd2a0daf66e21092120e03b4",
+   "src/vsmt/lean_public_pose.py": "edcfc4e5ce76fb8860416e54862643a860d09f1ed03cdf621cfe1a1f230e8b48",
+   "src/vsmt/lean_reid_head.py": "4f7cdf773b0bf3789f5005baf456542c8e4991e31c8139490b09b0d816e605ca",
+   "src/vsmt/lean_route.py": "94dba75b3aad4892a2acccc2ecbe7b600d039e1b7c9ea5e9c37ea1b6f55476ed",
+   "src/vsmt/lean_runner.py": "f2466b57f4ec95d73165ee314990864af08030171653a163ead22d51903cd161",
+   "src/vsmt/lean_s3_03.py": "a67e6552c925d67ebeaedc75968693b7077847d99043cca1c68ec4979ab27905",
+   "src/vsmt/lean_s3_04.py": "abd22f8616d7f367b9bfd1222d43b9458e4c7604dc505c2974efc4d7a9194d66",
+   "src/vsmt/lean_s3_05.py": "93cfe9dde6ff9a308a64c04cffcebc61b0c30b718cd5f87594900deaf5ae9213",
+   "src/vsmt/lean_s3_manifests.py": "041cd81fd4238132d15570acefc82be0b6b14831887ee9cc4eaaf48fc2581a47",
+   "src/vsmt/lean_teacher.py": "38d77a2d8a5ddf0f92afc3bc711261b73c230de92be5cccb78130f6fcd6153ef",
+   "src/vsmt/lean_test_seal.py": "e95caff55843750984aa93d9ea2f1fdaa88bb93d4d6386db3d84da0431916db5",
+   "src/vsmt/place_scaffold.py": "461fdaebfe8fe0490291693bf0d421682aff27db46802edbc53fd206d1ef2bfe",
+   "src/vsmt/public_candidates.py": "4963c544064c824c8c7400c03866620ea6d0a728e354bea8a7bf1b2910ea9ea6",
+   "src/vsmt/shared_frontend_core.py": "560108a9a01d8cd5dc31ecba5dead35a859bbab6e376b54b75e75d5e8fc856f3",
+   "src/vsmt/shared_memory.py": "a5f48d0cb2485bafcf00fdbbfd62edbabdc83f8f740e6eedb4bccd201177abf7",
+   "src/vsmt/two_house_audit.py": "b7c7ffaf9c1cdc9976ce3d76501ed8ebb24d7fb2e6472a9dd3f1c828a9d65c6e",
+   "src/vsmt/vm04_episode_construction_receipt.py": "62910d8743dc6bff4384fe3fc1c112e09971313285391edd7a476e9eacd8684f",
+   "src/vsmt/vm04_l2_proposals.py": "97ab88ddd64974d43023ea93a94ee53043bccd75f13293d64d71a59519c890aa",
+   "src/vsmt/vm04_materializer_code_manifest.py": "1281732501aec3a3550ed643d7137c38b05025a9c7eb62302c08cbc33f5e3d70",
+   "src/vsmt/vm04_materializer_config.py": "c43dc3654a98bb791bcdc87e0eaf96c542e2dbe9160798dda41d3b59f2848a2e",
+   "src/vsmt/vm04_materializer_receipt.py": "2b472e8d4c29fea0b1f0d3fca5561fe3834ea4cd425b9161ee6ae11983a0affd",
+   "src/vsmt/vm04_observation_runner.py": "47b5d7a1e045a8a91b742a1413f3ae7526bdade4908f9e1aa14f2cb9864f1192",
+   "src/vsmt/vm04_odometry.py": "da912be6e4e71b5a20409f438873165e0bde018b92b5a72b071010b68c283d66",
+   "src/vsmt/vm04_online_plan_seal.py": "4e88ab73e9c1191e5184e37e5cc153a2306004cf178c32d52fca9d04b15d79db",
+   "src/vsmt/vm04_parent_plan_request.py": "c58f8dda4a12bce9aa3ac5df8ca8b0a1eb9889bdfbe1f808cb6713a724cca48e",
+   "src/vsmt/vm04_pilot_family_completion.py": "13f13695212d737ea94c863e1568c997ebc127bbc0a7bece4a1f2693958b6ee0",
+   "src/vsmt/vm04_place_route_builder.py": "10c66808017b57e0563e70e97fd21ae4cd3f19dcdc54ae0e74f7d6386e233e11",
+   "src/vsmt/vm04_program_construction.py": "cf3e54534ab8bfd3dab51dc879fbb62139d13dd21f5b1a7700073345d74dc961",
+   "src/vsmt/vm04_program_matcher.py": "e72e6848798565b52621b7036c247b2198c3e23442f3921fc622b5d69bc528a9",
+   "src/vsmt/vm04_protocol.py": "bb0568e6f58fd513a3ef3da5a92085202cf36c5936a4da41c68ba24acda745d6",
+   "src/vsmt/vm04_public_context.py": "f952e4710907de577340ccae6866abfad070c4ef1a850b1b6b7921e736841e6e",
+   "src/vsmt/vm04_public_frontend.py": "6cd172a485ae5dd341307bc00898dc1b3ce331860ffafd3558f62fce1b2f007b",
+   "src/vsmt/vm04_public_frontend_sequence.py": "3c1edccd7966cb7b5a2048b1870d2a1a4a3ffd87781248ea8801a87c6613a5da",
+   "src/vsmt/vm04_public_packet_builder.py": "7fd0fde3ccde185f4dace5aec0b0957313eb0e91dbb41591961d565b1c7a7534",
+   "src/vsmt/vm04_public_route_builder.py": "419f92a88682fd1f5c24106e10851e4568d4a907e9a1202fbedaf8961be476d4",
+   "src/vsmt/vm04_public_visibility.py": "b2ca87fac6cb48722ff8763d75ec8b641a1b35d4a1cf1a7d340079cd9199f268",
+   "src/vsmt/vm04_reachable_scan.py": "04d71ff16cc9d88e825dae4a0755cfb1529a582d3f0b39b1e391c35875ef2605",
+   "src/vsmt/vm04_target_contract.py": "69de163a85b5172ee3e565d99791a1c9c126f28d200c9772d9c687687834bea2",
+   "src/vsmt/vm04_target_eligibility.py": "7cba9bc0886459e358e3070ab3993bc20b3b46afa7d38dd245b3617de36fe905",
+   "src/vsmt/vm04_target_selection_v3.py": "f036eccc781ed354c71f45395fc6c6419f8f5f34b01afe1513a14bed796f6f74",
+   "src/vsmt/vm05_protocol.py": "3d36944bd7870520b1ae223b9dfe952fa991506892392b1d4246efe97de95279"
+  },
+  "file_count": 218,
+  "sha256": "ef62bc34397fb47c41f9cf3a6cb073b28ecbfdee91df7006741f97ae0ecbd9ef",
+  "git_trees": {
+   "src": "628fb2d3083bb4861acefff5cad28faa91a6d1bf",
+   "ops": "b12403a6ebda1127929b00b44b4ce257ffcd0b1f",
+   "configs": "7bd428341c7acc392a221f63819087f2ca44d004"
+  },
+  "s3_05_entry": "ops/vsmt/s3_05_test.sh"
+ },
+ "frozen_bytes": {
+  "heads": {
+   "/root/autodl-tmp/vsmt_private/s3-03-run/instance/training/round1/VSMT-lean/s7/weights_grouped.json": "68937a9399f6e477a8a4fbb1420b46b3905b073e1c470388bcf6623ca8a293c0",
+   "/root/autodl-tmp/vsmt_private/s3-03-run/instance/training/round1/VSMT-lean/s19/weights_grouped.json": "9c69d8b4853ad6a4ed31523c4e73ffcdc02266e5cd06011d25d69d3bda19e8e5",
+   "/root/autodl-tmp/vsmt_private/s3-03-run/instance/training/round1/VSMT-lean/s31/weights_grouped.json": "91502236803e052f6ba65036851c75bf696a2664326cf5af15927a6c22cc54b2",
+   "/root/autodl-tmp/vsmt_private/s3-03-run/instance/training/round1/VSMT-lean/s43/weights_grouped.json": "34a16cbd5b76e344618bace3ca2a5758dccd389dddcac4e4b9b9501dff3174ef",
+   "/root/autodl-tmp/vsmt_private/s3-03-run/instance/training/round1/VSMT-lean/s59/weights_grouped.json": "d5a64a928baded766d9624ed59e0c1cf7a7bb1d9147c83ddb551aa16591f7181",
+   "/root/autodl-tmp/vsmt_private/s3-03-run/instance/training/round1/HeuristicLabel/s7/weights_grouped.json": "44049cb61744e62fa8d92c7a6fd533837eb1633bc7051feac26e282b2b617996",
+   "/root/autodl-tmp/vsmt_private/s3-03-run/instance/training/round1/HeuristicLabel/s19/weights_grouped.json": "e7adb47750212339d1176dee9b7a0e7ca3e2e3a0e7b108ca3e0f9d73db6477b9",
+   "/root/autodl-tmp/vsmt_private/s3-03-run/instance/training/round1/HeuristicLabel/s31/weights_grouped.json": "317c7a442e7ade1c3943f9bb74da5d7c1cd95466b20479b05cc693ada84c1a79",
+   "/root/autodl-tmp/vsmt_private/s3-03-run/instance/training/round1/HeuristicLabel/s43/weights_grouped.json": "23314115c316228d08dd63d74e27f626a854292702a8afffe004008be2a865df",
+   "/root/autodl-tmp/vsmt_private/s3-03-run/instance/training/round1/HeuristicLabel/s59/weights_grouped.json": "2ac31665cbd8b03567b95f920a489158b764b70b8b5cde827fabb41e55b01240",
+   "/root/autodl-tmp/vsmt_private/s3-03-run/instance/training/round1/AssocOnly/s7/weights.json": "ae2c56f2f4223cd9d78eb5e4c70efd4b343fac1feddce58aa49305b7ce29c979",
+   "/root/autodl-tmp/vsmt_private/s3-03-run/instance/training/round1/AssocOnly/s19/weights.json": "e49465715b113fee9b49d6498b35f05ebb7a188852d6a888205b38f9379ca931",
+   "/root/autodl-tmp/vsmt_private/s3-03-run/instance/training/round1/AssocOnly/s31/weights.json": "bd93c6843582a0427f3a0ddb0d1c9bb8280e960dc6b35ba8ddce824292b119ef",
+   "/root/autodl-tmp/vsmt_private/s3-03-run/instance/training/round1/AssocOnly/s43/weights.json": "6d1897c3828a270bcaf47d88ea9d13d6c532468a0d8231e4d034a80caf50e4d7",
+   "/root/autodl-tmp/vsmt_private/s3-03-run/instance/training/round1/AssocOnly/s59/weights.json": "db656a639d31408a5b8df21971a656451e1b7438a063325d31cf392a67a06283",
+   "/root/autodl-tmp/vsmt_private/s3-03-run/sam2/training/round1/VSMT-lean/s7/weights_grouped.json": "a3753166b8519d33bbab2746f123d0981f02eac066ff83fb16c17fb92c3bc785",
+   "/root/autodl-tmp/vsmt_private/s3-03-run/sam2/training/round1/VSMT-lean/s19/weights_grouped.json": "bf804af72de8f4cfc1c34a50884d5eea2f2ee2f85662b0d7403d5dd0ab8781af",
+   "/root/autodl-tmp/vsmt_private/s3-03-run/sam2/training/round1/VSMT-lean/s31/weights_grouped.json": "ee48ddb3fc6b60c895d74e1afa5d8f83267c382af52b9b8261a01dfd7e0c9253",
+   "/root/autodl-tmp/vsmt_private/s3-03-run/sam2/training/round1/VSMT-lean/s43/weights_grouped.json": "4a19ff17faf5f498b6208b8c6db63de903e6542124189f9fc6d57ed5ef54b474",
+   "/root/autodl-tmp/vsmt_private/s3-03-run/sam2/training/round1/VSMT-lean/s59/weights_grouped.json": "826f555fd2a22dda9a6213b5fb706d06b90e1c41e5c9bcbcfc94d90fcaa2dfc1",
+   "/root/autodl-tmp/vsmt_private/s3-03-run/sam2/training/round1/HeuristicLabel/s7/weights_grouped.json": "a4b5eb1220f111363ce03e63303b5fb63e2746dc8095d7e4b9dfb05637d35713",
+   "/root/autodl-tmp/vsmt_private/s3-03-run/sam2/training/round1/HeuristicLabel/s19/weights_grouped.json": "f5abfe6b969c6cd9032efaa84f74c4eab8fac9dea719da3ada15f7c185cf7f72",
+   "/root/autodl-tmp/vsmt_private/s3-03-run/sam2/training/round1/HeuristicLabel/s31/weights_grouped.json": "7d49eb267f34cc406d259a9f7065642369a8e63223c277b194c0f87bcc427a32",
+   "/root/autodl-tmp/vsmt_private/s3-03-run/sam2/training/round1/HeuristicLabel/s43/weights_grouped.json": "3f6ef248ad50a8e749ab22c73e63b98bef434145340e1b8788b823b6e491a521",
+   "/root/autodl-tmp/vsmt_private/s3-03-run/sam2/training/round1/HeuristicLabel/s59/weights_grouped.json": "894c33fc0c4549d6791d1793ab7b516051bb1abc15f15213f31240b08be3f903",
+   "/root/autodl-tmp/vsmt_private/s3-03-run/sam2/training/round1/AssocOnly/s7/weights.json": "7c3bf6482556efd3b12801f6815cff5fa191019f32509aa3218ec90e61241573",
+   "/root/autodl-tmp/vsmt_private/s3-03-run/sam2/training/round1/AssocOnly/s19/weights.json": "87610948b2e5ba0c636644f3ed036aa241d1f420ba01052e8b8d313fea72e37f",
+   "/root/autodl-tmp/vsmt_private/s3-03-run/sam2/training/round1/AssocOnly/s31/weights.json": "274264a5d20f2270467fe82537e221d4fd4652b5bfdb990574b14d4b4219cef9",
+   "/root/autodl-tmp/vsmt_private/s3-03-run/sam2/training/round1/AssocOnly/s43/weights.json": "79e0f821ff503d79fb531375adf66ab411f27b5c33fdbddee73223f1d9e7c2a1",
+   "/root/autodl-tmp/vsmt_private/s3-03-run/sam2/training/round1/AssocOnly/s59/weights.json": "b1a2115e5f52c3d227fefe1b200fc64253a047f92aba58842ed4b1175493eb6c",
+   "/root/autodl-tmp/vsmt_private/lean-s1-04-diagnostics-oracle-caa50c7/reid_head_vitb14.json": "27bf6a10767f68c3b7aef6e76f91e48c9bea8de6750cfb8620e16e0c388217e0",
+   "/root/autodl-tmp/vsmt_private/exports/reid_head_vitb14_154776d.json": "823508e4f7f296a75b027676fc24fbb711de5388bb3ab9353aff4dcf1ff44e17"
+  },
+  "elu_p_registered": {
+   "instance": {
+    "initial_log_odds": 4.715758278823018,
+    "persistence_log_decay_per_tick": 1.9468203738496008e-05,
+    "match_gain": 3.5202657867949485
+   },
+   "sam2": {
+    "initial_log_odds": 4.713527527677658,
+    "persistence_log_decay_per_tick": 1.961980922031749e-05,
+    "match_gain": 3.4430935995987832
+   }
+  },
+  "test_manifest_sha256": "4f5f6738a013cce95543fe6cf0870ddaebce671d4cc7b4e605ed4cb21771d720",
+  "test_manifest_houses": 100,
+  "test_seal_sha256": "625c702bc352f352b17744661692f6568c03ab824b22c3af25d6c91b8f90c96a"
+ },
+ "environment": {
+  "python": "3.12.3",
+  "executable": "/root/miniconda3/bin/python3.12",
+  "platform": "Linux-5.15.0-78-generic-x86_64-with-glibc2.35",
+  "torch": "2.8.0+cu128",
+  "numpy": "2.3.2",
+  "cpu_model": "Intel(R) Xeon(R) Platinum 8352V CPU @ 2.10GHz"
+ },
+ "plain_language_zh": "S3-04 \u51bb\u7ed3\u56de\u6267\uff1a\u4e24\u5957\u524d\u7aef\u6bcf\u4e2a\u81c2\u8fdb test \u7684\u552f\u4e00\u914d\u7f6e\u3001test \u4e0a\u6bcf\u6761 episode \u8981\u8dd1\u7684 25 \u4e2a\u8fd0\u884c\u3001S3-05 \u8981\u7b97\u7684\u7edf\u8ba1\u3001test \u5f53\u5929\u4f1a\u8fd0\u884c\u7684\u6bcf\u4e2a\u4ee3\u7801\u6587\u4ef6\u4e0e\u6743\u91cd\u6587\u4ef6\u7684\u6307\u7eb9\uff1bS3-05 \u89e3\u5c01\u524d\u9010\u9879\u91cd\u7b97\uff0c\u4efb\u4f55\u4e00\u9879\u4e0d\u540c\u5c31\u4e0d\u5f00\u5c01\u3002",
+ "receipt_sha256": "4fd08d4fc6d00c0063fc210a1ad4e8e8cbf0382b1d93d0e0e8331487b32910e0"
+}

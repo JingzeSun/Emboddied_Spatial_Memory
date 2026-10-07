@@ -1,0 +1,141 @@
+{
+ "by_kind": {
+  "grid-reading": {
+   "jobs": 1,
+   "by_status": {
+    "done": 1
+   },
+   "wall_seconds": 2.0,
+   "max_rss_bytes": 39251968
+  },
+  "adopt-calibration": {
+   "jobs": 2,
+   "by_status": {
+    "done": 2
+   },
+   "wall_seconds": 32.4,
+   "max_rss_bytes": 712134656
+  },
+  "audit": {
+   "jobs": 4558,
+   "by_status": {
+    "done": 4558
+   },
+   "wall_seconds": 15156791.2,
+   "max_rss_bytes": 2217635840
+  },
+  "coverage": {
+   "jobs": 2,
+   "by_status": {
+    "done": 2
+   },
+   "wall_seconds": 557.7,
+   "max_rss_bytes": 96882688
+  },
+  "fit": {
+   "jobs": 2,
+   "by_status": {
+    "done": 2
+   },
+   "wall_seconds": 4.0,
+   "max_rss_bytes": 47304704
+  },
+  "gate-r0": {
+   "jobs": 2,
+   "by_status": {
+    "done": 2
+   },
+   "wall_seconds": 85.2,
+   "max_rss_bytes": 52170752
+  },
+  "merge": {
+   "jobs": 416,
+   "by_status": {
+    "done": 416
+   },
+   "wall_seconds": 886.0,
+   "max_rss_bytes": 44994560
+  },
+  "probe-audit": {
+   "jobs": 2,
+   "by_status": {
+    "done": 2
+   },
+   "wall_seconds": 71.0,
+   "max_rss_bytes": 715489280
+  },
+  "probe-determinism": {
+   "jobs": 2,
+   "by_status": {
+    "done": 2
+   },
+   "wall_seconds": 57.6,
+   "max_rss_bytes": 720011264
+  },
+  "probe-train": {
+   "jobs": 2,
+   "by_status": {
+    "done": 2
+   },
+   "wall_seconds": 342.4,
+   "max_rss_bytes": 4065226752
+  },
+  "r0": {
+   "jobs": 501,
+   "by_status": {
+    "done": 501
+   },
+   "wall_seconds": 379837.7,
+   "max_rss_bytes": 1406644224
+  },
+  "r1": {
+   "jobs": 1503,
+   "by_status": {
+    "done": 1503
+   },
+   "wall_seconds": 1065336.4,
+   "max_rss_bytes": 1571921920
+  },
+  "readings": {
+   "jobs": 2,
+   "by_status": {
+    "done": 2
+   },
+   "wall_seconds": 4.0,
+   "max_rss_bytes": 84078592
+  },
+  "t0": {
+   "jobs": 6,
+   "by_status": {
+    "done": 6
+   },
+   "wall_seconds": 80640.3,
+   "max_rss_bytes": 4200321024
+  },
+  "t1": {
+   "jobs": 30,
+   "by_status": {
+    "done": 30
+   },
+   "wall_seconds": 1119134.1,
+   "max_rss_bytes": 7819808768
+  },
+  "timing": {
+   "jobs": 1,
+   "by_status": {
+    "done": 1
+   },
+   "wall_seconds": 735.8,
+   "max_rss_bytes": 1136029696
+  },
+  "train-threads": {
+   "jobs": 1,
+   "by_status": {
+    "done": 1
+   },
+   "wall_seconds": 2.0,
+   "max_rss_bytes": 43225088
+  }
+ },
+ "not_done": []
+}

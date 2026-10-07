@@ -1,0 +1,5868 @@
+{
+ "stage": "vsmt.lean.s3_04.driver.v1",
+ "step": "select_instance",
+ "code_commit": "dea8c20f58144882752f2bc3936b87fd6568ef45",
+ "written_utc": "2026-10-07T00:17:15Z",
+ "front": "instance",
+ "mask_source": "simulator_instance_masks",
+ "g2": {
+  "recorded": "/root/autodl-tmp/vsmt_private/s3-03-run/instance/selection_readings.json",
+  "recorded_sha256": "c4dd39180ceb0d56c5086b64a8e6c3dec18968c2b028a2eae53b3387f58e3ab1",
+  "differences": []
+ },
+ "g3": {
+  "missing_residual_rate_houses": 31,
+  "identity_continuity": {
+   "events_per_run": [
+    50
+   ],
+   "equal_across_runs": true
+  },
+  "retrieval_success": {
+   "events_per_run": [
+    50
+   ],
+   "equal_across_runs": true
+  }
+ },
+ "selection": {
+  "stage": "vsmt.lean.s3_04.v1",
+  "rule": "ruling 106-2: per front end every arm chooses on its own validation readings with lean_arms.select_configuration (ruling 102-4: the six arms with RETRACT only among configurations whose Missing residual rate is below the same front end's AssocOnly, node F1 on the main node column, ties to the smallest index; NoVersion and HeuristicLabel choose their own tau_r); learned arms and AssocOnly read the mean over the seeds present, a missing seed is named and the S3-05 gate involving that arm is not evaluable (ruling 102-9); a constraint that cannot be met takes the node-F1 maximum and is recorded (ruling 102-1 bounds the claim); VSMT-lean-ctx and LLM-op are not frozen",
+  "mask_source": "simulator_instance_masks",
+  "reference": {
+   "arm": "AssocOnly",
+   "config_index": 0,
+   "seeds_present": [
+    7,
+    19,
+    31,
+    43,
+    59
+   ],
+   "seeds_missing": [],
+   "missing_residual_rate": 0.7270967741935485,
+   "node_f1": 0.8531763075505984
+  },
+  "arms": {
+   "VSMT-lean": {
+    "arm": "VSMT-lean",
+    "rule": "one configuration per method by node F1 on validation (D-224-SW ruling V); ruling 102-4: an arm whose vocabulary has RETRACT (VSMT-lean, NoVersion, HeuristicLabel, HandCost, ELU-P, RAC) chooses only among configurations whose validation Missing residual rate is below the same front end's AssocOnly validation Missing residual rate (learned arms and AssocOnly as five-seed means); when none qualifies the node-F1 maximum is chosen and recorded as constraint_not_satisfiable, and its result cannot support a claim that the arm's retraction reduces stale entities; ties to the smallest configuration index; main-gate metrics select nothing else",
+    "constrained": true,
+    "reference_missing_residual_rate": 0.7270967741935485,
+    "admissible": [
+     0,
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     7,
+     8,
+     9
+    ],
+    "selected": 8,
+    "constraint_satisfiable": true,
+    "absent": false,
+    "config": {
+     "tau_r": 0.8
+    },
+    "seeds_present": [
+     7,
+     19,
+     31,
+     43,
+     59
+    ],
+    "seeds_missing": [],
+    "validation_mean": {
+     "node_prf1": 0.8577308665345903,
+     "node_prf1_iou": 0.4852092474209268,
+     "missing_residual_rate": 0.1760215053763441,
+     "false_retract_rate": 0.22800015460729747,
+     "false_retract_rate_in_scope": 0.21959750566893424,
+     "identity_continuity": 0.20763888888888887,
+     "identity_continuity_conditional": null,
+     "retrieval_success": 0.22986111111111113,
+     "recovery_latency_frames": 139.8694117647059,
+     "contamination_auc": 0.30175582017781466
+    },
+    "validation_per_seed": {
+     "7": {
+      "node_prf1": 0.8570755262935006,
+      "node_prf1_iou": 0.4853563128968062,
+      "missing_residual_rate": 0.15967741935483873,
+      "false_retract_rate": 0.25029761904761905,
+      "false_retract_rate_in_scope": 0.24759070294784583,
+      "identity_continuity": 0.24305555555555555,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.2152777777777778,
+      "recovery_latency_frames": 141.57745098039214,
+      "contamination_auc": 0.30247756238240403
+     },
+     "19": {
+      "node_prf1": 0.8640392097180164,
+      "node_prf1_iou": 0.48642789346210147,
+      "missing_residual_rate": 0.17150537634408602,
+      "false_retract_rate": 0.2627473716759431,
+      "false_retract_rate_in_scope": 0.2359410430839002,
+      "identity_continuity": 0.2152777777777778,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.22916666666666666,
+      "recovery_latency_frames": 145.97352941176473,
+      "contamination_auc": 0.292950726593974
+     },
+     "31": {
+      "node_prf1": 0.8554401883963958,
+      "node_prf1_iou": 0.48287179604593566,
+      "missing_residual_rate": 0.16666666666666669,
+      "false_retract_rate": 0.21428571428571427,
+      "false_retract_rate_in_scope": 0.21428571428571427,
+      "identity_continuity": 0.23611111111111113,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.2916666666666667,
+      "recovery_latency_frames": 127.03431372549021,
+      "contamination_auc": 0.30412025566255957
+     },
+     "43": {
+      "node_prf1": 0.859549326085809,
+      "node_prf1_iou": 0.487336201428173,
+      "missing_residual_rate": 0.2118279569892473,
+      "false_retract_rate": 0.2110544217687075,
+      "false_retract_rate_in_scope": 0.2110544217687075,
+      "identity_continuity": 0.10069444444444443,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.15625,
+      "recovery_latency_frames": 136.76568627450982,
+      "contamination_auc": 0.3001228917484973
+     },
+     "59": {
+      "node_prf1": 0.8525500821792302,
+      "node_prf1_iou": 0.48405403327161756,
+      "missing_residual_rate": 0.17043010752688173,
+      "false_retract_rate": 0.20161564625850342,
+      "false_retract_rate_in_scope": 0.18911564625850338,
+      "identity_continuity": 0.24305555555555555,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.2569444444444445,
+      "recovery_latency_frames": 147.99607843137255,
+      "contamination_auc": 0.3091076645016384
+     }
+    },
+    "grid_edge": []
+   },
+   "NoVersion": {
+    "arm": "NoVersion",
+    "rule": "one configuration per method by node F1 on validation (D-224-SW ruling V); ruling 102-4: an arm whose vocabulary has RETRACT (VSMT-lean, NoVersion, HeuristicLabel, HandCost, ELU-P, RAC) chooses only among configurations whose validation Missing residual rate is below the same front end's AssocOnly validation Missing residual rate (learned arms and AssocOnly as five-seed means); when none qualifies the node-F1 maximum is chosen and recorded as constraint_not_satisfiable, and its result cannot support a claim that the arm's retraction reduces stale entities; ties to the smallest configuration index; main-gate metrics select nothing else",
+    "constrained": true,
+    "reference_missing_residual_rate": 0.7270967741935485,
+    "admissible": [
+     0,
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     7,
+     8,
+     9
+    ],
+    "selected": 9,
+    "constraint_satisfiable": true,
+    "absent": false,
+    "config": {
+     "tau_r": 0.9
+    },
+    "seeds_present": [
+     7,
+     19,
+     31,
+     43,
+     59
+    ],
+    "seeds_missing": [],
+    "validation_mean": {
+     "node_prf1": 0.8581767425548931,
+     "node_prf1_iou": 0.4851494385991403,
+     "missing_residual_rate": 0.16838709677419356,
+     "false_retract_rate": 0.205254329004329,
+     "false_retract_rate_in_scope": 0.20205782312925172,
+     "identity_continuity": 0.06944444444444445,
+     "identity_continuity_conditional": null,
+     "retrieval_success": 0.18055555555555555,
+     "recovery_latency_frames": 142.8619607843137,
+     "contamination_auc": 0.30138338237788803
+    },
+    "validation_per_seed": {
+     "7": {
+      "node_prf1": 0.8576369942579058,
+      "node_prf1_iou": 0.48505955083198043,
+      "missing_residual_rate": 0.14516129032258066,
+      "false_retract_rate": 0.23159013605442175,
+      "false_retract_rate_in_scope": 0.22967687074829932,
+      "identity_continuity": 0.1111111111111111,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.18055555555555555,
+      "recovery_latency_frames": 143.34117647058824,
+      "contamination_auc": 0.3019063646495626
+     },
+     "19": {
+      "node_prf1": 0.8646071601833732,
+      "node_prf1_iou": 0.4862482867787193,
+      "missing_residual_rate": 0.17043010752688173,
+      "false_retract_rate": 0.2337121212121212,
+      "false_retract_rate_in_scope": 0.21964285714285717,
+      "identity_continuity": 0.06944444444444443,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.18055555555555555,
+      "recovery_latency_frames": 149.75392156862745,
+      "contamination_auc": 0.29254744571903757
+     },
+     "31": {
+      "node_prf1": 0.855724499843561,
+      "node_prf1_iou": 0.4828462314382674,
+      "missing_residual_rate": 0.1586021505376344,
+      "false_retract_rate": 0.1814625850340136,
+      "false_retract_rate_in_scope": 0.1814625850340136,
+      "identity_continuity": 0.05555555555555555,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.18055555555555555,
+      "recovery_latency_frames": 132.66960784313724,
+      "contamination_auc": 0.3039580978255227
+     },
+     "43": {
+      "node_prf1": 0.8601271071981142,
+      "node_prf1_iou": 0.4874621027029272,
+      "missing_residual_rate": 0.20376344086021506,
+      "false_retract_rate": 0.19974489795918365,
+      "false_retract_rate_in_scope": 0.19974489795918365,
+      "identity_continuity": 0.05555555555555555,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.16666666666666666,
+      "recovery_latency_frames": 138.8205882352941,
+      "contamination_auc": 0.29938497544059106
+     },
+     "59": {
+      "node_prf1": 0.8527879512915105,
+      "node_prf1_iou": 0.4841310212438071,
+      "missing_residual_rate": 0.1639784946236559,
+      "false_retract_rate": 0.17976190476190476,
+      "false_retract_rate_in_scope": 0.17976190476190476,
+      "identity_continuity": 0.05555555555555555,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.19444444444444445,
+      "recovery_latency_frames": 149.72450980392156,
+      "contamination_auc": 0.3091200282547262
+     }
+    },
+    "grid_edge": [
+     {
+      "parameter": "tau_r",
+      "value": 0.9,
+      "position": "last"
+     }
+    ]
+   },
+   "HeuristicLabel": {
+    "arm": "HeuristicLabel",
+    "rule": "one configuration per method by node F1 on validation (D-224-SW ruling V); ruling 102-4: an arm whose vocabulary has RETRACT (VSMT-lean, NoVersion, HeuristicLabel, HandCost, ELU-P, RAC) chooses only among configurations whose validation Missing residual rate is below the same front end's AssocOnly validation Missing residual rate (learned arms and AssocOnly as five-seed means); when none qualifies the node-F1 maximum is chosen and recorded as constraint_not_satisfiable, and its result cannot support a claim that the arm's retraction reduces stale entities; ties to the smallest configuration index; main-gate metrics select nothing else",
+    "constrained": true,
+    "reference_missing_residual_rate": 0.7270967741935485,
+    "admissible": [
+     0,
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     7,
+     8,
+     9
+    ],
+    "selected": 1,
+    "constraint_satisfiable": true,
+    "absent": false,
+    "config": {
+     "tau_r": 0.2
+    },
+    "seeds_present": [
+     7,
+     19,
+     31,
+     43,
+     59
+    ],
+    "seeds_missing": [],
+    "validation_mean": {
+     "node_prf1": 0.6485688446318525,
+     "node_prf1_iou": 0.40769044950522637,
+     "missing_residual_rate": 0.1827956989247312,
+     "false_retract_rate": 0.9194722041499117,
+     "false_retract_rate_in_scope": 0.8944578397320828,
+     "identity_continuity": 0.2875,
+     "identity_continuity_conditional": null,
+     "retrieval_success": 0.3263888888888889,
+     "recovery_latency_frames": 133.23529411764704,
+     "contamination_auc": 0.3028108145514821
+    },
+    "validation_per_seed": {
+     "7": {
+      "node_prf1": 0.6484473324910273,
+      "node_prf1_iou": 0.40794991076144377,
+      "missing_residual_rate": 0.18064516129032257,
+      "false_retract_rate": 0.9211919797990548,
+      "false_retract_rate_in_scope": 0.8963250030724491,
+      "identity_continuity": 0.3125,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.3263888888888889,
+      "recovery_latency_frames": 133.86176470588236,
+      "contamination_auc": 0.30276069299155467
+     },
+     "19": {
+      "node_prf1": 0.6491417835042635,
+      "node_prf1_iou": 0.4079725630148807,
+      "missing_residual_rate": 0.18064516129032257,
+      "false_retract_rate": 0.920049840689737,
+      "false_retract_rate_in_scope": 0.8947028469887525,
+      "identity_continuity": 0.2708333333333333,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.3263888888888889,
+      "recovery_latency_frames": 132.33529411764704,
+      "contamination_auc": 0.3023474734189378
+     },
+     "31": {
+      "node_prf1": 0.6486521531050309,
+      "node_prf1_iou": 0.4066230400274814,
+      "missing_residual_rate": 0.18064516129032257,
+      "false_retract_rate": 0.9181506453082278,
+      "false_retract_rate_in_scope": 0.8932582664141039,
+      "identity_continuity": 0.3125,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.3263888888888889,
+      "recovery_latency_frames": 131.97156862745098,
+      "contamination_auc": 0.3029147462198906
+     },
+     "43": {
+      "node_prf1": 0.6478906799123053,
+      "node_prf1_iou": 0.4083173637252432,
+      "missing_residual_rate": 0.1913978494623656,
+      "false_retract_rate": 0.9187777470033583,
+      "false_retract_rate_in_scope": 0.893625784493527,
+      "identity_continuity": 0.2708333333333333,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.3263888888888889,
+      "recovery_latency_frames": 136.30784313725488,
+      "contamination_auc": 0.30297021801050816
+     },
+     "59": {
+      "node_prf1": 0.6487122741466353,
+      "node_prf1_iou": 0.407589369997083,
+      "missing_residual_rate": 0.18064516129032257,
+      "false_retract_rate": 0.9191908079491807,
+      "false_retract_rate_in_scope": 0.894377297691582,
+      "identity_continuity": 0.2708333333333333,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.3263888888888889,
+      "recovery_latency_frames": 131.70000000000002,
+      "contamination_auc": 0.30306094211651935
+     }
+    },
+    "grid_edge": []
+   },
+   "AssocOnly": {
+    "arm": "AssocOnly",
+    "rule": "one configuration per method by node F1 on validation (D-224-SW ruling V); ruling 102-4: an arm whose vocabulary has RETRACT (VSMT-lean, NoVersion, HeuristicLabel, HandCost, ELU-P, RAC) chooses only among configurations whose validation Missing residual rate is below the same front end's AssocOnly validation Missing residual rate (learned arms and AssocOnly as five-seed means); when none qualifies the node-F1 maximum is chosen and recorded as constraint_not_satisfiable, and its result cannot support a claim that the arm's retraction reduces stale entities; ties to the smallest configuration index; main-gate metrics select nothing else",
+    "constrained": false,
+    "reference_missing_residual_rate": 0.7270967741935485,
+    "admissible": [
+     0
+    ],
+    "selected": 0,
+    "constraint_satisfiable": null,
+    "absent": false,
+    "config": {},
+    "seeds_present": [
+     7,
+     19,
+     31,
+     43,
+     59
+    ],
+    "seeds_missing": [],
+    "validation_mean": {
+     "node_prf1": 0.8531763075505984,
+     "node_prf1_iou": 0.4812803161253325,
+     "missing_residual_rate": 0.7270967741935485,
+     "false_retract_rate": null,
+     "false_retract_rate_in_scope": null,
+     "identity_continuity": 0.09583333333333333,
+     "identity_continuity_conditional": null,
+     "retrieval_success": 0.11944444444444442,
+     "recovery_latency_frames": 174.76196078431371,
+     "contamination_auc": 0.30978525181968275
+    },
+    "validation_per_seed": {
+     "7": {
+      "node_prf1": 0.8511775102364258,
+      "node_prf1_iou": 0.48184058107951205,
+      "missing_residual_rate": 0.717741935483871,
+      "false_retract_rate": null,
+      "false_retract_rate_in_scope": null,
+      "identity_continuity": 0.10416666666666667,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.09722222222222221,
+      "recovery_latency_frames": 189.72058823529412,
+      "contamination_auc": 0.3133416422712225
+     },
+     "19": {
+      "node_prf1": 0.8597240859126817,
+      "node_prf1_iou": 0.48234920104863127,
+      "missing_residual_rate": 0.739247311827957,
+      "false_retract_rate": null,
+      "false_retract_rate_in_scope": null,
+      "identity_continuity": 0.10416666666666667,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.13888888888888887,
+      "recovery_latency_frames": 167.5343137254902,
+      "contamination_auc": 0.30455602593351233
+     },
+     "31": {
+      "node_prf1": 0.8468884660818057,
+      "node_prf1_iou": 0.47974701797967695,
+      "missing_residual_rate": 0.7043010752688171,
+      "false_retract_rate": null,
+      "false_retract_rate_in_scope": null,
+      "identity_continuity": 0.11805555555555554,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.15277777777777776,
+      "recovery_latency_frames": 177.42156862745097,
+      "contamination_auc": 0.31226545657561244
+     },
+     "43": {
+      "node_prf1": 0.8483328622443288,
+      "node_prf1_iou": 0.4797675446485673,
+      "missing_residual_rate": 0.6935483870967742,
+      "false_retract_rate": null,
+      "false_retract_rate_in_scope": null,
+      "identity_continuity": 0.07638888888888888,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.1111111111111111,
+      "recovery_latency_frames": 168.23627450980393,
+      "contamination_auc": 0.3162691712729259
+     },
+     "59": {
+      "node_prf1": 0.8597586132777496,
+      "node_prf1_iou": 0.48269723587027513,
+      "missing_residual_rate": 0.7806451612903226,
+      "false_retract_rate": null,
+      "false_retract_rate_in_scope": null,
+      "identity_continuity": 0.07638888888888888,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.09722222222222221,
+      "recovery_latency_frames": 170.89705882352942,
+      "contamination_auc": 0.3024939630451404
+     }
+    },
+    "grid_edge": []
+   },
+   "TAF": {
+    "arm": "TAF",
+    "rule": "one configuration per method by node F1 on validation (D-224-SW ruling V); ruling 102-4: an arm whose vocabulary has RETRACT (VSMT-lean, NoVersion, HeuristicLabel, HandCost, ELU-P, RAC) chooses only among configurations whose validation Missing residual rate is below the same front end's AssocOnly validation Missing residual rate (learned arms and AssocOnly as five-seed means); when none qualifies the node-F1 maximum is chosen and recorded as constraint_not_satisfiable, and its result cannot support a claim that the arm's retraction reduces stale entities; ties to the smallest configuration index; main-gate metrics select nothing else",
+    "constrained": false,
+    "reference_missing_residual_rate": 0.7270967741935485,
+    "admissible": [
+     0,
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     7,
+     8,
+     9,
+     10,
+     11
+    ],
+    "selected": 2,
+    "constraint_satisfiable": null,
+    "absent": false,
+    "config": {
+     "theta_a": 0.6,
+     "d_a": 1.0
+    },
+    "seeds_present": [],
+    "seeds_missing": [],
+    "validation_mean": {
+     "node_prf1": 0.6766318501006406,
+     "node_prf1_iou": 0.4314575290690314,
+     "missing_residual_rate": 0.756989247311828,
+     "false_retract_rate": null,
+     "false_retract_rate_in_scope": null,
+     "identity_continuity": 0.09722222222222222,
+     "identity_continuity_conditional": null,
+     "retrieval_success": 0.11805555555555557,
+     "recovery_latency_frames": 159.77254901960782,
+     "contamination_auc": 0.3143514337583232
+    },
+    "validation_per_seed": {},
+    "grid_edge": [
+     {
+      "parameter": "theta_a",
+      "value": 0.6,
+      "position": "first"
+     }
+    ]
+   },
+   "ELU-P": {
+    "arm": "ELU-P",
+    "rule": "one configuration per method by node F1 on validation (D-224-SW ruling V); ruling 102-4: an arm whose vocabulary has RETRACT (VSMT-lean, NoVersion, HeuristicLabel, HandCost, ELU-P, RAC) chooses only among configurations whose validation Missing residual rate is below the same front end's AssocOnly validation Missing residual rate (learned arms and AssocOnly as five-seed means); when none qualifies the node-F1 maximum is chosen and recorded as constraint_not_satisfiable, and its result cannot support a claim that the arm's retraction reduces stale entities; ties to the smallest configuration index; main-gate metrics select nothing else",
+    "constrained": true,
+    "reference_missing_residual_rate": 0.7270967741935485,
+    "admissible": [
+     0,
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     7,
+     8,
+     9,
+     10,
+     11
+    ],
+    "selected": 10,
+    "constraint_satisfiable": true,
+    "absent": false,
+    "config": {
+     "theta_a": 0.7,
+     "d_a": 1.0,
+     "free_space_weight": 2.0,
+     "retract_threshold": 0.0
+    },
+    "seeds_present": [],
+    "seeds_missing": [],
+    "validation_mean": {
+     "node_prf1": 0.678785309750042,
+     "node_prf1_iou": 0.4257751293918723,
+     "missing_residual_rate": 0.10430107526881721,
+     "false_retract_rate": 0.9587855922305835,
+     "false_retract_rate_in_scope": 0.9211357877990748,
+     "identity_continuity": 0.09722222222222222,
+     "identity_continuity_conditional": null,
+     "retrieval_success": 0.2777777777777778,
+     "recovery_latency_frames": 144.771568627451,
+     "contamination_auc": 0.3107813281830216
+    },
+    "validation_per_seed": {},
+    "grid_edge": [
+     {
+      "parameter": "d_a",
+      "value": 1.0,
+      "position": "last"
+     },
+     {
+      "parameter": "free_space_weight",
+      "value": 2.0,
+      "position": "last"
+     },
+     {
+      "parameter": "retract_threshold",
+      "value": 0.0,
+      "position": "first"
+     }
+    ]
+   },
+   "RAC": {
+    "arm": "RAC",
+    "rule": "one configuration per method by node F1 on validation (D-224-SW ruling V); ruling 102-4: an arm whose vocabulary has RETRACT (VSMT-lean, NoVersion, HeuristicLabel, HandCost, ELU-P, RAC) chooses only among configurations whose validation Missing residual rate is below the same front end's AssocOnly validation Missing residual rate (learned arms and AssocOnly as five-seed means); when none qualifies the node-F1 maximum is chosen and recorded as constraint_not_satisfiable, and its result cannot support a claim that the arm's retraction reduces stale entities; ties to the smallest configuration index; main-gate metrics select nothing else",
+    "constrained": true,
+    "reference_missing_residual_rate": 0.7270967741935485,
+    "admissible": [
+     0,
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     7,
+     8,
+     9,
+     10,
+     11
+    ],
+    "selected": 6,
+    "constraint_satisfiable": true,
+    "absent": false,
+    "config": {
+     "theta_a": 0.7,
+     "d_a": 1.0,
+     "rho_rac": 0.7,
+     "n_rac": 2
+    },
+    "seeds_present": [],
+    "seeds_missing": [],
+    "validation_mean": {
+     "node_prf1": 0.6568462817049703,
+     "node_prf1_iou": 0.41964872274073767,
+     "missing_residual_rate": 0.09784946236559139,
+     "false_retract_rate": 0.8539038633197583,
+     "false_retract_rate_in_scope": 0.7635663010282316,
+     "identity_continuity": 0.041666666666666664,
+     "identity_continuity_conditional": null,
+     "retrieval_success": 0.17361111111111113,
+     "recovery_latency_frames": 128.56176470588235,
+     "contamination_auc": 0.29982709410620706
+    },
+    "validation_per_seed": {},
+    "grid_edge": [
+     {
+      "parameter": "d_a",
+      "value": 1.0,
+      "position": "last"
+     },
+     {
+      "parameter": "rho_rac",
+      "value": 0.7,
+      "position": "first"
+     },
+     {
+      "parameter": "n_rac",
+      "value": 2,
+      "position": "first"
+     }
+    ]
+   },
+   "LOW": {
+    "arm": "LOW",
+    "rule": "one configuration per method by node F1 on validation (D-224-SW ruling V); ruling 102-4: an arm whose vocabulary has RETRACT (VSMT-lean, NoVersion, HeuristicLabel, HandCost, ELU-P, RAC) chooses only among configurations whose validation Missing residual rate is below the same front end's AssocOnly validation Missing residual rate (learned arms and AssocOnly as five-seed means); when none qualifies the node-F1 maximum is chosen and recorded as constraint_not_satisfiable, and its result cannot support a claim that the arm's retraction reduces stale entities; ties to the smallest configuration index; main-gate metrics select nothing else",
+    "constrained": false,
+    "reference_missing_residual_rate": 0.7270967741935485,
+    "admissible": [
+     0,
+     1,
+     2,
+     3,
+     4
+    ],
+    "selected": 2,
+    "constraint_satisfiable": null,
+    "absent": false,
+    "config": {
+     "d_low": 0.5
+    },
+    "seeds_present": [],
+    "seeds_missing": [],
+    "validation_mean": {
+     "node_prf1": 0.7724455710289498,
+     "node_prf1_iou": 0.4554800704792413,
+     "missing_residual_rate": 0.6779569892473118,
+     "false_retract_rate": null,
+     "false_retract_rate_in_scope": null,
+     "identity_continuity": 0.0,
+     "identity_continuity_conditional": null,
+     "retrieval_success": 0.13194444444444445,
+     "recovery_latency_frames": 207.77450980392155,
+     "contamination_auc": 0.35973006458489676
+    },
+    "validation_per_seed": {},
+    "grid_edge": []
+   },
+   "HandCost": {
+    "arm": "HandCost",
+    "rule": "one configuration per method by node F1 on validation (D-224-SW ruling V); ruling 102-4: an arm whose vocabulary has RETRACT (VSMT-lean, NoVersion, HeuristicLabel, HandCost, ELU-P, RAC) chooses only among configurations whose validation Missing residual rate is below the same front end's AssocOnly validation Missing residual rate (learned arms and AssocOnly as five-seed means); when none qualifies the node-F1 maximum is chosen and recorded as constraint_not_satisfiable, and its result cannot support a claim that the arm's retraction reduces stale entities; ties to the smallest configuration index; main-gate metrics select nothing else",
+    "constrained": true,
+    "reference_missing_residual_rate": 0.7270967741935485,
+    "admissible": [
+     0,
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     7,
+     8,
+     9,
+     10,
+     11
+    ],
+    "selected": 7,
+    "constraint_satisfiable": true,
+    "absent": false,
+    "config": {
+     "theta_b": 0.7,
+     "rho_h": 0.9
+    },
+    "seeds_present": [],
+    "seeds_missing": [],
+    "validation_mean": {
+     "node_prf1": 0.6348868671425492,
+     "node_prf1_iou": 0.40283745312505065,
+     "missing_residual_rate": 0.10698924731182795,
+     "false_retract_rate": 0.8843201840195363,
+     "false_retract_rate_in_scope": 0.8455026947121508,
+     "identity_continuity": 0.3125,
+     "identity_continuity_conditional": null,
+     "retrieval_success": 0.3194444444444444,
+     "recovery_latency_frames": 115.36470588235295,
+     "contamination_auc": 0.31137834142459336
+    },
+    "validation_per_seed": {},
+    "grid_edge": [
+     {
+      "parameter": "rho_h",
+      "value": 0.9,
+      "position": "last"
+     }
+    ]
+   }
+  },
+  "report_only": {
+   "constraint_not_satisfiable": [],
+   "seeds_missing": {},
+   "arms_absent": [],
+   "grid_edge": {
+    "NoVersion": [
+     {
+      "parameter": "tau_r",
+      "value": 0.9,
+      "position": "last"
+     }
+    ],
+    "TAF": [
+     {
+      "parameter": "theta_a",
+      "value": 0.6,
+      "position": "first"
+     }
+    ],
+    "ELU-P": [
+     {
+      "parameter": "d_a",
+      "value": 1.0,
+      "position": "last"
+     },
+     {
+      "parameter": "free_space_weight",
+      "value": 2.0,
+      "position": "last"
+     },
+     {
+      "parameter": "retract_threshold",
+      "value": 0.0,
+      "position": "first"
+     }
+    ],
+    "RAC": [
+     {
+      "parameter": "d_a",
+      "value": 1.0,
+      "position": "last"
+     },
+     {
+      "parameter": "rho_rac",
+      "value": 0.7,
+      "position": "first"
+     },
+     {
+      "parameter": "n_rac",
+      "value": 2,
+      "position": "first"
+     }
+    ],
+    "HandCost": [
+     {
+      "parameter": "rho_h",
+      "value": 0.9,
+      "position": "last"
+     }
+    ]
+   },
+   "consequences": "report only, consequences fixed before the freeze: constraint_not_satisfiable -> the arm's result cannot support 'its retraction reduces stale entities', and on VSMT-lean no primary claim (rulings 102-1, 102-4); a missing seed -> the S3-05 gate involving the arm is not evaluable (ruling 102-9); a grid edge -> reported beside the grid, the grids stay (ruling 102-6)"
+  },
+  "not_frozen": {
+   "VSMT-lean-ctx": "optional arm, never trained in S3-03 (D-224-EFG): not frozen, not run on test",
+   "LLM-op": "appendix arm, validation only (S0-05 appendix_arm, ruling 105): not frozen, not run on test"
+  }
+ },
+ "test_runs": [
+  {
+   "arm": "TAF",
+   "config_index": 2,
+   "config": {
+    "theta_a": 0.6,
+    "d_a": 1.0
+   },
+   "grid_config": {
+    "theta_a": 0.6,
+    "d_a": 1.0
+   },
+   "seed": null,
+   "heads_arm": null
+  },
+  {
+   "arm": "ELU-P",
+   "config_index": 10,
+   "config": {
+    "theta_a": 0.7,
+    "d_a": 1.0,
+    "free_space_weight": 2.0,
+    "retract_threshold": 0.0,
+    "initial_log_odds": 4.715758278823018,
+    "persistence_log_decay_per_tick": 1.9468203738496008e-05,
+    "match_gain": 3.5202657867949485
+   },
+   "grid_config": {
+    "theta_a": 0.7,
+    "d_a": 1.0,
+    "free_space_weight": 2.0,
+    "retract_threshold": 0.0
+   },
+   "seed": null,
+   "heads_arm": null
+  },
+  {
+   "arm": "RAC",
+   "config_index": 6,
+   "config": {
+    "theta_a": 0.7,
+    "d_a": 1.0,
+    "rho_rac": 0.7,
+    "n_rac": 2
+   },
+   "grid_config": {
+    "theta_a": 0.7,
+    "d_a": 1.0,
+    "rho_rac": 0.7,
+    "n_rac": 2
+   },
+   "seed": null,
+   "heads_arm": null
+  },
+  {
+   "arm": "LOW",
+   "config_index": 2,
+   "config": {
+    "d_low": 0.5
+   },
+   "grid_config": {
+    "d_low": 0.5
+   },
+   "seed": null,
+   "heads_arm": null
+  },
+  {
+   "arm": "HandCost",
+   "config_index": 7,
+   "config": {
+    "theta_b": 0.7,
+    "rho_h": 0.9
+   },
+   "grid_config": {
+    "theta_b": 0.7,
+    "rho_h": 0.9
+   },
+   "seed": null,
+   "heads_arm": null
+  },
+  {
+   "arm": "VSMT-lean",
+   "config_index": 8,
+   "config": {
+    "tau_r": 0.8
+   },
+   "grid_config": {
+    "tau_r": 0.8
+   },
+   "seed": 7,
+   "heads_arm": "VSMT-lean"
+  },
+  {
+   "arm": "VSMT-lean",
+   "config_index": 8,
+   "config": {
+    "tau_r": 0.8
+   },
+   "grid_config": {
+    "tau_r": 0.8
+   },
+   "seed": 19,
+   "heads_arm": "VSMT-lean"
+  },
+  {
+   "arm": "VSMT-lean",
+   "config_index": 8,
+   "config": {
+    "tau_r": 0.8
+   },
+   "grid_config": {
+    "tau_r": 0.8
+   },
+   "seed": 31,
+   "heads_arm": "VSMT-lean"
+  },
+  {
+   "arm": "VSMT-lean",
+   "config_index": 8,
+   "config": {
+    "tau_r": 0.8
+   },
+   "grid_config": {
+    "tau_r": 0.8
+   },
+   "seed": 43,
+   "heads_arm": "VSMT-lean"
+  },
+  {
+   "arm": "VSMT-lean",
+   "config_index": 8,
+   "config": {
+    "tau_r": 0.8
+   },
+   "grid_config": {
+    "tau_r": 0.8
+   },
+   "seed": 59,
+   "heads_arm": "VSMT-lean"
+  },
+  {
+   "arm": "NoVersion",
+   "config_index": 9,
+   "config": {
+    "tau_r": 0.9
+   },
+   "grid_config": {
+    "tau_r": 0.9
+   },
+   "seed": 7,
+   "heads_arm": "VSMT-lean"
+  },
+  {
+   "arm": "NoVersion",
+   "config_index": 9,
+   "config": {
+    "tau_r": 0.9
+   },
+   "grid_config": {
+    "tau_r": 0.9
+   },
+   "seed": 19,
+   "heads_arm": "VSMT-lean"
+  },
+  {
+   "arm": "NoVersion",
+   "config_index": 9,
+   "config": {
+    "tau_r": 0.9
+   },
+   "grid_config": {
+    "tau_r": 0.9
+   },
+   "seed": 31,
+   "heads_arm": "VSMT-lean"
+  },
+  {
+   "arm": "NoVersion",
+   "config_index": 9,
+   "config": {
+    "tau_r": 0.9
+   },
+   "grid_config": {
+    "tau_r": 0.9
+   },
+   "seed": 43,
+   "heads_arm": "VSMT-lean"
+  },
+  {
+   "arm": "NoVersion",
+   "config_index": 9,
+   "config": {
+    "tau_r": 0.9
+   },
+   "grid_config": {
+    "tau_r": 0.9
+   },
+   "seed": 59,
+   "heads_arm": "VSMT-lean"
+  },
+  {
+   "arm": "HeuristicLabel",
+   "config_index": 1,
+   "config": {
+    "tau_r": 0.2
+   },
+   "grid_config": {
+    "tau_r": 0.2
+   },
+   "seed": 7,
+   "heads_arm": "HeuristicLabel"
+  },
+  {
+   "arm": "HeuristicLabel",
+   "config_index": 1,
+   "config": {
+    "tau_r": 0.2
+   },
+   "grid_config": {
+    "tau_r": 0.2
+   },
+   "seed": 19,
+   "heads_arm": "HeuristicLabel"
+  },
+  {
+   "arm": "HeuristicLabel",
+   "config_index": 1,
+   "config": {
+    "tau_r": 0.2
+   },
+   "grid_config": {
+    "tau_r": 0.2
+   },
+   "seed": 31,
+   "heads_arm": "HeuristicLabel"
+  },
+  {
+   "arm": "HeuristicLabel",
+   "config_index": 1,
+   "config": {
+    "tau_r": 0.2
+   },
+   "grid_config": {
+    "tau_r": 0.2
+   },
+   "seed": 43,
+   "heads_arm": "HeuristicLabel"
+  },
+  {
+   "arm": "HeuristicLabel",
+   "config_index": 1,
+   "config": {
+    "tau_r": 0.2
+   },
+   "grid_config": {
+    "tau_r": 0.2
+   },
+   "seed": 59,
+   "heads_arm": "HeuristicLabel"
+  },
+  {
+   "arm": "AssocOnly",
+   "config_index": 0,
+   "config": {},
+   "grid_config": {},
+   "seed": 7,
+   "heads_arm": "AssocOnly"
+  },
+  {
+   "arm": "AssocOnly",
+   "config_index": 0,
+   "config": {},
+   "grid_config": {},
+   "seed": 19,
+   "heads_arm": "AssocOnly"
+  },
+  {
+   "arm": "AssocOnly",
+   "config_index": 0,
+   "config": {},
+   "grid_config": {},
+   "seed": 31,
+   "heads_arm": "AssocOnly"
+  },
+  {
+   "arm": "AssocOnly",
+   "config_index": 0,
+   "config": {},
+   "grid_config": {},
+   "seed": 43,
+   "heads_arm": "AssocOnly"
+  },
+  {
+   "arm": "AssocOnly",
+   "config_index": 0,
+   "config": {},
+   "grid_config": {},
+   "seed": 59,
+   "heads_arm": "AssocOnly"
+  }
+ ],
+ "state_coverage": {
+  "stage": "vsmt.lean.s3_03.driver.v1",
+  "reading": "ruling 89-3 (1) state coverage in events, report only",
+  "front": "instance",
+  "training_houses": 205,
+  "train": {
+   "retracted": {
+    "events": 9098,
+    "houses": 195,
+    "labelled_target_rows": 68770
+   },
+   "dormant": {
+    "events": 189296,
+    "houses": 205,
+    "labelled_target_rows": 829222
+   }
+  },
+  "pass": true,
+  "lines": {
+   "events_per_state": 200,
+   "training_houses_per_state": 15
+  },
+  "written_utc": "2026-10-04T03:30:00Z"
+ },
+ "probe_episodes": [
+  "procthor10k-0.1.2-train-02318",
+  "procthor10k-0.1.2-train-00359"
+ ],
+ "readings": {
+  "stage": "vsmt.lean.s3_03.v1",
+  "rule": "ruling 104-1 1f: per front end and metric one exclusion list over every validation run read (each arm and configuration, the learned arms and AssocOnly at each seed present): a house is excluded for every run when the metric is undefined in any applicable run (an arm without RETRACT is not applicable to the false-retract metrics); a run's reading is the mean of its headline values over the remaining houses; an arm with seeds reads the mean over the seeds present and names a missing seed; S3-03 writes the readings and the AssocOnly reference, S3-04 chooses with select_configuration",
+  "mask_source": "simulator_instance_masks",
+  "episodes": [
+   "procthor10k-0.1.2-train-00269",
+   "procthor10k-0.1.2-train-00359",
+   "procthor10k-0.1.2-train-00405",
+   "procthor10k-0.1.2-train-00974",
+   "procthor10k-0.1.2-train-01079",
+   "procthor10k-0.1.2-train-01541",
+   "procthor10k-0.1.2-train-01784",
+   "procthor10k-0.1.2-train-01857",
+   "procthor10k-0.1.2-train-01923",
+   "procthor10k-0.1.2-train-02047",
+   "procthor10k-0.1.2-train-02126",
+   "procthor10k-0.1.2-train-02257",
+   "procthor10k-0.1.2-train-02318",
+   "procthor10k-0.1.2-train-02334",
+   "procthor10k-0.1.2-train-02381",
+   "procthor10k-0.1.2-train-02522",
+   "procthor10k-0.1.2-train-03137",
+   "procthor10k-0.1.2-train-03949",
+   "procthor10k-0.1.2-train-04188",
+   "procthor10k-0.1.2-train-04283",
+   "procthor10k-0.1.2-train-04409",
+   "procthor10k-0.1.2-train-04497",
+   "procthor10k-0.1.2-train-04625",
+   "procthor10k-0.1.2-train-05042",
+   "procthor10k-0.1.2-train-05667",
+   "procthor10k-0.1.2-train-05751",
+   "procthor10k-0.1.2-train-06101",
+   "procthor10k-0.1.2-train-06177",
+   "procthor10k-0.1.2-train-06303",
+   "procthor10k-0.1.2-train-06317",
+   "procthor10k-0.1.2-train-06796",
+   "procthor10k-0.1.2-train-06894",
+   "procthor10k-0.1.2-train-07277",
+   "procthor10k-0.1.2-train-07336",
+   "procthor10k-0.1.2-train-07464",
+   "procthor10k-0.1.2-train-07621",
+   "procthor10k-0.1.2-train-07686",
+   "procthor10k-0.1.2-train-07918",
+   "procthor10k-0.1.2-train-08029",
+   "procthor10k-0.1.2-train-08194",
+   "procthor10k-0.1.2-train-08800",
+   "procthor10k-0.1.2-train-09834",
+   "procthor10k-0.1.2-train-09920"
+  ],
+  "runs": [
+   "AssocOnly|0|19",
+   "AssocOnly|0|31",
+   "AssocOnly|0|43",
+   "AssocOnly|0|59",
+   "AssocOnly|0|7",
+   "ELU-P|0|-",
+   "ELU-P|10|-",
+   "ELU-P|11|-",
+   "ELU-P|1|-",
+   "ELU-P|2|-",
+   "ELU-P|3|-",
+   "ELU-P|4|-",
+   "ELU-P|5|-",
+   "ELU-P|6|-",
+   "ELU-P|7|-",
+   "ELU-P|8|-",
+   "ELU-P|9|-",
+   "HandCost|0|-",
+   "HandCost|10|-",
+   "HandCost|11|-",
+   "HandCost|1|-",
+   "HandCost|2|-",
+   "HandCost|3|-",
+   "HandCost|4|-",
+   "HandCost|5|-",
+   "HandCost|6|-",
+   "HandCost|7|-",
+   "HandCost|8|-",
+   "HandCost|9|-",
+   "HeuristicLabel|0|19",
+   "HeuristicLabel|0|31",
+   "HeuristicLabel|0|43",
+   "HeuristicLabel|0|59",
+   "HeuristicLabel|0|7",
+   "HeuristicLabel|1|19",
+   "HeuristicLabel|1|31",
+   "HeuristicLabel|1|43",
+   "HeuristicLabel|1|59",
+   "HeuristicLabel|1|7",
+   "HeuristicLabel|2|19",
+   "HeuristicLabel|2|31",
+   "HeuristicLabel|2|43",
+   "HeuristicLabel|2|59",
+   "HeuristicLabel|2|7",
+   "HeuristicLabel|3|19",
+   "HeuristicLabel|3|31",
+   "HeuristicLabel|3|43",
+   "HeuristicLabel|3|59",
+   "HeuristicLabel|3|7",
+   "HeuristicLabel|4|19",
+   "HeuristicLabel|4|31",
+   "HeuristicLabel|4|43",
+   "HeuristicLabel|4|59",
+   "HeuristicLabel|4|7",
+   "HeuristicLabel|5|19",
+   "HeuristicLabel|5|31",
+   "HeuristicLabel|5|43",
+   "HeuristicLabel|5|59",
+   "HeuristicLabel|5|7",
+   "HeuristicLabel|6|19",
+   "HeuristicLabel|6|31",
+   "HeuristicLabel|6|43",
+   "HeuristicLabel|6|59",
+   "HeuristicLabel|6|7",
+   "HeuristicLabel|7|19",
+   "HeuristicLabel|7|31",
+   "HeuristicLabel|7|43",
+   "HeuristicLabel|7|59",
+   "HeuristicLabel|7|7",
+   "HeuristicLabel|8|19",
+   "HeuristicLabel|8|31",
+   "HeuristicLabel|8|43",
+   "HeuristicLabel|8|59",
+   "HeuristicLabel|8|7",
+   "HeuristicLabel|9|19",
+   "HeuristicLabel|9|31",
+   "HeuristicLabel|9|43",
+   "HeuristicLabel|9|59",
+   "HeuristicLabel|9|7",
+   "LOW|0|-",
+   "LOW|1|-",
+   "LOW|2|-",
+   "LOW|3|-",
+   "LOW|4|-",
+   "NoVersion|0|19",
+   "NoVersion|0|31",
+   "NoVersion|0|43",
+   "NoVersion|0|59",
+   "NoVersion|0|7",
+   "NoVersion|1|19",
+   "NoVersion|1|31",
+   "NoVersion|1|43",
+   "NoVersion|1|59",
+   "NoVersion|1|7",
+   "NoVersion|2|19",
+   "NoVersion|2|31",
+   "NoVersion|2|43",
+   "NoVersion|2|59",
+   "NoVersion|2|7",
+   "NoVersion|3|19",
+   "NoVersion|3|31",
+   "NoVersion|3|43",
+   "NoVersion|3|59",
+   "NoVersion|3|7",
+   "NoVersion|4|19",
+   "NoVersion|4|31",
+   "NoVersion|4|43",
+   "NoVersion|4|59",
+   "NoVersion|4|7",
+   "NoVersion|5|19",
+   "NoVersion|5|31",
+   "NoVersion|5|43",
+   "NoVersion|5|59",
+   "NoVersion|5|7",
+   "NoVersion|6|19",
+   "NoVersion|6|31",
+   "NoVersion|6|43",
+   "NoVersion|6|59",
+   "NoVersion|6|7",
+   "NoVersion|7|19",
+   "NoVersion|7|31",
+   "NoVersion|7|43",
+   "NoVersion|7|59",
+   "NoVersion|7|7",
+   "NoVersion|8|19",
+   "NoVersion|8|31",
+   "NoVersion|8|43",
+   "NoVersion|8|59",
+   "NoVersion|8|7",
+   "NoVersion|9|19",
+   "NoVersion|9|31",
+   "NoVersion|9|43",
+   "NoVersion|9|59",
+   "NoVersion|9|7",
+   "RAC|0|-",
+   "RAC|10|-",
+   "RAC|11|-",
+   "RAC|1|-",
+   "RAC|2|-",
+   "RAC|3|-",
+   "RAC|4|-",
+   "RAC|5|-",
+   "RAC|6|-",
+   "RAC|7|-",
+   "RAC|8|-",
+   "RAC|9|-",
+   "TAF|0|-",
+   "TAF|10|-",
+   "TAF|11|-",
+   "TAF|1|-",
+   "TAF|2|-",
+   "TAF|3|-",
+   "TAF|4|-",
+   "TAF|5|-",
+   "TAF|6|-",
+   "TAF|7|-",
+   "TAF|8|-",
+   "TAF|9|-",
+   "VSMT-lean|0|19",
+   "VSMT-lean|0|31",
+   "VSMT-lean|0|43",
+   "VSMT-lean|0|59",
+   "VSMT-lean|0|7",
+   "VSMT-lean|1|19",
+   "VSMT-lean|1|31",
+   "VSMT-lean|1|43",
+   "VSMT-lean|1|59",
+   "VSMT-lean|1|7",
+   "VSMT-lean|2|19",
+   "VSMT-lean|2|31",
+   "VSMT-lean|2|43",
+   "VSMT-lean|2|59",
+   "VSMT-lean|2|7",
+   "VSMT-lean|3|19",
+   "VSMT-lean|3|31",
+   "VSMT-lean|3|43",
+   "VSMT-lean|3|59",
+   "VSMT-lean|3|7",
+   "VSMT-lean|4|19",
+   "VSMT-lean|4|31",
+   "VSMT-lean|4|43",
+   "VSMT-lean|4|59",
+   "VSMT-lean|4|7",
+   "VSMT-lean|5|19",
+   "VSMT-lean|5|31",
+   "VSMT-lean|5|43",
+   "VSMT-lean|5|59",
+   "VSMT-lean|5|7",
+   "VSMT-lean|6|19",
+   "VSMT-lean|6|31",
+   "VSMT-lean|6|43",
+   "VSMT-lean|6|59",
+   "VSMT-lean|6|7",
+   "VSMT-lean|7|19",
+   "VSMT-lean|7|31",
+   "VSMT-lean|7|43",
+   "VSMT-lean|7|59",
+   "VSMT-lean|7|7",
+   "VSMT-lean|8|19",
+   "VSMT-lean|8|31",
+   "VSMT-lean|8|43",
+   "VSMT-lean|8|59",
+   "VSMT-lean|8|7",
+   "VSMT-lean|9|19",
+   "VSMT-lean|9|31",
+   "VSMT-lean|9|43",
+   "VSMT-lean|9|59",
+   "VSMT-lean|9|7"
+  ],
+  "metrics": {
+   "node_prf1": {
+    "field": "node_f1",
+    "excluded_houses": [],
+    "effective_houses": 43,
+    "not_applicable_arms": []
+   },
+   "node_prf1_iou": {
+    "field": "node_f1",
+    "excluded_houses": [],
+    "effective_houses": 43,
+    "not_applicable_arms": []
+   },
+   "missing_residual_rate": {
+    "field": "missing_residual_rate",
+    "excluded_houses": [
+     "procthor10k-0.1.2-train-00269",
+     "procthor10k-0.1.2-train-00405",
+     "procthor10k-0.1.2-train-01079",
+     "procthor10k-0.1.2-train-01784",
+     "procthor10k-0.1.2-train-03949",
+     "procthor10k-0.1.2-train-04409",
+     "procthor10k-0.1.2-train-04625",
+     "procthor10k-0.1.2-train-06177",
+     "procthor10k-0.1.2-train-06317",
+     "procthor10k-0.1.2-train-08029",
+     "procthor10k-0.1.2-train-08800",
+     "procthor10k-0.1.2-train-09834"
+    ],
+    "effective_houses": 31,
+    "not_applicable_arms": []
+   },
+   "false_retract_rate": {
+    "field": "false_retract_rate",
+    "excluded_houses": [
+     "procthor10k-0.1.2-train-00405",
+     "procthor10k-0.1.2-train-01079",
+     "procthor10k-0.1.2-train-01784",
+     "procthor10k-0.1.2-train-02126",
+     "procthor10k-0.1.2-train-04409",
+     "procthor10k-0.1.2-train-05751",
+     "procthor10k-0.1.2-train-06177",
+     "procthor10k-0.1.2-train-06303",
+     "procthor10k-0.1.2-train-06317",
+     "procthor10k-0.1.2-train-06796",
+     "procthor10k-0.1.2-train-06894",
+     "procthor10k-0.1.2-train-07686",
+     "procthor10k-0.1.2-train-08029",
+     "procthor10k-0.1.2-train-08800",
+     "procthor10k-0.1.2-train-09834"
+    ],
+    "effective_houses": 28,
+    "not_applicable_arms": [
+     "AssocOnly",
+     "LOW",
+     "TAF"
+    ]
+   },
+   "false_retract_rate_in_scope": {
+    "field": "false_retract_rate",
+    "excluded_houses": [
+     "procthor10k-0.1.2-train-00405",
+     "procthor10k-0.1.2-train-01079",
+     "procthor10k-0.1.2-train-01784",
+     "procthor10k-0.1.2-train-02126",
+     "procthor10k-0.1.2-train-04409",
+     "procthor10k-0.1.2-train-05751",
+     "procthor10k-0.1.2-train-06177",
+     "procthor10k-0.1.2-train-06303",
+     "procthor10k-0.1.2-train-06317",
+     "procthor10k-0.1.2-train-06796",
+     "procthor10k-0.1.2-train-06894",
+     "procthor10k-0.1.2-train-07686",
+     "procthor10k-0.1.2-train-08029",
+     "procthor10k-0.1.2-train-08800",
+     "procthor10k-0.1.2-train-09834"
+    ],
+    "effective_houses": 28,
+    "not_applicable_arms": [
+     "AssocOnly",
+     "LOW",
+     "TAF"
+    ]
+   },
+   "identity_continuity": {
+    "field": "identity_continuity",
+    "excluded_houses": [
+     "procthor10k-0.1.2-train-00269",
+     "procthor10k-0.1.2-train-00405",
+     "procthor10k-0.1.2-train-01079",
+     "procthor10k-0.1.2-train-01784",
+     "procthor10k-0.1.2-train-02047",
+     "procthor10k-0.1.2-train-02126",
+     "procthor10k-0.1.2-train-03949",
+     "procthor10k-0.1.2-train-04283",
+     "procthor10k-0.1.2-train-04409",
+     "procthor10k-0.1.2-train-04625",
+     "procthor10k-0.1.2-train-05751",
+     "procthor10k-0.1.2-train-06101",
+     "procthor10k-0.1.2-train-06177",
+     "procthor10k-0.1.2-train-06303",
+     "procthor10k-0.1.2-train-06317",
+     "procthor10k-0.1.2-train-08029",
+     "procthor10k-0.1.2-train-08194",
+     "procthor10k-0.1.2-train-08800",
+     "procthor10k-0.1.2-train-09834"
+    ],
+    "effective_houses": 24,
+    "not_applicable_arms": []
+   },
+   "identity_continuity_conditional": {
+    "field": "identity_continuity",
+    "excluded_houses": [
+     "procthor10k-0.1.2-train-00269",
+     "procthor10k-0.1.2-train-00359",
+     "procthor10k-0.1.2-train-00405",
+     "procthor10k-0.1.2-train-00974",
+     "procthor10k-0.1.2-train-01079",
+     "procthor10k-0.1.2-train-01541",
+     "procthor10k-0.1.2-train-01784",
+     "procthor10k-0.1.2-train-01857",
+     "procthor10k-0.1.2-train-01923",
+     "procthor10k-0.1.2-train-02047",
+     "procthor10k-0.1.2-train-02126",
+     "procthor10k-0.1.2-train-02257",
+     "procthor10k-0.1.2-train-02318",
+     "procthor10k-0.1.2-train-02334",
+     "procthor10k-0.1.2-train-02381",
+     "procthor10k-0.1.2-train-02522",
+     "procthor10k-0.1.2-train-03137",
+     "procthor10k-0.1.2-train-03949",
+     "procthor10k-0.1.2-train-04188",
+     "procthor10k-0.1.2-train-04283",
+     "procthor10k-0.1.2-train-04409",
+     "procthor10k-0.1.2-train-04497",
+     "procthor10k-0.1.2-train-04625",
+     "procthor10k-0.1.2-train-05042",
+     "procthor10k-0.1.2-train-05667",
+     "procthor10k-0.1.2-train-05751",
+     "procthor10k-0.1.2-train-06101",
+     "procthor10k-0.1.2-train-06177",
+     "procthor10k-0.1.2-train-06303",
+     "procthor10k-0.1.2-train-06317",
+     "procthor10k-0.1.2-train-06796",
+     "procthor10k-0.1.2-train-06894",
+     "procthor10k-0.1.2-train-07277",
+     "procthor10k-0.1.2-train-07336",
+     "procthor10k-0.1.2-train-07464",
+     "procthor10k-0.1.2-train-07621",
+     "procthor10k-0.1.2-train-07686",
+     "procthor10k-0.1.2-train-07918",
+     "procthor10k-0.1.2-train-08029",
+     "procthor10k-0.1.2-train-08194",
+     "procthor10k-0.1.2-train-08800",
+     "procthor10k-0.1.2-train-09834",
+     "procthor10k-0.1.2-train-09920"
+    ],
+    "effective_houses": 0,
+    "not_applicable_arms": []
+   },
+   "retrieval_success": {
+    "field": "retrieval_success",
+    "excluded_houses": [
+     "procthor10k-0.1.2-train-00269",
+     "procthor10k-0.1.2-train-00405",
+     "procthor10k-0.1.2-train-01079",
+     "procthor10k-0.1.2-train-01784",
+     "procthor10k-0.1.2-train-02047",
+     "procthor10k-0.1.2-train-02126",
+     "procthor10k-0.1.2-train-03949",
+     "procthor10k-0.1.2-train-04283",
+     "procthor10k-0.1.2-train-04409",
+     "procthor10k-0.1.2-train-04625",
+     "procthor10k-0.1.2-train-05751",
+     "procthor10k-0.1.2-train-06101",
+     "procthor10k-0.1.2-train-06177",
+     "procthor10k-0.1.2-train-06303",
+     "procthor10k-0.1.2-train-06317",
+     "procthor10k-0.1.2-train-08029",
+     "procthor10k-0.1.2-train-08194",
+     "procthor10k-0.1.2-train-08800",
+     "procthor10k-0.1.2-train-09834"
+    ],
+    "effective_houses": 24,
+    "not_applicable_arms": []
+   },
+   "recovery_latency_frames": {
+    "field": "recovery_latency_frames",
+    "excluded_houses": [
+     "procthor10k-0.1.2-train-00269",
+     "procthor10k-0.1.2-train-00359",
+     "procthor10k-0.1.2-train-00405",
+     "procthor10k-0.1.2-train-01079",
+     "procthor10k-0.1.2-train-01784",
+     "procthor10k-0.1.2-train-01923",
+     "procthor10k-0.1.2-train-02047",
+     "procthor10k-0.1.2-train-02126",
+     "procthor10k-0.1.2-train-02318",
+     "procthor10k-0.1.2-train-02381",
+     "procthor10k-0.1.2-train-02522",
+     "procthor10k-0.1.2-train-03949",
+     "procthor10k-0.1.2-train-04283",
+     "procthor10k-0.1.2-train-04409",
+     "procthor10k-0.1.2-train-04625",
+     "procthor10k-0.1.2-train-06177",
+     "procthor10k-0.1.2-train-06303",
+     "procthor10k-0.1.2-train-06317",
+     "procthor10k-0.1.2-train-06894",
+     "procthor10k-0.1.2-train-07277",
+     "procthor10k-0.1.2-train-07464",
+     "procthor10k-0.1.2-train-07918",
+     "procthor10k-0.1.2-train-08029",
+     "procthor10k-0.1.2-train-08194",
+     "procthor10k-0.1.2-train-08800",
+     "procthor10k-0.1.2-train-09834"
+    ],
+    "effective_houses": 17,
+    "not_applicable_arms": []
+   },
+   "contamination_auc": {
+    "field": "contamination_auc",
+    "excluded_houses": [],
+    "effective_houses": 43,
+    "not_applicable_arms": []
+   }
+  },
+  "readings": {
+   "VSMT-lean": {
+    "0": {
+     "config": {
+      "tau_r": 0.15
+     },
+     "seeds_present": [
+      7,
+      19,
+      31,
+      43,
+      59
+     ],
+     "seeds_missing": [],
+     "per_seed": {
+      "7": {
+       "node_prf1": 0.855165587125901,
+       "node_prf1_iou": 0.4849807922353399,
+       "missing_residual_rate": 0.14623655913978495,
+       "false_retract_rate": 0.40912022501308215,
+       "false_retract_rate_in_scope": 0.3826240723562152,
+       "identity_continuity": 0.2708333333333333,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.24305555555555555,
+       "recovery_latency_frames": 145.21274509803922,
+       "contamination_auc": 0.3044967938996887
+      },
+      "19": {
+       "node_prf1": 0.8630109710430653,
+       "node_prf1_iou": 0.4856418091136666,
+       "missing_residual_rate": 0.16612903225806452,
+       "false_retract_rate": 0.3650010703582132,
+       "false_retract_rate_in_scope": 0.3416125541125541,
+       "identity_continuity": 0.22916666666666666,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.24305555555555555,
+       "recovery_latency_frames": 144.37843137254902,
+       "contamination_auc": 0.29474283172755983
+      },
+      "31": {
+       "node_prf1": 0.8552030430561078,
+       "node_prf1_iou": 0.4825764064291694,
+       "missing_residual_rate": 0.1424731182795699,
+       "false_retract_rate": 0.34023957409050576,
+       "false_retract_rate_in_scope": 0.3322769492412349,
+       "identity_continuity": 0.2916666666666667,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.34722222222222227,
+       "recovery_latency_frames": 141.971568627451,
+       "contamination_auc": 0.3043815005833707
+      },
+      "43": {
+       "node_prf1": 0.8589563946566818,
+       "node_prf1_iou": 0.4868974053319714,
+       "missing_residual_rate": 0.18655913978494623,
+       "false_retract_rate": 0.34131493506493504,
+       "false_retract_rate_in_scope": 0.33272392290249436,
+       "identity_continuity": 0.1111111111111111,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.16666666666666666,
+       "recovery_latency_frames": 132.1578431372549,
+       "contamination_auc": 0.3015079955905669
+      },
+      "59": {
+       "node_prf1": 0.8517826160944526,
+       "node_prf1_iou": 0.4839452471302943,
+       "missing_residual_rate": 0.15698924731182795,
+       "false_retract_rate": 0.357924865750496,
+       "false_retract_rate_in_scope": 0.3416601780572369,
+       "identity_continuity": 0.2708333333333333,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.2847222222222222,
+       "recovery_latency_frames": 143.8549019607843,
+       "contamination_auc": 0.3107983249718247
+      }
+     },
+     "mean": {
+      "node_prf1": 0.8568237223952417,
+      "node_prf1_iou": 0.4848083320480884,
+      "missing_residual_rate": 0.1596774193548387,
+      "false_retract_rate": 0.3627201340554464,
+      "false_retract_rate_in_scope": 0.3461795353339471,
+      "identity_continuity": 0.23472222222222222,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.2569444444444445,
+      "recovery_latency_frames": 141.5150980392157,
+      "contamination_auc": 0.30318548935460216
+     }
+    },
+    "1": {
+     "config": {
+      "tau_r": 0.2
+     },
+     "seeds_present": [
+      7,
+      19,
+      31,
+      43,
+      59
+     ],
+     "seeds_missing": [],
+     "per_seed": {
+      "7": {
+       "node_prf1": 0.8557585600030763,
+       "node_prf1_iou": 0.4848935789428944,
+       "missing_residual_rate": 0.14623655913978495,
+       "false_retract_rate": 0.4002635836943473,
+       "false_retract_rate_in_scope": 0.37527720817194504,
+       "identity_continuity": 0.2708333333333333,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.24305555555555555,
+       "recovery_latency_frames": 145.6,
+       "contamination_auc": 0.30396440958972426
+      },
+      "19": {
+       "node_prf1": 0.8628151696851588,
+       "node_prf1_iou": 0.4857399255094687,
+       "missing_residual_rate": 0.16612903225806452,
+       "false_retract_rate": 0.33516542980828695,
+       "false_retract_rate_in_scope": 0.31414141414141417,
+       "identity_continuity": 0.22916666666666666,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.24305555555555555,
+       "recovery_latency_frames": 144.42254901960786,
+       "contamination_auc": 0.2942421485326055
+      },
+      "31": {
+       "node_prf1": 0.856007122211388,
+       "node_prf1_iou": 0.4831637812003958,
+       "missing_residual_rate": 0.1586021505376344,
+       "false_retract_rate": 0.3238520408163265,
+       "false_retract_rate_in_scope": 0.31561791383219956,
+       "identity_continuity": 0.2916666666666667,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.34722222222222227,
+       "recovery_latency_frames": 142.10196078431372,
+       "contamination_auc": 0.3036900785143144
+      },
+      "43": {
+       "node_prf1": 0.8587892062297148,
+       "node_prf1_iou": 0.4869541448170428,
+       "missing_residual_rate": 0.19462365591397848,
+       "false_retract_rate": 0.29899891774891774,
+       "false_retract_rate_in_scope": 0.2927579365079365,
+       "identity_continuity": 0.1111111111111111,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.16666666666666666,
+       "recovery_latency_frames": 132.20392156862746,
+       "contamination_auc": 0.30119095316834377
+      },
+      "59": {
+       "node_prf1": 0.8518452218385772,
+       "node_prf1_iou": 0.4840668247359433,
+       "missing_residual_rate": 0.17043010752688173,
+       "false_retract_rate": 0.3246287938252224,
+       "false_retract_rate_in_scope": 0.3145736703772418,
+       "identity_continuity": 0.2569444444444445,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.2708333333333333,
+       "recovery_latency_frames": 143.93823529411765,
+       "contamination_auc": 0.3111659367096397
+      }
+     },
+     "mean": {
+      "node_prf1": 0.8570430559935829,
+      "node_prf1_iou": 0.484963651041149,
+      "missing_residual_rate": 0.16720430107526882,
+      "false_retract_rate": 0.33658175317862016,
+      "false_retract_rate_in_scope": 0.3224736286061474,
+      "identity_continuity": 0.23194444444444445,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.25416666666666665,
+      "recovery_latency_frames": 141.65333333333334,
+      "contamination_auc": 0.3028507053029255
+     }
+    },
+    "2": {
+     "config": {
+      "tau_r": 0.25
+     },
+     "seeds_present": [
+      7,
+      19,
+      31,
+      43,
+      59
+     ],
+     "seeds_missing": [],
+     "per_seed": {
+      "7": {
+       "node_prf1": 0.8561830320695984,
+       "node_prf1_iou": 0.485133067500048,
+       "missing_residual_rate": 0.14623655913978495,
+       "false_retract_rate": 0.3894982993197279,
+       "false_retract_rate_in_scope": 0.36447367117009977,
+       "identity_continuity": 0.2708333333333333,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.24305555555555555,
+       "recovery_latency_frames": 138.9921568627451,
+       "contamination_auc": 0.30348662602755927
+      },
+      "19": {
+       "node_prf1": 0.8627767381995981,
+       "node_prf1_iou": 0.48574088649818564,
+       "missing_residual_rate": 0.16612903225806452,
+       "false_retract_rate": 0.3241960420531849,
+       "false_retract_rate_in_scope": 0.3022649969078541,
+       "identity_continuity": 0.22916666666666666,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.24305555555555555,
+       "recovery_latency_frames": 144.6372549019608,
+       "contamination_auc": 0.2941866643223459
+      },
+      "31": {
+       "node_prf1": 0.8557419922641497,
+       "node_prf1_iou": 0.4828329790741917,
+       "missing_residual_rate": 0.1586021505376344,
+       "false_retract_rate": 0.30966553287981863,
+       "false_retract_rate_in_scope": 0.30619331065759636,
+       "identity_continuity": 0.2916666666666667,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.34722222222222227,
+       "recovery_latency_frames": 142.1313725490196,
+       "contamination_auc": 0.30387166922754777
+      },
+      "43": {
+       "node_prf1": 0.858802765104926,
+       "node_prf1_iou": 0.48718455594232835,
+       "missing_residual_rate": 0.19462365591397848,
+       "false_retract_rate": 0.30565476190476193,
+       "false_retract_rate_in_scope": 0.299702380952381,
+       "identity_continuity": 0.1111111111111111,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.16666666666666666,
+       "recovery_latency_frames": 132.29803921568626,
+       "contamination_auc": 0.3010840452479111
+      },
+      "59": {
+       "node_prf1": 0.8516891760264427,
+       "node_prf1_iou": 0.4835084411645308,
+       "missing_residual_rate": 0.17043010752688173,
+       "false_retract_rate": 0.297108843537415,
+       "false_retract_rate_in_scope": 0.29189342403628116,
+       "identity_continuity": 0.24305555555555555,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.2569444444444445,
+       "recovery_latency_frames": 141.6313725490196,
+       "contamination_auc": 0.31042042838143147
+      }
+     },
+     "mean": {
+      "node_prf1": 0.8570387407329431,
+      "node_prf1_iou": 0.4848799860358569,
+      "missing_residual_rate": 0.16720430107526882,
+      "false_retract_rate": 0.3252246959389817,
+      "false_retract_rate_in_scope": 0.3129055567448425,
+      "identity_continuity": 0.22916666666666666,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.2513888888888889,
+      "recovery_latency_frames": 139.93803921568627,
+      "contamination_auc": 0.30260988664135907
+     }
+    },
+    "3": {
+     "config": {
+      "tau_r": 0.3
+     },
+     "seeds_present": [
+      7,
+      19,
+      31,
+      43,
+      59
+     ],
+     "seeds_missing": [],
+     "per_seed": {
+      "7": {
+       "node_prf1": 0.8562039044791038,
+       "node_prf1_iou": 0.4852389092532151,
+       "missing_residual_rate": 0.14623655913978495,
+       "false_retract_rate": 0.3627630358363441,
+       "false_retract_rate_in_scope": 0.3466242586778301,
+       "identity_continuity": 0.2708333333333333,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.24305555555555555,
+       "recovery_latency_frames": 139.01372549019607,
+       "contamination_auc": 0.3034969291021338
+      },
+      "19": {
+       "node_prf1": 0.8628334129269136,
+       "node_prf1_iou": 0.4858115582714895,
+       "missing_residual_rate": 0.16612903225806452,
+       "false_retract_rate": 0.3102891156462585,
+       "false_retract_rate_in_scope": 0.28817769532055243,
+       "identity_continuity": 0.22916666666666666,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.24305555555555555,
+       "recovery_latency_frames": 144.64901960784314,
+       "contamination_auc": 0.29412763627404725
+      },
+      "31": {
+       "node_prf1": 0.8554783005127771,
+       "node_prf1_iou": 0.48288149288898624,
+       "missing_residual_rate": 0.1586021505376344,
+       "false_retract_rate": 0.3032596371882086,
+       "false_retract_rate_in_scope": 0.2998582766439909,
+       "identity_continuity": 0.2916666666666667,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.34722222222222227,
+       "recovery_latency_frames": 142.52549019607844,
+       "contamination_auc": 0.3042361343163532
+      },
+      "43": {
+       "node_prf1": 0.8590906449827531,
+       "node_prf1_iou": 0.48739547611395345,
+       "missing_residual_rate": 0.19462365591397848,
+       "false_retract_rate": 0.29583333333333334,
+       "false_retract_rate_in_scope": 0.2898809523809524,
+       "identity_continuity": 0.1111111111111111,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.16666666666666666,
+       "recovery_latency_frames": 132.55490196078432,
+       "contamination_auc": 0.30074324728786533
+      },
+      "59": {
+       "node_prf1": 0.8514031387436959,
+       "node_prf1_iou": 0.483564506205752,
+       "missing_residual_rate": 0.17043010752688173,
+       "false_retract_rate": 0.29786285143428,
+       "false_retract_rate_in_scope": 0.29377943485086344,
+       "identity_continuity": 0.24305555555555555,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.2569444444444445,
+       "recovery_latency_frames": 141.68627450980392,
+       "contamination_auc": 0.31040561706328973
+      }
+     },
+     "mean": {
+      "node_prf1": 0.8570018803290488,
+      "node_prf1_iou": 0.4849783885466793,
+      "missing_residual_rate": 0.16720430107526882,
+      "false_retract_rate": 0.3140015946876849,
+      "false_retract_rate_in_scope": 0.30366412357483785,
+      "identity_continuity": 0.22916666666666666,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.2513888888888889,
+      "recovery_latency_frames": 140.08588235294118,
+      "contamination_auc": 0.3026019128087379
+     }
+    },
+    "4": {
+     "config": {
+      "tau_r": 0.4
+     },
+     "seeds_present": [
+      7,
+      19,
+      31,
+      43,
+      59
+     ],
+     "seeds_missing": [],
+     "per_seed": {
+      "7": {
+       "node_prf1": 0.8566073661393663,
+       "node_prf1_iou": 0.4851877493438631,
+       "missing_residual_rate": 0.15161290322580645,
+       "false_retract_rate": 0.35186074429771913,
+       "false_retract_rate_in_scope": 0.33696145124716553,
+       "identity_continuity": 0.2569444444444445,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.22916666666666666,
+       "recovery_latency_frames": 139.1127450980392,
+       "contamination_auc": 0.3033521764371324
+      },
+      "19": {
+       "node_prf1": 0.8629860147153983,
+       "node_prf1_iou": 0.48593606748975926,
+       "missing_residual_rate": 0.16612903225806452,
+       "false_retract_rate": 0.29825680272108845,
+       "false_retract_rate_in_scope": 0.2757343846629561,
+       "identity_continuity": 0.22916666666666666,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.24305555555555555,
+       "recovery_latency_frames": 144.67058823529413,
+       "contamination_auc": 0.2940645626218448
+      },
+      "31": {
+       "node_prf1": 0.8550492836179079,
+       "node_prf1_iou": 0.4826605721116961,
+       "missing_residual_rate": 0.1586021505376344,
+       "false_retract_rate": 0.2804563492063492,
+       "false_retract_rate_in_scope": 0.2759920634920635,
+       "identity_continuity": 0.2916666666666667,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.34722222222222227,
+       "recovery_latency_frames": 139.69019607843137,
+       "contamination_auc": 0.3045444822550582
+      },
+      "43": {
+       "node_prf1": 0.8594525425756439,
+       "node_prf1_iou": 0.4873611418943108,
+       "missing_residual_rate": 0.19462365591397848,
+       "false_retract_rate": 0.2595779220779221,
+       "false_retract_rate_in_scope": 0.25297619047619047,
+       "identity_continuity": 0.12152777777777778,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.17708333333333334,
+       "recovery_latency_frames": 132.96470588235294,
+       "contamination_auc": 0.30029458261414665
+      },
+      "59": {
+       "node_prf1": 0.8519497677143144,
+       "node_prf1_iou": 0.4835912271853571,
+       "missing_residual_rate": 0.17043010752688173,
+       "false_retract_rate": 0.2700396825396825,
+       "false_retract_rate_in_scope": 0.26658163265306123,
+       "identity_continuity": 0.24305555555555555,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.2569444444444445,
+       "recovery_latency_frames": 141.89901960784314,
+       "contamination_auc": 0.3098412182161687
+      }
+     },
+     "mean": {
+      "node_prf1": 0.8572089949525262,
+      "node_prf1_iou": 0.48494735160499725,
+      "missing_residual_rate": 0.1682795698924731,
+      "false_retract_rate": 0.2920383001685523,
+      "false_retract_rate_in_scope": 0.28164914450628736,
+      "identity_continuity": 0.22847222222222224,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.25069444444444444,
+      "recovery_latency_frames": 139.66745098039218,
+      "contamination_auc": 0.30241940442887016
+     }
+    },
+    "5": {
+     "config": {
+      "tau_r": 0.5
+     },
+     "seeds_present": [
+      7,
+      19,
+      31,
+      43,
+      59
+     ],
+     "seeds_missing": [],
+     "per_seed": {
+      "7": {
+       "node_prf1": 0.8567802409866082,
+       "node_prf1_iou": 0.4853939745027119,
+       "missing_residual_rate": 0.15967741935483873,
+       "false_retract_rate": 0.34410430839002265,
+       "false_retract_rate_in_scope": 0.32627551020408163,
+       "identity_continuity": 0.2569444444444445,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.22916666666666666,
+       "recovery_latency_frames": 139.2058823529412,
+       "contamination_auc": 0.3030450398534778
+      },
+      "19": {
+       "node_prf1": 0.8630253912225884,
+       "node_prf1_iou": 0.48604741971659526,
+       "missing_residual_rate": 0.16612903225806452,
+       "false_retract_rate": 0.2710851648351648,
+       "false_retract_rate_in_scope": 0.24954390847247993,
+       "identity_continuity": 0.22916666666666666,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.24305555555555555,
+       "recovery_latency_frames": 144.73333333333335,
+       "contamination_auc": 0.29402531033946694
+      },
+      "31": {
+       "node_prf1": 0.8550066593906982,
+       "node_prf1_iou": 0.48275885225582876,
+       "missing_residual_rate": 0.1639784946236559,
+       "false_retract_rate": 0.27675736961451247,
+       "false_retract_rate_in_scope": 0.2706349206349206,
+       "identity_continuity": 0.23611111111111113,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.2916666666666667,
+       "recovery_latency_frames": 140.42450980392158,
+       "contamination_auc": 0.30465203311668526
+      },
+      "43": {
+       "node_prf1": 0.8592607181760369,
+       "node_prf1_iou": 0.48714383919220827,
+       "missing_residual_rate": 0.20537634408602148,
+       "false_retract_rate": 0.2534554730983302,
+       "false_retract_rate_in_scope": 0.2494047619047619,
+       "identity_continuity": 0.10069444444444443,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.15625,
+       "recovery_latency_frames": 133.11666666666665,
+       "contamination_auc": 0.30046385784798435
+      },
+      "59": {
+       "node_prf1": 0.8522315727720368,
+       "node_prf1_iou": 0.48382141180127514,
+       "missing_residual_rate": 0.17043010752688173,
+       "false_retract_rate": 0.24211760461760462,
+       "false_retract_rate_in_scope": 0.23769841269841271,
+       "identity_continuity": 0.24305555555555555,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.2569444444444445,
+       "recovery_latency_frames": 143.37450980392157,
+       "contamination_auc": 0.30952885651447315
+      }
+     },
+     "mean": {
+      "node_prf1": 0.8572609165095937,
+      "node_prf1_iou": 0.48503309949372386,
+      "missing_residual_rate": 0.17311827956989248,
+      "false_retract_rate": 0.277503984111127,
+      "false_retract_rate_in_scope": 0.2667115027829313,
+      "identity_continuity": 0.21319444444444446,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.2354166666666667,
+      "recovery_latency_frames": 140.17098039215688,
+      "contamination_auc": 0.3023430195344175
+     }
+    },
+    "6": {
+     "config": {
+      "tau_r": 0.6
+     },
+     "seeds_present": [
+      7,
+      19,
+      31,
+      43,
+      59
+     ],
+     "seeds_missing": [],
+     "per_seed": {
+      "7": {
+       "node_prf1": 0.8568683987545871,
+       "node_prf1_iou": 0.48549050787586406,
+       "missing_residual_rate": 0.15967741935483873,
+       "false_retract_rate": 0.33517573696145125,
+       "false_retract_rate_in_scope": 0.3143707482993197,
+       "identity_continuity": 0.2569444444444445,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.22916666666666666,
+       "recovery_latency_frames": 139.9921568627451,
+       "contamination_auc": 0.30299510212825687
+      },
+      "19": {
+       "node_prf1": 0.8631125930601932,
+       "node_prf1_iou": 0.48611825676579185,
+       "missing_residual_rate": 0.17795698924731182,
+       "false_retract_rate": 0.27062074829931976,
+       "false_retract_rate_in_scope": 0.24656771799628943,
+       "identity_continuity": 0.2152777777777778,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.22916666666666666,
+       "recovery_latency_frames": 145.3950980392157,
+       "contamination_auc": 0.2938931794796154
+      },
+      "31": {
+       "node_prf1": 0.8554366819251968,
+       "node_prf1_iou": 0.4830522466171743,
+       "missing_residual_rate": 0.15591397849462366,
+       "false_retract_rate": 0.25323129251700677,
+       "false_retract_rate_in_scope": 0.24710884353741497,
+       "identity_continuity": 0.23611111111111113,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.2916666666666667,
+       "recovery_latency_frames": 140.48333333333335,
+       "contamination_auc": 0.30414858575221615
+      },
+      "43": {
+       "node_prf1": 0.8594846568366539,
+       "node_prf1_iou": 0.4873436716204132,
+       "missing_residual_rate": 0.20537634408602148,
+       "false_retract_rate": 0.2271799628942486,
+       "false_retract_rate_in_scope": 0.22653061224489796,
+       "identity_continuity": 0.10069444444444443,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.15625,
+       "recovery_latency_frames": 133.4078431372549,
+       "contamination_auc": 0.3002239502361632
+      },
+      "59": {
+       "node_prf1": 0.8524365912491796,
+       "node_prf1_iou": 0.4840031132979909,
+       "missing_residual_rate": 0.17043010752688173,
+       "false_retract_rate": 0.21152210884353742,
+       "false_retract_rate_in_scope": 0.2056547619047619,
+       "identity_continuity": 0.24305555555555555,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.2569444444444445,
+       "recovery_latency_frames": 145.57647058823528,
+       "contamination_auc": 0.30933798965250897
+      }
+     },
+     "mean": {
+      "node_prf1": 0.8574677843651621,
+      "node_prf1_iou": 0.48520155923544683,
+      "missing_residual_rate": 0.1738709677419355,
+      "false_retract_rate": 0.25954596990311274,
+      "false_retract_rate_in_scope": 0.24804653679653682,
+      "identity_continuity": 0.2104166666666667,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.2326388888888889,
+      "recovery_latency_frames": 140.97098039215686,
+      "contamination_auc": 0.3021197614497521
+     }
+    },
+    "7": {
+     "config": {
+      "tau_r": 0.7
+     },
+     "seeds_present": [
+      7,
+      19,
+      31,
+      43,
+      59
+     ],
+     "seeds_missing": [],
+     "per_seed": {
+      "7": {
+       "node_prf1": 0.8571017367494647,
+       "node_prf1_iou": 0.485549692996922,
+       "missing_residual_rate": 0.15967741935483873,
+       "false_retract_rate": 0.3169931259216973,
+       "false_retract_rate_in_scope": 0.30570887445887446,
+       "identity_continuity": 0.2569444444444445,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.22916666666666666,
+       "recovery_latency_frames": 141.18823529411765,
+       "contamination_auc": 0.3025139337548413
+      },
+      "19": {
+       "node_prf1": 0.8638975268314433,
+       "node_prf1_iou": 0.48629816602557596,
+       "missing_residual_rate": 0.17795698924731182,
+       "false_retract_rate": 0.2675092764378479,
+       "false_retract_rate_in_scope": 0.24095547309833026,
+       "identity_continuity": 0.2152777777777778,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.22916666666666666,
+       "recovery_latency_frames": 145.4656862745098,
+       "contamination_auc": 0.29294708933947866
+      },
+      "31": {
+       "node_prf1": 0.855366060893783,
+       "node_prf1_iou": 0.4829703942811898,
+       "missing_residual_rate": 0.16666666666666669,
+       "false_retract_rate": 0.24472789115646257,
+       "false_retract_rate_in_scope": 0.241156462585034,
+       "identity_continuity": 0.23611111111111113,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.2916666666666667,
+       "recovery_latency_frames": 139.32843137254903,
+       "contamination_auc": 0.3041857841902633
+      },
+      "43": {
+       "node_prf1": 0.8594873194889173,
+       "node_prf1_iou": 0.4873478953405984,
+       "missing_residual_rate": 0.20537634408602148,
+       "false_retract_rate": 0.2271799628942486,
+       "false_retract_rate_in_scope": 0.22653061224489796,
+       "identity_continuity": 0.10069444444444443,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.15625,
+       "recovery_latency_frames": 133.82156862745097,
+       "contamination_auc": 0.30022581027364637
+      },
+      "59": {
+       "node_prf1": 0.8523770071430288,
+       "node_prf1_iou": 0.48401761309196484,
+       "missing_residual_rate": 0.17043010752688173,
+       "false_retract_rate": 0.20378401360544215,
+       "false_retract_rate_in_scope": 0.19672619047619047,
+       "identity_continuity": 0.24305555555555555,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.2569444444444445,
+       "recovery_latency_frames": 147.64019607843136,
+       "contamination_auc": 0.30933270351763686
+      }
+     },
+     "mean": {
+      "node_prf1": 0.8576459302213275,
+      "node_prf1_iou": 0.48523675234725017,
+      "missing_residual_rate": 0.1760215053763441,
+      "false_retract_rate": 0.2520388540031397,
+      "false_retract_rate_in_scope": 0.24221552257266543,
+      "identity_continuity": 0.2104166666666667,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.2326388888888889,
+      "recovery_latency_frames": 141.48882352941177,
+      "contamination_auc": 0.3018410642151733
+     }
+    },
+    "8": {
+     "config": {
+      "tau_r": 0.8
+     },
+     "seeds_present": [
+      7,
+      19,
+      31,
+      43,
+      59
+     ],
+     "seeds_missing": [],
+     "per_seed": {
+      "7": {
+       "node_prf1": 0.8570755262935006,
+       "node_prf1_iou": 0.4853563128968062,
+       "missing_residual_rate": 0.15967741935483873,
+       "false_retract_rate": 0.25029761904761905,
+       "false_retract_rate_in_scope": 0.24759070294784583,
+       "identity_continuity": 0.24305555555555555,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.2152777777777778,
+       "recovery_latency_frames": 141.57745098039214,
+       "contamination_auc": 0.30247756238240403
+      },
+      "19": {
+       "node_prf1": 0.8640392097180164,
+       "node_prf1_iou": 0.48642789346210147,
+       "missing_residual_rate": 0.17150537634408602,
+       "false_retract_rate": 0.2627473716759431,
+       "false_retract_rate_in_scope": 0.2359410430839002,
+       "identity_continuity": 0.2152777777777778,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.22916666666666666,
+       "recovery_latency_frames": 145.97352941176473,
+       "contamination_auc": 0.292950726593974
+      },
+      "31": {
+       "node_prf1": 0.8554401883963958,
+       "node_prf1_iou": 0.48287179604593566,
+       "missing_residual_rate": 0.16666666666666669,
+       "false_retract_rate": 0.21428571428571427,
+       "false_retract_rate_in_scope": 0.21428571428571427,
+       "identity_continuity": 0.23611111111111113,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.2916666666666667,
+       "recovery_latency_frames": 127.03431372549021,
+       "contamination_auc": 0.30412025566255957
+      },
+      "43": {
+       "node_prf1": 0.859549326085809,
+       "node_prf1_iou": 0.487336201428173,
+       "missing_residual_rate": 0.2118279569892473,
+       "false_retract_rate": 0.2110544217687075,
+       "false_retract_rate_in_scope": 0.2110544217687075,
+       "identity_continuity": 0.10069444444444443,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.15625,
+       "recovery_latency_frames": 136.76568627450982,
+       "contamination_auc": 0.3001228917484973
+      },
+      "59": {
+       "node_prf1": 0.8525500821792302,
+       "node_prf1_iou": 0.48405403327161756,
+       "missing_residual_rate": 0.17043010752688173,
+       "false_retract_rate": 0.20161564625850342,
+       "false_retract_rate_in_scope": 0.18911564625850338,
+       "identity_continuity": 0.24305555555555555,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.2569444444444445,
+       "recovery_latency_frames": 147.99607843137255,
+       "contamination_auc": 0.3091076645016384
+      }
+     },
+     "mean": {
+      "node_prf1": 0.8577308665345903,
+      "node_prf1_iou": 0.4852092474209268,
+      "missing_residual_rate": 0.1760215053763441,
+      "false_retract_rate": 0.22800015460729747,
+      "false_retract_rate_in_scope": 0.21959750566893424,
+      "identity_continuity": 0.20763888888888887,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.22986111111111113,
+      "recovery_latency_frames": 139.8694117647059,
+      "contamination_auc": 0.30175582017781466
+     }
+    },
+    "9": {
+     "config": {
+      "tau_r": 0.9
+     },
+     "seeds_present": [
+      7,
+      19,
+      31,
+      43,
+      59
+     ],
+     "seeds_missing": [],
+     "per_seed": {
+      "7": {
+       "node_prf1": 0.8570462993614586,
+       "node_prf1_iou": 0.48529397579394634,
+       "missing_residual_rate": 0.17580645161290323,
+       "false_retract_rate": 0.23099489795918365,
+       "false_retract_rate_in_scope": 0.22908163265306122,
+       "identity_continuity": 0.24305555555555555,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.2152777777777778,
+       "recovery_latency_frames": 142.05686274509804,
+       "contamination_auc": 0.3023897106092269
+      },
+      "19": {
+       "node_prf1": 0.8639634151411794,
+       "node_prf1_iou": 0.4862858298138531,
+       "missing_residual_rate": 0.17956989247311828,
+       "false_retract_rate": 0.235515873015873,
+       "false_retract_rate_in_scope": 0.22142857142857145,
+       "identity_continuity": 0.2152777777777778,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.22916666666666666,
+       "recovery_latency_frames": 145.92058823529413,
+       "contamination_auc": 0.29291471651777173
+      },
+      "31": {
+       "node_prf1": 0.8554238664758234,
+       "node_prf1_iou": 0.4829331574627093,
+       "missing_residual_rate": 0.16666666666666669,
+       "false_retract_rate": 0.17670068027210886,
+       "false_retract_rate_in_scope": 0.17670068027210886,
+       "identity_continuity": 0.2222222222222222,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.2638888888888889,
+       "recovery_latency_frames": 129.50098039215686,
+       "contamination_auc": 0.3041772908614553
+      },
+      "43": {
+       "node_prf1": 0.8596104599310719,
+       "node_prf1_iou": 0.48727964825006526,
+       "missing_residual_rate": 0.22365591397849463,
+       "false_retract_rate": 0.19974489795918365,
+       "false_retract_rate_in_scope": 0.19974489795918365,
+       "identity_continuity": 0.09027777777777778,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.14583333333333334,
+       "recovery_latency_frames": 138.56372549019608,
+       "contamination_auc": 0.30008456431739067
+      },
+      "59": {
+       "node_prf1": 0.8525961605570636,
+       "node_prf1_iou": 0.4841235032504665,
+       "missing_residual_rate": 0.17043010752688173,
+       "false_retract_rate": 0.1772108843537415,
+       "false_retract_rate_in_scope": 0.1772108843537415,
+       "identity_continuity": 0.20138888888888887,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.2569444444444445,
+       "recovery_latency_frames": 150.61176470588236,
+       "contamination_auc": 0.30909467108314354
+      }
+     },
+     "mean": {
+      "node_prf1": 0.8577280402933194,
+      "node_prf1_iou": 0.4851832229142081,
+      "missing_residual_rate": 0.1832258064516129,
+      "false_retract_rate": 0.20403344671201812,
+      "false_retract_rate_in_scope": 0.20083333333333334,
+      "identity_continuity": 0.19444444444444445,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.22222222222222224,
+      "recovery_latency_frames": 141.3307843137255,
+      "contamination_auc": 0.3017321906777976
+     }
+    }
+   },
+   "NoVersion": {
+    "0": {
+     "config": {
+      "tau_r": 0.15
+     },
+     "seeds_present": [
+      7,
+      19,
+      31,
+      43,
+      59
+     ],
+     "seeds_missing": [],
+     "per_seed": {
+      "7": {
+       "node_prf1": 0.8553557439975193,
+       "node_prf1_iou": 0.483872214411413,
+       "missing_residual_rate": 0.13172043010752688,
+       "false_retract_rate": 0.4082274867989154,
+       "false_retract_rate_in_scope": 0.37904298082869514,
+       "identity_continuity": 0.125,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.17361111111111113,
+       "recovery_latency_frames": 134.95490196078433,
+       "contamination_auc": 0.3056095612053469
+      },
+      "19": {
+       "node_prf1": 0.8645777124749255,
+       "node_prf1_iou": 0.48576139852865996,
+       "missing_residual_rate": 0.14516129032258066,
+       "false_retract_rate": 0.3630725623582766,
+       "false_retract_rate_in_scope": 0.33740538705600814,
+       "identity_continuity": 0.08333333333333333,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.17361111111111113,
+       "recovery_latency_frames": 155.55686274509804,
+       "contamination_auc": 0.294137048581586
+      },
+      "31": {
+       "node_prf1": 0.8551672909984213,
+       "node_prf1_iou": 0.48222966507054277,
+       "missing_residual_rate": 0.11827956989247311,
+       "false_retract_rate": 0.3377886002886003,
+       "false_retract_rate_in_scope": 0.3321111778044551,
+       "identity_continuity": 0.06944444444444443,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.19444444444444445,
+       "recovery_latency_frames": 134.71176470588236,
+       "contamination_auc": 0.30418242860841116
+      },
+      "43": {
+       "node_prf1": 0.8594513316279564,
+       "node_prf1_iou": 0.4870053595173401,
+       "missing_residual_rate": 0.16666666666666669,
+       "false_retract_rate": 0.3236563040134469,
+       "false_retract_rate_in_scope": 0.3171343537414966,
+       "identity_continuity": 0.05555555555555555,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.14583333333333334,
+       "recovery_latency_frames": 135.46372549019608,
+       "contamination_auc": 0.3014777928362109
+      },
+      "59": {
+       "node_prf1": 0.8530809495267241,
+       "node_prf1_iou": 0.4839082600481306,
+       "missing_residual_rate": 0.15053763440860216,
+       "false_retract_rate": 0.3554352769562129,
+       "false_retract_rate_in_scope": 0.3416125541125541,
+       "identity_continuity": 0.06944444444444443,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.20833333333333334,
+       "recovery_latency_frames": 134.07156862745097,
+       "contamination_auc": 0.3101831810276651
+      }
+     },
+     "mean": {
+      "node_prf1": 0.8575266057251094,
+      "node_prf1_iou": 0.4845553795152172,
+      "missing_residual_rate": 0.1424731182795699,
+      "false_retract_rate": 0.3576360460830904,
+      "false_retract_rate_in_scope": 0.34146129070864184,
+      "identity_continuity": 0.08055555555555555,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.17916666666666667,
+      "recovery_latency_frames": 138.95176470588234,
+      "contamination_auc": 0.303118002451844
+     }
+    },
+    "1": {
+     "config": {
+      "tau_r": 0.2
+     },
+     "seeds_present": [
+      7,
+      19,
+      31,
+      43,
+      59
+     ],
+     "seeds_missing": [],
+     "per_seed": {
+      "7": {
+       "node_prf1": 0.8552546707060241,
+       "node_prf1_iou": 0.4838982558001111,
+       "missing_residual_rate": 0.13172043010752688,
+       "false_retract_rate": 0.39607857635807947,
+       "false_retract_rate_in_scope": 0.37017516735561845,
+       "identity_continuity": 0.125,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.17361111111111113,
+       "recovery_latency_frames": 135.25882352941176,
+       "contamination_auc": 0.30518556190190915
+      },
+      "19": {
+       "node_prf1": 0.8646302788552173,
+       "node_prf1_iou": 0.485922143942134,
+       "missing_residual_rate": 0.14516129032258066,
+       "false_retract_rate": 0.3284203891346748,
+       "false_retract_rate_in_scope": 0.3059523809523809,
+       "identity_continuity": 0.08333333333333333,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.17361111111111113,
+       "recovery_latency_frames": 150.62058823529412,
+       "contamination_auc": 0.29344750633336947
+      },
+      "31": {
+       "node_prf1": 0.8555886415238999,
+       "node_prf1_iou": 0.4824108092168051,
+       "missing_residual_rate": 0.13440860215053765,
+       "false_retract_rate": 0.32015960230245943,
+       "false_retract_rate_in_scope": 0.3149092970521542,
+       "identity_continuity": 0.06944444444444443,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.19444444444444445,
+       "recovery_latency_frames": 134.94019607843137,
+       "contamination_auc": 0.30408435032193576
+      },
+      "43": {
+       "node_prf1": 0.8598255504806752,
+       "node_prf1_iou": 0.48743359765145583,
+       "missing_residual_rate": 0.1827956989247312,
+       "false_retract_rate": 0.2939303751803752,
+       "false_retract_rate_in_scope": 0.29047619047619044,
+       "identity_continuity": 0.05555555555555555,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.14583333333333334,
+       "recovery_latency_frames": 123.1470588235294,
+       "contamination_auc": 0.3002972083673997
+      },
+      "59": {
+       "node_prf1": 0.8529178969608562,
+       "node_prf1_iou": 0.48397698374722475,
+       "missing_residual_rate": 0.1639784946236559,
+       "false_retract_rate": 0.3172944177671068,
+       "false_retract_rate_in_scope": 0.3084183673469388,
+       "identity_continuity": 0.06944444444444443,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.20833333333333334,
+       "recovery_latency_frames": 138.22254901960784,
+       "contamination_auc": 0.31103417645186815
+      }
+     },
+     "mean": {
+      "node_prf1": 0.8576434077053345,
+      "node_prf1_iou": 0.48472835807154613,
+      "missing_residual_rate": 0.15161290322580645,
+      "false_retract_rate": 0.33117667214853913,
+      "false_retract_rate_in_scope": 0.31798628063665657,
+      "identity_continuity": 0.08055555555555555,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.17916666666666667,
+      "recovery_latency_frames": 136.4378431372549,
+      "contamination_auc": 0.30280976067529647
+     }
+    },
+    "2": {
+     "config": {
+      "tau_r": 0.25
+     },
+     "seeds_present": [
+      7,
+      19,
+      31,
+      43,
+      59
+     ],
+     "seeds_missing": [],
+     "per_seed": {
+      "7": {
+       "node_prf1": 0.8557005981818055,
+       "node_prf1_iou": 0.4840791553043126,
+       "missing_residual_rate": 0.13172043010752688,
+       "false_retract_rate": 0.3843153928237962,
+       "false_retract_rate_in_scope": 0.35838174722103294,
+       "identity_continuity": 0.125,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.19444444444444445,
+       "recovery_latency_frames": 135.28235294117647,
+       "contamination_auc": 0.3047292425529774
+      },
+      "19": {
+       "node_prf1": 0.8646442128051511,
+       "node_prf1_iou": 0.4860018340549576,
+       "missing_residual_rate": 0.14516129032258066,
+       "false_retract_rate": 0.32501902859045717,
+       "false_retract_rate_in_scope": 0.3022108843537415,
+       "identity_continuity": 0.08333333333333333,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.17361111111111113,
+       "recovery_latency_frames": 150.83333333333331,
+       "contamination_auc": 0.2933823565665088
+      },
+      "31": {
+       "node_prf1": 0.8558531403672529,
+       "node_prf1_iou": 0.4824787990476086,
+       "missing_residual_rate": 0.13440860215053765,
+       "false_retract_rate": 0.32183570397856115,
+       "false_retract_rate_in_scope": 0.31887755102040816,
+       "identity_continuity": 0.06944444444444443,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.19444444444444445,
+       "recovery_latency_frames": 134.9794117647059,
+       "contamination_auc": 0.3039033808664669
+      },
+      "43": {
+       "node_prf1": 0.8600949095439095,
+       "node_prf1_iou": 0.48757866408584505,
+       "missing_residual_rate": 0.17473118279569894,
+       "false_retract_rate": 0.2923894557823129,
+       "false_retract_rate_in_scope": 0.28898809523809527,
+       "identity_continuity": 0.05555555555555555,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.14583333333333334,
+       "recovery_latency_frames": 132.59019607843138,
+       "contamination_auc": 0.300172723945983
+      },
+      "59": {
+       "node_prf1": 0.852222363420985,
+       "node_prf1_iou": 0.4834093927207279,
+       "missing_residual_rate": 0.1639784946236559,
+       "false_retract_rate": 0.28506889935461366,
+       "false_retract_rate_in_scope": 0.27853641456582634,
+       "identity_continuity": 0.06944444444444443,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.20833333333333334,
+       "recovery_latency_frames": 138.3107843137255,
+       "contamination_auc": 0.31035155827294414
+      }
+     },
+     "mean": {
+      "node_prf1": 0.8577030448638208,
+      "node_prf1_iou": 0.48470956904269036,
+      "missing_residual_rate": 0.15,
+      "false_retract_rate": 0.3217256961059482,
+      "false_retract_rate_in_scope": 0.30939893847982086,
+      "identity_continuity": 0.08055555555555555,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.18333333333333335,
+      "recovery_latency_frames": 138.39921568627452,
+      "contamination_auc": 0.30250785244097605
+     }
+    },
+    "3": {
+     "config": {
+      "tau_r": 0.3
+     },
+     "seeds_present": [
+      7,
+      19,
+      31,
+      43,
+      59
+     ],
+     "seeds_missing": [],
+     "per_seed": {
+      "7": {
+       "node_prf1": 0.8557621059720384,
+       "node_prf1_iou": 0.4841554886006945,
+       "missing_residual_rate": 0.13172043010752688,
+       "false_retract_rate": 0.3516967014078359,
+       "false_retract_rate_in_scope": 0.3347608594719939,
+       "identity_continuity": 0.125,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.19444444444444445,
+       "recovery_latency_frames": 133.34019607843138,
+       "contamination_auc": 0.3046232577527814
+      },
+      "19": {
+       "node_prf1": 0.8647172213086803,
+       "node_prf1_iou": 0.4860841674741632,
+       "missing_residual_rate": 0.14516129032258066,
+       "false_retract_rate": 0.31251902859045716,
+       "false_retract_rate_in_scope": 0.28971088435374154,
+       "identity_continuity": 0.08333333333333333,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.19444444444444445,
+       "recovery_latency_frames": 150.84313725490196,
+       "contamination_auc": 0.2932900010910831
+      },
+      "31": {
+       "node_prf1": 0.8557583314702809,
+       "node_prf1_iou": 0.4824487670708605,
+       "missing_residual_rate": 0.13440860215053765,
+       "false_retract_rate": 0.3083333333333333,
+       "false_retract_rate_in_scope": 0.30565476190476193,
+       "identity_continuity": 0.06944444444444443,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.19444444444444445,
+       "recovery_latency_frames": 135.3735294117647,
+       "contamination_auc": 0.30410916318181686
+      },
+      "43": {
+       "node_prf1": 0.8600652485693643,
+       "node_prf1_iou": 0.4877124747277943,
+       "missing_residual_rate": 0.17473118279569894,
+       "false_retract_rate": 0.2826530612244898,
+       "false_retract_rate_in_scope": 0.2792517006802721,
+       "identity_continuity": 0.05555555555555555,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.14583333333333334,
+       "recovery_latency_frames": 132.78823529411764,
+       "contamination_auc": 0.2998354712548472
+      },
+      "59": {
+       "node_prf1": 0.8518185521681366,
+       "node_prf1_iou": 0.483478210697469,
+       "missing_residual_rate": 0.1639784946236559,
+       "false_retract_rate": 0.28956043956043953,
+       "false_retract_rate_in_scope": 0.28402668759811617,
+       "identity_continuity": 0.06944444444444443,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.20833333333333334,
+       "recovery_latency_frames": 138.3656862745098,
+       "contamination_auc": 0.3106264439194551
+      }
+     },
+     "mean": {
+      "node_prf1": 0.8576242918977002,
+      "node_prf1_iou": 0.4847758217141963,
+      "missing_residual_rate": 0.15,
+      "false_retract_rate": 0.30895251282331115,
+      "false_retract_rate_in_scope": 0.29868097880177713,
+      "identity_continuity": 0.08055555555555555,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.1875,
+      "recovery_latency_frames": 138.1421568627451,
+      "contamination_auc": 0.3024968674399967
+     }
+    },
+    "4": {
+     "config": {
+      "tau_r": 0.4
+     },
+     "seeds_present": [
+      7,
+      19,
+      31,
+      43,
+      59
+     ],
+     "seeds_missing": [],
+     "per_seed": {
+      "7": {
+       "node_prf1": 0.8558860888791545,
+       "node_prf1_iou": 0.4839662511173419,
+       "missing_residual_rate": 0.13709677419354838,
+       "false_retract_rate": 0.34112747371675944,
+       "false_retract_rate_in_scope": 0.32410005668934244,
+       "identity_continuity": 0.1111111111111111,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.18055555555555555,
+       "recovery_latency_frames": 133.4470588235294,
+       "contamination_auc": 0.30446649889379834
+      },
+      "19": {
+       "node_prf1": 0.8647210251283685,
+       "node_prf1_iou": 0.4860906142807046,
+       "missing_residual_rate": 0.14516129032258066,
+       "false_retract_rate": 0.29371779014636157,
+       "false_retract_rate_in_scope": 0.27172619047619045,
+       "identity_continuity": 0.08333333333333333,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.19444444444444445,
+       "recovery_latency_frames": 147.83529411764704,
+       "contamination_auc": 0.2927421150219816
+      },
+      "31": {
+       "node_prf1": 0.8557575638425593,
+       "node_prf1_iou": 0.4825056503666636,
+       "missing_residual_rate": 0.13440860215053765,
+       "false_retract_rate": 0.2879109977324263,
+       "false_retract_rate_in_scope": 0.2834467120181406,
+       "identity_continuity": 0.06944444444444443,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.19444444444444445,
+       "recovery_latency_frames": 142.79999999999998,
+       "contamination_auc": 0.3039243910871617
+      },
+      "43": {
+       "node_prf1": 0.8601791242501455,
+       "node_prf1_iou": 0.48762732230180345,
+       "missing_residual_rate": 0.17473118279569894,
+       "false_retract_rate": 0.24842300556586272,
+       "false_retract_rate_in_scope": 0.24404761904761904,
+       "identity_continuity": 0.05555555555555555,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.16666666666666666,
+       "recovery_latency_frames": 133.1921568627451,
+       "contamination_auc": 0.2994642318402985
+      },
+      "59": {
+       "node_prf1": 0.8522305792800623,
+       "node_prf1_iou": 0.4834461163229513,
+       "missing_residual_rate": 0.1639784946236559,
+       "false_retract_rate": 0.26834554334554334,
+       "false_retract_rate_in_scope": 0.2619047619047619,
+       "identity_continuity": 0.06944444444444443,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.20833333333333334,
+       "recovery_latency_frames": 138.57843137254903,
+       "contamination_auc": 0.3101466450733847
+      }
+     },
+     "mean": {
+      "node_prf1": 0.8577548762760581,
+      "node_prf1_iou": 0.48472719087789296,
+      "missing_residual_rate": 0.1510752688172043,
+      "false_retract_rate": 0.28790496210139066,
+      "false_retract_rate_in_scope": 0.27704506802721085,
+      "identity_continuity": 0.07777777777777777,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.18888888888888888,
+      "recovery_latency_frames": 139.1705882352941,
+      "contamination_auc": 0.30214877638332494
+     }
+    },
+    "5": {
+     "config": {
+      "tau_r": 0.5
+     },
+     "seeds_present": [
+      7,
+      19,
+      31,
+      43,
+      59
+     ],
+     "seeds_missing": [],
+     "per_seed": {
+      "7": {
+       "node_prf1": 0.8557085204584921,
+       "node_prf1_iou": 0.4841318050051674,
+       "missing_residual_rate": 0.14516129032258066,
+       "false_retract_rate": 0.33426097711812003,
+       "false_retract_rate_in_scope": 0.3144557823129252,
+       "identity_continuity": 0.1111111111111111,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.18055555555555555,
+       "recovery_latency_frames": 130.49313725490197,
+       "contamination_auc": 0.3043849240012211
+      },
+      "19": {
+       "node_prf1": 0.8647076183826619,
+       "node_prf1_iou": 0.4861237028764689,
+       "missing_residual_rate": 0.14516129032258066,
+       "false_retract_rate": 0.27120696763553903,
+       "false_retract_rate_in_scope": 0.25029761904761905,
+       "identity_continuity": 0.08333333333333333,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.19444444444444445,
+       "recovery_latency_frames": 147.8941176470588,
+       "contamination_auc": 0.29276547996263935
+      },
+      "31": {
+       "node_prf1": 0.8554645517489898,
+       "node_prf1_iou": 0.48261213356798754,
+       "missing_residual_rate": 0.13978494623655913,
+       "false_retract_rate": 0.28421201814058955,
+       "false_retract_rate_in_scope": 0.27808956916099775,
+       "identity_continuity": 0.05555555555555555,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.18055555555555555,
+       "recovery_latency_frames": 143.5343137254902,
+       "contamination_auc": 0.30433672346644586
+      },
+      "43": {
+       "node_prf1": 0.8599921941988515,
+       "node_prf1_iou": 0.48739913938738,
+       "missing_residual_rate": 0.18548387096774194,
+       "false_retract_rate": 0.24485157699443413,
+       "false_retract_rate_in_scope": 0.24047619047619048,
+       "identity_continuity": 0.05555555555555555,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.16666666666666666,
+       "recovery_latency_frames": 133.3735294117647,
+       "contamination_auc": 0.29958606790838327
+      },
+      "59": {
+       "node_prf1": 0.8524990029014333,
+       "node_prf1_iou": 0.4836799696493954,
+       "missing_residual_rate": 0.1639784946236559,
+       "false_retract_rate": 0.24384920634920634,
+       "false_retract_rate_in_scope": 0.23581349206349206,
+       "identity_continuity": 0.05555555555555555,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.19444444444444445,
+       "recovery_latency_frames": 132.23431372549018,
+       "contamination_auc": 0.3097686938770534
+      }
+     },
+     "mean": {
+      "node_prf1": 0.8576743775380857,
+      "node_prf1_iou": 0.48478935009727986,
+      "missing_residual_rate": 0.15591397849462366,
+      "false_retract_rate": 0.27567614924757783,
+      "false_retract_rate_in_scope": 0.2638265306122449,
+      "identity_continuity": 0.07222222222222222,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.18333333333333332,
+      "recovery_latency_frames": 137.50588235294117,
+      "contamination_auc": 0.3021683778431486
+     }
+    },
+    "6": {
+     "config": {
+      "tau_r": 0.6
+     },
+     "seeds_present": [
+      7,
+      19,
+      31,
+      43,
+      59
+     ],
+     "seeds_missing": [],
+     "per_seed": {
+      "7": {
+       "node_prf1": 0.855693175395122,
+       "node_prf1_iou": 0.4842278748745758,
+       "missing_residual_rate": 0.14516129032258066,
+       "false_retract_rate": 0.33214166785595356,
+       "false_retract_rate_in_scope": 0.30986394557823127,
+       "identity_continuity": 0.1111111111111111,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.18055555555555555,
+       "recovery_latency_frames": 131.14215686274508,
+       "contamination_auc": 0.304421485304623
+      },
+      "19": {
+       "node_prf1": 0.86416727232427,
+       "node_prf1_iou": 0.486296029892399,
+       "missing_residual_rate": 0.15698924731182795,
+       "false_retract_rate": 0.26362219130076275,
+       "false_retract_rate_in_scope": 0.23877551020408164,
+       "identity_continuity": 0.06944444444444443,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.18055555555555555,
+       "recovery_latency_frames": 148.55588235294115,
+       "contamination_auc": 0.2931992732734563
+      },
+      "31": {
+       "node_prf1": 0.8555506630709042,
+       "node_prf1_iou": 0.48288847027773163,
+       "missing_residual_rate": 0.14784946236559138,
+       "false_retract_rate": 0.2647675736961451,
+       "false_retract_rate_in_scope": 0.25864512471655327,
+       "identity_continuity": 0.05555555555555555,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.18055555555555555,
+       "recovery_latency_frames": 143.59313725490196,
+       "contamination_auc": 0.3041428763196716
+      },
+      "43": {
+       "node_prf1": 0.8601965449118361,
+       "node_prf1_iou": 0.4875691708164061,
+       "missing_residual_rate": 0.18548387096774194,
+       "false_retract_rate": 0.22393320964749536,
+       "false_retract_rate_in_scope": 0.2229591836734694,
+       "identity_continuity": 0.05555555555555555,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.16666666666666666,
+       "recovery_latency_frames": 133.65490196078431,
+       "contamination_auc": 0.29943815416635167
+      },
+      "59": {
+       "node_prf1": 0.8527097030645814,
+       "node_prf1_iou": 0.4838114050318044,
+       "missing_residual_rate": 0.1639784946236559,
+       "false_retract_rate": 0.21517857142857144,
+       "false_retract_rate_in_scope": 0.20714285714285713,
+       "identity_continuity": 0.05555555555555555,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.19444444444444445,
+       "recovery_latency_frames": 134.43627450980392,
+       "contamination_auc": 0.30951477145445827
+      }
+     },
+     "mean": {
+      "node_prf1": 0.8576634717533427,
+      "node_prf1_iou": 0.4849585901785834,
+      "missing_residual_rate": 0.15989247311827956,
+      "false_retract_rate": 0.25992864278578565,
+      "false_retract_rate_in_scope": 0.24747732426303853,
+      "identity_continuity": 0.06944444444444445,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.18055555555555555,
+      "recovery_latency_frames": 138.2764705882353,
+      "contamination_auc": 0.30214331210371215
+     }
+    },
+    "7": {
+     "config": {
+      "tau_r": 0.7
+     },
+     "seeds_present": [
+      7,
+      19,
+      31,
+      43,
+      59
+     ],
+     "seeds_missing": [],
+     "per_seed": {
+      "7": {
+       "node_prf1": 0.8563252934789853,
+       "node_prf1_iou": 0.48447965410984595,
+       "missing_residual_rate": 0.14516129032258066,
+       "false_retract_rate": 0.314242007992008,
+       "false_retract_rate_in_scope": 0.30037878787878786,
+       "identity_continuity": 0.1111111111111111,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.18055555555555555,
+       "recovery_latency_frames": 142.48431372549018,
+       "contamination_auc": 0.30345796288965304
+      },
+      "19": {
+       "node_prf1": 0.8646343722947978,
+       "node_prf1_iou": 0.48646620910234173,
+       "missing_residual_rate": 0.15698924731182795,
+       "false_retract_rate": 0.25479282622139765,
+       "false_retract_rate_in_scope": 0.22780612244897958,
+       "identity_continuity": 0.06944444444444443,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.18055555555555555,
+       "recovery_latency_frames": 148.6264705882353,
+       "contamination_auc": 0.2926596891718684
+      },
+      "31": {
+       "node_prf1": 0.8554770148472162,
+       "node_prf1_iou": 0.482819072514306,
+       "missing_residual_rate": 0.1586021505376344,
+       "false_retract_rate": 0.2562641723356009,
+       "false_retract_rate_in_scope": 0.25269274376417233,
+       "identity_continuity": 0.05555555555555555,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.18055555555555555,
+       "recovery_latency_frames": 142.53627450980392,
+       "contamination_auc": 0.3042841919719612
+      },
+      "43": {
+       "node_prf1": 0.8602005650148327,
+       "node_prf1_iou": 0.4875702086266414,
+       "missing_residual_rate": 0.18548387096774194,
+       "false_retract_rate": 0.22393320964749536,
+       "false_retract_rate_in_scope": 0.2229591836734694,
+       "identity_continuity": 0.05555555555555555,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.16666666666666666,
+       "recovery_latency_frames": 134.06666666666666,
+       "contamination_auc": 0.2994411424456446
+      },
+      "59": {
+       "node_prf1": 0.8528193296180309,
+       "node_prf1_iou": 0.483881071612661,
+       "missing_residual_rate": 0.1639784946236559,
+       "false_retract_rate": 0.2080357142857143,
+       "false_retract_rate_in_scope": 0.19927721088435374,
+       "identity_continuity": 0.05555555555555555,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.19444444444444445,
+       "recovery_latency_frames": 146.75294117647059,
+       "contamination_auc": 0.30941909580177057
+      }
+     },
+     "mean": {
+      "node_prf1": 0.8578913150507725,
+      "node_prf1_iou": 0.4850432431931592,
+      "missing_residual_rate": 0.16204301075268818,
+      "false_retract_rate": 0.25145358609644325,
+      "false_retract_rate_in_scope": 0.2406228097299526,
+      "identity_continuity": 0.06944444444444445,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.18055555555555555,
+      "recovery_latency_frames": 142.89333333333335,
+      "contamination_auc": 0.30185241645617955
+     }
+    },
+    "8": {
+     "config": {
+      "tau_r": 0.8
+     },
+     "seeds_present": [
+      7,
+      19,
+      31,
+      43,
+      59
+     ],
+     "seeds_missing": [],
+     "per_seed": {
+      "7": {
+       "node_prf1": 0.8574739649007537,
+       "node_prf1_iou": 0.4850478764375733,
+       "missing_residual_rate": 0.14516129032258066,
+       "false_retract_rate": 0.2553571428571429,
+       "false_retract_rate_in_scope": 0.244812925170068,
+       "identity_continuity": 0.1111111111111111,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.18055555555555555,
+       "recovery_latency_frames": 142.86764705882354,
+       "contamination_auc": 0.302217899649506
+      },
+      "19": {
+       "node_prf1": 0.8647201870190379,
+       "node_prf1_iou": 0.4865160857937369,
+       "missing_residual_rate": 0.15698924731182795,
+       "false_retract_rate": 0.24391620284477428,
+       "false_retract_rate_in_scope": 0.22780612244897958,
+       "identity_continuity": 0.06944444444444443,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.18055555555555555,
+       "recovery_latency_frames": 149.18529411764706,
+       "contamination_auc": 0.29264086931040195
+      },
+      "31": {
+       "node_prf1": 0.8555664143544822,
+       "node_prf1_iou": 0.4827430521868934,
+       "missing_residual_rate": 0.1586021505376344,
+       "false_retract_rate": 0.22818877551020408,
+       "false_retract_rate_in_scope": 0.22818877551020408,
+       "identity_continuity": 0.05555555555555555,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.18055555555555555,
+       "recovery_latency_frames": 130.22254901960784,
+       "contamination_auc": 0.3041454951902643
+      },
+      "43": {
+       "node_prf1": 0.8601354128182606,
+       "node_prf1_iou": 0.4875084130072176,
+       "missing_residual_rate": 0.19193548387096776,
+       "false_retract_rate": 0.2110544217687075,
+       "false_retract_rate_in_scope": 0.2110544217687075,
+       "identity_continuity": 0.05555555555555555,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.16666666666666666,
+       "recovery_latency_frames": 137.02450980392155,
+       "contamination_auc": 0.29946489481947974
+      },
+      "59": {
+       "node_prf1": 0.8527963620071021,
+       "node_prf1_iou": 0.48392238083147154,
+       "missing_residual_rate": 0.1639784946236559,
+       "false_retract_rate": 0.20697278911564626,
+       "false_retract_rate_in_scope": 0.19166666666666665,
+       "identity_continuity": 0.05555555555555555,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.19444444444444445,
+       "recovery_latency_frames": 147.10882352941175,
+       "contamination_auc": 0.30930819853069236
+      }
+     },
+     "mean": {
+      "node_prf1": 0.8581384682199273,
+      "node_prf1_iou": 0.48514756165137857,
+      "missing_residual_rate": 0.16333333333333333,
+      "false_retract_rate": 0.229097866419295,
+      "false_retract_rate_in_scope": 0.22070578231292518,
+      "identity_continuity": 0.06944444444444445,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.18055555555555555,
+      "recovery_latency_frames": 141.28176470588235,
+      "contamination_auc": 0.3015554715000689
+     }
+    },
+    "9": {
+     "config": {
+      "tau_r": 0.9
+     },
+     "seeds_present": [
+      7,
+      19,
+      31,
+      43,
+      59
+     ],
+     "seeds_missing": [],
+     "per_seed": {
+      "7": {
+       "node_prf1": 0.8576369942579058,
+       "node_prf1_iou": 0.48505955083198043,
+       "missing_residual_rate": 0.14516129032258066,
+       "false_retract_rate": 0.23159013605442175,
+       "false_retract_rate_in_scope": 0.22967687074829932,
+       "identity_continuity": 0.1111111111111111,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.18055555555555555,
+       "recovery_latency_frames": 143.34117647058824,
+       "contamination_auc": 0.3019063646495626
+      },
+      "19": {
+       "node_prf1": 0.8646071601833732,
+       "node_prf1_iou": 0.4862482867787193,
+       "missing_residual_rate": 0.17043010752688173,
+       "false_retract_rate": 0.2337121212121212,
+       "false_retract_rate_in_scope": 0.21964285714285717,
+       "identity_continuity": 0.06944444444444443,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.18055555555555555,
+       "recovery_latency_frames": 149.75392156862745,
+       "contamination_auc": 0.29254744571903757
+      },
+      "31": {
+       "node_prf1": 0.855724499843561,
+       "node_prf1_iou": 0.4828462314382674,
+       "missing_residual_rate": 0.1586021505376344,
+       "false_retract_rate": 0.1814625850340136,
+       "false_retract_rate_in_scope": 0.1814625850340136,
+       "identity_continuity": 0.05555555555555555,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.18055555555555555,
+       "recovery_latency_frames": 132.66960784313724,
+       "contamination_auc": 0.3039580978255227
+      },
+      "43": {
+       "node_prf1": 0.8601271071981142,
+       "node_prf1_iou": 0.4874621027029272,
+       "missing_residual_rate": 0.20376344086021506,
+       "false_retract_rate": 0.19974489795918365,
+       "false_retract_rate_in_scope": 0.19974489795918365,
+       "identity_continuity": 0.05555555555555555,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.16666666666666666,
+       "recovery_latency_frames": 138.8205882352941,
+       "contamination_auc": 0.29938497544059106
+      },
+      "59": {
+       "node_prf1": 0.8527879512915105,
+       "node_prf1_iou": 0.4841310212438071,
+       "missing_residual_rate": 0.1639784946236559,
+       "false_retract_rate": 0.17976190476190476,
+       "false_retract_rate_in_scope": 0.17976190476190476,
+       "identity_continuity": 0.05555555555555555,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.19444444444444445,
+       "recovery_latency_frames": 149.72450980392156,
+       "contamination_auc": 0.3091200282547262
+      }
+     },
+     "mean": {
+      "node_prf1": 0.8581767425548931,
+      "node_prf1_iou": 0.4851494385991403,
+      "missing_residual_rate": 0.16838709677419356,
+      "false_retract_rate": 0.205254329004329,
+      "false_retract_rate_in_scope": 0.20205782312925172,
+      "identity_continuity": 0.06944444444444445,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.18055555555555555,
+      "recovery_latency_frames": 142.8619607843137,
+      "contamination_auc": 0.30138338237788803
+     }
+    }
+   },
+   "HeuristicLabel": {
+    "0": {
+     "config": {
+      "tau_r": 0.15
+     },
+     "seeds_present": [
+      7,
+      19,
+      31,
+      43,
+      59
+     ],
+     "seeds_missing": [],
+     "per_seed": {
+      "7": {
+       "node_prf1": 0.6483024392158828,
+       "node_prf1_iou": 0.4079915463681599,
+       "missing_residual_rate": 0.18064516129032257,
+       "false_retract_rate": 0.9211921550056409,
+       "false_retract_rate_in_scope": 0.8963250030724491,
+       "identity_continuity": 0.3125,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.3263888888888889,
+       "recovery_latency_frames": 133.86176470588236,
+       "contamination_auc": 0.302819962862378
+      },
+      "19": {
+       "node_prf1": 0.6491532880111857,
+       "node_prf1_iou": 0.4079460826747751,
+       "missing_residual_rate": 0.18064516129032257,
+       "false_retract_rate": 0.9199286383626524,
+       "false_retract_rate_in_scope": 0.8945541751240768,
+       "identity_continuity": 0.2708333333333333,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.3263888888888889,
+       "recovery_latency_frames": 132.33529411764704,
+       "contamination_auc": 0.30236354682753264
+      },
+      "31": {
+       "node_prf1": 0.6485919788041445,
+       "node_prf1_iou": 0.40659400739476315,
+       "missing_residual_rate": 0.18064516129032257,
+       "false_retract_rate": 0.9181514075918545,
+       "false_retract_rate_in_scope": 0.8932363305554906,
+       "identity_continuity": 0.3125,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.3263888888888889,
+       "recovery_latency_frames": 131.97156862745098,
+       "contamination_auc": 0.30292576702638496
+      },
+      "43": {
+       "node_prf1": 0.6479088173958144,
+       "node_prf1_iou": 0.4083442399673852,
+       "missing_residual_rate": 0.1913978494623656,
+       "false_retract_rate": 0.9187777470033583,
+       "false_retract_rate_in_scope": 0.893625784493527,
+       "identity_continuity": 0.2708333333333333,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.3263888888888889,
+       "recovery_latency_frames": 136.29803921568626,
+       "contamination_auc": 0.3029380804679868
+      },
+      "59": {
+       "node_prf1": 0.6487549412685488,
+       "node_prf1_iou": 0.4076045825452752,
+       "missing_residual_rate": 0.18064516129032257,
+       "false_retract_rate": 0.9192446878312764,
+       "false_retract_rate_in_scope": 0.8943629776090983,
+       "identity_continuity": 0.2708333333333333,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.3263888888888889,
+       "recovery_latency_frames": 131.70000000000002,
+       "contamination_auc": 0.3030850416980766
+      }
+     },
+     "mean": {
+      "node_prf1": 0.6485422929391153,
+      "node_prf1_iou": 0.4076960917900717,
+      "missing_residual_rate": 0.1827956989247312,
+      "false_retract_rate": 0.9194589271589566,
+      "false_retract_rate_in_scope": 0.8944208541709283,
+      "identity_continuity": 0.2875,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.3263888888888889,
+      "recovery_latency_frames": 133.23333333333332,
+      "contamination_auc": 0.3028264797764718
+     }
+    },
+    "1": {
+     "config": {
+      "tau_r": 0.2
+     },
+     "seeds_present": [
+      7,
+      19,
+      31,
+      43,
+      59
+     ],
+     "seeds_missing": [],
+     "per_seed": {
+      "7": {
+       "node_prf1": 0.6484473324910273,
+       "node_prf1_iou": 0.40794991076144377,
+       "missing_residual_rate": 0.18064516129032257,
+       "false_retract_rate": 0.9211919797990548,
+       "false_retract_rate_in_scope": 0.8963250030724491,
+       "identity_continuity": 0.3125,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.3263888888888889,
+       "recovery_latency_frames": 133.86176470588236,
+       "contamination_auc": 0.30276069299155467
+      },
+      "19": {
+       "node_prf1": 0.6491417835042635,
+       "node_prf1_iou": 0.4079725630148807,
+       "missing_residual_rate": 0.18064516129032257,
+       "false_retract_rate": 0.920049840689737,
+       "false_retract_rate_in_scope": 0.8947028469887525,
+       "identity_continuity": 0.2708333333333333,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.3263888888888889,
+       "recovery_latency_frames": 132.33529411764704,
+       "contamination_auc": 0.3023474734189378
+      },
+      "31": {
+       "node_prf1": 0.6486521531050309,
+       "node_prf1_iou": 0.4066230400274814,
+       "missing_residual_rate": 0.18064516129032257,
+       "false_retract_rate": 0.9181506453082278,
+       "false_retract_rate_in_scope": 0.8932582664141039,
+       "identity_continuity": 0.3125,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.3263888888888889,
+       "recovery_latency_frames": 131.97156862745098,
+       "contamination_auc": 0.3029147462198906
+      },
+      "43": {
+       "node_prf1": 0.6478906799123053,
+       "node_prf1_iou": 0.4083173637252432,
+       "missing_residual_rate": 0.1913978494623656,
+       "false_retract_rate": 0.9187777470033583,
+       "false_retract_rate_in_scope": 0.893625784493527,
+       "identity_continuity": 0.2708333333333333,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.3263888888888889,
+       "recovery_latency_frames": 136.30784313725488,
+       "contamination_auc": 0.30297021801050816
+      },
+      "59": {
+       "node_prf1": 0.6487122741466353,
+       "node_prf1_iou": 0.407589369997083,
+       "missing_residual_rate": 0.18064516129032257,
+       "false_retract_rate": 0.9191908079491807,
+       "false_retract_rate_in_scope": 0.894377297691582,
+       "identity_continuity": 0.2708333333333333,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.3263888888888889,
+       "recovery_latency_frames": 131.70000000000002,
+       "contamination_auc": 0.30306094211651935
+      }
+     },
+     "mean": {
+      "node_prf1": 0.6485688446318525,
+      "node_prf1_iou": 0.40769044950522637,
+      "missing_residual_rate": 0.1827956989247312,
+      "false_retract_rate": 0.9194722041499117,
+      "false_retract_rate_in_scope": 0.8944578397320828,
+      "identity_continuity": 0.2875,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.3263888888888889,
+      "recovery_latency_frames": 133.23529411764704,
+      "contamination_auc": 0.3028108145514821
+     }
+    },
+    "2": {
+     "config": {
+      "tau_r": 0.25
+     },
+     "seeds_present": [
+      7,
+      19,
+      31,
+      43,
+      59
+     ],
+     "seeds_missing": [],
+     "per_seed": {
+      "7": {
+       "node_prf1": 0.6484624035815687,
+       "node_prf1_iou": 0.40793317258899753,
+       "missing_residual_rate": 0.18064516129032257,
+       "false_retract_rate": 0.9211919797990548,
+       "false_retract_rate_in_scope": 0.8963250030724491,
+       "identity_continuity": 0.3125,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.3263888888888889,
+       "recovery_latency_frames": 133.86176470588236,
+       "contamination_auc": 0.302780992469037
+      },
+      "19": {
+       "node_prf1": 0.6491283967299496,
+       "node_prf1_iou": 0.40798659617038846,
+       "missing_residual_rate": 0.18064516129032257,
+       "false_retract_rate": 0.920049840689737,
+       "false_retract_rate_in_scope": 0.8947028469887525,
+       "identity_continuity": 0.2708333333333333,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.3263888888888889,
+       "recovery_latency_frames": 132.33529411764704,
+       "contamination_auc": 0.30234326693968594
+      },
+      "31": {
+       "node_prf1": 0.6486270455096409,
+       "node_prf1_iou": 0.4066257090501219,
+       "missing_residual_rate": 0.18064516129032257,
+       "false_retract_rate": 0.9181551892780824,
+       "false_retract_rate_in_scope": 0.8932800434175883,
+       "identity_continuity": 0.3125,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.3263888888888889,
+       "recovery_latency_frames": 131.99117647058824,
+       "contamination_auc": 0.30290753517034036
+      },
+      "43": {
+       "node_prf1": 0.647750560550084,
+       "node_prf1_iou": 0.4082841922659225,
+       "missing_residual_rate": 0.1913978494623656,
+       "false_retract_rate": 0.9187777326510798,
+       "false_retract_rate_in_scope": 0.8936254317279113,
+       "identity_continuity": 0.2708333333333333,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.3263888888888889,
+       "recovery_latency_frames": 136.30784313725488,
+       "contamination_auc": 0.30309867016950476
+      },
+      "59": {
+       "node_prf1": 0.6487521568859013,
+       "node_prf1_iou": 0.4078208986001831,
+       "missing_residual_rate": 0.18064516129032257,
+       "false_retract_rate": 0.9191658309729593,
+       "false_retract_rate_in_scope": 0.8943030017099663,
+       "identity_continuity": 0.2708333333333333,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.3263888888888889,
+       "recovery_latency_frames": 131.70000000000002,
+       "contamination_auc": 0.3029957105369821
+      }
+     },
+     "mean": {
+      "node_prf1": 0.6485441126514289,
+      "node_prf1_iou": 0.4077301137351227,
+      "missing_residual_rate": 0.1827956989247312,
+      "false_retract_rate": 0.9194681146781827,
+      "false_retract_rate_in_scope": 0.8944472653833335,
+      "identity_continuity": 0.2875,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.3263888888888889,
+      "recovery_latency_frames": 133.23921568627452,
+      "contamination_auc": 0.30282523505711
+     }
+    },
+    "3": {
+     "config": {
+      "tau_r": 0.3
+     },
+     "seeds_present": [
+      7,
+      19,
+      31,
+      43,
+      59
+     ],
+     "seeds_missing": [],
+     "per_seed": {
+      "7": {
+       "node_prf1": 0.6484522021869179,
+       "node_prf1_iou": 0.40792712003045645,
+       "missing_residual_rate": 0.18064516129032257,
+       "false_retract_rate": 0.9211919797990548,
+       "false_retract_rate_in_scope": 0.8963250030724491,
+       "identity_continuity": 0.3125,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.3263888888888889,
+       "recovery_latency_frames": 133.86176470588236,
+       "contamination_auc": 0.3027752779848901
+      },
+      "19": {
+       "node_prf1": 0.6491505660592921,
+       "node_prf1_iou": 0.40801040137850314,
+       "missing_residual_rate": 0.18064516129032257,
+       "false_retract_rate": 0.9200495961399012,
+       "false_retract_rate_in_scope": 0.8947028469887525,
+       "identity_continuity": 0.2708333333333333,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.3263888888888889,
+       "recovery_latency_frames": 132.33529411764704,
+       "contamination_auc": 0.3023251242724211
+      },
+      "31": {
+       "node_prf1": 0.648495598019323,
+       "node_prf1_iou": 0.4065772407709645,
+       "missing_residual_rate": 0.18064516129032257,
+       "false_retract_rate": 0.9181528615904693,
+       "false_retract_rate_in_scope": 0.8932687486317208,
+       "identity_continuity": 0.3125,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.3263888888888889,
+       "recovery_latency_frames": 131.99117647058824,
+       "contamination_auc": 0.30302459498113304
+      },
+      "43": {
+       "node_prf1": 0.6477656269516759,
+       "node_prf1_iou": 0.4082882170619355,
+       "missing_residual_rate": 0.1913978494623656,
+       "false_retract_rate": 0.9187775633288765,
+       "false_retract_rate_in_scope": 0.8936244906400138,
+       "identity_continuity": 0.2708333333333333,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.3263888888888889,
+       "recovery_latency_frames": 136.30784313725488,
+       "contamination_auc": 0.3030850347610616
+      },
+      "59": {
+       "node_prf1": 0.648844040206818,
+       "node_prf1_iou": 0.40778574013553376,
+       "missing_residual_rate": 0.18064516129032257,
+       "false_retract_rate": 0.9191277493198922,
+       "false_retract_rate_in_scope": 0.8941284252172262,
+       "identity_continuity": 0.2708333333333333,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.3263888888888889,
+       "recovery_latency_frames": 131.70000000000002,
+       "contamination_auc": 0.30298248012324397
+      }
+     },
+     "mean": {
+      "node_prf1": 0.6485416066848054,
+      "node_prf1_iou": 0.4077177438754787,
+      "missing_residual_rate": 0.1827956989247312,
+      "false_retract_rate": 0.9194599500356387,
+      "false_retract_rate_in_scope": 0.8944099029100325,
+      "identity_continuity": 0.2875,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.3263888888888889,
+      "recovery_latency_frames": 133.23921568627452,
+      "contamination_auc": 0.30283850242454996
+     }
+    },
+    "4": {
+     "config": {
+      "tau_r": 0.4
+     },
+     "seeds_present": [
+      7,
+      19,
+      31,
+      43,
+      59
+     ],
+     "seeds_missing": [],
+     "per_seed": {
+      "7": {
+       "node_prf1": 0.6485052190874049,
+       "node_prf1_iou": 0.40797748103529313,
+       "missing_residual_rate": 0.18064516129032257,
+       "false_retract_rate": 0.9202306360743242,
+       "false_retract_rate_in_scope": 0.8952188502572078,
+       "identity_continuity": 0.3125,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.3263888888888889,
+       "recovery_latency_frames": 133.86176470588236,
+       "contamination_auc": 0.30271138600586656
+      },
+      "19": {
+       "node_prf1": 0.6491486892217398,
+       "node_prf1_iou": 0.4079912339397687,
+       "missing_residual_rate": 0.18064516129032257,
+       "false_retract_rate": 0.9200495961399012,
+       "false_retract_rate_in_scope": 0.8947028469887525,
+       "identity_continuity": 0.2708333333333333,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.3263888888888889,
+       "recovery_latency_frames": 132.33529411764704,
+       "contamination_auc": 0.30230894636525235
+      },
+      "31": {
+       "node_prf1": 0.6485563414361872,
+       "node_prf1_iou": 0.40653440146235637,
+       "missing_residual_rate": 0.18064516129032257,
+       "false_retract_rate": 0.9181483105546266,
+       "false_retract_rate_in_scope": 0.893256855762685,
+       "identity_continuity": 0.3125,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.3263888888888889,
+       "recovery_latency_frames": 131.99117647058824,
+       "contamination_auc": 0.30294766278923446
+      },
+      "43": {
+       "node_prf1": 0.6477903178605539,
+       "node_prf1_iou": 0.40832471870265186,
+       "missing_residual_rate": 0.1913978494623656,
+       "false_retract_rate": 0.9187775633288765,
+       "false_retract_rate_in_scope": 0.8936244906400138,
+       "identity_continuity": 0.2708333333333333,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.3263888888888889,
+       "recovery_latency_frames": 136.30784313725488,
+       "contamination_auc": 0.30306739748758027
+      },
+      "59": {
+       "node_prf1": 0.6487873891178161,
+       "node_prf1_iou": 0.4078146576086671,
+       "missing_residual_rate": 0.18064516129032257,
+       "false_retract_rate": 0.9190752014137036,
+       "false_retract_rate_in_scope": 0.8940408713967878,
+       "identity_continuity": 0.2708333333333333,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.3263888888888889,
+       "recovery_latency_frames": 131.71960784313725,
+       "contamination_auc": 0.3029525426940279
+      }
+     },
+     "mean": {
+      "node_prf1": 0.6485575913447403,
+      "node_prf1_iou": 0.40772849854974746,
+      "missing_residual_rate": 0.1827956989247312,
+      "false_retract_rate": 0.9192562615022866,
+      "false_retract_rate_in_scope": 0.8941687830090894,
+      "identity_continuity": 0.2875,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.3263888888888889,
+      "recovery_latency_frames": 133.24313725490197,
+      "contamination_auc": 0.30279758706839227
+     }
+    },
+    "5": {
+     "config": {
+      "tau_r": 0.5
+     },
+     "seeds_present": [
+      7,
+      19,
+      31,
+      43,
+      59
+     ],
+     "seeds_missing": [],
+     "per_seed": {
+      "7": {
+       "node_prf1": 0.6485661735328601,
+       "node_prf1_iou": 0.4079608615325591,
+       "missing_residual_rate": 0.18064516129032257,
+       "false_retract_rate": 0.9202306360743242,
+       "false_retract_rate_in_scope": 0.8952188502572078,
+       "identity_continuity": 0.3125,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.3263888888888889,
+       "recovery_latency_frames": 133.8735294117647,
+       "contamination_auc": 0.302714928071321
+      },
+      "19": {
+       "node_prf1": 0.6490788397606058,
+       "node_prf1_iou": 0.40799591257760254,
+       "missing_residual_rate": 0.18064516129032257,
+       "false_retract_rate": 0.9190875088105538,
+       "false_retract_rate_in_scope": 0.8935991377220758,
+       "identity_continuity": 0.2708333333333333,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.3263888888888889,
+       "recovery_latency_frames": 132.33529411764704,
+       "contamination_auc": 0.3021469877804206
+      },
+      "31": {
+       "node_prf1": 0.6484484192189582,
+       "node_prf1_iou": 0.4066126134043287,
+       "missing_residual_rate": 0.18064516129032257,
+       "false_retract_rate": 0.9181386371018728,
+       "false_retract_rate_in_scope": 0.8932545366532231,
+       "identity_continuity": 0.3125,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.3263888888888889,
+       "recovery_latency_frames": 132.00294117647059,
+       "contamination_auc": 0.30299484676724453
+      },
+      "43": {
+       "node_prf1": 0.6478076480811414,
+       "node_prf1_iou": 0.4083140635357227,
+       "missing_residual_rate": 0.1913978494623656,
+       "false_retract_rate": 0.9185441451021576,
+       "false_retract_rate_in_scope": 0.8932257406545249,
+       "identity_continuity": 0.2708333333333333,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.3263888888888889,
+       "recovery_latency_frames": 136.33235294117648,
+       "contamination_auc": 0.3030619160699331
+      },
+      "59": {
+       "node_prf1": 0.6487288632735079,
+       "node_prf1_iou": 0.4077900107069604,
+       "missing_residual_rate": 0.18064516129032257,
+       "false_retract_rate": 0.9190750011092926,
+       "false_retract_rate_in_scope": 0.8940418696159648,
+       "identity_continuity": 0.2708333333333333,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.3263888888888889,
+       "recovery_latency_frames": 131.71960784313725,
+       "contamination_auc": 0.3029871350763804
+      }
+     },
+     "mean": {
+      "node_prf1": 0.6485259887734147,
+      "node_prf1_iou": 0.4077346923514347,
+      "missing_residual_rate": 0.1827956989247312,
+      "false_retract_rate": 0.9190151856396402,
+      "false_retract_rate_in_scope": 0.8938680269805992,
+      "identity_continuity": 0.2875,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.3263888888888889,
+      "recovery_latency_frames": 133.2527450980392,
+      "contamination_auc": 0.30278116275305994
+     }
+    },
+    "6": {
+     "config": {
+      "tau_r": 0.6
+     },
+     "seeds_present": [
+      7,
+      19,
+      31,
+      43,
+      59
+     ],
+     "seeds_missing": [],
+     "per_seed": {
+      "7": {
+       "node_prf1": 0.6485131770920011,
+       "node_prf1_iou": 0.4079001518969771,
+       "missing_residual_rate": 0.18064516129032257,
+       "false_retract_rate": 0.9202285290368188,
+       "false_retract_rate_in_scope": 0.8952105330038975,
+       "identity_continuity": 0.3125,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.3263888888888889,
+       "recovery_latency_frames": 133.88333333333335,
+       "contamination_auc": 0.3027630265627811
+      },
+      "19": {
+       "node_prf1": 0.6490268823501685,
+       "node_prf1_iou": 0.40796527221256285,
+       "missing_residual_rate": 0.18064516129032257,
+       "false_retract_rate": 0.9190794110675566,
+       "false_retract_rate_in_scope": 0.8935752709179364,
+       "identity_continuity": 0.2708333333333333,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.3263888888888889,
+       "recovery_latency_frames": 132.33529411764704,
+       "contamination_auc": 0.302218816521507
+      },
+      "31": {
+       "node_prf1": 0.6485189435185501,
+       "node_prf1_iou": 0.4065648687123354,
+       "missing_residual_rate": 0.18064516129032257,
+       "false_retract_rate": 0.9181323557816411,
+       "false_retract_rate_in_scope": 0.893252605707697,
+       "identity_continuity": 0.3125,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.3263888888888889,
+       "recovery_latency_frames": 132.02745098039216,
+       "contamination_auc": 0.3030387696603148
+      },
+      "43": {
+       "node_prf1": 0.6478122397552363,
+       "node_prf1_iou": 0.4083141572370126,
+       "missing_residual_rate": 0.1913978494623656,
+       "false_retract_rate": 0.9185356212252181,
+       "false_retract_rate_in_scope": 0.8932018738503854,
+       "identity_continuity": 0.2708333333333333,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.3263888888888889,
+       "recovery_latency_frames": 136.33235294117648,
+       "contamination_auc": 0.30304539821840826
+      },
+      "59": {
+       "node_prf1": 0.6487165254345321,
+       "node_prf1_iou": 0.4077475989581869,
+       "missing_residual_rate": 0.18064516129032257,
+       "false_retract_rate": 0.9190955521636671,
+       "false_retract_rate_in_scope": 0.8941163344086851,
+       "identity_continuity": 0.2708333333333333,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.3263888888888889,
+       "recovery_latency_frames": 131.7294117647059,
+       "contamination_auc": 0.30290314532471485
+      }
+     },
+     "mean": {
+      "node_prf1": 0.6485175536300976,
+      "node_prf1_iou": 0.40769840980341493,
+      "missing_residual_rate": 0.1827956989247312,
+      "false_retract_rate": 0.9190142938549803,
+      "false_retract_rate_in_scope": 0.8938713235777204,
+      "identity_continuity": 0.2875,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.3263888888888889,
+      "recovery_latency_frames": 133.261568627451,
+      "contamination_auc": 0.3027938312575452
+     }
+    },
+    "7": {
+     "config": {
+      "tau_r": 0.7
+     },
+     "seeds_present": [
+      7,
+      19,
+      31,
+      43,
+      59
+     ],
+     "seeds_missing": [],
+     "per_seed": {
+      "7": {
+       "node_prf1": 0.6485539460786545,
+       "node_prf1_iou": 0.4079397202735317,
+       "missing_residual_rate": 0.18064516129032257,
+       "false_retract_rate": 0.9202335492301552,
+       "false_retract_rate_in_scope": 0.8952268273420868,
+       "identity_continuity": 0.3125,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.3263888888888889,
+       "recovery_latency_frames": 133.88333333333335,
+       "contamination_auc": 0.3026853005946096
+      },
+      "19": {
+       "node_prf1": 0.6490241168767061,
+       "node_prf1_iou": 0.40796579550935486,
+       "missing_residual_rate": 0.18064516129032257,
+       "false_retract_rate": 0.9190652667959867,
+       "false_retract_rate_in_scope": 0.8935335242367975,
+       "identity_continuity": 0.2708333333333333,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.3263888888888889,
+       "recovery_latency_frames": 132.34509803921569,
+       "contamination_auc": 0.30221624074721987
+      },
+      "31": {
+       "node_prf1": 0.6485776278009021,
+       "node_prf1_iou": 0.40661819029360846,
+       "missing_residual_rate": 0.18064516129032257,
+       "false_retract_rate": 0.9181373803340324,
+       "false_retract_rate_in_scope": 0.8932697035336142,
+       "identity_continuity": 0.3125,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.3263888888888889,
+       "recovery_latency_frames": 132.0421568627451,
+       "contamination_auc": 0.30290553577339757
+      },
+      "43": {
+       "node_prf1": 0.6477811512332651,
+       "node_prf1_iou": 0.4082959135744082,
+       "missing_residual_rate": 0.1913978494623656,
+       "false_retract_rate": 0.9185272728648363,
+       "false_retract_rate_in_scope": 0.8931786827557657,
+       "identity_continuity": 0.2708333333333333,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.3263888888888889,
+       "recovery_latency_frames": 136.3421568627451,
+       "contamination_auc": 0.30303428770993035
+      },
+      "59": {
+       "node_prf1": 0.6488348638346584,
+       "node_prf1_iou": 0.4077981158064118,
+       "missing_residual_rate": 0.18064516129032257,
+       "false_retract_rate": 0.9190905286305842,
+       "false_retract_rate_in_scope": 0.8940999952866585,
+       "identity_continuity": 0.2708333333333333,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.3263888888888889,
+       "recovery_latency_frames": 131.76862745098038,
+       "contamination_auc": 0.3030122895413058
+      }
+     },
+     "mean": {
+      "node_prf1": 0.6485543411648372,
+      "node_prf1_iou": 0.40772354709146297,
+      "missing_residual_rate": 0.1827956989247312,
+      "false_retract_rate": 0.919010799571119,
+      "false_retract_rate_in_scope": 0.8938617466309846,
+      "identity_continuity": 0.2875,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.3263888888888889,
+      "recovery_latency_frames": 133.27627450980393,
+      "contamination_auc": 0.30277073087329265
+     }
+    },
+    "8": {
+     "config": {
+      "tau_r": 0.8
+     },
+     "seeds_present": [
+      7,
+      19,
+      31,
+      43,
+      59
+     ],
+     "seeds_missing": [],
+     "per_seed": {
+      "7": {
+       "node_prf1": 0.6484718286805203,
+       "node_prf1_iou": 0.4079461491880729,
+       "missing_residual_rate": 0.18064516129032257,
+       "false_retract_rate": 0.9202294050826424,
+       "false_retract_rate_in_scope": 0.8952154144053674,
+       "identity_continuity": 0.3125,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.3263888888888889,
+       "recovery_latency_frames": 133.88333333333335,
+       "contamination_auc": 0.3027374993169964
+      },
+      "19": {
+       "node_prf1": 0.64909588989992,
+       "node_prf1_iou": 0.40798544136806575,
+       "missing_residual_rate": 0.18064516129032257,
+       "false_retract_rate": 0.9190619274033979,
+       "false_retract_rate_in_scope": 0.8935335242367975,
+       "identity_continuity": 0.2708333333333333,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.3263888888888889,
+       "recovery_latency_frames": 132.34509803921569,
+       "contamination_auc": 0.3021957950353418
+      },
+      "31": {
+       "node_prf1": 0.648460648989823,
+       "node_prf1_iou": 0.406613304153726,
+       "missing_residual_rate": 0.18064516129032257,
+       "false_retract_rate": 0.918136661170028,
+       "false_retract_rate_in_scope": 0.8932664295222589,
+       "identity_continuity": 0.3125,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.3263888888888889,
+       "recovery_latency_frames": 132.0519607843137,
+       "contamination_auc": 0.3029852748844226
+      },
+      "43": {
+       "node_prf1": 0.6477307491333947,
+       "node_prf1_iou": 0.40822774045679006,
+       "missing_residual_rate": 0.1913978494623656,
+       "false_retract_rate": 0.9185251086250038,
+       "false_retract_rate_in_scope": 0.8931786827557657,
+       "identity_continuity": 0.2708333333333333,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.3263888888888889,
+       "recovery_latency_frames": 136.3421568627451,
+       "contamination_auc": 0.3028907675885678
+      },
+      "59": {
+       "node_prf1": 0.6487623742672021,
+       "node_prf1_iou": 0.40780343869843344,
+       "missing_residual_rate": 0.18064516129032257,
+       "false_retract_rate": 0.9196394732277376,
+       "false_retract_rate_in_scope": 0.8946789703060781,
+       "identity_continuity": 0.2708333333333333,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.3263888888888889,
+       "recovery_latency_frames": 131.76862745098038,
+       "contamination_auc": 0.3030330884099589
+      }
+     },
+     "mean": {
+      "node_prf1": 0.648504298194172,
+      "node_prf1_iou": 0.40771521477301764,
+      "missing_residual_rate": 0.1827956989247312,
+      "false_retract_rate": 0.9191185151017619,
+      "false_retract_rate_in_scope": 0.8939746042452535,
+      "identity_continuity": 0.2875,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.3263888888888889,
+      "recovery_latency_frames": 133.27823529411765,
+      "contamination_auc": 0.3027684850470575
+     }
+    },
+    "9": {
+     "config": {
+      "tau_r": 0.9
+     },
+     "seeds_present": [
+      7,
+      19,
+      31,
+      43,
+      59
+     ],
+     "seeds_missing": [],
+     "per_seed": {
+      "7": {
+       "node_prf1": 0.6485201950349861,
+       "node_prf1_iou": 0.407968352243662,
+       "missing_residual_rate": 0.18064516129032257,
+       "false_retract_rate": 0.9202290352929788,
+       "false_retract_rate_in_scope": 0.8952154144053674,
+       "identity_continuity": 0.3125,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.3263888888888889,
+       "recovery_latency_frames": 133.88333333333335,
+       "contamination_auc": 0.3027290644287311
+      },
+      "19": {
+       "node_prf1": 0.6490024792500744,
+       "node_prf1_iou": 0.40807052079548944,
+       "missing_residual_rate": 0.18064516129032257,
+       "false_retract_rate": 0.9190757133891791,
+       "false_retract_rate_in_scope": 0.8935752709179364,
+       "identity_continuity": 0.2708333333333333,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.3263888888888889,
+       "recovery_latency_frames": 132.35686274509803,
+       "contamination_auc": 0.3023025951215977
+      },
+      "31": {
+       "node_prf1": 0.6484427947480157,
+       "node_prf1_iou": 0.4066056172221823,
+       "missing_residual_rate": 0.18064516129032257,
+       "false_retract_rate": 0.9178274462724973,
+       "false_retract_rate_in_scope": 0.8926893671508184,
+       "identity_continuity": 0.3125,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.3263888888888889,
+       "recovery_latency_frames": 133.52941176470588,
+       "contamination_auc": 0.30295046909757867
+      },
+      "43": {
+       "node_prf1": 0.6477934999789249,
+       "node_prf1_iou": 0.4082482577373297,
+       "missing_residual_rate": 0.1913978494623656,
+       "false_retract_rate": 0.9185252769092183,
+       "false_retract_rate_in_scope": 0.8931786827557657,
+       "identity_continuity": 0.2708333333333333,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.3263888888888889,
+       "recovery_latency_frames": 136.35686274509803,
+       "contamination_auc": 0.3029139313889836
+      },
+      "59": {
+       "node_prf1": 0.6487190046383838,
+       "node_prf1_iou": 0.4077577516420521,
+       "missing_residual_rate": 0.18064516129032257,
+       "false_retract_rate": 0.9196469295617833,
+       "false_retract_rate_in_scope": 0.8947042068601986,
+       "identity_continuity": 0.2708333333333333,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.3263888888888889,
+       "recovery_latency_frames": 131.778431372549,
+       "contamination_auc": 0.3029764782018391
+      }
+     },
+     "mean": {
+      "node_prf1": 0.648495594730077,
+      "node_prf1_iou": 0.40773009992814313,
+      "missing_residual_rate": 0.1827956989247312,
+      "false_retract_rate": 0.9190608802851313,
+      "false_retract_rate_in_scope": 0.8938725884180172,
+      "identity_continuity": 0.2875,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.3263888888888889,
+      "recovery_latency_frames": 133.58098039215685,
+      "contamination_auc": 0.30277450764774605
+     }
+    }
+   },
+   "AssocOnly": {
+    "0": {
+     "config": {},
+     "seeds_present": [
+      7,
+      19,
+      31,
+      43,
+      59
+     ],
+     "seeds_missing": [],
+     "per_seed": {
+      "7": {
+       "node_prf1": 0.8511775102364258,
+       "node_prf1_iou": 0.48184058107951205,
+       "missing_residual_rate": 0.717741935483871,
+       "false_retract_rate": null,
+       "false_retract_rate_in_scope": null,
+       "identity_continuity": 0.10416666666666667,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.09722222222222221,
+       "recovery_latency_frames": 189.72058823529412,
+       "contamination_auc": 0.3133416422712225
+      },
+      "19": {
+       "node_prf1": 0.8597240859126817,
+       "node_prf1_iou": 0.48234920104863127,
+       "missing_residual_rate": 0.739247311827957,
+       "false_retract_rate": null,
+       "false_retract_rate_in_scope": null,
+       "identity_continuity": 0.10416666666666667,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.13888888888888887,
+       "recovery_latency_frames": 167.5343137254902,
+       "contamination_auc": 0.30455602593351233
+      },
+      "31": {
+       "node_prf1": 0.8468884660818057,
+       "node_prf1_iou": 0.47974701797967695,
+       "missing_residual_rate": 0.7043010752688171,
+       "false_retract_rate": null,
+       "false_retract_rate_in_scope": null,
+       "identity_continuity": 0.11805555555555554,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.15277777777777776,
+       "recovery_latency_frames": 177.42156862745097,
+       "contamination_auc": 0.31226545657561244
+      },
+      "43": {
+       "node_prf1": 0.8483328622443288,
+       "node_prf1_iou": 0.4797675446485673,
+       "missing_residual_rate": 0.6935483870967742,
+       "false_retract_rate": null,
+       "false_retract_rate_in_scope": null,
+       "identity_continuity": 0.07638888888888888,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.1111111111111111,
+       "recovery_latency_frames": 168.23627450980393,
+       "contamination_auc": 0.3162691712729259
+      },
+      "59": {
+       "node_prf1": 0.8597586132777496,
+       "node_prf1_iou": 0.48269723587027513,
+       "missing_residual_rate": 0.7806451612903226,
+       "false_retract_rate": null,
+       "false_retract_rate_in_scope": null,
+       "identity_continuity": 0.07638888888888888,
+       "identity_continuity_conditional": null,
+       "retrieval_success": 0.09722222222222221,
+       "recovery_latency_frames": 170.89705882352942,
+       "contamination_auc": 0.3024939630451404
+      }
+     },
+     "mean": {
+      "node_prf1": 0.8531763075505984,
+      "node_prf1_iou": 0.4812803161253325,
+      "missing_residual_rate": 0.7270967741935485,
+      "false_retract_rate": null,
+      "false_retract_rate_in_scope": null,
+      "identity_continuity": 0.09583333333333333,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.11944444444444442,
+      "recovery_latency_frames": 174.76196078431371,
+      "contamination_auc": 0.30978525181968275
+     }
+    }
+   },
+   "TAF": {
+    "0": {
+     "config": {
+      "theta_a": 0.6,
+      "d_a": null
+     },
+     "seeds_present": [],
+     "seeds_missing": [],
+     "per_seed": {},
+     "mean": {
+      "node_prf1": 0.6283753376722456,
+      "node_prf1_iou": 0.40716009160574446,
+      "missing_residual_rate": 0.5370967741935483,
+      "false_retract_rate": null,
+      "false_retract_rate_in_scope": null,
+      "identity_continuity": 0.25,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.20833333333333334,
+      "recovery_latency_frames": 163.55784313725488,
+      "contamination_auc": 0.3439006014631564
+     }
+    },
+    "1": {
+     "config": {
+      "theta_a": 0.6,
+      "d_a": 0.5
+     },
+     "seeds_present": [],
+     "seeds_missing": [],
+     "per_seed": {},
+     "mean": {
+      "node_prf1": 0.6535083080930724,
+      "node_prf1_iou": 0.4201986160466907,
+      "missing_residual_rate": 0.8908602150537634,
+      "false_retract_rate": null,
+      "false_retract_rate_in_scope": null,
+      "identity_continuity": 0.041666666666666664,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.0625,
+      "recovery_latency_frames": 170.08823529411765,
+      "contamination_auc": 0.3191802380112476
+     }
+    },
+    "2": {
+     "config": {
+      "theta_a": 0.6,
+      "d_a": 1.0
+     },
+     "seeds_present": [],
+     "seeds_missing": [],
+     "per_seed": {},
+     "mean": {
+      "node_prf1": 0.6766318501006406,
+      "node_prf1_iou": 0.4314575290690314,
+      "missing_residual_rate": 0.756989247311828,
+      "false_retract_rate": null,
+      "false_retract_rate_in_scope": null,
+      "identity_continuity": 0.09722222222222222,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.11805555555555557,
+      "recovery_latency_frames": 159.77254901960782,
+      "contamination_auc": 0.3143514337583232
+     }
+    },
+    "3": {
+     "config": {
+      "theta_a": 0.6,
+      "d_a": 2.0
+     },
+     "seeds_present": [],
+     "seeds_missing": [],
+     "per_seed": {},
+     "mean": {
+      "node_prf1": 0.673310753894162,
+      "node_prf1_iou": 0.4278422219277944,
+      "missing_residual_rate": 0.7274193548387097,
+      "false_retract_rate": null,
+      "false_retract_rate_in_scope": null,
+      "identity_continuity": 0.09722222222222222,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.11805555555555557,
+      "recovery_latency_frames": 166.6343137254902,
+      "contamination_auc": 0.314119911631117
+     }
+    },
+    "4": {
+     "config": {
+      "theta_a": 0.7,
+      "d_a": null
+     },
+     "seeds_present": [],
+     "seeds_missing": [],
+     "per_seed": {},
+     "mean": {
+      "node_prf1": 0.6271138328457283,
+      "node_prf1_iou": 0.3989723626096958,
+      "missing_residual_rate": 0.6629032258064517,
+      "false_retract_rate": null,
+      "false_retract_rate_in_scope": null,
+      "identity_continuity": 0.3125,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.3125,
+      "recovery_latency_frames": 142.42745098039214,
+      "contamination_auc": 0.30610821591653053
+     }
+    },
+    "5": {
+     "config": {
+      "theta_a": 0.7,
+      "d_a": 0.5
+     },
+     "seeds_present": [],
+     "seeds_missing": [],
+     "per_seed": {},
+     "mean": {
+      "node_prf1": 0.6345808457718933,
+      "node_prf1_iou": 0.407425747802893,
+      "missing_residual_rate": 0.9231182795698925,
+      "false_retract_rate": null,
+      "false_retract_rate_in_scope": null,
+      "identity_continuity": 0.0,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.020833333333333332,
+      "recovery_latency_frames": 189.0686274509804,
+      "contamination_auc": 0.3035819201402547
+     }
+    },
+    "6": {
+     "config": {
+      "theta_a": 0.7,
+      "d_a": 1.0
+     },
+     "seeds_present": [],
+     "seeds_missing": [],
+     "per_seed": {},
+     "mean": {
+      "node_prf1": 0.6456446196637592,
+      "node_prf1_iou": 0.4144108140143985,
+      "missing_residual_rate": 0.810752688172043,
+      "false_retract_rate": null,
+      "false_retract_rate_in_scope": null,
+      "identity_continuity": 0.09722222222222222,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.11805555555555557,
+      "recovery_latency_frames": 161.19117647058823,
+      "contamination_auc": 0.30063147499893317
+     }
+    },
+    "7": {
+     "config": {
+      "theta_a": 0.7,
+      "d_a": 2.0
+     },
+     "seeds_present": [],
+     "seeds_missing": [],
+     "per_seed": {},
+     "mean": {
+      "node_prf1": 0.6456256037409075,
+      "node_prf1_iou": 0.4118097508463838,
+      "missing_residual_rate": 0.7919354838709678,
+      "false_retract_rate": null,
+      "false_retract_rate_in_scope": null,
+      "identity_continuity": 0.09722222222222222,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.11805555555555557,
+      "recovery_latency_frames": 156.20980392156864,
+      "contamination_auc": 0.2978122221281628
+     }
+    },
+    "8": {
+     "config": {
+      "theta_a": 0.8,
+      "d_a": null
+     },
+     "seeds_present": [],
+     "seeds_missing": [],
+     "per_seed": {},
+     "mean": {
+      "node_prf1": 0.5947649718043733,
+      "node_prf1_iou": 0.38212246135334127,
+      "missing_residual_rate": 0.8629032258064516,
+      "false_retract_rate": null,
+      "false_retract_rate_in_scope": null,
+      "identity_continuity": 0.09722222222222222,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.11805555555555557,
+      "recovery_latency_frames": 175.35294117647058,
+      "contamination_auc": 0.28970127549839225
+     }
+    },
+    "9": {
+     "config": {
+      "theta_a": 0.8,
+      "d_a": 0.5
+     },
+     "seeds_present": [],
+     "seeds_missing": [],
+     "per_seed": {},
+     "mean": {
+      "node_prf1": 0.5985117428602902,
+      "node_prf1_iou": 0.383789335100111,
+      "missing_residual_rate": 0.9510752688172043,
+      "false_retract_rate": null,
+      "false_retract_rate_in_scope": null,
+      "identity_continuity": 0.0,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.020833333333333332,
+      "recovery_latency_frames": 170.0343137254902,
+      "contamination_auc": 0.2862884611849246
+     }
+    },
+    "10": {
+     "config": {
+      "theta_a": 0.8,
+      "d_a": 1.0
+     },
+     "seeds_present": [],
+     "seeds_missing": [],
+     "per_seed": {},
+     "mean": {
+      "node_prf1": 0.6016357936948159,
+      "node_prf1_iou": 0.38789788151519083,
+      "missing_residual_rate": 0.8897849462365591,
+      "false_retract_rate": null,
+      "false_retract_rate_in_scope": null,
+      "identity_continuity": 0.05555555555555555,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.07638888888888888,
+      "recovery_latency_frames": 174.12254901960785,
+      "contamination_auc": 0.2870687131407996
+     }
+    },
+    "11": {
+     "config": {
+      "theta_a": 0.8,
+      "d_a": 2.0
+     },
+     "seeds_present": [],
+     "seeds_missing": [],
+     "per_seed": {},
+     "mean": {
+      "node_prf1": 0.6009437578847091,
+      "node_prf1_iou": 0.3866236466365219,
+      "missing_residual_rate": 0.8897849462365591,
+      "false_retract_rate": null,
+      "false_retract_rate_in_scope": null,
+      "identity_continuity": 0.05555555555555555,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.07638888888888888,
+      "recovery_latency_frames": 171.72549019607845,
+      "contamination_auc": 0.2873924932505174
+     }
+    }
+   },
+   "ELU-P": {
+    "0": {
+     "config": {
+      "theta_a": 0.7,
+      "d_a": null,
+      "free_space_weight": 0.5,
+      "retract_threshold": 0.0
+     },
+     "seeds_present": [],
+     "seeds_missing": [],
+     "per_seed": {},
+     "mean": {
+      "node_prf1": 0.6377646026893518,
+      "node_prf1_iou": 0.40482879124249865,
+      "missing_residual_rate": 0.2521505376344086,
+      "false_retract_rate": 0.8176507916462848,
+      "false_retract_rate_in_scope": 0.7866210359541874,
+      "identity_continuity": 0.3125,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.3125,
+      "recovery_latency_frames": 166.44411764705885,
+      "contamination_auc": 0.30466498148144255
+     }
+    },
+    "1": {
+     "config": {
+      "theta_a": 0.7,
+      "d_a": null,
+      "free_space_weight": 0.5,
+      "retract_threshold": -1.0
+     },
+     "seeds_present": [],
+     "seeds_missing": [],
+     "per_seed": {},
+     "mean": {
+      "node_prf1": 0.6358777163047427,
+      "node_prf1_iou": 0.4037654495149242,
+      "missing_residual_rate": 0.2736559139784946,
+      "false_retract_rate": 0.79600938679871,
+      "false_retract_rate_in_scope": 0.7626816437530722,
+      "identity_continuity": 0.3125,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.3125,
+      "recovery_latency_frames": 166.89117647058825,
+      "contamination_auc": 0.3044982667480497
+     }
+    },
+    "2": {
+     "config": {
+      "theta_a": 0.7,
+      "d_a": null,
+      "free_space_weight": 1.0,
+      "retract_threshold": 0.0
+     },
+     "seeds_present": [],
+     "seeds_missing": [],
+     "per_seed": {},
+     "mean": {
+      "node_prf1": 0.6448714940673056,
+      "node_prf1_iou": 0.4075122381757134,
+      "missing_residual_rate": 0.18064516129032257,
+      "false_retract_rate": 0.9193460929259877,
+      "false_retract_rate_in_scope": 0.8949515778223047,
+      "identity_continuity": 0.3125,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.3263888888888889,
+      "recovery_latency_frames": 142.47352941176473,
+      "contamination_auc": 0.3083587948614772
+     }
+    },
+    "3": {
+     "config": {
+      "theta_a": 0.7,
+      "d_a": null,
+      "free_space_weight": 1.0,
+      "retract_threshold": -1.0
+     },
+     "seeds_present": [],
+     "seeds_missing": [],
+     "per_seed": {},
+     "mean": {
+      "node_prf1": 0.6423579699932136,
+      "node_prf1_iou": 0.4062612071461884,
+      "missing_residual_rate": 0.1870967741935484,
+      "false_retract_rate": 0.8859430412914796,
+      "false_retract_rate_in_scope": 0.8604380751991115,
+      "identity_continuity": 0.3125,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.3263888888888889,
+      "recovery_latency_frames": 144.22745098039218,
+      "contamination_auc": 0.30790435139857814
+     }
+    },
+    "4": {
+     "config": {
+      "theta_a": 0.7,
+      "d_a": null,
+      "free_space_weight": 2.0,
+      "retract_threshold": 0.0
+     },
+     "seeds_present": [],
+     "seeds_missing": [],
+     "per_seed": {},
+     "mean": {
+      "node_prf1": 0.6495176637235975,
+      "node_prf1_iou": 0.4077106506363726,
+      "missing_residual_rate": 0.10430107526881721,
+      "false_retract_rate": 0.9544209329421898,
+      "false_retract_rate_in_scope": 0.9258701869554387,
+      "identity_continuity": 0.3125,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.375,
+      "recovery_latency_frames": 133.78725490196078,
+      "contamination_auc": 0.3188144653624058
+     }
+    },
+    "5": {
+     "config": {
+      "theta_a": 0.7,
+      "d_a": null,
+      "free_space_weight": 2.0,
+      "retract_threshold": -1.0
+     },
+     "seeds_present": [],
+     "seeds_missing": [],
+     "per_seed": {},
+     "mean": {
+      "node_prf1": 0.6482023883075572,
+      "node_prf1_iou": 0.4071530798689656,
+      "missing_residual_rate": 0.10430107526881721,
+      "false_retract_rate": 0.9492203748195404,
+      "false_retract_rate_in_scope": 0.9193703103256922,
+      "identity_continuity": 0.3125,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.375,
+      "recovery_latency_frames": 134.45980392156864,
+      "contamination_auc": 0.3162344896374852
+     }
+    },
+    "6": {
+     "config": {
+      "theta_a": 0.7,
+      "d_a": 1.0,
+      "free_space_weight": 0.5,
+      "retract_threshold": 0.0
+     },
+     "seeds_present": [],
+     "seeds_missing": [],
+     "per_seed": {},
+     "mean": {
+      "node_prf1": 0.6585422796982727,
+      "node_prf1_iou": 0.4195830394919156,
+      "missing_residual_rate": 0.30000000000000004,
+      "false_retract_rate": 0.8237224310940022,
+      "false_retract_rate_in_scope": 0.7774191835453538,
+      "identity_continuity": 0.09722222222222222,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.15277777777777776,
+      "recovery_latency_frames": 177.19019607843137,
+      "contamination_auc": 0.29981784232009345
+     }
+    },
+    "7": {
+     "config": {
+      "theta_a": 0.7,
+      "d_a": 1.0,
+      "free_space_weight": 0.5,
+      "retract_threshold": -1.0
+     },
+     "seeds_present": [],
+     "seeds_missing": [],
+     "per_seed": {},
+     "mean": {
+      "node_prf1": 0.6560137730376113,
+      "node_prf1_iou": 0.4185155059146442,
+      "missing_residual_rate": 0.3268817204301075,
+      "false_retract_rate": 0.801301778295498,
+      "false_retract_rate_in_scope": 0.7520291827140466,
+      "identity_continuity": 0.09722222222222222,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.15277777777777776,
+      "recovery_latency_frames": 180.37156862745098,
+      "contamination_auc": 0.2997711844198911
+     }
+    },
+    "8": {
+     "config": {
+      "theta_a": 0.7,
+      "d_a": 1.0,
+      "free_space_weight": 1.0,
+      "retract_threshold": 0.0
+     },
+     "seeds_present": [],
+     "seeds_missing": [],
+     "per_seed": {},
+     "mean": {
+      "node_prf1": 0.669145272304487,
+      "node_prf1_iou": 0.42355754202047485,
+      "missing_residual_rate": 0.18064516129032257,
+      "false_retract_rate": 0.9238957669054991,
+      "false_retract_rate_in_scope": 0.8855270180048048,
+      "identity_continuity": 0.09722222222222222,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.20833333333333334,
+      "recovery_latency_frames": 166.45882352941177,
+      "contamination_auc": 0.30280086299173864
+     }
+    },
+    "9": {
+     "config": {
+      "theta_a": 0.7,
+      "d_a": 1.0,
+      "free_space_weight": 1.0,
+      "retract_threshold": -1.0
+     },
+     "seeds_present": [],
+     "seeds_missing": [],
+     "per_seed": {},
+     "mean": {
+      "node_prf1": 0.665804007883375,
+      "node_prf1_iou": 0.42205922209337793,
+      "missing_residual_rate": 0.1870967741935484,
+      "false_retract_rate": 0.8904931343216491,
+      "false_retract_rate_in_scope": 0.8509406366503554,
+      "identity_continuity": 0.09722222222222222,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.20833333333333334,
+      "recovery_latency_frames": 168.0764705882353,
+      "contamination_auc": 0.30232629148067397
+     }
+    },
+    "10": {
+     "config": {
+      "theta_a": 0.7,
+      "d_a": 1.0,
+      "free_space_weight": 2.0,
+      "retract_threshold": 0.0
+     },
+     "seeds_present": [],
+     "seeds_missing": [],
+     "per_seed": {},
+     "mean": {
+      "node_prf1": 0.678785309750042,
+      "node_prf1_iou": 0.4257751293918723,
+      "missing_residual_rate": 0.10430107526881721,
+      "false_retract_rate": 0.9587855922305835,
+      "false_retract_rate_in_scope": 0.9211357877990748,
+      "identity_continuity": 0.09722222222222222,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.2777777777777778,
+      "recovery_latency_frames": 144.771568627451,
+      "contamination_auc": 0.3107813281830216
+     }
+    },
+    "11": {
+     "config": {
+      "theta_a": 0.7,
+      "d_a": 1.0,
+      "free_space_weight": 2.0,
+      "retract_threshold": -1.0
+     },
+     "seeds_present": [],
+     "seeds_missing": [],
+     "per_seed": {},
+     "mean": {
+      "node_prf1": 0.675759482414393,
+      "node_prf1_iou": 0.42450182189563584,
+      "missing_residual_rate": 0.10430107526881721,
+      "false_retract_rate": 0.9528538964841659,
+      "false_retract_rate_in_scope": 0.9134904798690292,
+      "identity_continuity": 0.09722222222222222,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.2569444444444445,
+      "recovery_latency_frames": 145.35196078431372,
+      "contamination_auc": 0.3091266141182009
+     }
+    }
+   },
+   "RAC": {
+    "0": {
+     "config": {
+      "theta_a": 0.7,
+      "d_a": null,
+      "rho_rac": 0.7,
+      "n_rac": 2
+     },
+     "seeds_present": [],
+     "seeds_missing": [],
+     "per_seed": {},
+     "mean": {
+      "node_prf1": 0.6355320863663622,
+      "node_prf1_iou": 0.4049258517630042,
+      "missing_residual_rate": 0.09784946236559139,
+      "false_retract_rate": 0.8335181826679865,
+      "false_retract_rate_in_scope": 0.7649175381411021,
+      "identity_continuity": 0.14583333333333334,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.2569444444444444,
+      "recovery_latency_frames": 130.75,
+      "contamination_auc": 0.30445307905300817
+     }
+    },
+    "1": {
+     "config": {
+      "theta_a": 0.7,
+      "d_a": null,
+      "rho_rac": 0.7,
+      "n_rac": 3
+     },
+     "seeds_present": [],
+     "seeds_missing": [],
+     "per_seed": {},
+     "mean": {
+      "node_prf1": 0.6333034157308017,
+      "node_prf1_iou": 0.40374961586164965,
+      "missing_residual_rate": 0.10322580645161289,
+      "false_retract_rate": 0.7696156166026186,
+      "false_retract_rate_in_scope": 0.681062823010089,
+      "identity_continuity": 0.14583333333333334,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.24305555555555555,
+      "recovery_latency_frames": 129.21274509803922,
+      "contamination_auc": 0.30315312083320123
+     }
+    },
+    "2": {
+     "config": {
+      "theta_a": 0.7,
+      "d_a": null,
+      "rho_rac": 0.7,
+      "n_rac": 5
+     },
+     "seeds_present": [],
+     "seeds_missing": [],
+     "per_seed": {},
+     "mean": {
+      "node_prf1": 0.6324052327790408,
+      "node_prf1_iou": 0.40338619967267014,
+      "missing_residual_rate": 0.16612903225806452,
+      "false_retract_rate": 0.6145690355300877,
+      "false_retract_rate_in_scope": 0.5108484351905405,
+      "identity_continuity": 0.14583333333333334,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.24305555555555555,
+      "recovery_latency_frames": 129.26764705882354,
+      "contamination_auc": 0.3009030399528395
+     }
+    },
+    "3": {
+     "config": {
+      "theta_a": 0.7,
+      "d_a": null,
+      "rho_rac": 0.85,
+      "n_rac": 2
+     },
+     "seeds_present": [],
+     "seeds_missing": [],
+     "per_seed": {},
+     "mean": {
+      "node_prf1": 0.6333631112822139,
+      "node_prf1_iou": 0.40367662245811875,
+      "missing_residual_rate": 0.14193548387096774,
+      "false_retract_rate": 0.791587007160755,
+      "false_retract_rate_in_scope": 0.6892805292698291,
+      "identity_continuity": 0.14583333333333334,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.24305555555555555,
+      "recovery_latency_frames": 129.46960784313728,
+      "contamination_auc": 0.30341455663809497
+     }
+    },
+    "4": {
+     "config": {
+      "theta_a": 0.7,
+      "d_a": null,
+      "rho_rac": 0.85,
+      "n_rac": 3
+     },
+     "seeds_present": [],
+     "seeds_missing": [],
+     "per_seed": {},
+     "mean": {
+      "node_prf1": 0.631834437577491,
+      "node_prf1_iou": 0.4031542031285667,
+      "missing_residual_rate": 0.15000000000000002,
+      "false_retract_rate": 0.6876883341584435,
+      "false_retract_rate_in_scope": 0.5636906118109126,
+      "identity_continuity": 0.14583333333333334,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.24305555555555555,
+      "recovery_latency_frames": 125.2421568627451,
+      "contamination_auc": 0.302093858512835
+     }
+    },
+    "5": {
+     "config": {
+      "theta_a": 0.7,
+      "d_a": null,
+      "rho_rac": 0.85,
+      "n_rac": 5
+     },
+     "seeds_present": [],
+     "seeds_missing": [],
+     "per_seed": {},
+     "mean": {
+      "node_prf1": 0.6312700987241039,
+      "node_prf1_iou": 0.4028434529580029,
+      "missing_residual_rate": 0.2032258064516129,
+      "false_retract_rate": 0.497463096188501,
+      "false_retract_rate_in_scope": 0.40585188620902907,
+      "identity_continuity": 0.14583333333333334,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.24305555555555555,
+      "recovery_latency_frames": 117.95,
+      "contamination_auc": 0.30136532178137815
+     }
+    },
+    "6": {
+     "config": {
+      "theta_a": 0.7,
+      "d_a": 1.0,
+      "rho_rac": 0.7,
+      "n_rac": 2
+     },
+     "seeds_present": [],
+     "seeds_missing": [],
+     "per_seed": {},
+     "mean": {
+      "node_prf1": 0.6568462817049703,
+      "node_prf1_iou": 0.41964872274073767,
+      "missing_residual_rate": 0.09784946236559139,
+      "false_retract_rate": 0.8539038633197583,
+      "false_retract_rate_in_scope": 0.7635663010282316,
+      "identity_continuity": 0.041666666666666664,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.17361111111111113,
+      "recovery_latency_frames": 128.56176470588235,
+      "contamination_auc": 0.29982709410620706
+     }
+    },
+    "7": {
+     "config": {
+      "theta_a": 0.7,
+      "d_a": 1.0,
+      "rho_rac": 0.7,
+      "n_rac": 3
+     },
+     "seeds_present": [],
+     "seeds_missing": [],
+     "per_seed": {},
+     "mean": {
+      "node_prf1": 0.6542507274997965,
+      "node_prf1_iou": 0.4186155997093415,
+      "missing_residual_rate": 0.12741935483870967,
+      "false_retract_rate": 0.7972925610419653,
+      "false_retract_rate_in_scope": 0.6723582852556894,
+      "identity_continuity": 0.041666666666666664,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.1597222222222222,
+      "recovery_latency_frames": 129.06960784313725,
+      "contamination_auc": 0.2973857979607852
+     }
+    },
+    "8": {
+     "config": {
+      "theta_a": 0.7,
+      "d_a": 1.0,
+      "rho_rac": 0.7,
+      "n_rac": 5
+     },
+     "seeds_present": [],
+     "seeds_missing": [],
+     "per_seed": {},
+     "mean": {
+      "node_prf1": 0.6530195002825063,
+      "node_prf1_iou": 0.4178776947933576,
+      "missing_residual_rate": 0.19838709677419353,
+      "false_retract_rate": 0.6598646646596517,
+      "false_retract_rate_in_scope": 0.5018932990322862,
+      "identity_continuity": 0.041666666666666664,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.1597222222222222,
+      "recovery_latency_frames": 136.90882352941176,
+      "contamination_auc": 0.29522956469946654
+     }
+    },
+    "9": {
+     "config": {
+      "theta_a": 0.7,
+      "d_a": 1.0,
+      "rho_rac": 0.85,
+      "n_rac": 2
+     },
+     "seeds_present": [],
+     "seeds_missing": [],
+     "per_seed": {},
+     "mean": {
+      "node_prf1": 0.6551961356497646,
+      "node_prf1_iou": 0.4186914256681413,
+      "missing_residual_rate": 0.15806451612903227,
+      "false_retract_rate": 0.8152754422454763,
+      "false_retract_rate_in_scope": 0.6833820833122213,
+      "identity_continuity": 0.041666666666666664,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.1597222222222222,
+      "recovery_latency_frames": 131.75980392156862,
+      "contamination_auc": 0.29861554356618897
+     }
+    },
+    "10": {
+     "config": {
+      "theta_a": 0.7,
+      "d_a": 1.0,
+      "rho_rac": 0.85,
+      "n_rac": 3
+     },
+     "seeds_present": [],
+     "seeds_missing": [],
+     "per_seed": {},
+     "mean": {
+      "node_prf1": 0.6529847763319069,
+      "node_prf1_iou": 0.41761924473105794,
+      "missing_residual_rate": 0.18494623655913978,
+      "false_retract_rate": 0.7255162508340955,
+      "false_retract_rate_in_scope": 0.5468571466913541,
+      "identity_continuity": 0.041666666666666664,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.1597222222222222,
+      "recovery_latency_frames": 126.28137254901961,
+      "contamination_auc": 0.29681387273986976
+     }
+    },
+    "11": {
+     "config": {
+      "theta_a": 0.7,
+      "d_a": 1.0,
+      "rho_rac": 0.85,
+      "n_rac": 5
+     },
+     "seeds_present": [],
+     "seeds_missing": [],
+     "per_seed": {},
+     "mean": {
+      "node_prf1": 0.6515637416022485,
+      "node_prf1_iou": 0.41708594001073235,
+      "missing_residual_rate": 0.25,
+      "false_retract_rate": 0.5688043706173787,
+      "false_retract_rate_in_scope": 0.40464035964035966,
+      "identity_continuity": 0.041666666666666664,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.1597222222222222,
+      "recovery_latency_frames": 125.04019607843138,
+      "contamination_auc": 0.2961441954683279
+     }
+    }
+   },
+   "LOW": {
+    "0": {
+     "config": {
+      "d_low": null
+     },
+     "seeds_present": [],
+     "seeds_missing": [],
+     "per_seed": {},
+     "mean": {
+      "node_prf1": 0.09418983770321251,
+      "node_prf1_iou": 0.20963153207562601,
+      "missing_residual_rate": 0.0,
+      "false_retract_rate": null,
+      "false_retract_rate_in_scope": null,
+      "identity_continuity": 0.0,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.0,
+      "recovery_latency_frames": 47.588235294117645,
+      "contamination_auc": 0.6282767820727935
+     }
+    },
+    "1": {
+     "config": {
+      "d_low": 0.25
+     },
+     "seeds_present": [],
+     "seeds_missing": [],
+     "per_seed": {},
+     "mean": {
+      "node_prf1": 0.7232397876772286,
+      "node_prf1_iou": 0.4309572096484231,
+      "missing_residual_rate": 0.906989247311828,
+      "false_retract_rate": null,
+      "false_retract_rate_in_scope": null,
+      "identity_continuity": 0.0,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.03472222222222222,
+      "recovery_latency_frames": 175.48529411764707,
+      "contamination_auc": 0.33088924375714757
+     }
+    },
+    "2": {
+     "config": {
+      "d_low": 0.5
+     },
+     "seeds_present": [],
+     "seeds_missing": [],
+     "per_seed": {},
+     "mean": {
+      "node_prf1": 0.7724455710289498,
+      "node_prf1_iou": 0.4554800704792413,
+      "missing_residual_rate": 0.6779569892473118,
+      "false_retract_rate": null,
+      "false_retract_rate_in_scope": null,
+      "identity_continuity": 0.0,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.13194444444444445,
+      "recovery_latency_frames": 207.77450980392155,
+      "contamination_auc": 0.35973006458489676
+     }
+    },
+    "3": {
+     "config": {
+      "d_low": 1.0
+     },
+     "seeds_present": [],
+     "seeds_missing": [],
+     "per_seed": {},
+     "mean": {
+      "node_prf1": 0.7541713187844257,
+      "node_prf1_iou": 0.45205493036892,
+      "missing_residual_rate": 0.2731182795698925,
+      "false_retract_rate": null,
+      "false_retract_rate_in_scope": null,
+      "identity_continuity": 0.0,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.041666666666666664,
+      "recovery_latency_frames": 192.49803921568628,
+      "contamination_auc": 0.3969584008715206
+     }
+    },
+    "4": {
+     "config": {
+      "d_low": 2.0
+     },
+     "seeds_present": [],
+     "seeds_missing": [],
+     "per_seed": {},
+     "mean": {
+      "node_prf1": 0.48926779448704,
+      "node_prf1_iou": 0.3590683838172489,
+      "missing_residual_rate": 0.011827956989247313,
+      "false_retract_rate": null,
+      "false_retract_rate_in_scope": null,
+      "identity_continuity": 0.0,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.020833333333333332,
+      "recovery_latency_frames": 105.79509803921569,
+      "contamination_auc": 0.5531757531015439
+     }
+    }
+   },
+   "HandCost": {
+    "0": {
+     "config": {
+      "theta_b": 0.6,
+      "rho_h": 0.6
+     },
+     "seeds_present": [],
+     "seeds_missing": [],
+     "per_seed": {},
+     "mean": {
+      "node_prf1": 0.623037317898477,
+      "node_prf1_iou": 0.3971712783506621,
+      "missing_residual_rate": 0.03763440860215053,
+      "false_retract_rate": 0.9229097696200766,
+      "false_retract_rate_in_scope": 0.8779757499168117,
+      "identity_continuity": 0.25,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.23611111111111108,
+      "recovery_latency_frames": 131.7372549019608,
+      "contamination_auc": 0.3688151076493999
+     }
+    },
+    "1": {
+     "config": {
+      "theta_b": 0.6,
+      "rho_h": 0.7
+     },
+     "seeds_present": [],
+     "seeds_missing": [],
+     "per_seed": {},
+     "mean": {
+      "node_prf1": 0.6257478191323476,
+      "node_prf1_iou": 0.40101564278044327,
+      "missing_residual_rate": 0.04946236559139785,
+      "false_retract_rate": 0.8792351147638701,
+      "false_retract_rate_in_scope": 0.8385637617833953,
+      "identity_continuity": 0.25,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.23611111111111108,
+      "recovery_latency_frames": 131.7372549019608,
+      "contamination_auc": 0.36195831456609484
+     }
+    },
+    "2": {
+     "config": {
+      "theta_b": 0.6,
+      "rho_h": 0.8
+     },
+     "seeds_present": [],
+     "seeds_missing": [],
+     "per_seed": {},
+     "mean": {
+      "node_prf1": 0.6287936410979111,
+      "node_prf1_iou": 0.40474339847163815,
+      "missing_residual_rate": 0.054838709677419356,
+      "false_retract_rate": 0.8650328857315152,
+      "false_retract_rate_in_scope": 0.8202131651185288,
+      "identity_continuity": 0.25,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.23611111111111108,
+      "recovery_latency_frames": 131.74901960784314,
+      "contamination_auc": 0.3559645353416609
+     }
+    },
+    "3": {
+     "config": {
+      "theta_b": 0.6,
+      "rho_h": 0.9
+     },
+     "seeds_present": [],
+     "seeds_missing": [],
+     "per_seed": {},
+     "mean": {
+      "node_prf1": 0.6298505658104925,
+      "node_prf1_iou": 0.40583322423265233,
+      "missing_residual_rate": 0.09086021505376343,
+      "false_retract_rate": 0.851064458020412,
+      "false_retract_rate_in_scope": 0.8017942757900115,
+      "identity_continuity": 0.25,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.23611111111111108,
+      "recovery_latency_frames": 124.76274509803922,
+      "contamination_auc": 0.3528600297547527
+     }
+    },
+    "4": {
+     "config": {
+      "theta_b": 0.7,
+      "rho_h": 0.6
+     },
+     "seeds_present": [],
+     "seeds_missing": [],
+     "per_seed": {},
+     "mean": {
+      "node_prf1": 0.6315648003088427,
+      "node_prf1_iou": 0.39653578801655986,
+      "missing_residual_rate": 0.05376344086021505,
+      "false_retract_rate": 0.9393473656384244,
+      "false_retract_rate_in_scope": 0.9034670821197777,
+      "identity_continuity": 0.3125,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.3194444444444444,
+      "recovery_latency_frames": 118.90294117647058,
+      "contamination_auc": 0.326362246475044
+     }
+    },
+    "5": {
+     "config": {
+      "theta_b": 0.7,
+      "rho_h": 0.7
+     },
+     "seeds_present": [],
+     "seeds_missing": [],
+     "per_seed": {},
+     "mean": {
+      "node_prf1": 0.6329097111677809,
+      "node_prf1_iou": 0.39914161377474267,
+      "missing_residual_rate": 0.06559139784946236,
+      "false_retract_rate": 0.9014060953847866,
+      "false_retract_rate_in_scope": 0.8668499551108308,
+      "identity_continuity": 0.3125,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.3194444444444444,
+      "recovery_latency_frames": 118.90294117647058,
+      "contamination_auc": 0.3193603848732468
+     }
+    },
+    "6": {
+     "config": {
+      "theta_b": 0.7,
+      "rho_h": 0.8
+     },
+     "seeds_present": [],
+     "seeds_missing": [],
+     "per_seed": {},
+     "mean": {
+      "node_prf1": 0.6348407198258099,
+      "node_prf1_iou": 0.4015200123894375,
+      "missing_residual_rate": 0.07096774193548386,
+      "false_retract_rate": 0.8930857511850745,
+      "false_retract_rate_in_scope": 0.8558833137505812,
+      "identity_continuity": 0.3125,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.3194444444444444,
+      "recovery_latency_frames": 118.91470588235293,
+      "contamination_auc": 0.3141314086932937
+     }
+    },
+    "7": {
+     "config": {
+      "theta_b": 0.7,
+      "rho_h": 0.9
+     },
+     "seeds_present": [],
+     "seeds_missing": [],
+     "per_seed": {},
+     "mean": {
+      "node_prf1": 0.6348868671425492,
+      "node_prf1_iou": 0.40283745312505065,
+      "missing_residual_rate": 0.10698924731182795,
+      "false_retract_rate": 0.8843201840195363,
+      "false_retract_rate_in_scope": 0.8455026947121508,
+      "identity_continuity": 0.3125,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.3194444444444444,
+      "recovery_latency_frames": 115.36470588235295,
+      "contamination_auc": 0.31137834142459336
+     }
+    },
+    "8": {
+     "config": {
+      "theta_b": 0.8,
+      "rho_h": 0.6
+     },
+     "seeds_present": [],
+     "seeds_missing": [],
+     "per_seed": {},
+     "mean": {
+      "node_prf1": 0.6066033717361323,
+      "node_prf1_iou": 0.38359071838871167,
+      "missing_residual_rate": 0.07258064516129033,
+      "false_retract_rate": 0.9597012316563018,
+      "false_retract_rate_in_scope": 0.920355097619958,
+      "identity_continuity": 0.09722222222222222,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.2569444444444445,
+      "recovery_latency_frames": 133.0421568627451,
+      "contamination_auc": 0.30358096793519157
+     }
+    },
+    "9": {
+     "config": {
+      "theta_b": 0.8,
+      "rho_h": 0.7
+     },
+     "seeds_present": [],
+     "seeds_missing": [],
+     "per_seed": {},
+     "mean": {
+      "node_prf1": 0.6050513422915644,
+      "node_prf1_iou": 0.3852087852077145,
+      "missing_residual_rate": 0.08440860215053764,
+      "false_retract_rate": 0.9209946013900544,
+      "false_retract_rate_in_scope": 0.87949865553087,
+      "identity_continuity": 0.09722222222222222,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.2569444444444445,
+      "recovery_latency_frames": 133.0519607843137,
+      "contamination_auc": 0.29758722554390044
+     }
+    },
+    "10": {
+     "config": {
+      "theta_b": 0.8,
+      "rho_h": 0.8
+     },
+     "seeds_present": [],
+     "seeds_missing": [],
+     "per_seed": {},
+     "mean": {
+      "node_prf1": 0.6057287963668025,
+      "node_prf1_iou": 0.38767559896136744,
+      "missing_residual_rate": 0.1086021505376344,
+      "false_retract_rate": 0.9088629630680006,
+      "false_retract_rate_in_scope": 0.871749219712543,
+      "identity_continuity": 0.09722222222222222,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.2569444444444445,
+      "recovery_latency_frames": 132.8637254901961,
+      "contamination_auc": 0.2936731811827534
+     }
+    },
+    "11": {
+     "config": {
+      "theta_b": 0.8,
+      "rho_h": 0.9
+     },
+     "seeds_present": [],
+     "seeds_missing": [],
+     "per_seed": {},
+     "mean": {
+      "node_prf1": 0.6053683269659543,
+      "node_prf1_iou": 0.3871590145367001,
+      "missing_residual_rate": 0.1446236559139785,
+      "false_retract_rate": 0.9009528005082618,
+      "false_retract_rate_in_scope": 0.8586524102440821,
+      "identity_continuity": 0.09722222222222222,
+      "identity_continuity_conditional": null,
+      "retrieval_success": 0.2569444444444445,
+      "recovery_latency_frames": 131.22352941176473,
+      "contamination_auc": 0.2919180925214542
+     }
+    }
+   }
+  },
+  "arms_absent": {},
+  "reference": {
+   "arm": "AssocOnly",
+   "config_index": 0,
+   "seeds_present": [
+    7,
+    19,
+    31,
+    43,
+    59
+   ],
+   "seeds_missing": [],
+   "missing_residual_rate": 0.7270967741935485,
+   "node_f1": 0.8531763075505984
+  },
+  "selection_inputs": {
+   "VSMT-lean": {
+    "0": {
+     "node_f1": 0.8568237223952417,
+     "missing_residual_rate": 0.1596774193548387
+    },
+    "1": {
+     "node_f1": 0.8570430559935829,
+     "missing_residual_rate": 0.16720430107526882
+    },
+    "2": {
+     "node_f1": 0.8570387407329431,
+     "missing_residual_rate": 0.16720430107526882
+    },
+    "3": {
+     "node_f1": 0.8570018803290488,
+     "missing_residual_rate": 0.16720430107526882
+    },
+    "4": {
+     "node_f1": 0.8572089949525262,
+     "missing_residual_rate": 0.1682795698924731
+    },
+    "5": {
+     "node_f1": 0.8572609165095937,
+     "missing_residual_rate": 0.17311827956989248
+    },
+    "6": {
+     "node_f1": 0.8574677843651621,
+     "missing_residual_rate": 0.1738709677419355
+    },
+    "7": {
+     "node_f1": 0.8576459302213275,
+     "missing_residual_rate": 0.1760215053763441
+    },
+    "8": {
+     "node_f1": 0.8577308665345903,
+     "missing_residual_rate": 0.1760215053763441
+    },
+    "9": {
+     "node_f1": 0.8577280402933194,
+     "missing_residual_rate": 0.1832258064516129
+    }
+   },
+   "NoVersion": {
+    "0": {
+     "node_f1": 0.8575266057251094,
+     "missing_residual_rate": 0.1424731182795699
+    },
+    "1": {
+     "node_f1": 0.8576434077053345,
+     "missing_residual_rate": 0.15161290322580645
+    },
+    "2": {
+     "node_f1": 0.8577030448638208,
+     "missing_residual_rate": 0.15
+    },
+    "3": {
+     "node_f1": 0.8576242918977002,
+     "missing_residual_rate": 0.15
+    },
+    "4": {
+     "node_f1": 0.8577548762760581,
+     "missing_residual_rate": 0.1510752688172043
+    },
+    "5": {
+     "node_f1": 0.8576743775380857,
+     "missing_residual_rate": 0.15591397849462366
+    },
+    "6": {
+     "node_f1": 0.8576634717533427,
+     "missing_residual_rate": 0.15989247311827956
+    },
+    "7": {
+     "node_f1": 0.8578913150507725,
+     "missing_residual_rate": 0.16204301075268818
+    },
+    "8": {
+     "node_f1": 0.8581384682199273,
+     "missing_residual_rate": 0.16333333333333333
+    },
+    "9": {
+     "node_f1": 0.8581767425548931,
+     "missing_residual_rate": 0.16838709677419356
+    }
+   },
+   "HeuristicLabel": {
+    "0": {
+     "node_f1": 0.6485422929391153,
+     "missing_residual_rate": 0.1827956989247312
+    },
+    "1": {
+     "node_f1": 0.6485688446318525,
+     "missing_residual_rate": 0.1827956989247312
+    },
+    "2": {
+     "node_f1": 0.6485441126514289,
+     "missing_residual_rate": 0.1827956989247312
+    },
+    "3": {
+     "node_f1": 0.6485416066848054,
+     "missing_residual_rate": 0.1827956989247312
+    },
+    "4": {
+     "node_f1": 0.6485575913447403,
+     "missing_residual_rate": 0.1827956989247312
+    },
+    "5": {
+     "node_f1": 0.6485259887734147,
+     "missing_residual_rate": 0.1827956989247312
+    },
+    "6": {
+     "node_f1": 0.6485175536300976,
+     "missing_residual_rate": 0.1827956989247312
+    },
+    "7": {
+     "node_f1": 0.6485543411648372,
+     "missing_residual_rate": 0.1827956989247312
+    },
+    "8": {
+     "node_f1": 0.648504298194172,
+     "missing_residual_rate": 0.1827956989247312
+    },
+    "9": {
+     "node_f1": 0.648495594730077,
+     "missing_residual_rate": 0.1827956989247312
+    }
+   },
+   "AssocOnly": {
+    "0": {
+     "node_f1": 0.8531763075505984,
+     "missing_residual_rate": 0.7270967741935485
+    }
+   },
+   "TAF": {
+    "0": {
+     "node_f1": 0.6283753376722456,
+     "missing_residual_rate": 0.5370967741935483
+    },
+    "1": {
+     "node_f1": 0.6535083080930724,
+     "missing_residual_rate": 0.8908602150537634
+    },
+    "2": {
+     "node_f1": 0.6766318501006406,
+     "missing_residual_rate": 0.756989247311828
+    },
+    "3": {
+     "node_f1": 0.673310753894162,
+     "missing_residual_rate": 0.7274193548387097
+    },
+    "4": {
+     "node_f1": 0.6271138328457283,
+     "missing_residual_rate": 0.6629032258064517
+    },
+    "5": {
+     "node_f1": 0.6345808457718933,
+     "missing_residual_rate": 0.9231182795698925
+    },
+    "6": {
+     "node_f1": 0.6456446196637592,
+     "missing_residual_rate": 0.810752688172043
+    },
+    "7": {
+     "node_f1": 0.6456256037409075,
+     "missing_residual_rate": 0.7919354838709678
+    },
+    "8": {
+     "node_f1": 0.5947649718043733,
+     "missing_residual_rate": 0.8629032258064516
+    },
+    "9": {
+     "node_f1": 0.5985117428602902,
+     "missing_residual_rate": 0.9510752688172043
+    },
+    "10": {
+     "node_f1": 0.6016357936948159,
+     "missing_residual_rate": 0.8897849462365591
+    },
+    "11": {
+     "node_f1": 0.6009437578847091,
+     "missing_residual_rate": 0.8897849462365591
+    }
+   },
+   "ELU-P": {
+    "0": {
+     "node_f1": 0.6377646026893518,
+     "missing_residual_rate": 0.2521505376344086
+    },
+    "1": {
+     "node_f1": 0.6358777163047427,
+     "missing_residual_rate": 0.2736559139784946
+    },
+    "2": {
+     "node_f1": 0.6448714940673056,
+     "missing_residual_rate": 0.18064516129032257
+    },
+    "3": {
+     "node_f1": 0.6423579699932136,
+     "missing_residual_rate": 0.1870967741935484
+    },
+    "4": {
+     "node_f1": 0.6495176637235975,
+     "missing_residual_rate": 0.10430107526881721
+    },
+    "5": {
+     "node_f1": 0.6482023883075572,
+     "missing_residual_rate": 0.10430107526881721
+    },
+    "6": {
+     "node_f1": 0.6585422796982727,
+     "missing_residual_rate": 0.30000000000000004
+    },
+    "7": {
+     "node_f1": 0.6560137730376113,
+     "missing_residual_rate": 0.3268817204301075
+    },
+    "8": {
+     "node_f1": 0.669145272304487,
+     "missing_residual_rate": 0.18064516129032257
+    },
+    "9": {
+     "node_f1": 0.665804007883375,
+     "missing_residual_rate": 0.1870967741935484
+    },
+    "10": {
+     "node_f1": 0.678785309750042,
+     "missing_residual_rate": 0.10430107526881721
+    },
+    "11": {
+     "node_f1": 0.675759482414393,
+     "missing_residual_rate": 0.10430107526881721
+    }
+   },
+   "RAC": {
+    "0": {
+     "node_f1": 0.6355320863663622,
+     "missing_residual_rate": 0.09784946236559139
+    },
+    "1": {
+     "node_f1": 0.6333034157308017,
+     "missing_residual_rate": 0.10322580645161289
+    },
+    "2": {
+     "node_f1": 0.6324052327790408,
+     "missing_residual_rate": 0.16612903225806452
+    },
+    "3": {
+     "node_f1": 0.6333631112822139,
+     "missing_residual_rate": 0.14193548387096774
+    },
+    "4": {
+     "node_f1": 0.631834437577491,
+     "missing_residual_rate": 0.15000000000000002
+    },
+    "5": {
+     "node_f1": 0.6312700987241039,
+     "missing_residual_rate": 0.2032258064516129
+    },
+    "6": {
+     "node_f1": 0.6568462817049703,
+     "missing_residual_rate": 0.09784946236559139
+    },
+    "7": {
+     "node_f1": 0.6542507274997965,
+     "missing_residual_rate": 0.12741935483870967
+    },
+    "8": {
+     "node_f1": 0.6530195002825063,
+     "missing_residual_rate": 0.19838709677419353
+    },
+    "9": {
+     "node_f1": 0.6551961356497646,
+     "missing_residual_rate": 0.15806451612903227
+    },
+    "10": {
+     "node_f1": 0.6529847763319069,
+     "missing_residual_rate": 0.18494623655913978
+    },
+    "11": {
+     "node_f1": 0.6515637416022485,
+     "missing_residual_rate": 0.25
+    }
+   },
+   "LOW": {
+    "0": {
+     "node_f1": 0.09418983770321251,
+     "missing_residual_rate": 0.0
+    },
+    "1": {
+     "node_f1": 0.7232397876772286,
+     "missing_residual_rate": 0.906989247311828
+    },
+    "2": {
+     "node_f1": 0.7724455710289498,
+     "missing_residual_rate": 0.6779569892473118
+    },
+    "3": {
+     "node_f1": 0.7541713187844257,
+     "missing_residual_rate": 0.2731182795698925
+    },
+    "4": {
+     "node_f1": 0.48926779448704,
+     "missing_residual_rate": 0.011827956989247313
+    }
+   },
+   "HandCost": {
+    "0": {
+     "node_f1": 0.623037317898477,
+     "missing_residual_rate": 0.03763440860215053
+    },
+    "1": {
+     "node_f1": 0.6257478191323476,
+     "missing_residual_rate": 0.04946236559139785
+    },
+    "2": {
+     "node_f1": 0.6287936410979111,
+     "missing_residual_rate": 0.054838709677419356
+    },
+    "3": {
+     "node_f1": 0.6298505658104925,
+     "missing_residual_rate": 0.09086021505376343
+    },
+    "4": {
+     "node_f1": 0.6315648003088427,
+     "missing_residual_rate": 0.05376344086021505
+    },
+    "5": {
+     "node_f1": 0.6329097111677809,
+     "missing_residual_rate": 0.06559139784946236
+    },
+    "6": {
+     "node_f1": 0.6348407198258099,
+     "missing_residual_rate": 0.07096774193548386
+    },
+    "7": {
+     "node_f1": 0.6348868671425492,
+     "missing_residual_rate": 0.10698924731182795
+    },
+    "8": {
+     "node_f1": 0.6066033717361323,
+     "missing_residual_rate": 0.07258064516129033
+    },
+    "9": {
+     "node_f1": 0.6050513422915644,
+     "missing_residual_rate": 0.08440860215053764
+    },
+    "10": {
+     "node_f1": 0.6057287963668025,
+     "missing_residual_rate": 0.1086021505376344
+    },
+    "11": {
+     "node_f1": 0.6053683269659543,
+     "missing_residual_rate": 0.1446236559139785
+    }
+   }
+  },
+  "key_events": {
+   "missing_residual_rate_houses": 31,
+   "identity_continuity": {
+    "events_per_run": [
+     50
+    ],
+    "equal_across_runs": true
+   },
+   "retrieval_success": {
+    "events_per_run": [
+     50
+    ],
+    "equal_across_runs": true
+   }
+  }
+ },
+ "problems": [],
+ "pass": true
+}

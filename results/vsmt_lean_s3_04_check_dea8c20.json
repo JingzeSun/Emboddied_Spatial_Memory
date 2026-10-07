@@ -1,0 +1,301 @@
+{
+ "stage": "vsmt.lean.s3_04.driver.v1",
+ "step": "check",
+ "code_commit": "dea8c20f58144882752f2bc3936b87fd6568ef45",
+ "written_utc": "2026-10-07T00:17:14Z",
+ "rule": "ruling 106-3: G1 S3-03's verify at the registration commit reported no problem, its exports equal its manifest and every round-1 weights file equals its training receipt; G2 the readings recomputed by the frozen code from the merged audits equal S3-03's value for value; G3 the identity-continuity and retrieval-success event counts take one value over every run of a front end; G4 the frozen code reruns every selected run (learned arms at every seed) on the two validation episodes with the fewest frames among those with an identity-continuity event and reproduces S3-03's audits bit for bit (wall time, commit and head path excluded); G5 the four test roots still carry sealed markers with the seal digest S3-02 exported (marker files only). All five must pass before a freeze receipt is written; a failure stops for a read-only diagnosis and a ruling, never a wider line",
+ "s3_03": {
+  "tag": "10f7013",
+  "verify": "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_s3_03_verify_10f7013.json",
+  "manifest": "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_s3_03_manifest_10f7013.json",
+  "verify_sha256": "af54b1fb28f0987ba49991e7892e40d86a4ca4be25926950def5c991c849142b",
+  "manifest_sha256": "06ec637e9ed8f7875daf186fd44d7f74a9fdab52381089c5a44443e165328acd",
+  "verified_at_commit": "5a9fd9431d57a1e422105eaeaadf5413b7875f59"
+ },
+ "elu_p_registered": {
+  "instance": {
+   "initial_log_odds": 4.715758278823018,
+   "persistence_log_decay_per_tick": 1.9468203738496008e-05,
+   "match_gain": 3.5202657867949485
+  },
+  "sam2": {
+   "initial_log_odds": 4.713527527677658,
+   "persistence_log_decay_per_tick": 1.961980922031749e-05,
+   "match_gain": 3.4430935995987832
+  }
+ },
+ "heads": {
+  "instance": {
+   "VSMT-lean|7": {
+    "job_status": "done",
+    "heads": "/root/autodl-tmp/vsmt_private/s3-03-run/instance/training/round1/VSMT-lean/s7/weights_grouped.json",
+    "usable": true,
+    "payload_sha256": "c3f38c1419eaeec45fa1bcecd5971839426b6b797d677da960892300ee34cae0",
+    "receipt_weights_sha256": "c3f38c1419eaeec45fa1bcecd5971839426b6b797d677da960892300ee34cae0",
+    "file_sha256": "68937a9399f6e477a8a4fbb1420b46b3905b073e1c470388bcf6623ca8a293c0"
+   },
+   "VSMT-lean|19": {
+    "job_status": "done",
+    "heads": "/root/autodl-tmp/vsmt_private/s3-03-run/instance/training/round1/VSMT-lean/s19/weights_grouped.json",
+    "usable": true,
+    "payload_sha256": "bc98d98ee5ac087f5a5f45e7ce146af94b07a6b9b089b2f09423d91dc3a70580",
+    "receipt_weights_sha256": "bc98d98ee5ac087f5a5f45e7ce146af94b07a6b9b089b2f09423d91dc3a70580",
+    "file_sha256": "9c69d8b4853ad6a4ed31523c4e73ffcdc02266e5cd06011d25d69d3bda19e8e5"
+   },
+   "VSMT-lean|31": {
+    "job_status": "done",
+    "heads": "/root/autodl-tmp/vsmt_private/s3-03-run/instance/training/round1/VSMT-lean/s31/weights_grouped.json",
+    "usable": true,
+    "payload_sha256": "c6bc8c0788a92861eaabcb104b70fbe7c3a0194a8874a0c9b0a2755df8f6ffef",
+    "receipt_weights_sha256": "c6bc8c0788a92861eaabcb104b70fbe7c3a0194a8874a0c9b0a2755df8f6ffef",
+    "file_sha256": "91502236803e052f6ba65036851c75bf696a2664326cf5af15927a6c22cc54b2"
+   },
+   "VSMT-lean|43": {
+    "job_status": "done",
+    "heads": "/root/autodl-tmp/vsmt_private/s3-03-run/instance/training/round1/VSMT-lean/s43/weights_grouped.json",
+    "usable": true,
+    "payload_sha256": "4fbd7217d4af62179ee438945a45585dcfc37523281c006726b17a13c0533303",
+    "receipt_weights_sha256": "4fbd7217d4af62179ee438945a45585dcfc37523281c006726b17a13c0533303",
+    "file_sha256": "34a16cbd5b76e344618bace3ca2a5758dccd389dddcac4e4b9b9501dff3174ef"
+   },
+   "VSMT-lean|59": {
+    "job_status": "done",
+    "heads": "/root/autodl-tmp/vsmt_private/s3-03-run/instance/training/round1/VSMT-lean/s59/weights_grouped.json",
+    "usable": true,
+    "payload_sha256": "26d81a5c7a29430d059a0208f1d281bc17fee381bc25230707ca3d41056ffb9a",
+    "receipt_weights_sha256": "26d81a5c7a29430d059a0208f1d281bc17fee381bc25230707ca3d41056ffb9a",
+    "file_sha256": "d5a64a928baded766d9624ed59e0c1cf7a7bb1d9147c83ddb551aa16591f7181"
+   },
+   "AssocOnly|7": {
+    "job_status": "done",
+    "heads": "/root/autodl-tmp/vsmt_private/s3-03-run/instance/training/round1/AssocOnly/s7/weights.json",
+    "usable": true,
+    "payload_sha256": "e60f1431fc3e33e83c1d1623422efaa481c96cdde5bb2c506377bf573d26ac57",
+    "receipt_weights_sha256": "e60f1431fc3e33e83c1d1623422efaa481c96cdde5bb2c506377bf573d26ac57",
+    "file_sha256": "ae2c56f2f4223cd9d78eb5e4c70efd4b343fac1feddce58aa49305b7ce29c979"
+   },
+   "AssocOnly|19": {
+    "job_status": "done",
+    "heads": "/root/autodl-tmp/vsmt_private/s3-03-run/instance/training/round1/AssocOnly/s19/weights.json",
+    "usable": true,
+    "payload_sha256": "ed0ea78ab8c24be89060e85d21038238089bdb15ead4591b7eebc9cf14d4e6b8",
+    "receipt_weights_sha256": "ed0ea78ab8c24be89060e85d21038238089bdb15ead4591b7eebc9cf14d4e6b8",
+    "file_sha256": "e49465715b113fee9b49d6498b35f05ebb7a188852d6a888205b38f9379ca931"
+   },
+   "AssocOnly|31": {
+    "job_status": "done",
+    "heads": "/root/autodl-tmp/vsmt_private/s3-03-run/instance/training/round1/AssocOnly/s31/weights.json",
+    "usable": true,
+    "payload_sha256": "f6a22a3f13deba40ec50a6d81693e962fca7646810bf5211124cdb211067cad7",
+    "receipt_weights_sha256": "f6a22a3f13deba40ec50a6d81693e962fca7646810bf5211124cdb211067cad7",
+    "file_sha256": "bd93c6843582a0427f3a0ddb0d1c9bb8280e960dc6b35ba8ddce824292b119ef"
+   },
+   "AssocOnly|43": {
+    "job_status": "done",
+    "heads": "/root/autodl-tmp/vsmt_private/s3-03-run/instance/training/round1/AssocOnly/s43/weights.json",
+    "usable": true,
+    "payload_sha256": "2078e40234f54d118517174e0a842d38d03f4b585f7ab29dd6363356b8fa4877",
+    "receipt_weights_sha256": "2078e40234f54d118517174e0a842d38d03f4b585f7ab29dd6363356b8fa4877",
+    "file_sha256": "6d1897c3828a270bcaf47d88ea9d13d6c532468a0d8231e4d034a80caf50e4d7"
+   },
+   "AssocOnly|59": {
+    "job_status": "done",
+    "heads": "/root/autodl-tmp/vsmt_private/s3-03-run/instance/training/round1/AssocOnly/s59/weights.json",
+    "usable": true,
+    "payload_sha256": "40d7d70d53c151c72f717b994488b2c248711376d3b24e1f5cb80a9271f6d2f7",
+    "receipt_weights_sha256": "40d7d70d53c151c72f717b994488b2c248711376d3b24e1f5cb80a9271f6d2f7",
+    "file_sha256": "db656a639d31408a5b8df21971a656451e1b7438a063325d31cf392a67a06283"
+   },
+   "HeuristicLabel|7": {
+    "job_status": "done",
+    "heads": "/root/autodl-tmp/vsmt_private/s3-03-run/instance/training/round1/HeuristicLabel/s7/weights_grouped.json",
+    "usable": true,
+    "payload_sha256": "6ebac389ddbe7460ba1548cddfb3fc8f971366f7715f4dea2a2c86277fe3f787",
+    "receipt_weights_sha256": "6ebac389ddbe7460ba1548cddfb3fc8f971366f7715f4dea2a2c86277fe3f787",
+    "file_sha256": "44049cb61744e62fa8d92c7a6fd533837eb1633bc7051feac26e282b2b617996"
+   },
+   "HeuristicLabel|19": {
+    "job_status": "done",
+    "heads": "/root/autodl-tmp/vsmt_private/s3-03-run/instance/training/round1/HeuristicLabel/s19/weights_grouped.json",
+    "usable": true,
+    "payload_sha256": "1465aba9787ddf3d5daf1eadcd987ad184d8cd0d82cb6d47410bda1b911115b2",
+    "receipt_weights_sha256": "1465aba9787ddf3d5daf1eadcd987ad184d8cd0d82cb6d47410bda1b911115b2",
+    "file_sha256": "e7adb47750212339d1176dee9b7a0e7ca3e2e3a0e7b108ca3e0f9d73db6477b9"
+   },
+   "HeuristicLabel|31": {
+    "job_status": "done",
+    "heads": "/root/autodl-tmp/vsmt_private/s3-03-run/instance/training/round1/HeuristicLabel/s31/weights_grouped.json",
+    "usable": true,
+    "payload_sha256": "70473bbaf34ef90d28bbd5779ad078773d5ef87bc8f1d2c64056c1c4c7283cd8",
+    "receipt_weights_sha256": "70473bbaf34ef90d28bbd5779ad078773d5ef87bc8f1d2c64056c1c4c7283cd8",
+    "file_sha256": "317c7a442e7ade1c3943f9bb74da5d7c1cd95466b20479b05cc693ada84c1a79"
+   },
+   "HeuristicLabel|43": {
+    "job_status": "done",
+    "heads": "/root/autodl-tmp/vsmt_private/s3-03-run/instance/training/round1/HeuristicLabel/s43/weights_grouped.json",
+    "usable": true,
+    "payload_sha256": "33744fb4c5f868fd3c5f6f7a111f6182380d9fe31733a46f4b67e7c013fe8c8d",
+    "receipt_weights_sha256": "33744fb4c5f868fd3c5f6f7a111f6182380d9fe31733a46f4b67e7c013fe8c8d",
+    "file_sha256": "23314115c316228d08dd63d74e27f626a854292702a8afffe004008be2a865df"
+   },
+   "HeuristicLabel|59": {
+    "job_status": "done",
+    "heads": "/root/autodl-tmp/vsmt_private/s3-03-run/instance/training/round1/HeuristicLabel/s59/weights_grouped.json",
+    "usable": true,
+    "payload_sha256": "585cdb966f86e9c2408d2215d251165a36652d329f31e1e9f4412460cbc256dd",
+    "receipt_weights_sha256": "585cdb966f86e9c2408d2215d251165a36652d329f31e1e9f4412460cbc256dd",
+    "file_sha256": "2ac31665cbd8b03567b95f920a489158b764b70b8b5cde827fabb41e55b01240"
+   }
+  },
+  "sam2": {
+   "VSMT-lean|7": {
+    "job_status": "done",
+    "heads": "/root/autodl-tmp/vsmt_private/s3-03-run/sam2/training/round1/VSMT-lean/s7/weights_grouped.json",
+    "usable": true,
+    "payload_sha256": "5a2039fab2aea3fcb8682c1ba9fdea5a137573f576392a6254452b38ce507386",
+    "receipt_weights_sha256": "5a2039fab2aea3fcb8682c1ba9fdea5a137573f576392a6254452b38ce507386",
+    "file_sha256": "a3753166b8519d33bbab2746f123d0981f02eac066ff83fb16c17fb92c3bc785"
+   },
+   "VSMT-lean|19": {
+    "job_status": "done",
+    "heads": "/root/autodl-tmp/vsmt_private/s3-03-run/sam2/training/round1/VSMT-lean/s19/weights_grouped.json",
+    "usable": true,
+    "payload_sha256": "bb940194ef67c1cf2185382661424918d180dc1b2d8c72642581af760d0ee5e3",
+    "receipt_weights_sha256": "bb940194ef67c1cf2185382661424918d180dc1b2d8c72642581af760d0ee5e3",
+    "file_sha256": "bf804af72de8f4cfc1c34a50884d5eea2f2ee2f85662b0d7403d5dd0ab8781af"
+   },
+   "VSMT-lean|31": {
+    "job_status": "done",
+    "heads": "/root/autodl-tmp/vsmt_private/s3-03-run/sam2/training/round1/VSMT-lean/s31/weights_grouped.json",
+    "usable": true,
+    "payload_sha256": "99bddaab7e607a782049508e00c844ff0dd8428f8bcbb472f2885d5a67a357d1",
+    "receipt_weights_sha256": "99bddaab7e607a782049508e00c844ff0dd8428f8bcbb472f2885d5a67a357d1",
+    "file_sha256": "ee48ddb3fc6b60c895d74e1afa5d8f83267c382af52b9b8261a01dfd7e0c9253"
+   },
+   "VSMT-lean|43": {
+    "job_status": "done",
+    "heads": "/root/autodl-tmp/vsmt_private/s3-03-run/sam2/training/round1/VSMT-lean/s43/weights_grouped.json",
+    "usable": true,
+    "payload_sha256": "3fbde74a691a8daa0a833c5784e6989e0cc6eaf8db4bd7689b9d490f0dca2519",
+    "receipt_weights_sha256": "3fbde74a691a8daa0a833c5784e6989e0cc6eaf8db4bd7689b9d490f0dca2519",
+    "file_sha256": "4a19ff17faf5f498b6208b8c6db63de903e6542124189f9fc6d57ed5ef54b474"
+   },
+   "VSMT-lean|59": {
+    "job_status": "done",
+    "heads": "/root/autodl-tmp/vsmt_private/s3-03-run/sam2/training/round1/VSMT-lean/s59/weights_grouped.json",
+    "usable": true,
+    "payload_sha256": "43c570e6718169371af9565e514f9bd5011f63e5efeed96180d57a5a5420fcaf",
+    "receipt_weights_sha256": "43c570e6718169371af9565e514f9bd5011f63e5efeed96180d57a5a5420fcaf",
+    "file_sha256": "826f555fd2a22dda9a6213b5fb706d06b90e1c41e5c9bcbcfc94d90fcaa2dfc1"
+   },
+   "AssocOnly|7": {
+    "job_status": "done",
+    "heads": "/root/autodl-tmp/vsmt_private/s3-03-run/sam2/training/round1/AssocOnly/s7/weights.json",
+    "usable": true,
+    "payload_sha256": "136f1760265b480badb682bca3fa076d73330f58fed9fcd0b418e6006e5d1a15",
+    "receipt_weights_sha256": "136f1760265b480badb682bca3fa076d73330f58fed9fcd0b418e6006e5d1a15",
+    "file_sha256": "7c3bf6482556efd3b12801f6815cff5fa191019f32509aa3218ec90e61241573"
+   },
+   "AssocOnly|19": {
+    "job_status": "done",
+    "heads": "/root/autodl-tmp/vsmt_private/s3-03-run/sam2/training/round1/AssocOnly/s19/weights.json",
+    "usable": true,
+    "payload_sha256": "b7615eb78e64bffc7c2076fc8086323af59f931d09cb6df31e02813bcc937ad6",
+    "receipt_weights_sha256": "b7615eb78e64bffc7c2076fc8086323af59f931d09cb6df31e02813bcc937ad6",
+    "file_sha256": "87610948b2e5ba0c636644f3ed036aa241d1f420ba01052e8b8d313fea72e37f"
+   },
+   "AssocOnly|31": {
+    "job_status": "done",
+    "heads": "/root/autodl-tmp/vsmt_private/s3-03-run/sam2/training/round1/AssocOnly/s31/weights.json",
+    "usable": true,
+    "payload_sha256": "727f2de556e0a9d469cffb147f8c6322ca0a92d9eb5a49a2fe5c62892cfc3c1a",
+    "receipt_weights_sha256": "727f2de556e0a9d469cffb147f8c6322ca0a92d9eb5a49a2fe5c62892cfc3c1a",
+    "file_sha256": "274264a5d20f2270467fe82537e221d4fd4652b5bfdb990574b14d4b4219cef9"
+   },
+   "AssocOnly|43": {
+    "job_status": "done",
+    "heads": "/root/autodl-tmp/vsmt_private/s3-03-run/sam2/training/round1/AssocOnly/s43/weights.json",
+    "usable": true,
+    "payload_sha256": "d52e918269e157d035e7af0a4aece49fa99057d1270eb3ad5f13188b547600d0",
+    "receipt_weights_sha256": "d52e918269e157d035e7af0a4aece49fa99057d1270eb3ad5f13188b547600d0",
+    "file_sha256": "79e0f821ff503d79fb531375adf66ab411f27b5c33fdbddee73223f1d9e7c2a1"
+   },
+   "AssocOnly|59": {
+    "job_status": "done",
+    "heads": "/root/autodl-tmp/vsmt_private/s3-03-run/sam2/training/round1/AssocOnly/s59/weights.json",
+    "usable": true,
+    "payload_sha256": "c4172fdc8971850ce8261f465b476a31b670397ba7de75942d3ad861c1412f0a",
+    "receipt_weights_sha256": "c4172fdc8971850ce8261f465b476a31b670397ba7de75942d3ad861c1412f0a",
+    "file_sha256": "b1a2115e5f52c3d227fefe1b200fc64253a047f92aba58842ed4b1175493eb6c"
+   },
+   "HeuristicLabel|7": {
+    "job_status": "done",
+    "heads": "/root/autodl-tmp/vsmt_private/s3-03-run/sam2/training/round1/HeuristicLabel/s7/weights_grouped.json",
+    "usable": true,
+    "payload_sha256": "ba0fc8119aff45c8a36b7c8813d18e824f049c67e599ac8dc29a07d40b101df9",
+    "receipt_weights_sha256": "ba0fc8119aff45c8a36b7c8813d18e824f049c67e599ac8dc29a07d40b101df9",
+    "file_sha256": "a4b5eb1220f111363ce03e63303b5fb63e2746dc8095d7e4b9dfb05637d35713"
+   },
+   "HeuristicLabel|19": {
+    "job_status": "done",
+    "heads": "/root/autodl-tmp/vsmt_private/s3-03-run/sam2/training/round1/HeuristicLabel/s19/weights_grouped.json",
+    "usable": true,
+    "payload_sha256": "57f9e7efb4482f1287cf2962e12d3802132576edd2f5d4a05ae6fa2ac635444d",
+    "receipt_weights_sha256": "57f9e7efb4482f1287cf2962e12d3802132576edd2f5d4a05ae6fa2ac635444d",
+    "file_sha256": "f5abfe6b969c6cd9032efaa84f74c4eab8fac9dea719da3ada15f7c185cf7f72"
+   },
+   "HeuristicLabel|31": {
+    "job_status": "done",
+    "heads": "/root/autodl-tmp/vsmt_private/s3-03-run/sam2/training/round1/HeuristicLabel/s31/weights_grouped.json",
+    "usable": true,
+    "payload_sha256": "2eab4a3d728c7f15739a525bb836e15e44357346d102af00bb35db8acb3421ca",
+    "receipt_weights_sha256": "2eab4a3d728c7f15739a525bb836e15e44357346d102af00bb35db8acb3421ca",
+    "file_sha256": "7d49eb267f34cc406d259a9f7065642369a8e63223c277b194c0f87bcc427a32"
+   },
+   "HeuristicLabel|43": {
+    "job_status": "done",
+    "heads": "/root/autodl-tmp/vsmt_private/s3-03-run/sam2/training/round1/HeuristicLabel/s43/weights_grouped.json",
+    "usable": true,
+    "payload_sha256": "6967e6014849deea14b0459e9a0aace13cd7419a92edab2e38b800f543f66917",
+    "receipt_weights_sha256": "6967e6014849deea14b0459e9a0aace13cd7419a92edab2e38b800f543f66917",
+    "file_sha256": "3f6ef248ad50a8e749ab22c73e63b98bef434145340e1b8788b823b6e491a521"
+   },
+   "HeuristicLabel|59": {
+    "job_status": "done",
+    "heads": "/root/autodl-tmp/vsmt_private/s3-03-run/sam2/training/round1/HeuristicLabel/s59/weights_grouped.json",
+    "usable": true,
+    "payload_sha256": "f22b47ef4dbc53d95a274a1a93a2966e1150caa6e684b84c7123e38c9a257727",
+    "receipt_weights_sha256": "f22b47ef4dbc53d95a274a1a93a2966e1150caa6e684b84c7123e38c9a257727",
+    "file_sha256": "894c33fc0c4549d6791d1793ab7b516051bb1abc15f15213f31240b08be3f903"
+   }
+  }
+ },
+ "test_seal": {
+  "file": "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_s3_02_test_seal_3f6ef1d.json",
+  "seal_sha256": "625c702bc352f352b17744661692f6568c03ab824b22c3af25d6c91b8f90c96a",
+  "markers": {
+   "raw": {
+    "path": "/root/autodl-tmp/vsmt_outputs/s3-02-3f6ef1d/test/TEST_SEALED.json",
+    "state": "sealed",
+    "matches": true
+   },
+   "geometry": {
+    "path": "/root/autodl-tmp/vsmt_private/s3-02-geometry-3f6ef1d/test/TEST_SEALED.json",
+    "state": "sealed",
+    "matches": true
+   },
+   "instance_cache": {
+    "path": "/root/autodl-tmp/vsmt_caches/s3-02-instance-3f6ef1d/test/TEST_SEALED.json",
+    "state": "sealed",
+    "matches": true
+   },
+   "sam2_cache": {
+    "path": "/root/autodl-tmp/vsmt_caches/s3-02-sam2-3f6ef1d/test/TEST_SEALED.json",
+    "state": "sealed",
+    "matches": true
+   }
+  }
+ },
+ "problems": [],
+ "pass": true
+}

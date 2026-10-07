@@ -1,0 +1,37 @@
+{
+ "stage": "vsmt.lean.s3_04.driver.v1",
+ "step": "manifest",
+ "tag": "dea8c20",
+ "freeze_commit": "dea8c20f58144882752f2bc3936b87fd6568ef45",
+ "written_utc": "2026-10-07T00:26:31Z",
+ "receipt_sha256": "4fd08d4fc6d00c0063fc210a1ad4e8e8cbf0382b1d93d0e0e8331487b32910e0",
+ "exports": {
+  "vsmt_lean_s3_04_check_dea8c20.json": {
+   "sha256": "824b8bd8a93e8a789b1b3506467220cbb531c1d98db27f0c146e6922cb605e14",
+   "bytes": 16595
+  },
+  "vsmt_lean_s3_04_freeze_dea8c20.json": {
+   "sha256": "363266e401472436f91da9f97af8207be8615adfce6cbde4f7bfa6079364060b",
+   "bytes": 109120
+  },
+  "vsmt_lean_s3_04_probe_instance_dea8c20.json": {
+   "sha256": "95e87e00ec370d3c9110e7655b6c8acae7d99a6b7f15bd370ca88cc0c744b5f9",
+   "bytes": 37469
+  },
+  "vsmt_lean_s3_04_probe_sam2_dea8c20.json": {
+   "sha256": "6ddd0c23b863e6d505264b017ddd75ab71029d702ed59d4f06e8c315fe01e8fe",
+   "bytes": 36674
+  },
+  "vsmt_lean_s3_04_selection_instance_dea8c20.json": {
+   "sha256": "3ba0baa2e722aae9aa8d0a5c9d5df08508d4874d38148fa16fbc94f42d9d7582",
+   "bytes": 193830
+  },
+  "vsmt_lean_s3_04_selection_sam2_dea8c20.json": {
+   "sha256": "7543adb6e74f3d189767ccbacd9fabb64b8180cb3ba663e549883792e851f817",
+   "bytes": 194306
+  }
+ },
+ "problems": [],
+ "next": "ruling 106-5 (a): commit these exports to results/, push main and s1-02a-runner, and wait for the user's go before S3-05 unseals any test root",
+ "reproduction": "bash ops/vsmt/s3_04_freeze.sh all at the freeze commit (README 'How to reproduce S3-04')"
+}

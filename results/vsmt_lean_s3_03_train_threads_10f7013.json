@@ -1,0 +1,65 @@
+{
+ "train_threads": 1,
+ "candidates": [
+  {
+   "threads": 1,
+   "seconds_per_epoch": 65.389,
+   "parallel": 30,
+   "waves": 1,
+   "relative_completion": 65.389
+  },
+  {
+   "threads": 2,
+   "seconds_per_epoch": 66.2,
+   "parallel": 30,
+   "waves": 1,
+   "relative_completion": 66.2
+  },
+  {
+   "threads": 3,
+   "seconds_per_epoch": 65.319,
+   "parallel": 26,
+   "waves": 2,
+   "relative_completion": 130.638
+  },
+  {
+   "threads": 4,
+   "seconds_per_epoch": 69.659,
+   "parallel": 19,
+   "waves": 2,
+   "relative_completion": 139.318
+  }
+ ],
+ "cores": 78,
+ "trainings": 30,
+ "rule": "ruling 104-3: the thread count minimising ceil(trainings / min(trainings, cores // t)) x seconds per epoch at t threads, measured on about 20 training houses during round 0; ties to fewer threads; fixed for the run",
+ "timing_file_sha256": "d13537faf1a1f241fd86847f14eee4b3b28adff54531191d6d7fcca3efa64271",
+ "houses": [
+  "procthor10k-0.1.2-train-00107",
+  "procthor10k-0.1.2-train-00118",
+  "procthor10k-0.1.2-train-00630",
+  "procthor10k-0.1.2-train-00987",
+  "procthor10k-0.1.2-train-01871",
+  "procthor10k-0.1.2-train-02038",
+  "procthor10k-0.1.2-train-02500",
+  "procthor10k-0.1.2-train-02969",
+  "procthor10k-0.1.2-train-03420",
+  "procthor10k-0.1.2-train-03702",
+  "procthor10k-0.1.2-train-04274",
+  "procthor10k-0.1.2-train-04466",
+  "procthor10k-0.1.2-train-04755",
+  "procthor10k-0.1.2-train-04982",
+  "procthor10k-0.1.2-train-05231",
+  "procthor10k-0.1.2-train-05947",
+  "procthor10k-0.1.2-train-06346",
+  "procthor10k-0.1.2-train-06630",
+  "procthor10k-0.1.2-train-06660",
+  "procthor10k-0.1.2-train-06797",
+  "procthor10k-0.1.2-train-06806",
+  "procthor10k-0.1.2-train-07383",
+  "procthor10k-0.1.2-train-07605",
+  "procthor10k-0.1.2-train-09086",
+  "procthor10k-0.1.2-train-09095"
+ ],
+ "written_utc": "2026-10-03T22:19:30Z"
+}

@@ -1,0 +1,60 @@
+{
+ "budget_cores": 30,
+ "budget_gib": 52.0,
+ "reserve_cores": 2,
+ "reserve_gib": 8.0,
+ "memory_defaults_gib": {
+  "pass": 4.0,
+  "audit": 4.0,
+  "audit_full": 6.0,
+  "train0": 24.0,
+  "train1": 24.0,
+  "train_probe": 12.0,
+  "train_timing": 8.0,
+  "gate": 6.0,
+  "small": 2.0
+ },
+ "resources": {
+  "cpu_quota": 32,
+  "cpu_quota_source": "cgroup cpu.max",
+  "memory_bytes": 64424509440,
+  "memory_source": "cgroup memory.max",
+  "disks": {
+   "/root/autodl-tmp": {
+    "free_gib": 94.3,
+    "total_gib": 500.0
+   },
+   "/root": {
+    "free_gib": 29.8,
+    "total_gib": 30.0
+   }
+  }
+ },
+ "rule": "ruling 104-3: cores and memory from the cgroup (cpu.max, memory.max), 2 cores and 8 GiB kept free; single-threaded jobs pinned to one thread, trainings to TRAIN_THREADS; memory per class 1.25 x the measured peak once measured",
+ "adopt_calibration": {
+  "instance": "/root/autodl-tmp/vsmt_private/s3-03-prefit-instance/calibration",
+  "sam2": "/root/autodl-tmp/vsmt_private/s3-03-prefit-sam2/calibration"
+ },
+ "written_utc": "2026-10-07T00:14:18Z",
+ "memory_guard": "cgroup memory.stat anon+shmem",
+ "memory_fallbacks": {
+  "train1": "2 x the measured round-0 peak until a round-1 training is measured"
+ },
+ "inflight_gib_per_running_job": 0.5,
+ "memory_fixed_gib": {
+  "train1": 6.5,
+  "train0": 5.5,
+  "audit": 2.0,
+  "pass": 1.5,
+  "audit_full": 1.0,
+  "train_probe": 4.5,
+  "train_timing": 1.5,
+  "gate": 0.5,
+  "small": 0.5
+ },
+ "remote_hosts": {
+  "dir": "/root/autodl-tmp/vsmt_private/s3-03-run/hosts",
+  "rule": "user 2026-10-04: hosts admitted by remote_hosts.py admit (same environment, code and inputs byte for byte, audits rerun identical) are read every 30 s; audits and trainings may run there, everything else runs here; outputs are pulled back to the same paths"
+ },
+ "memory_fixed_rule": "an operator's reservation per class (MEMORY_FIXED_GIB) replaces the measured peak x 1.25 and the fallback; scheduling only, no output changes; the live cgroup guard still pauses dispatch"
+}

@@ -1,0 +1,79 @@
+{
+ "updated_utc": "2026-10-07T00:14:20Z",
+ "commit": "5a9fd9431d57a1e422105eaeaadf5413b7875f59",
+ "stop_reason": null,
+ "memory_paused": false,
+ "budget": {
+  "cores": 30,
+  "gib": 52.0
+ },
+ "running": [],
+ "counts_by_kind": {
+  "probe_audit": {
+   "done": 2
+  },
+  "adopt_calibration": {
+   "done": 2
+  },
+  "fit": {
+   "done": 2
+  },
+  "round0": {
+   "done": 501
+  },
+  "gate_round0": {
+   "done": 2
+  },
+  "probe_train": {
+   "done": 2
+  },
+  "train0": {
+   "done": 6
+  },
+  "round1": {
+   "done": 1503
+  },
+  "train1": {
+   "done": 30
+  },
+  "coverage": {
+   "done": 2
+  },
+  "audit": {
+   "done": 4558
+  },
+  "merge": {
+   "done": 416
+  },
+  "readings": {
+   "done": 2
+  },
+  "probe_determinism": {
+   "done": 2
+  },
+  "timing": {
+   "done": 1
+  },
+  "train_threads": {
+   "done": 1
+  },
+  "grid_reading": {
+   "done": 1
+  }
+ },
+ "remote": {
+  "hosts": {},
+  "suspended": []
+ },
+ "memory_estimates_gib": {
+  "audit": 2.0,
+  "audit_full": 1.0,
+  "gate": 0.5,
+  "pass": 1.5,
+  "small": 0.5,
+  "train0": 5.5,
+  "train1": 6.5,
+  "train_probe": 4.5,
+  "train_timing": 1.5
+ }
+}
