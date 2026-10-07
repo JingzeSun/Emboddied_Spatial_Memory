@@ -124,4 +124,9 @@ class RenderEntryTests(unittest.TestCase):
 
     def test_refusals(self) -> None:
         self.assertEqual(self.run_main(out=self.root / "render-formal-like"), 2)  # sample needs a -sample root
-        self.assertEqual(self.run_main(out=self.root / "render", purpose="formal"), 2)  # formal is not open
+        from unittest import mock
+
+        closed = cli.r3.load_contract()
+        closed["authorization"]["formal_conversion"] = False
+        with mock.patch.object(cli.r3, "load_contract", return_value=closed):
+            self.assertEqual(self.run_main(out=self.root / "render", purpose="formal"), 2)  # formal closed

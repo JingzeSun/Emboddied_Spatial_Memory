@@ -202,8 +202,11 @@ class EndToEndTests(unittest.TestCase):
             with mock.patch.object(convert.r3, "load_contract", return_value=emptied):
                 self.assertEqual(convert.main(base + ["--out-root", str(self.root / "e-sample"), "--geometry-root",
                                                       str(self.root / "g-sample"), "--purpose", "sample"]), 2)  # slots null
-            self.assertEqual(convert.main(base + ["--out-root", str(self.root / "e"), "--geometry-root", str(self.root / "g"),
-                                                  "--purpose", "formal"]), 2)  # formal is not open
+            closed = r3.load_contract()
+            closed["authorization"]["formal_conversion"] = False
+            with mock.patch.object(convert.r3, "load_contract", return_value=closed):
+                self.assertEqual(convert.main(base + ["--out-root", str(self.root / "e"), "--geometry-root", str(self.root / "g"),
+                                                      "--purpose", "formal"]), 2)  # formal closed
         from vsmt import lean_test_seal
 
         sealed = self.root / "sealed-test-root"

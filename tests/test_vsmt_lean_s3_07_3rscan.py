@@ -33,7 +33,7 @@ from vsmt import lean_teacher as lt  # noqa: E402
 COLOR = {"fx": 756.832, "fy": 756.026, "cx": 492.889, "cy": 270.419}
 DEPTH = {"fx": 176.594, "fy": 240.808, "cx": 114.613, "cy": 85.7915}
 #: the reviewed contract, digest of its canonical JSON (re-pinned only with a ruling or a registration commit)
-CONTRACT_SHA256 = "3cc6be716a6a8f3939be93be42338baa80cc29527a5b7e9170406c16708bb036"
+CONTRACT_SHA256 = "cbc664671513f81b681fafc5637532a473b3598df0c0f6bd37c48686d12d1a23"
 
 INFO_TEXT = """m_versionNumber = 4
 m_sensorName = StructureSensor
@@ -74,7 +74,7 @@ class ContractTests(unittest.TestCase):
         self.assertEqual(r3.blocking_null_slots(contract), [])  # registered from the sample check (d05f337)
         self.assertEqual(contract["sample_check"], {"alignment_translation_unit": "m", "obb_axes_layout": "rows",
                                                     "image_rotation_confirmed": True, "ambiguity_structure_confirmed": True})
-        self.assertFalse(contract["authorization"]["formal_conversion"])
+        self.assertTrue(contract["authorization"]["formal_conversion"])  # opened by the registration commit (111-8 step 7)
         emptied = copy.deepcopy(contract)
         emptied["sample_check"] = {name: None for name in r3.SAMPLE_CHECK_SLOTS}
         self.assertEqual(r3.blocking_null_slots(r3.validate_contract(emptied)), list(r3.SAMPLE_CHECK_SLOTS))

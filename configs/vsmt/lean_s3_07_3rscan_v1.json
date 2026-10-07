@@ -100,7 +100,8 @@
   "ambiguity_structure_confirmed": "the ambiguity value names instances under instance_source / instance_target as ambiguity_ids reads them"
  },
  "authorization": {
-  "formal_conversion": false,
-  "rule": "opened by a registration commit after the sample check fills sample_check and after the S3-04 receipt is pushed (ruling 111-7, 111-8)"
+  "formal_conversion": true,
+  "opened_by": "the registration commit of 2026-10-07 (ruling 111-7, 111-8 step 7; user: 「授权改合同正式位和对应测试」): the four sample slots registered at e388540, the S3-04 freeze receipt dea8c20 pushed and merged (origin/main 8d58475)",
+  "rule": "opened by a registration commit after the sample check fills sample_check and after the S3-04 receipt is pushed (ruling 111-7, 111-8); the converter commit is then appended to the S1-03 pose policy by a second registration commit before any cache or audit reads the converted episodes"
  }
 }
