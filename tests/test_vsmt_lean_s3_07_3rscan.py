@@ -33,7 +33,7 @@ from vsmt import lean_teacher as lt  # noqa: E402
 COLOR = {"fx": 756.832, "fy": 756.026, "cx": 492.889, "cy": 270.419}
 DEPTH = {"fx": 176.594, "fy": 240.808, "cx": 114.613, "cy": 85.7915}
 #: the reviewed contract, digest of its canonical JSON (re-pinned only with a ruling or a registration commit)
-CONTRACT_SHA256 = "75fa5de17f48a51403da84b96699252a8b57f5b2145d1ee7f9c0c22852d8e8e8"
+CONTRACT_SHA256 = "3cc6be716a6a8f3939be93be42338baa80cc29527a5b7e9170406c16708bb036"
 
 INFO_TEXT = """m_versionNumber = 4
 m_sensorName = StructureSensor
@@ -71,8 +71,13 @@ def box(center, size) -> dict:
 class ContractTests(unittest.TestCase):
     def test_contract_states_the_module_constants_and_blocks_until_the_sample_check(self) -> None:
         contract = r3.load_contract()
-        self.assertEqual(r3.blocking_null_slots(contract), list(r3.SAMPLE_CHECK_SLOTS))
+        self.assertEqual(r3.blocking_null_slots(contract), [])  # registered from the sample check (d05f337)
+        self.assertEqual(contract["sample_check"], {"alignment_translation_unit": "m", "obb_axes_layout": "rows",
+                                                    "image_rotation_confirmed": True, "ambiguity_structure_confirmed": True})
         self.assertFalse(contract["authorization"]["formal_conversion"])
+        emptied = copy.deepcopy(contract)
+        emptied["sample_check"] = {name: None for name in r3.SAMPLE_CHECK_SLOTS}
+        self.assertEqual(r3.blocking_null_slots(r3.validate_contract(emptied)), list(r3.SAMPLE_CHECK_SLOTS))
         for path, value, code in (
             (("camera", "target_size"), 256, "contract_target_size_mismatch"),
             (("camera", "image_rotation"), "counterclockwise_90", "contract_rotation_mismatch"),
@@ -85,10 +90,6 @@ class ContractTests(unittest.TestCase):
             broken[path[0]][path[1]] = value
             with self.assertRaisesRegex(r3.LeanS307Error, code):
                 r3.validate_contract(broken)
-        filled = copy.deepcopy(contract)
-        filled["sample_check"].update({"alignment_translation_unit": "m", "obb_axes_layout": "rows",
-                                       "image_rotation_confirmed": True, "ambiguity_structure_confirmed": True})
-        self.assertEqual(r3.blocking_null_slots(r3.validate_contract(filled)), [])
 
     def test_contract_digest_is_pinned(self) -> None:
         contract = json.loads(r3.CONTRACT_PATH.read_text(encoding="utf-8"))

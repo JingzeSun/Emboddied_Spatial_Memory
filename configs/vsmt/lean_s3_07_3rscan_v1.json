@@ -81,10 +81,17 @@
   "mask_source_meaning": "simulator_instance_masks in S3-07 means the annotated mesh rendered at the target camera (ruling 111-4 (a)); the name is not changed because the per-source ReID head, ELU-P values and FRONTS maps are frozen"
  },
  "sample_check": {
-  "alignment_translation_unit": null,
-  "obb_axes_layout": null,
-  "image_rotation_confirmed": null,
-  "ambiguity_structure_confirmed": null
+  "alignment_translation_unit": "m",
+  "obb_axes_layout": "rows",
+  "image_rotation_confirmed": true,
+  "ambiguity_structure_confirmed": true
+ },
+ "sample_check_record": {
+  "report": "results/vsmt_lean_s3_07_sample_d05f337.json",
+  "report_sha256": "3810c2a2a9c2f811d1f0482c9ceed6770204528eebd3adfe9cae65bc0fcb9f95",
+  "code_commit": "d05f337",
+  "sample_scans": ["095821f7-e2c2-2de1-9568-b9ce59920e29", "2e369567-e133-204c-909a-c5da44bb58df", "095821f9-e2c2-2de1-9707-8f735cd1c148", "095821fb-e2c2-2de1-94df-20f2cb423bcb"],
+  "readings": "unit: median nearest-vertex distance of unchanged objects 0.042-0.056 m read as metres against 0.26-0.71 m as millimetres; OBB: median containment 1.00 as rows against 0.50-0.80 as columns; roll: clockwise median cosine 0.919-0.996, no turn 0.06-0.40, counterclockwise and half turn their negatives; ambiguity: 79 entries over the 47 validation scenes, all read by instance_source / instance_target"
  },
  "sample_check_rules": {
   "alignment_translation_unit": "align the rescan mesh to the reference mesh under m and under mm; take the unit with the smaller median nearest-vertex distance over objects in no change list; stop if both exceed 0.10 m",

@@ -197,8 +197,11 @@ class EndToEndTests(unittest.TestCase):
         with mock.patch.object(convert, "load_labels", return_value=LABELS):
             self.assertEqual(convert.main(base + ["--out-root", str(self.root / "e"), "--geometry-root", str(self.root / "g"),
                                                   "--purpose", "sample"]), 2)  # roots must end in -sample
-            self.assertEqual(convert.main(base + ["--out-root", str(self.root / "e-sample"), "--geometry-root",
-                                                  str(self.root / "g-sample"), "--purpose", "sample"]), 2)  # contract slots null
+            emptied = r3.load_contract()
+            emptied["sample_check"] = {name: None for name in r3.SAMPLE_CHECK_SLOTS}
+            with mock.patch.object(convert.r3, "load_contract", return_value=emptied):
+                self.assertEqual(convert.main(base + ["--out-root", str(self.root / "e-sample"), "--geometry-root",
+                                                      str(self.root / "g-sample"), "--purpose", "sample"]), 2)  # slots null
             self.assertEqual(convert.main(base + ["--out-root", str(self.root / "e"), "--geometry-root", str(self.root / "g"),
                                                   "--purpose", "formal"]), 2)  # formal is not open
         from vsmt import lean_test_seal
