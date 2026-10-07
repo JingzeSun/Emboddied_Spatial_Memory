@@ -261,10 +261,10 @@ class CameraTests(unittest.TestCase):
 
     def test_roll_of_a_sideways_handheld_frame_ignores_pitch(self) -> None:
         """A phone held upright records a sideways raw frame (raw +x points down, world -Z).  Turned clockwise the image has no
-        roll however far the camera looks down; the other turns read 0 or -1."""
+        roll however far the camera looks down or up; the other turns read 0 or -1."""
 
         sideways = np.asarray([[0.0, 0.0, 1.0], [0.0, 1.0, 0.0], [-1.0, 0.0, 0.0]])  # raw camera looking along world +X
-        for pitch in (0.0, -0.5, -1.0, -1.3):  # tilt down about the raw camera's horizontal axis (raw y, world +Y)
+        for pitch in (0.0, 0.5, 1.0, 1.3, -0.7):  # tilt about the raw camera's horizontal axis (raw y): + looks down, - up
             pose = rigid(sideways @ rotation_about([0.0, 1.0, 0.0], pitch), [1.0, 2.0, 1.5])
             rotation, _position, _res = r3.camera_pose(pose)
             self.assertAlmostEqual(r3.image_roll_cosine(rotation), 1.0, places=9)
@@ -272,7 +272,7 @@ class CameraTests(unittest.TestCase):
             self.assertAlmostEqual(r3.image_roll_cosine(r3.turned_rotation(pose, "none")), 0.0, places=9)
             self.assertAlmostEqual(r3.image_roll_cosine(r3.turned_rotation(pose, "counterclockwise_90")), -1.0, places=9)
             self.assertAlmostEqual(r3.image_roll_cosine(r3.turned_rotation(pose, "half_turn")), 0.0, places=9)
-        straight_down = rigid(sideways @ rotation_about([0.0, 1.0, 0.0], -math.pi / 2), [1.0, 2.0, 1.5])
+        straight_down = rigid(sideways @ rotation_about([0.0, 1.0, 0.0], math.pi / 2), [1.0, 2.0, 1.5])
         self.assertTrue(math.isnan(r3.image_roll_cosine(r3.camera_pose(straight_down)[0])))
 
     def test_world_up_becomes_project_up(self) -> None:
