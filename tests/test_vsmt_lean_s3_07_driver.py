@@ -153,6 +153,35 @@ class GraphAndInputsTests(unittest.TestCase):
                 mock.patch.object(drv.s303, "s3_descriptor", return_value="reid_projection:vitb14"):
             drv.build_jobs(self.run_root, self.inputs, receipt)
 
+    def test_inputs_step_keeps_the_pool_inputs_beside_its_record(self) -> None:
+        """The pool input inputs.json (roots, episodes) must survive the step record (589db97 overwrote it on B1)."""
+
+        receipt = receipt_fixture()
+        receipt["fronts"]["sam2"] = dict(receipt["fronts"]["instance"])  # both front ends frozen; only instance runs (amendment 3)
+        receipt_path = self.root / "receipt.json"
+        drv.write_json(receipt_path, receipt)
+        drv.write_json(self.run_root / drv.HANDOVER_FILE, {
+            "receipt_sha256": receipt["receipt_sha256"],
+            "roots": {"episodes": str(self.root / "episodes"), "geometry": str(self.root / "geometry"),
+                      "cache_instance": str(self.root / "cache" / "instance"), "cache_sam2": str(self.root / "cache" / "sam2")},
+            "episodes": {"instance": [{"episode_id": e, "frames": 5} for e in EPISODES], "sam2": []},
+            "cache_data_failures": {"instance": [], "sam2": [{"episode_id": "x", "reason": "proposal_overflow"}]}})
+        drv.write_json(drv.step_path(self.run_root, "receive"), {"pass": True, "code_commit": "c" * 40})
+        with mock.patch.object(drv, "git", return_value="c" * 40):
+            code = drv.main(["inputs", "--run-root", str(self.run_root), "--receipt", str(receipt_path), "--s3-03-run-root", str(self.s3_03),
+                             "--fronts", "instance", "--fronts-rule", "ruling 111 amendment 3"])
+        self.assertEqual(code, 0)
+        pool_inputs = drv.load_json(self.run_root / "inputs.json")
+        self.assertIn("roots", pool_inputs)  # what s3_03_jobs / remote_hosts read
+        self.assertEqual(pool_inputs["fronts"], ["instance"])
+        self.assertEqual(pool_inputs["roots"]["raw"]["validation"], str(self.root / "episodes"))
+        self.assertEqual(pool_inputs["fronts_not_run"]["sam2"]["cache_data_failures"], 1)
+        record = drv.load_json(drv.step_path(self.run_root, "inputs"))
+        self.assertTrue(record["pass"])
+        self.assertNotEqual(drv.step_path(self.run_root, "inputs"), self.run_root / "inputs.json")
+        with mock.patch.object(drv, "git", return_value="c" * 40):
+            self.assertTrue(drv.passed(self.run_root, "inputs"))
+
     def test_usable_episodes_drop_the_reader_check_failures(self) -> None:
         handoff = {"episodes": {"instance": [{"episode_id": e, "frames": 7} for e in EPISODES], "sam2": []}}
         out = drv.usable_episodes(handoff, [EPISODES[2]])

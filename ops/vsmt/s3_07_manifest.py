@@ -87,14 +87,22 @@ def git(*arguments: str) -> str:
     return subprocess.check_output(["git", *arguments], cwd=str(ROOT), text=True).strip()
 
 
+#: step records live in their own directory: the pool input inputs.json (read by s3_03_jobs / remote_hosts as the S3-03 and S3-05
+#: pools do) and the hand-over handover.json sit at the run root, and a step record must never overwrite them (the "inputs" step
+#: record did, on B1 at 589db97: remote_hosts.static_paths then found no "roots")
+STEPS_DIR = "steps"
+
+
 def step_path(run_root: Path, name: str) -> Path:
-    return run_root / f"{name}.json"
+    return run_root / STEPS_DIR / f"{name}.json"
 
 
 def finish(run_root: Path, name: str, payload: dict[str, Any]) -> int:
     payload = {"stage": STAGE, "step": name, "code_commit": git("rev-parse", "HEAD"), "written_utc": utc_now(), **payload}
     payload["pass"] = not payload.get("problems")
-    write_json(step_path(run_root, name), payload)
+    target = step_path(run_root, name)
+    _require(target.name not in ("inputs.json", "handover.json") or target.parent.name == STEPS_DIR, "step_record_would_overwrite_an_input")
+    write_json(target, payload)
     print(f"[s3-07-{name}] pass={payload['pass']}; problems: {payload.get('problems')[:6] if payload.get('problems') else 'none'}")
     return 0 if payload["pass"] else 3
 
