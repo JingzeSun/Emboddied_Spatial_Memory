@@ -206,17 +206,61 @@ def _rigid(matrix: np.ndarray, code: str) -> np.ndarray:
     return matrix
 
 
-def nearest_rotation(rotation: np.ndarray) -> tuple[np.ndarray, float]:
-    """The proper rotation nearest a near-orthonormal matrix (SVD polar factor) and the largest entry moved.
+def matmul(a: Any, b: Any) -> np.ndarray:
+    """A small matrix product written out in a fixed order (no BLAS, no LAPACK): the same bits on every host."""
 
-    白话：3RScan 的位姿是文本，小数位有限，旋转矩阵只近似正交；冻结的四元数编码要求严格正交。这里取最近的真旋转，并把改动量
-    报出来（转换报告记最大值），改动超过 ``RIGID_TOLERANCE`` 的矩阵在读入时就已被拒。
+    x, y = np.asarray(a, dtype=np.float64), np.asarray(b, dtype=np.float64)
+    _require(x.ndim == 2 and y.ndim == 2 and x.shape[1] == y.shape[0], "matmul_shape_invalid")
+    out = np.zeros((x.shape[0], y.shape[1]), dtype=np.float64)
+    for i in range(x.shape[0]):
+        for j in range(y.shape[1]):
+            total = 0.0
+            for k in range(x.shape[1]):
+                total = total + float(x[i, k]) * float(y[k, j])
+            out[i, j] = total
+    return out
+
+
+def affine(matrix: np.ndarray, points: Any) -> np.ndarray:
+    """``matrix[:3, :3] . p + matrix[:3, 3]`` for points as rows, element by element in a fixed order."""
+
+    m = np.asarray(matrix, dtype=np.float64)
+    p = np.asarray(points, dtype=np.float64)
+    x, y, z = p[..., 0], p[..., 1], p[..., 2]
+    return np.stack([m[i, 0] * x + m[i, 1] * y + m[i, 2] * z + m[i, 3] for i in range(3)], axis=-1)
+
+
+def orthonormal_rotation(rotation: np.ndarray) -> tuple[np.ndarray, float]:
+    """An exact rotation from a near-orthonormal one (Gram-Schmidt on the columns, fixed order) and the largest entry moved.
+
+    白话：3RScan 的位姿是文本，小数位有限，旋转矩阵只近似正交；冻结的四元数编码要求严格正交。这里按列做 Gram–Schmidt（第一列归一，
+    第二列去掉第一列分量再归一，第三列取前两列叉积），全部是逐元素运算，任何主机上逐位相同（SVD 走 LAPACK，换 CPU 可能差末位）。
+    改动量报出来（转换报告记最大值）；偏离正交超过 ``RIGID_TOLERANCE`` 的矩阵在读入时就已被拒。
     """
 
-    u, _singular, vt = np.linalg.svd(np.asarray(rotation, dtype=np.float64))
-    nearest = u @ vt
-    _require(float(np.linalg.det(nearest)) > 0.0, "rotation_not_proper")
-    return nearest, float(np.max(np.abs(nearest - rotation)))
+    r = np.asarray(rotation, dtype=np.float64)
+    c0 = r[:, 0] / math.sqrt(float(r[0, 0] * r[0, 0] + r[1, 0] * r[1, 0] + r[2, 0] * r[2, 0]))
+    dot = float(c0[0] * r[0, 1] + c0[1] * r[1, 1] + c0[2] * r[2, 1])
+    c1 = r[:, 1] - dot * c0
+    c1 = c1 / math.sqrt(float(c1[0] * c1[0] + c1[1] * c1[1] + c1[2] * c1[2]))
+    c2 = np.asarray([c0[1] * c1[2] - c0[2] * c1[1], c0[2] * c1[0] - c0[0] * c1[2], c0[0] * c1[1] - c0[1] * c1[0]])
+    _require(float(c2[0] * r[0, 2] + c2[1] * r[1, 2] + c2[2] * r[2, 2]) > 0.0, "rotation_not_proper")
+    out = np.column_stack((c0, c1, c2))
+    return out, float(np.max(np.abs(out - r)))
+
+
+def orthonormal_rigid(matrix: np.ndarray) -> tuple[np.ndarray, float]:
+    """A 4 x 4 rigid transform with its rotation made exactly orthonormal (``orthonormal_rotation``); the translation is kept.
+
+    Poses and alignments are made orthonormal once, here, at the raw level: the axes swap and the upright turn are signed
+    permutations, exact in floating point, so the rendered image, the public pose and the truth boxes all use the same rotation.
+    """
+
+    m = _rigid(np.asarray(matrix, dtype=np.float64), "transform_not_rigid")
+    rotation, moved = orthonormal_rotation(m[:3, :3])
+    out = m.copy()
+    out[:3, :3] = rotation
+    return out, moved
 
 
 def parse_pose(text: str) -> np.ndarray:
@@ -345,12 +389,11 @@ def to_project_world(points: Any) -> np.ndarray:
     """3RScan world (+Z up) -> project world (+Y up), points as rows."""
 
     array = np.asarray(points, dtype=np.float64)
-    return array @ W.T
+    return array[..., [0, 2, 1]].copy()  # W swaps y and z: exact
 
 
 def transform_points(matrix: np.ndarray, points: Any) -> np.ndarray:
-    array = np.asarray(points, dtype=np.float64)
-    return array @ matrix[:3, :3].T + matrix[:3, 3]
+    return affine(matrix, points)
 
 
 def obb_corners(obb: Mapping[str, Any], *, layout: str | None) -> np.ndarray:
@@ -364,7 +407,8 @@ def obb_corners(obb: Mapping[str, Any], *, layout: str | None) -> np.ndarray:
     half = 0.5 * np.asarray(obb["axesLengths"], dtype=np.float64)
     centre = np.asarray(obb["centroid"], dtype=np.float64)
     signs = np.asarray([[sx, sy, sz] for sx in (-1, 1) for sy in (-1, 1) for sz in (-1, 1)], dtype=np.float64)
-    return centre + (signs * half) @ axes
+    offsets = signs * half
+    return centre + (offsets[:, 0:1] * axes[0] + offsets[:, 1:2] * axes[1] + offsets[:, 2:3] * axes[2])
 
 
 def object_box(obb: Mapping[str, Any], *, layout: str | None, alignment: np.ndarray | None = None) -> dict[str, list[float]]:
@@ -373,7 +417,7 @@ def object_box(obb: Mapping[str, Any], *, layout: str | None, alignment: np.ndar
 
     corners = obb_corners(obb, layout=layout)
     if alignment is not None:
-        corners = transform_points(alignment, corners)
+        corners = transform_points(orthonormal_rigid(alignment)[0], corners)
     corners = to_project_world(corners)
     lower, upper = corners.min(axis=0), corners.max(axis=0)
     return {"aabb_min_m": [float(v) for v in lower], "aabb_max_m": [float(v) for v in upper],
@@ -466,14 +510,17 @@ def camera_pose(pose_raw: np.ndarray, *, alignment: np.ndarray | None = None) ->
 
     R' = W . R . Q^T . S and t' = W . t, after left-multiplying a rescan's pose by its rescan-to-reference alignment.  W and S
     are each a mirror, Q a proper turn, so det R' = +1: a proper camera-to-world rotation the frozen reader accepts.  R' is then
-    projected to the nearest exact rotation (``nearest_rotation``) because the quaternion encoder requires one.
+    made exactly orthonormal (``orthonormal_rigid``, once, on the raw pose and alignment) because the quaternion encoder
+    requires it.  Every product is written
+    out in a fixed order (``matmul``), so the public pose has the same bits on every host.
     """
 
-    matrix = _rigid(np.asarray(pose_raw, dtype=np.float64), "pose_not_rigid")
+    matrix, residual = orthonormal_rigid(_rigid(np.asarray(pose_raw, dtype=np.float64), "pose_not_rigid"))
     if alignment is not None:
-        matrix = _rigid(alignment @ matrix, "aligned_pose_not_rigid")
-    rotation, residual = nearest_rotation(W @ matrix[:3, :3] @ Q.T @ S)
-    position = W @ matrix[:3, 3]
+        aligned, moved = orthonormal_rigid(alignment)
+        matrix, residual = matmul(aligned, matrix), max(residual, moved)
+    rotation = matmul(matmul(matmul(W, matrix[:3, :3]), Q.T), S)
+    position = to_project_world(matrix[:3, 3])
     _require(abs(float(np.linalg.det(rotation)) - 1.0) < 1e-9, "converted_rotation_not_proper")
     return rotation, position, residual
 
@@ -494,21 +541,21 @@ def image_roll_cosine(rotation: np.ndarray) -> float:
 
     r = np.asarray(rotation, dtype=np.float64)
     forward, up = r[:, 2], np.asarray([0.0, 1.0, 0.0])
-    projected = up - float(up @ forward) * forward
-    norm = float(np.linalg.norm(projected))
+    projected = up - float(forward[1]) * forward
+    norm = math.sqrt(float(projected[0] * projected[0] + projected[1] * projected[1] + projected[2] * projected[2]))
     if norm < ROLL_UNDEFINED_BELOW:
         return float("nan")
-    return float(r[:, 1] @ (projected / norm))
+    unit = projected / norm
+    return float(r[0, 1] * unit[0] + r[1, 1] * unit[1] + r[2, 1] * unit[2])
 
 
 def turned_rotation(pose_raw: np.ndarray, turn: str) -> np.ndarray:
     """The converted camera rotation under one candidate turn (sample check only; conversion always uses the registered turn)."""
 
     _require(turn in ROLL_CANDIDATE_TURNS, "turn_unknown")
-    matrix = _rigid(np.asarray(pose_raw, dtype=np.float64), "pose_not_rigid")
-    turns = {"clockwise_90": Q, "none": np.eye(3), "counterclockwise_90": Q.T, "half_turn": Q @ Q}
-    rotation, _residual = nearest_rotation(W @ matrix[:3, :3] @ turns[turn].T @ S)
-    return rotation
+    matrix, _residual = orthonormal_rigid(np.asarray(pose_raw, dtype=np.float64))
+    turns = {"clockwise_90": Q, "none": np.eye(3), "counterclockwise_90": Q.T, "half_turn": matmul(Q, Q)}
+    return matmul(matmul(matmul(W, matrix[:3, :3]), turns[turn].T), S)
 
 
 def relative_pose(rotation: np.ndarray, position: np.ndarray, origin_position: Sequence[float]) -> dict[str, Any]:

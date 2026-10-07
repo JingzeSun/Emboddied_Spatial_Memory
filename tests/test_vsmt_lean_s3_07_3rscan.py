@@ -33,7 +33,7 @@ from vsmt import lean_teacher as lt  # noqa: E402
 COLOR = {"fx": 756.832, "fy": 756.026, "cx": 492.889, "cy": 270.419}
 DEPTH = {"fx": 176.594, "fy": 240.808, "cx": 114.613, "cy": 85.7915}
 #: the reviewed contract, digest of its canonical JSON (re-pinned only with a ruling or a registration commit)
-CONTRACT_SHA256 = "2494711fc3833b7fe90a66d92ac76e406d4367fbacd17cde6f607b062279a6ea"
+CONTRACT_SHA256 = "bb9581d204de246e9738b78fe714cb1362a989f2f230cb4edf12171301cd8a02"
 
 INFO_TEXT = """m_versionNumber = 4
 m_sensorName = StructureSensor
@@ -112,11 +112,11 @@ class ParsingTests(unittest.TestCase):
         with self.assertRaisesRegex(r3.LeanS307Error, "info_field_missing:m_depthShift"):
             r3.parse_info(INFO_TEXT.replace("m_depthShift = 1000\n", ""))
 
-    def test_pose_text_and_nearest_rotation(self) -> None:
+    def test_pose_text_and_orthonormal_rotation(self) -> None:
         rotation = rotation_about([0.3, -0.5, 0.8], 1.1)
         text = "\n".join(" ".join(f"{v:.6f}" for v in row) for row in rigid(rotation, [1.25, -0.5, 2.0]))
         pose = r3.parse_pose(text)
-        nearest, moved = r3.nearest_rotation(pose[:3, :3])
+        nearest, moved = r3.orthonormal_rotation(pose[:3, :3])
         self.assertLess(moved, 1e-5)
         self.assertTrue(np.allclose(nearest @ nearest.T, np.eye(3), atol=1e-12))
         with self.assertRaisesRegex(r3.LeanS307Error, "pose_not_rigid"):

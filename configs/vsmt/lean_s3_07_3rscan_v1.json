@@ -25,7 +25,7 @@
   "world": [[1, 0, 0], [0, 0, 1], [0, 1, 0]],
   "camera": [[1, 0, 0], [0, -1, 0], [0, 0, 1]],
   "upright": [[0, -1, 0], [1, 0, 0], [0, 0, 1]],
-  "rule": "camera-to-world rotation R' = world . R . upright^T . camera, position t' = world . t; world swaps y and z (3RScan +Z up -> project +Y up) and camera flips y (OpenCV y down -> D-223 y up), both mirrors, so det R' = +1; R' is projected to the nearest exact rotation (SVD) before the quaternion; truth positions and box corners are multiplied by world as well"
+  "rule": "camera-to-world rotation R' = world . R . upright^T . camera, position t' = world . t; world swaps y and z (3RScan +Z up -> project +Y up) and camera flips y (OpenCV y down -> D-223 y up), both mirrors, so det R' = +1; the raw pose and alignment rotations are made exactly orthonormal once (Gram-Schmidt in a fixed order, no BLAS or LAPACK, the same bits on every host) before the swap and turn, which are exact; truth positions and box corners are multiplied by world as well"
  },
  "depth": {
   "source": "annotated_mesh_render",
