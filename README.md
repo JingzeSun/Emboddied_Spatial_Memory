@@ -239,6 +239,34 @@ bash ops/vsmt/s3_05_test.sh status
 
 **工作机（107-3）**：解封之后才可能复制 test——`remote_hosts.py setup --run-root $AUTODL/vsmt_private/s3-05-run --kinds test`（B1→w4；w4 准入后可用 `--relay-from w4 --relay-key <w4 上能登录 w1 的密钥>` 接力到 w1，密钥放到 w4 上须用户同意），代码 worktree 同步到冻结提交；`admit --kinds test --reference-run-root $AUTODL/vsmt_private/s3-03-run`：在工作机上按封印逐文件核对 test（结果记进读取记录），并在冻结提交上重跑 S3-03 的 validation 审计逐位比对（不读 test）。作业池每 30 秒读 `<运行根>/hosts/`。
 
+## 怎样复现 S3-07（3RScan 外部验证，裁决 111）
+
+白话：S3-07 回答“换成真实的重扫描数据，冻结后的各臂排序还在不在”。输入是 3RScan validation 划分的 47 个场景、110 对“参考扫描＋重扫描”（用户签条款后用官方脚本下载）和 S3-04 冻结回执钉住的臂、配置与权重；输出是两套前端的外部验证表（以场景为统计单位）、VSMT-lean 对每个对照与消融的差值与 90% 区间、失败与不适用清单。例如同一间卧室隔几周重扫，椅子从桌边挪到窗边，看各臂能不能接回椅子的身份、会不会在原处留下陈旧实体。它不选参、不训练、不进主门、不读 test；3RScan 的派生字节（帧、cache、私有表）不公开发布。
+
+**前提**：S3-04 回执已提交到 `results/` 并推送；S3-07 运行提交的 `src/`、`ops/`、`configs/` 与冻结提交只差 S3-07 的文件和登记提交的两处（转换器提交追加进 S1-03 合同 `public_pose_correction`、cache 生成器的目录规则扩成也认 `3rscan-*`）；合同 `configs/vsmt/lean_s3_07_3rscan_v1.json` 的四个样本槽已登记、`authorization.formal_conversion` 已打开。
+
+```bash
+# GPU 主机（与 S3-02 同型号的 RTX 5090；3RScan 在 $AUTODL/3rscan/{meta,scans}）
+cd /root/autodl-tmp/vsmt_worktrees/s3-07-<commit>
+setsid nohup env RECEIPT=/root/autodl-tmp/vsmt_private/s3-04-<冻结提交>/freeze_receipt.json bash ops/vsmt/s3_07_external.sh gpu > /root/autodl-tmp/vsmt_outputs/run_logs/s3-07-gpu.log 2>&1 < /dev/null &
+# 复制 episode 根、几何根、两套 cache 根与运行根到 B1 的同一路径之后，在 B1 上
+setsid nohup env RECEIPT=... bash ops/vsmt/s3_07_external.sh audit > /root/autodl-tmp/vsmt_outputs/run_logs/s3-07-audit.log 2>&1 < /dev/null &
+bash ops/vsmt/s3_07_external.sh status
+```
+
+| 段 | 步骤 | 做什么 |
+|---|---|---|
+| GPU | check | E1：与回执的代码差异只能落在白名单（S3-07 文件、两处登记改动）；回执已提交；转换器提交已登记进位姿表；cache 生成器认 `3rscan-*`；合同正式位已开、样本槽已登记 |
+| GPU | render → convert → reader-check | `s3_07_render.py --purpose formal`、`s3_07_convert.py convert --purpose formal`（失败的对照记、不换）、冻结读入口逐帧回读 |
+| GPU | cache | 两套前端的 S1-03 cache（`lean_s1_03_cache.py`，每 worker 2 线程）；构造失败按冻结原因码（`proposal_overflow` 等）照记，从该前端的可用清单去掉 |
+| GPU | e2 | 在本提交上重建 S3-02 两条最小 train episode（`train-03642`、`train-00946`）的两套 cache，封印与已提交的 S3-02 导出逐位相同 |
+| GPU | handoff | 每个根的树摘要与每套前端的可用 episode 清单（`<运行根>/handoff.json`） |
+| 审计 | check → receive → inputs | 同样的 check（另核权重与 ELU-P 登记值）；复制过来的根与交接单摘要逐项相同；写运行输入（3RScan 根放在 `validation` 键下，因为共享工具按这个键读；`split_meaning` 写明它是 3RScan） |
+| 审计 | e3 | 回执 `probe_episodes` 上的 G4 探针审计在本提交重跑，与 S3-03 原审计逐字节相同；工作机用 `remote_hosts.py setup/admit --kinds audit --reference-run-root $AUTODL/vsmt_private/s3-03-run` |
+| 审计 | run → merge → stats → export | 作业池：每条 episode 上回执 `test_runs` 的每个运行一个作业（node audit 只算指标，不带 `--manifest-split`）；崩溃重跑一次、再失败记数据失败；退出码 2 停整趟；合并后 `lean_s3_07` 按场景合并、只报告（没有“通过”）；导出 `$AUTODL/vsmt_outputs/exports/vsmt_lean_s3_07_*_<commit>.json` |
+
+**小样本（111-8 ④，已跑）**：`s3_07_render.py --purpose sample`、`s3_07_convert.py sample-check` 与 `convert --purpose sample --slots-from <核对报告>`、`reader-check`，根目录以 `-sample` 结尾；结果 `results/vsmt_lean_s3_07_sample_d05f337.json`。
+
 ## 怎样跑 LLM-op（附录臂，裁决 105）
 
 白话：LLM-op 回答审稿人必问的“零训练的大模型直接做记忆修订够不够”。输入是与其他臂逐字节相同的封存特征表（转成带表头的表格文本）和两段登记的指令，模型是 DeepSeek `deepseek-flash`（2026-10-04 实际为 V4.1-Flash）默认推理模式；输出是两套前端各 1 条 validation episode（裁决 108；原为 15 条）的闭环指标（与其他臂同一个 node audit、同一套指标）、全部调用存档与一份导出。每帧问两次：先关联（每个色块选一个召回实体或 BIRTH），求解后再判存在（每个可判定实体 RETRACT 或 NOOP）。它不训练、不选参、不进主表、不读 test；它独立于 S3-03 的作业池，可以在另一台机器上和 S3-03 同时跑。
