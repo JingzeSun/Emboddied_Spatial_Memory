@@ -97,9 +97,28 @@ def finish(run_root: Path, name: str, payload: dict[str, Any]) -> int:
     return 0 if payload["pass"] else 3
 
 
+#: paths a registration commit may touch between the converter commit and the cache/audit commit (ruling 111-7: the converter
+#: commit is appended to the S1-03 pose policy after the episodes exist, as S3-02 did at 4ad0233); a step passed at the earlier
+#: commit stays passed when nothing else changed
+REGISTRATION_PATHS = ("configs/vsmt/lean_s1_03_frontend_cache_v1.json", "tests/", "docs/", "results/", "README.md", "EXECUTE.md", "AGENTS.md")
+
+
+def registration_only_changes(since_commit: str) -> bool:
+    """True when every file changed between ``since_commit`` and HEAD is a registration path."""
+
+    try:
+        changed = [name for name in git("diff", "--name-only", since_commit, "HEAD").splitlines() if name]
+    except subprocess.CalledProcessError:
+        return False
+    return all(any(name == path or name.startswith(path) for path in REGISTRATION_PATHS) for name in changed)
+
+
 def passed(run_root: Path, name: str) -> bool:
     path = step_path(run_root, name)
-    return path.exists() and bool(load_json(path).get("pass")) and load_json(path).get("code_commit") == git("rev-parse", "HEAD")
+    if not path.exists() or not bool(load_json(path).get("pass")):
+        return False
+    commit = str(load_json(path).get("code_commit") or "")
+    return commit == git("rev-parse", "HEAD") or registration_only_changes(commit)
 
 
 def receipt_of(args: argparse.Namespace) -> dict[str, Any]:
@@ -179,8 +198,17 @@ def cmd_check(args: argparse.Namespace) -> int:
     null_slots = r3.blocking_null_slots(contract)
     if null_slots or not contract["authorization"]["formal_conversion"]:
         problems.append(f"formal_conversion_not_open:null_slots={null_slots}:authorization={contract['authorization']['formal_conversion']}")
+    # the converter commit is the one the converted episodes record; before any exists, the commit about to convert (HEAD)
+    receipts = episode_receipts(Path(args.episode_root)) if args.episode_root else {}
+    converter_commits = sorted({str(row.get("code_commit")) for row in receipts.values() if row.get("status") == "succeeded"})
     commit = git("rev-parse", "HEAD")
-    problems += registration_problems(commit)
+    if len(converter_commits) > 1:
+        problems.append(f"converted_episodes_from_several_commits:{converter_commits}")
+    registration = registration_problems(converter_commits[0] if converter_commits else commit)
+    if converter_commits:
+        problems += registration
+    else:  # nothing converted yet: the registration of this commit is reported, not required (it happens after conversion)
+        pass
     if args.role == "audit":
         s0_05 = load_json(S0_05_CONTRACT)
         for front, values in receipt["frozen_bytes"]["elu_p_registered"].items():
@@ -189,7 +217,9 @@ def cmd_check(args: argparse.Namespace) -> int:
         for path, digest in sorted(receipt["frozen_bytes"]["heads"].items()):
             if not Path(path).exists() or s4.file_sha256(Path(path)) != digest:
                 problems.append(f"heads_file_differs_or_missing:{path}")
-    return finish(run_root, "check", {"role": args.role, "receipt": {"path": args.receipt, "receipt_sha256": receipt["receipt_sha256"],
+    return finish(run_root, "check", {"role": args.role, "converter_commits": converter_commits,
+                                      "registration_of_this_commit_if_it_converts": registration,
+                                      "receipt": {"path": args.receipt, "receipt_sha256": receipt["receipt_sha256"],
                                                                       "freeze_commit": receipt["freeze_commit"], "committed_as": committed},
                                       "code_differences_from_the_freeze": differences, "allowed": {"prefixes": ALLOWED_PREFIXES, "files": ALLOWED_FILES},
                                       "contract_sha256": s4.file_sha256(r3.CONTRACT_PATH), "problems": problems})
@@ -635,6 +665,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             command.add_argument("--log-dir", default=None)
         if name == "check":
             command.add_argument("--role", choices=("gpu", "audit"), required=True)
+            command.add_argument("--episode-root", default=None)
         if name in ("render", "convert"):
             command.add_argument("--scans-root", required=True)
             command.add_argument("--meta", required=True)

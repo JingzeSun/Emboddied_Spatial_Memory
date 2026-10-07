@@ -48,6 +48,34 @@ class WhitelistTests(unittest.TestCase):
         self.assertEqual(any(p.startswith("cache_generator_does_not_scan_3rscan") for p in problems), "3rscan-*" not in globs)
 
 
+class RegistrationTests(unittest.TestCase):
+    def test_the_cache_generator_scans_both_episode_name_patterns(self) -> None:
+        import lean_s1_03_cache as cache_runner
+
+        self.assertEqual(cache_runner.EPISODE_DIRECTORY_GLOBS, ("procthor10k-*", "3rscan-*"))
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for name in ("procthor10k-0.1.2-train-00002", "3rscan-aaaa-bbbb", "procthor10k-0.1.2-train-00001", "other-dir"):
+                (root / name).mkdir()
+            self.assertEqual([d.name for d in cache_runner.episode_directories(root)],
+                             ["3rscan-aaaa-bbbb", "procthor10k-0.1.2-train-00001", "procthor10k-0.1.2-train-00002"])
+
+    def test_a_step_stays_passed_across_a_registration_only_commit(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            run_root = Path(tmp)
+            drv.write_json(drv.step_path(run_root, "reader-check"), {"pass": True, "code_commit": "a" * 40})
+            with mock.patch.object(drv, "git", side_effect=lambda *a: {("rev-parse", "HEAD"): "b" * 40,
+                                                                      ("diff", "--name-only", "a" * 40, "HEAD"):
+                                                                      "configs/vsmt/lean_s1_03_frontend_cache_v1.json\ntests/test_x.py\ndocs/DECISIONS.md"}[a]):
+                self.assertTrue(drv.passed(run_root, "reader-check"))
+            with mock.patch.object(drv, "git", side_effect=lambda *a: {("rev-parse", "HEAD"): "b" * 40,
+                                                                      ("diff", "--name-only", "a" * 40, "HEAD"):
+                                                                      "configs/vsmt/lean_s1_03_frontend_cache_v1.json\nsrc/vsmt/lean_memory.py"}[a]):
+                self.assertFalse(drv.passed(run_root, "reader-check"))
+            with mock.patch.object(drv, "git", return_value="a" * 40):
+                self.assertTrue(drv.passed(run_root, "reader-check"))
+
+
 class E2Tests(unittest.TestCase):
     def test_e2_compares_seals_front_by_front(self) -> None:
         exports = {front: {"episodes": [{"episode_id": e, "episode_seal_sha256": f"{front}-{e}"} for e in drv.E2_EPISODES]}

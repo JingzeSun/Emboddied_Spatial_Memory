@@ -4,6 +4,9 @@
 # Two phases on two kinds of host, from a clean detached worktree of the S3-07 run commit (its src/, ops/ and configs/ differ from
 # the frozen commit only by the S3-07 files and the registration edits; results/ holds the S3-04 freeze receipt):
 #   GPU host (the same RTX 5090 model as S3-02):   RECEIPT=<freeze_receipt.json> bash ops/vsmt/s3_07_external.sh gpu
+#     in two halves when the converter commit must be registered first (ruling 111-7, as S3-02 did): gpu-convert at the converter
+#     commit (check, render, convert, reader-check), then gpu-cache at the registration commit (check, cache, e2, handoff); steps
+#     passed at the converter commit stay passed when only registration paths changed
 #   audit host (B1 and its admitted workers):       RECEIPT=<freeze_receipt.json> bash ops/vsmt/s3_07_external.sh audit
 #   either:                                         bash ops/vsmt/s3_07_external.sh status
 #   long runs in the background: setsid nohup env RECEIPT=... bash ops/vsmt/s3_07_external.sh gpu > <log> 2>&1 < /dev/null &
@@ -46,7 +49,7 @@ EXPORT_DIR=${EXPORT_DIR:-$AUTODL/vsmt_outputs/exports}
 RUN_ROOT=${RUN_ROOT:-$AUTODL/vsmt_private/s3-07-run}
 LOG_DIR=$AUTODL/vsmt_outputs/run_logs/s3-07-$SHORT
 COMMAND=${1:-}
-case "$COMMAND" in gpu|audit|status) ;; *) echo "usage: RECEIPT=... bash ops/vsmt/s3_07_external.sh gpu|audit | bash ops/vsmt/s3_07_external.sh status"; exit 2;; esac
+case "$COMMAND" in gpu|gpu-convert|gpu-cache|audit|status) ;; *) echo "usage: RECEIPT=... bash ops/vsmt/s3_07_external.sh gpu|gpu-convert|gpu-cache|audit | bash ops/vsmt/s3_07_external.sh status"; exit 2;; esac
 M() { PYTHONPATH=src $PY ops/vsmt/s3_07_manifest.py "$@"; }
 if [ "$COMMAND" = "status" ]; then M status --run-root "$RUN_ROOT"; exit 0; fi
 if [ -z "${RECEIPT:-}" ]; then echo "refused: RECEIPT is required (the S3-04 freeze receipt)"; exit 2; fi
@@ -70,21 +73,26 @@ echo "[$(date)] full test suite -> $LOG_DIR/suite-$COMMAND.log"
 if ! PYTHONPATH=src $PY -m unittest discover -s tests -t tests -p "test_*.py" > "$LOG_DIR/suite-$COMMAND.log" 2>&1; then
   echo "[$(date)] the test suite failed ($LOG_DIR/suite-$COMMAND.log)"; exit 1
 fi
-if [ "$COMMAND" = "gpu" ]; then
-  step check --role gpu
+if [ "$COMMAND" = "gpu" ] || [ "$COMMAND" = "gpu-convert" ]; then
+  step check --role gpu --episode-root "$EPISODE_ROOT"
   step render --scans-root "$SCANS_ROOT" --meta "$META" --render-root "$RENDER_ROOT" --workers "$RENDER_WORKERS" \
     --worker-basis "RENDER_WORKERS=$RENDER_WORKERS: single-threaded numpy renderer, about 0.12 s per frame per worker (sample run c0f350a)"
   step convert --scans-root "$SCANS_ROOT" --meta "$META" --labels "$LABELS" --render-root "$RENDER_ROOT" --episode-root "$EPISODE_ROOT" \
     --geometry-root "$GEOMETRY_ROOT" --workers "$CONVERT_WORKERS" \
     --worker-basis "CONVERT_WORKERS=$CONVERT_WORKERS: single-threaded, about 0.07 s per frame per worker (sample run d05f337)"
   step reader-check --episode-root "$EPISODE_ROOT" --geometry-root "$GEOMETRY_ROOT"
+  [ "$COMMAND" = "gpu-convert" ] && { echo "[$(date)] conversion finished at $SHORT; register this commit in the S1-03 pose policy, then run gpu-cache from the registration commit"; exit 0; }
+fi
+if [ "$COMMAND" = "gpu" ] || [ "$COMMAND" = "gpu-cache" ]; then
+  [ "$COMMAND" = "gpu-cache" ] && step check --role gpu --episode-root "$EPISODE_ROOT"
   step cache --episode-root "$EPISODE_ROOT" --cache-root-base "$CACHE_ROOT_BASE" --assets-json "$ASSETS_JSON" --gpus "$GPUS" \
     --instance-workers "$INSTANCE_WORKERS" --sam2-workers "$SAM2_WORKERS" \
     --worker-basis "S3-02 rule: two threads per instance worker; SAM2 $SAM2_WORKERS workers over cards $GPUS (4 per card measured best on a 5090, LOG-302/303)"
   step e2 --s3-02-train-root "$S3_02_TRAIN_ROOT" --assets-json "$ASSETS_JSON" --gpus "$GPUS"
   step handoff --episode-root "$EPISODE_ROOT" --geometry-root "$GEOMETRY_ROOT"
   echo "[$(date)] GPU phase finished; copy $EPISODE_ROOT $GEOMETRY_ROOT $CACHE_ROOT_BASE and $RUN_ROOT to the audit host at the same paths"
-else
+fi
+if [ "$COMMAND" = "audit" ]; then
   step check --role audit
   step receive
   step inputs
