@@ -431,6 +431,10 @@ def cmd_inputs(args: argparse.Namespace) -> int:
     handoff = load_json(run_root / HANDOVER_FILE)
     s3_03 = s303.load_context(Path(args.s3_03_run_root))
     fronts = [front for front in FRONTS if front in receipt["fronts"]]
+    if args.fronts:  # amendment 3 of ruling 111: the SAM 2.1 column is reported as not computable, only the instance column runs
+        wanted = [f for f in args.fronts.split(",") if f]
+        _require(all(f in fronts for f in wanted), "fronts_not_in_the_receipt:" + args.fronts)
+        fronts = wanted
     reader = run_root / "reader_check_report.json"
     reader_failed = load_json(reader)["failed"] if reader.exists() else []
     episodes = usable_episodes(handoff, reader_failed)
@@ -444,7 +448,11 @@ def cmd_inputs(args: argparse.Namespace) -> int:
               "episodes": {front: {SPLIT_KEY: episodes[front]} for front in fronts},
               "counts": {front: {"usable": len(episodes[front]), "cache_data_failures": len(handoff["cache_data_failures"][front])}
                          for front in fronts},
-              "cache_data_failures": handoff["cache_data_failures"], "reader_check_failed": reader_failed}
+              "cache_data_failures": handoff["cache_data_failures"], "reader_check_failed": reader_failed,
+              "fronts_not_run": {front: {"usable_episodes": len(handoff["episodes"][front]),
+                                         "cache_data_failures": len(handoff["cache_data_failures"][front]),
+                                         "rule": args.fronts_rule or "operator choice"}
+                                 for front in FRONTS if front in receipt["fronts"] and front not in fronts}}
     write_json(run_root / "inputs.json", inputs)
     return finish(run_root, "inputs", {"counts": inputs["counts"], "problems": []})
 
@@ -692,6 +700,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             command.add_argument("--worker-basis", default="")
         if name == "e2":
             command.add_argument("--s3-02-train-root", required=True)
+        if name == "inputs":
+            command.add_argument("--fronts", default=None, help="comma-separated front ends to run (amendment 3: instance only)")
+            command.add_argument("--fronts-rule", default=None, help="the ruling that limits the front ends, recorded")
         if name == "e3":
             command.add_argument("--workers", type=int, default=None)
         if name == "run":

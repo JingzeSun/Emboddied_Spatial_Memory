@@ -23,7 +23,7 @@
 #
 # Environment: RECEIPT (required), AUTODL, SCANS_ROOT, META, LABELS, RENDER_ROOT, EPISODE_ROOT, GEOMETRY_ROOT, CACHE_ROOT_BASE,
 # ASSETS_JSON, GPUS, RENDER_WORKERS, CONVERT_WORKERS, INSTANCE_WORKERS, SAM2_WORKERS, S3_02_TRAIN_ROOT, S3_03_RUN_ROOT, EXPORT_DIR,
-# RUN_ROOT, BUDGET_CORES, E3_WORKERS, PY.
+# RUN_ROOT, BUDGET_CORES, E3_WORKERS, PY, FRONTS (amendment 3 of ruling 111: FRONTS=instance), FRONTS_RULE.
 set -u
 WORKTREE=$(cd "$(dirname "$0")/../.." && pwd)
 cd "$WORKTREE" || exit 2
@@ -95,7 +95,7 @@ fi
 if [ "$COMMAND" = "audit" ]; then
   step check --role audit
   step receive
-  step inputs
+  step inputs ${FRONTS:+--fronts "$FRONTS"} ${FRONTS_RULE:+--fronts-rule "$FRONTS_RULE"}
   step e3 ${E3_WORKERS:+--workers "$E3_WORKERS"}
   step run ${BUDGET_CORES:+--budget-cores "$BUDGET_CORES"}
   step merge
