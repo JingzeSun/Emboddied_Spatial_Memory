@@ -34,6 +34,17 @@
   "rule": "ruling 111-5 (a): axial depth of the scan's own annotated mesh rendered at the target camera (same mesh and camera as the instance image); no hit -> 0.0 m (invalid under the frozen range)",
   "sensor_depth": "diagnostic only: the 224 x 172 sensor depth nearest-sampled onto the target grid through the registered intrinsics; the conversion report gives the share of frames that would fail the frozen depth-support rule and the median mesh-minus-sensor depth; no method runs on it"
  },
+ "render": {
+  "mesh": "labels.instances.annotated.v2.ply",
+  "raster_near_m": 0.001,
+  "label_rule": "nearest_vertex_of_the_hit_face",
+  "coverage_rule": "pixel_centre_ray_first_hit; ties to the smaller face index",
+  "background_label": 0,
+  "method": "faces with every vertex at least raster_near_m in front are rasterised with pixel-centre coverage and a depth buffer; faces crossing the camera plane are intersected ray by ray (Moller-Trumbore); the result is the first hit of the ray through each pixel centre; the hit's label is the objectId of the face corner nearest to the hit point (ruling 111-4)",
+  "frame": "each scan is rendered in its own frame with its own poses; the alignment is not needed for rendering",
+  "outputs": "per frame NNNNNN.instance.png (uint16 objectId, 0 = no hit or unannotated) and NNNNNN.depth.npy (float32 axial metres, 0.0 = no hit) at the 224 x 224 target camera",
+  "determinism": "element-wise float64 arithmetic in a fixed order, no BLAS or LAPACK: the same bits on every host"
+ },
  "alignment": {
   "layout": "column_major",
   "direction": "rescan_to_reference",
