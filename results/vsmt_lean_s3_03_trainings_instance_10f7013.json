@@ -1,0 +1,6193 @@
+{
+ "training/round0/AssocOnly/s7/training_receipt.json": {
+  "arm": "AssocOnly",
+  "round": 0,
+  "seed": 7,
+  "label_source": "teacher",
+  "uses": "total",
+  "mask_source": "simulator_instance_masks",
+  "sources": [
+   "/root/autodl-tmp/vsmt_private/s3-03-run/instance/round0:ELU-P:teacher"
+  ],
+  "split": {
+   "rule": "ruling 104-1 1a: the S3 train manifest (configs/vsmt/lean_s3_01_manifests.json, already in S0-02 split order) gives its first 240 houses to training and its last 60 to checkpoint selection; the split is fixed by the manifest, a house whose generation or cache failed is simply absent and never replaced; the encoding statistics and the class weight come from the training houses only, the ELU-P fit and the rollouts use every train house",
+   "training_houses_present": 205,
+   "selection_houses_present": 47,
+   "training_houses_absent": [
+    "procthor10k-0.1.2-train-00156",
+    "procthor10k-0.1.2-train-00211",
+    "procthor10k-0.1.2-train-02015",
+    "procthor10k-0.1.2-train-02018",
+    "procthor10k-0.1.2-train-02230",
+    "procthor10k-0.1.2-train-02239",
+    "procthor10k-0.1.2-train-02537",
+    "procthor10k-0.1.2-train-03940",
+    "procthor10k-0.1.2-train-04151",
+    "procthor10k-0.1.2-train-04206",
+    "procthor10k-0.1.2-train-04448",
+    "procthor10k-0.1.2-train-04771",
+    "procthor10k-0.1.2-train-04855",
+    "procthor10k-0.1.2-train-05390",
+    "procthor10k-0.1.2-train-05623",
+    "procthor10k-0.1.2-train-06054",
+    "procthor10k-0.1.2-train-06175",
+    "procthor10k-0.1.2-train-06362",
+    "procthor10k-0.1.2-train-06533",
+    "procthor10k-0.1.2-train-06964",
+    "procthor10k-0.1.2-train-07073",
+    "procthor10k-0.1.2-train-07293",
+    "procthor10k-0.1.2-train-07536",
+    "procthor10k-0.1.2-train-07870",
+    "procthor10k-0.1.2-train-07969",
+    "procthor10k-0.1.2-train-07985",
+    "procthor10k-0.1.2-train-08024",
+    "procthor10k-0.1.2-train-08168",
+    "procthor10k-0.1.2-train-08649",
+    "procthor10k-0.1.2-train-08933",
+    "procthor10k-0.1.2-train-08972",
+    "procthor10k-0.1.2-train-09021",
+    "procthor10k-0.1.2-train-09882",
+    "procthor10k-0.1.2-train-09908",
+    "procthor10k-0.1.2-train-09984"
+   ],
+   "selection_houses_absent": [
+    "procthor10k-0.1.2-train-00250",
+    "procthor10k-0.1.2-train-00340",
+    "procthor10k-0.1.2-train-00567",
+    "procthor10k-0.1.2-train-00864",
+    "procthor10k-0.1.2-train-03503",
+    "procthor10k-0.1.2-train-05350",
+    "procthor10k-0.1.2-train-05475",
+    "procthor10k-0.1.2-train-06606",
+    "procthor10k-0.1.2-train-06990",
+    "procthor10k-0.1.2-train-07413",
+    "procthor10k-0.1.2-train-08033",
+    "procthor10k-0.1.2-train-08401",
+    "procthor10k-0.1.2-train-09837"
+   ]
+  },
+  "best_epoch": 17,
+  "diverged": false,
+  "updates_taken": 4597160,
+  "optimizer_foreach": true,
+  "train_curve": [
+   1.0536865855257629,
+   1.0258389886903672,
+   1.0187976093254194,
+   1.0151836368174318,
+   1.0121525190258822,
+   1.0095303126268522,
+   1.0070439552575285,
+   1.0047943297808777,
+   1.002548123092931,
+   1.0001626759104219,
+   0.9976574373736159,
+   0.994560268270377,
+   0.9917767651679211,
+   0.9889866044859101,
+   0.9864852841949653,
+   0.9840040694370998,
+   0.9818165755931174,
+   0.9801919415653706,
+   0.9787673780281945,
+   0.9779965783965222
+  ],
+  "validation_curve": [
+   1.001320266091101,
+   1.0005223348927998,
+   0.9966384971616552,
+   0.9953616416027802,
+   1.0089021688162239,
+   0.987747085035761,
+   0.9896198174848803,
+   1.0067843798189158,
+   0.9855905590420057,
+   0.9929886860715171,
+   0.9897004650267182,
+   0.9857396083671411,
+   0.9842795678251524,
+   0.982782398035613,
+   0.9812866048280708,
+   0.9809117779996733,
+   0.9797199131986195,
+   0.9746040054631466,
+   0.9759913210558132,
+   0.9761605328074346
+  ],
+  "train_curve_terms": [
+   {
+    "total": 1.0536865855257629,
+    "association": 1.0536865855257629,
+    "existence": null
+   },
+   {
+    "total": 1.0258389886903672,
+    "association": 1.0258389886903672,
+    "existence": null
+   },
+   {
+    "total": 1.0187976093254194,
+    "association": 1.0187976093254194,
+    "existence": null
+   },
+   {
+    "total": 1.0151836368174318,
+    "association": 1.0151836368174318,
+    "existence": null
+   },
+   {
+    "total": 1.0121525190258822,
+    "association": 1.0121525190258822,
+    "existence": null
+   },
+   {
+    "total": 1.0095303126268522,
+    "association": 1.0095303126268522,
+    "existence": null
+   },
+   {
+    "total": 1.0070439552575285,
+    "association": 1.0070439552575285,
+    "existence": null
+   },
+   {
+    "total": 1.0047943297808777,
+    "association": 1.0047943297808777,
+    "existence": null
+   },
+   {
+    "total": 1.002548123092931,
+    "association": 1.002548123092931,
+    "existence": null
+   },
+   {
+    "total": 1.0001626759104219,
+    "association": 1.0001626759104219,
+    "existence": null
+   },
+   {
+    "total": 0.9976574373736159,
+    "association": 0.9976574373736159,
+    "existence": null
+   },
+   {
+    "total": 0.994560268270377,
+    "association": 0.994560268270377,
+    "existence": null
+   },
+   {
+    "total": 0.9917767651679211,
+    "association": 0.9917767651679211,
+    "existence": null
+   },
+   {
+    "total": 0.9889866044859101,
+    "association": 0.9889866044859101,
+    "existence": null
+   },
+   {
+    "total": 0.9864852841949653,
+    "association": 0.9864852841949653,
+    "existence": null
+   },
+   {
+    "total": 0.9840040694370998,
+    "association": 0.9840040694370998,
+    "existence": null
+   },
+   {
+    "total": 0.9818165755931174,
+    "association": 0.9818165755931174,
+    "existence": null
+   },
+   {
+    "total": 0.9801919415653706,
+    "association": 0.9801919415653706,
+    "existence": null
+   },
+   {
+    "total": 0.9787673780281945,
+    "association": 0.9787673780281945,
+    "existence": null
+   },
+   {
+    "total": 0.9779965783965222,
+    "association": 0.9779965783965222,
+    "existence": null
+   }
+  ],
+  "validation_curve_terms": [
+   {
+    "total": 1.001320266091101,
+    "association": 1.001320266091101,
+    "existence": null
+   },
+   {
+    "total": 1.0005223348927998,
+    "association": 1.0005223348927998,
+    "existence": null
+   },
+   {
+    "total": 0.9966384971616552,
+    "association": 0.9966384971616552,
+    "existence": null
+   },
+   {
+    "total": 0.9953616416027802,
+    "association": 0.9953616416027802,
+    "existence": null
+   },
+   {
+    "total": 1.0089021688162239,
+    "association": 1.0089021688162239,
+    "existence": null
+   },
+   {
+    "total": 0.987747085035761,
+    "association": 0.987747085035761,
+    "existence": null
+   },
+   {
+    "total": 0.9896198174848803,
+    "association": 0.9896198174848803,
+    "existence": null
+   },
+   {
+    "total": 1.0067843798189158,
+    "association": 1.0067843798189158,
+    "existence": null
+   },
+   {
+    "total": 0.9855905590420057,
+    "association": 0.9855905590420057,
+    "existence": null
+   },
+   {
+    "total": 0.9929886860715171,
+    "association": 0.9929886860715171,
+    "existence": null
+   },
+   {
+    "total": 0.9897004650267182,
+    "association": 0.9897004650267182,
+    "existence": null
+   },
+   {
+    "total": 0.9857396083671411,
+    "association": 0.9857396083671411,
+    "existence": null
+   },
+   {
+    "total": 0.9842795678251524,
+    "association": 0.9842795678251524,
+    "existence": null
+   },
+   {
+    "total": 0.982782398035613,
+    "association": 0.982782398035613,
+    "existence": null
+   },
+   {
+    "total": 0.9812866048280708,
+    "association": 0.9812866048280708,
+    "existence": null
+   },
+   {
+    "total": 0.9809117779996733,
+    "association": 0.9809117779996733,
+    "existence": null
+   },
+   {
+    "total": 0.9797199131986195,
+    "association": 0.9797199131986195,
+    "existence": null
+   },
+   {
+    "total": 0.9746040054631466,
+    "association": 0.9746040054631466,
+    "existence": null
+   },
+   {
+    "total": 0.9759913210558132,
+    "association": 0.9759913210558132,
+    "existence": null
+   },
+   {
+    "total": 0.9761605328074346,
+    "association": 0.9761605328074346,
+    "existence": null
+   }
+  ],
+  "weights_sha256": "8da2f35eb1e3f080ff52f91bdaba50335a9471064c2eb3ba128ff7933242e56c",
+  "group_selection": null,
+  "existence_class_weight": null,
+  "threads": {
+   "requested": 1,
+   "torch_num_threads": 1,
+   "env": {
+    "OMP_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1",
+    "OPENBLAS_NUM_THREADS": "1"
+   }
+  },
+  "wall_seconds": 10526.8,
+  "peak_rss_bytes": 3659354112,
+  "code_commit": "0c085db6f2e85775a76642b78ca76c5885ab77ff",
+  "receipt_sha256": "488fefba3e01324b33989a65afb7b56d0836f195fbd574ee23896f21550e9b2b"
+ },
+ "training/round0/HeuristicLabel/s7/training_receipt.json": {
+  "arm": "HeuristicLabel",
+  "round": 0,
+  "seed": 7,
+  "label_source": "heuristic",
+  "uses": "total",
+  "mask_source": "simulator_instance_masks",
+  "sources": [
+   "/root/autodl-tmp/vsmt_private/s3-03-run/instance/round0:ELU-P:heuristic"
+  ],
+  "split": {
+   "rule": "ruling 104-1 1a: the S3 train manifest (configs/vsmt/lean_s3_01_manifests.json, already in S0-02 split order) gives its first 240 houses to training and its last 60 to checkpoint selection; the split is fixed by the manifest, a house whose generation or cache failed is simply absent and never replaced; the encoding statistics and the class weight come from the training houses only, the ELU-P fit and the rollouts use every train house",
+   "training_houses_present": 205,
+   "selection_houses_present": 47,
+   "training_houses_absent": [
+    "procthor10k-0.1.2-train-00156",
+    "procthor10k-0.1.2-train-00211",
+    "procthor10k-0.1.2-train-02015",
+    "procthor10k-0.1.2-train-02018",
+    "procthor10k-0.1.2-train-02230",
+    "procthor10k-0.1.2-train-02239",
+    "procthor10k-0.1.2-train-02537",
+    "procthor10k-0.1.2-train-03940",
+    "procthor10k-0.1.2-train-04151",
+    "procthor10k-0.1.2-train-04206",
+    "procthor10k-0.1.2-train-04448",
+    "procthor10k-0.1.2-train-04771",
+    "procthor10k-0.1.2-train-04855",
+    "procthor10k-0.1.2-train-05390",
+    "procthor10k-0.1.2-train-05623",
+    "procthor10k-0.1.2-train-06054",
+    "procthor10k-0.1.2-train-06175",
+    "procthor10k-0.1.2-train-06362",
+    "procthor10k-0.1.2-train-06533",
+    "procthor10k-0.1.2-train-06964",
+    "procthor10k-0.1.2-train-07073",
+    "procthor10k-0.1.2-train-07293",
+    "procthor10k-0.1.2-train-07536",
+    "procthor10k-0.1.2-train-07870",
+    "procthor10k-0.1.2-train-07969",
+    "procthor10k-0.1.2-train-07985",
+    "procthor10k-0.1.2-train-08024",
+    "procthor10k-0.1.2-train-08168",
+    "procthor10k-0.1.2-train-08649",
+    "procthor10k-0.1.2-train-08933",
+    "procthor10k-0.1.2-train-08972",
+    "procthor10k-0.1.2-train-09021",
+    "procthor10k-0.1.2-train-09882",
+    "procthor10k-0.1.2-train-09908",
+    "procthor10k-0.1.2-train-09984"
+   ],
+   "selection_houses_absent": [
+    "procthor10k-0.1.2-train-00250",
+    "procthor10k-0.1.2-train-00340",
+    "procthor10k-0.1.2-train-00567",
+    "procthor10k-0.1.2-train-00864",
+    "procthor10k-0.1.2-train-03503",
+    "procthor10k-0.1.2-train-05350",
+    "procthor10k-0.1.2-train-05475",
+    "procthor10k-0.1.2-train-06606",
+    "procthor10k-0.1.2-train-06990",
+    "procthor10k-0.1.2-train-07413",
+    "procthor10k-0.1.2-train-08033",
+    "procthor10k-0.1.2-train-08401",
+    "procthor10k-0.1.2-train-09837"
+   ]
+  },
+  "best_epoch": 17,
+  "diverged": false,
+  "updates_taken": 4600700,
+  "optimizer_foreach": true,
+  "train_curve": [
+   0.6849894212219688,
+   0.5166404207001727,
+   0.46052824776164986,
+   0.44235304147682986,
+   0.4282168111795897,
+   0.47114411279689605,
+   0.3949990496697046,
+   0.3799773570662356,
+   0.3538095490588766,
+   0.3619260138484264,
+   0.34320993559662877,
+   0.34203612436719205,
+   0.3159821865104366,
+   0.2810481981189058,
+   0.23016093680326444,
+   0.1933116554157247,
+   0.15205292387230276,
+   0.11878371812590491,
+   0.10604769551535749,
+   0.09334207431691785
+  ],
+  "validation_curve": [
+   0.15438797815642732,
+   0.2733267431131291,
+   0.3218439578695685,
+   0.2840679397343143,
+   0.41826113298604006,
+   0.408980370825043,
+   0.10649972350791022,
+   0.2596759572520476,
+   0.5287040588331053,
+   0.565552056164756,
+   0.1957281838490185,
+   0.14067521098405367,
+   0.14559134905655294,
+   0.15559848084177666,
+   0.1916207844747624,
+   0.3647756831860005,
+   0.1056510271474959,
+   0.08601337731337395,
+   0.10692405239976656,
+   0.11249408644786492
+  ],
+  "train_curve_terms": [
+   {
+    "total": 0.6849894212219688,
+    "association": 0.10644781652236748,
+    "existence": 0.5805454437371896
+   },
+   {
+    "total": 0.5166404207001727,
+    "association": 0.09412456062863225,
+    "existence": 0.4239792878592148
+   },
+   {
+    "total": 0.46052824776164986,
+    "association": 0.09165488169867705,
+    "existence": 0.3701509970510957
+   },
+   {
+    "total": 0.44235304147682986,
+    "association": 0.09049536747792916,
+    "existence": 0.3530763694578026
+   },
+   {
+    "total": 0.4282168111795897,
+    "association": 0.08989113710343631,
+    "existence": 0.339497500736133
+   },
+   {
+    "total": 0.47114411279689605,
+    "association": 0.08898465398574948,
+    "existence": 0.38348310767129085
+   },
+   {
+    "total": 0.3949990496697046,
+    "association": 0.08800617534717298,
+    "existence": 0.3080561759567287
+   },
+   {
+    "total": 0.3799773570662356,
+    "association": 0.0867620939140323,
+    "existence": 0.29423084443261593
+   },
+   {
+    "total": 0.3538095490588766,
+    "association": 0.0860881581524072,
+    "existence": 0.26864867239108076
+   },
+   {
+    "total": 0.3619260138484264,
+    "association": 0.08510459460183188,
+    "existence": 0.2777802182126967
+   },
+   {
+    "total": 0.34320993559662877,
+    "association": 0.08427915161201632,
+    "existence": 0.25982761764815887
+   },
+   {
+    "total": 0.34203612436719205,
+    "association": 0.08297145527441947,
+    "existence": 0.2599619668675371
+   },
+   {
+    "total": 0.3159821865104366,
+    "association": 0.0819782115387256,
+    "existence": 0.23481447227834845
+   },
+   {
+    "total": 0.2810481981189058,
+    "association": 0.08115965225913023,
+    "existence": 0.20058088027705495
+   },
+   {
+    "total": 0.23016093680326444,
+    "association": 0.08006824329535357,
+    "existence": 0.1506125549521379
+   },
+   {
+    "total": 0.1933116554157247,
+    "association": 0.07898023603501339,
+    "existence": 0.1147274184100158
+   },
+   {
+    "total": 0.15205292387230276,
+    "association": 0.0779428171849463,
+    "existence": 0.07436679467009846
+   },
+   {
+    "total": 0.11878371812590491,
+    "association": 0.07713005130795672,
+    "existence": 0.04179793862988843
+   },
+   {
+    "total": 0.10604769551535749,
+    "association": 0.07642484506465054,
+    "existence": 0.0297254522489139
+   },
+   {
+    "total": 0.09334207431691785,
+    "association": 0.07603146511667347,
+    "existence": 0.01737056638968414
+   }
+  ],
+  "validation_curve_terms": [
+   {
+    "total": 0.15438797815642732,
+    "association": 0.08661131565682786,
+    "existence": 0.06805337490746347
+   },
+   {
+    "total": 0.2733267431131291,
+    "association": 0.10427221494745309,
+    "existence": 0.16974472900728493
+   },
+   {
+    "total": 0.3218439578695685,
+    "association": 0.07918531719172694,
+    "existence": 0.24364934530230017
+   },
+   {
+    "total": 0.2840679397343143,
+    "association": 0.10038832901538781,
+    "existence": 0.18442952149031538
+   },
+   {
+    "total": 0.41826113298604006,
+    "association": 0.08793171169245531,
+    "existence": 0.33167806111078024
+   },
+   {
+    "total": 0.408980370825043,
+    "association": 0.08713196710573783,
+    "existence": 0.3231624176787205
+   },
+   {
+    "total": 0.10649972350791022,
+    "association": 0.07641904183544454,
+    "existence": 0.030203492566658715
+   },
+   {
+    "total": 0.2596759572520476,
+    "association": 0.09667546892951694,
+    "existence": 0.16366597229322136
+   },
+   {
+    "total": 0.5287040588331053,
+    "association": 0.08203959182987386,
+    "existence": 0.4484880689912748
+   },
+   {
+    "total": 0.565552056164756,
+    "association": 0.07680688001504347,
+    "existence": 0.49074058214056016
+   },
+   {
+    "total": 0.1957281838490185,
+    "association": 0.07948678890506175,
+    "existence": 0.11671597502313896
+   },
+   {
+    "total": 0.14067521098405367,
+    "association": 0.07685996597912241,
+    "existence": 0.06407578404697767
+   },
+   {
+    "total": 0.14559134905655294,
+    "association": 0.08021171360602712,
+    "existence": 0.06564656150067198
+   },
+   {
+    "total": 0.15559848084177666,
+    "association": 0.07587754447306844,
+    "existence": 0.08004641371180277
+   },
+   {
+    "total": 0.1916207844747624,
+    "association": 0.07434694047155209,
+    "existence": 0.11775263900866798
+   },
+   {
+    "total": 0.3647756831860005,
+    "association": 0.07493158989035612,
+    "existence": 0.29102744275773745
+   },
+   {
+    "total": 0.1056510271474959,
+    "association": 0.07489192589867803,
+    "existence": 0.030884681916402576
+   },
+   {
+    "total": 0.08601337731337395,
+    "association": 0.07766062111480439,
+    "existence": 0.008386858264891167
+   },
+   {
+    "total": 0.10692405239976656,
+    "association": 0.07478417245186161,
+    "existence": 0.03227109746674226
+   },
+   {
+    "total": 0.11249408644786492,
+    "association": 0.07448099803721278,
+    "existence": 0.038168285125634735
+   }
+  ],
+  "weights_sha256": "c0c9c98cba279c3b8d7eda7c991acba34636daedb0a176d9f4e99e1666eb91ef",
+  "group_selection": null,
+  "existence_class_weight": {
+   "gone": 23796,
+   "present": 8629164,
+   "pos_weight": 362.63086232980334
+  },
+  "threads": {
+   "requested": 1,
+   "torch_num_threads": 1,
+   "env": {
+    "OMP_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1",
+    "OPENBLAS_NUM_THREADS": "1"
+   }
+  },
+  "wall_seconds": 14967.0,
+  "peak_rss_bytes": 3752607744,
+  "code_commit": "0c085db6f2e85775a76642b78ca76c5885ab77ff",
+  "receipt_sha256": "ae3108ce058c20513cc9e38b3fdf2f9ec26c1308cbafba115624a208ace9282b"
+ },
+ "training/round0/VSMT-lean/s7/training_receipt.json": {
+  "arm": "VSMT-lean",
+  "round": 0,
+  "seed": 7,
+  "label_source": "teacher",
+  "uses": "total",
+  "mask_source": "simulator_instance_masks",
+  "sources": [
+   "/root/autodl-tmp/vsmt_private/s3-03-run/instance/round0:ELU-P:teacher"
+  ],
+  "split": {
+   "rule": "ruling 104-1 1a: the S3 train manifest (configs/vsmt/lean_s3_01_manifests.json, already in S0-02 split order) gives its first 240 houses to training and its last 60 to checkpoint selection; the split is fixed by the manifest, a house whose generation or cache failed is simply absent and never replaced; the encoding statistics and the class weight come from the training houses only, the ELU-P fit and the rollouts use every train house",
+   "training_houses_present": 205,
+   "selection_houses_present": 47,
+   "training_houses_absent": [
+    "procthor10k-0.1.2-train-00156",
+    "procthor10k-0.1.2-train-00211",
+    "procthor10k-0.1.2-train-02015",
+    "procthor10k-0.1.2-train-02018",
+    "procthor10k-0.1.2-train-02230",
+    "procthor10k-0.1.2-train-02239",
+    "procthor10k-0.1.2-train-02537",
+    "procthor10k-0.1.2-train-03940",
+    "procthor10k-0.1.2-train-04151",
+    "procthor10k-0.1.2-train-04206",
+    "procthor10k-0.1.2-train-04448",
+    "procthor10k-0.1.2-train-04771",
+    "procthor10k-0.1.2-train-04855",
+    "procthor10k-0.1.2-train-05390",
+    "procthor10k-0.1.2-train-05623",
+    "procthor10k-0.1.2-train-06054",
+    "procthor10k-0.1.2-train-06175",
+    "procthor10k-0.1.2-train-06362",
+    "procthor10k-0.1.2-train-06533",
+    "procthor10k-0.1.2-train-06964",
+    "procthor10k-0.1.2-train-07073",
+    "procthor10k-0.1.2-train-07293",
+    "procthor10k-0.1.2-train-07536",
+    "procthor10k-0.1.2-train-07870",
+    "procthor10k-0.1.2-train-07969",
+    "procthor10k-0.1.2-train-07985",
+    "procthor10k-0.1.2-train-08024",
+    "procthor10k-0.1.2-train-08168",
+    "procthor10k-0.1.2-train-08649",
+    "procthor10k-0.1.2-train-08933",
+    "procthor10k-0.1.2-train-08972",
+    "procthor10k-0.1.2-train-09021",
+    "procthor10k-0.1.2-train-09882",
+    "procthor10k-0.1.2-train-09908",
+    "procthor10k-0.1.2-train-09984"
+   ],
+   "selection_houses_absent": [
+    "procthor10k-0.1.2-train-00250",
+    "procthor10k-0.1.2-train-00340",
+    "procthor10k-0.1.2-train-00567",
+    "procthor10k-0.1.2-train-00864",
+    "procthor10k-0.1.2-train-03503",
+    "procthor10k-0.1.2-train-05350",
+    "procthor10k-0.1.2-train-05475",
+    "procthor10k-0.1.2-train-06606",
+    "procthor10k-0.1.2-train-06990",
+    "procthor10k-0.1.2-train-07413",
+    "procthor10k-0.1.2-train-08033",
+    "procthor10k-0.1.2-train-08401",
+    "procthor10k-0.1.2-train-09837"
+   ]
+  },
+  "best_epoch": 4,
+  "diverged": false,
+  "updates_taken": 4600480,
+  "optimizer_foreach": true,
+  "train_curve": [
+   3.30916852010963,
+   3.2819527364686096,
+   3.2764578218961473,
+   3.335930910962615,
+   3.373309817849671,
+   3.397920268866076,
+   3.4120774746228286,
+   3.4395523913614987,
+   3.4168486592183855,
+   3.4087519683697787,
+   3.3768082748151333,
+   3.3898305087777514,
+   3.3496628657207013,
+   3.348178122913623,
+   3.347833446565811,
+   3.3390733632952427,
+   3.332514783778129,
+   3.3241627806417395,
+   3.3162925371259937,
+   3.316582940356836
+  ],
+  "validation_curve": [
+   3.3818848425082217,
+   3.3051541865730885,
+   3.2295385872677076,
+   3.34592506222936,
+   2.89589158040556,
+   3.3843098967142837,
+   3.323435660224152,
+   3.2851516958086093,
+   3.4328379379806275,
+   3.374783136853225,
+   3.355512319460921,
+   3.452042950353551,
+   3.4609432797034017,
+   3.5622101357397504,
+   3.6979070466004345,
+   3.428998769917029,
+   3.3919717628472132,
+   3.369698624402948,
+   3.462604382548464,
+   3.4954847723656806
+  ],
+  "train_curve_terms": [
+   {
+    "total": 3.30916852010963,
+    "association": 1.0577388756876747,
+    "existence": 2.2605561617089935
+   },
+   {
+    "total": 3.2819527364686096,
+    "association": 1.0301123884036156,
+    "existence": 2.2609483793325906
+   },
+   {
+    "total": 3.2764578218961473,
+    "association": 1.0236427344284706,
+    "existence": 2.2619220513395577
+   },
+   {
+    "total": 3.335930910962615,
+    "association": 1.0203376914322957,
+    "existence": 2.324930906792522
+   },
+   {
+    "total": 3.373309817849671,
+    "association": 1.017646057708282,
+    "existence": 2.365148292977344
+   },
+   {
+    "total": 3.397920268866076,
+    "association": 1.0154619086675596,
+    "existence": 2.392040809887584
+   },
+   {
+    "total": 3.4120774746228286,
+    "association": 1.0127581488746287,
+    "existence": 2.408962428446787
+   },
+   {
+    "total": 3.4395523913614987,
+    "association": 1.010385441263613,
+    "existence": 2.4389191683041838
+   },
+   {
+    "total": 3.4168486592183855,
+    "association": 1.00833398708562,
+    "existence": 2.418188715212762
+   },
+   {
+    "total": 3.4087519683697787,
+    "association": 1.0057136535982558,
+    "existence": 2.412690124008707
+   },
+   {
+    "total": 3.3768082748151333,
+    "association": 1.0032593903893428,
+    "existence": 2.3830894108405767
+   },
+   {
+    "total": 3.3898305087777514,
+    "association": 1.0005735033106486,
+    "existence": 2.398853916872445
+   },
+   {
+    "total": 3.3496628657207013,
+    "association": 0.9976000041908483,
+    "existence": 2.3615195043378754
+   },
+   {
+    "total": 3.348178122913623,
+    "association": 0.9945916497211733,
+    "existence": 2.363046593800673
+   },
+   {
+    "total": 3.347833446565811,
+    "association": 0.9921300247640149,
+    "existence": 2.365169622037851
+   },
+   {
+    "total": 3.3390733632952427,
+    "association": 0.9894935562977729,
+    "existence": 2.359021357399611
+   },
+   {
+    "total": 3.332514783778129,
+    "association": 0.9872798018912052,
+    "existence": 2.354658795500911
+   },
+   {
+    "total": 3.3241627806417395,
+    "association": 0.9853081819332271,
+    "existence": 2.348253290595003
+   },
+   {
+    "total": 3.3162925371259937,
+    "association": 0.983938531921177,
+    "existence": 2.3417275665901696
+   },
+   {
+    "total": 3.316582940356836,
+    "association": 0.9830323411921487,
+    "existence": 2.3429279476640272
+   }
+  ],
+  "validation_curve_terms": [
+   {
+    "total": 3.3818848425082217,
+    "association": 1.0077716906144565,
+    "existence": 2.3854276045072114
+   },
+   {
+    "total": 3.3051541865730885,
+    "association": 0.9987011263507771,
+    "existence": 2.317453047867557
+   },
+   {
+    "total": 3.2295385872677076,
+    "association": 1.0008926686302242,
+    "existence": 2.239289413324989
+   },
+   {
+    "total": 3.34592506222936,
+    "association": 0.9934977950508256,
+    "existence": 2.363636308323224
+   },
+   {
+    "total": 2.89589158040556,
+    "association": 1.0112061187889225,
+    "existence": 1.893753264163046
+   },
+   {
+    "total": 3.3843098967142837,
+    "association": 0.9890498781986055,
+    "existence": 2.406663993445968
+   },
+   {
+    "total": 3.323435660224152,
+    "association": 0.9915307256442595,
+    "existence": 2.343018915582599
+   },
+   {
+    "total": 3.2851516958086093,
+    "association": 1.0037062966951888,
+    "existence": 2.2923325550585685
+   },
+   {
+    "total": 3.4328379379806275,
+    "association": 0.9869687437750511,
+    "existence": 2.4575047800948746
+   },
+   {
+    "total": 3.374783136853225,
+    "association": 0.9962551005082497,
+    "existence": 2.389858088408829
+   },
+   {
+    "total": 3.355512319460921,
+    "association": 0.9951755270746232,
+    "existence": 2.3715828465485065
+   },
+   {
+    "total": 3.452042950353551,
+    "association": 0.9871413674353796,
+    "existence": 2.476624661252039
+   },
+   {
+    "total": 3.4609432797034017,
+    "association": 0.9863862620708035,
+    "existence": 2.4863241409902965
+   },
+   {
+    "total": 3.5622101357397504,
+    "association": 0.9853233117483573,
+    "existence": 2.589123535713349
+   },
+   {
+    "total": 3.6979070466004345,
+    "association": 0.9871318645902183,
+    "existence": 2.723627605293459
+   },
+   {
+    "total": 3.428998769917029,
+    "association": 0.9825421172065508,
+    "existence": 2.4580931377547066
+   },
+   {
+    "total": 3.3919717628472132,
+    "association": 0.9808677194511597,
+    "existence": 2.4225774667138955
+   },
+   {
+    "total": 3.369698624402948,
+    "association": 0.9769064426312424,
+    "existence": 2.404179884681856
+   },
+   {
+    "total": 3.462604382548464,
+    "association": 0.9792946397246461,
+    "existence": 2.4951141843949287
+   },
+   {
+    "total": 3.4954847723656806,
+    "association": 0.9796471053021836,
+    "existence": 2.5277916589196336
+   }
+  ],
+  "weights_sha256": "9ac52794988582ac686f7fb176c19319ec7c411106aaa9961ba202f16b815355",
+  "group_selection": null,
+  "existence_class_weight": {
+   "gone": 67731,
+   "present": 8239853,
+   "pos_weight": 121.6555639219855
+  },
+  "threads": {
+   "requested": 1,
+   "torch_num_threads": 1,
+   "env": {
+    "OMP_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1",
+    "OPENBLAS_NUM_THREADS": "1"
+   }
+  },
+  "wall_seconds": 14718.5,
+  "peak_rss_bytes": 3664936960,
+  "code_commit": "0c085db6f2e85775a76642b78ca76c5885ab77ff",
+  "receipt_sha256": "bd8ee3c7490ec26cd4802993f0bf70d5e2743d192f8b4a1fa0f8f772f22d1869"
+ },
+ "training/round1/AssocOnly/s19/training_receipt.json": {
+  "arm": "AssocOnly",
+  "round": 1,
+  "seed": 19,
+  "label_source": "teacher",
+  "uses": "total",
+  "mask_source": "simulator_instance_masks",
+  "sources": [
+   "/root/autodl-tmp/vsmt_private/s3-03-run/instance/round0:ELU-P:teacher",
+   "/root/autodl-tmp/vsmt_private/s3-03-run/instance/round1:AssocOnly:teacher"
+  ],
+  "split": {
+   "rule": "ruling 104-1 1a: the S3 train manifest (configs/vsmt/lean_s3_01_manifests.json, already in S0-02 split order) gives its first 240 houses to training and its last 60 to checkpoint selection; the split is fixed by the manifest, a house whose generation or cache failed is simply absent and never replaced; the encoding statistics and the class weight come from the training houses only, the ELU-P fit and the rollouts use every train house",
+   "training_houses_present": 205,
+   "selection_houses_present": 47,
+   "training_houses_absent": [
+    "procthor10k-0.1.2-train-00156",
+    "procthor10k-0.1.2-train-00211",
+    "procthor10k-0.1.2-train-02015",
+    "procthor10k-0.1.2-train-02018",
+    "procthor10k-0.1.2-train-02230",
+    "procthor10k-0.1.2-train-02239",
+    "procthor10k-0.1.2-train-02537",
+    "procthor10k-0.1.2-train-03940",
+    "procthor10k-0.1.2-train-04151",
+    "procthor10k-0.1.2-train-04206",
+    "procthor10k-0.1.2-train-04448",
+    "procthor10k-0.1.2-train-04771",
+    "procthor10k-0.1.2-train-04855",
+    "procthor10k-0.1.2-train-05390",
+    "procthor10k-0.1.2-train-05623",
+    "procthor10k-0.1.2-train-06054",
+    "procthor10k-0.1.2-train-06175",
+    "procthor10k-0.1.2-train-06362",
+    "procthor10k-0.1.2-train-06533",
+    "procthor10k-0.1.2-train-06964",
+    "procthor10k-0.1.2-train-07073",
+    "procthor10k-0.1.2-train-07293",
+    "procthor10k-0.1.2-train-07536",
+    "procthor10k-0.1.2-train-07870",
+    "procthor10k-0.1.2-train-07969",
+    "procthor10k-0.1.2-train-07985",
+    "procthor10k-0.1.2-train-08024",
+    "procthor10k-0.1.2-train-08168",
+    "procthor10k-0.1.2-train-08649",
+    "procthor10k-0.1.2-train-08933",
+    "procthor10k-0.1.2-train-08972",
+    "procthor10k-0.1.2-train-09021",
+    "procthor10k-0.1.2-train-09882",
+    "procthor10k-0.1.2-train-09908",
+    "procthor10k-0.1.2-train-09984"
+   ],
+   "selection_houses_absent": [
+    "procthor10k-0.1.2-train-00250",
+    "procthor10k-0.1.2-train-00340",
+    "procthor10k-0.1.2-train-00567",
+    "procthor10k-0.1.2-train-00864",
+    "procthor10k-0.1.2-train-03503",
+    "procthor10k-0.1.2-train-05350",
+    "procthor10k-0.1.2-train-05475",
+    "procthor10k-0.1.2-train-06606",
+    "procthor10k-0.1.2-train-06990",
+    "procthor10k-0.1.2-train-07413",
+    "procthor10k-0.1.2-train-08033",
+    "procthor10k-0.1.2-train-08401",
+    "procthor10k-0.1.2-train-09837"
+   ]
+  },
+  "best_epoch": 18,
+  "diverged": false,
+  "updates_taken": 9192500,
+  "optimizer_foreach": true,
+  "train_curve": [
+   0.8120993002812427,
+   0.7964908697239711,
+   0.7937901737959904,
+   0.7930757746874526,
+   0.7918930017406092,
+   0.7913034015378021,
+   0.7898589743798109,
+   0.788279394051938,
+   0.7875503179286418,
+   0.7861636728651445,
+   0.7841601832549563,
+   0.7815287161162959,
+   0.7795944962425364,
+   0.7767590663782625,
+   0.774614129308697,
+   0.773266664571316,
+   0.7717716066972878,
+   0.7705459326224182,
+   0.7696788624727551,
+   0.7691586345291859
+  ],
+  "validation_curve": [
+   0.781828398429446,
+   0.7713857525624552,
+   0.7950679595078683,
+   0.7765821739604484,
+   0.7694901173382717,
+   0.7664198229191079,
+   0.7867807225724746,
+   0.7680216376999425,
+   0.7667199721379601,
+   0.7690775503044335,
+   0.7617944259519702,
+   0.7651813739331444,
+   0.769037734533419,
+   0.7607663331284754,
+   0.760453388586032,
+   0.7649646736372372,
+   0.7629076328390012,
+   0.7626406494359571,
+   0.7599341233822416,
+   0.7605431715478316
+  ],
+  "train_curve_terms": [
+   {
+    "total": 0.8120993002812427,
+    "association": 0.8120993002812427,
+    "existence": null
+   },
+   {
+    "total": 0.7964908697239711,
+    "association": 0.7964908697239711,
+    "existence": null
+   },
+   {
+    "total": 0.7937901737959904,
+    "association": 0.7937901737959904,
+    "existence": null
+   },
+   {
+    "total": 0.7930757746874526,
+    "association": 0.7930757746874526,
+    "existence": null
+   },
+   {
+    "total": 0.7918930017406092,
+    "association": 0.7918930017406092,
+    "existence": null
+   },
+   {
+    "total": 0.7913034015378021,
+    "association": 0.7913034015378021,
+    "existence": null
+   },
+   {
+    "total": 0.7898589743798109,
+    "association": 0.7898589743798109,
+    "existence": null
+   },
+   {
+    "total": 0.788279394051938,
+    "association": 0.788279394051938,
+    "existence": null
+   },
+   {
+    "total": 0.7875503179286418,
+    "association": 0.7875503179286418,
+    "existence": null
+   },
+   {
+    "total": 0.7861636728651445,
+    "association": 0.7861636728651445,
+    "existence": null
+   },
+   {
+    "total": 0.7841601832549563,
+    "association": 0.7841601832549563,
+    "existence": null
+   },
+   {
+    "total": 0.7815287161162959,
+    "association": 0.7815287161162959,
+    "existence": null
+   },
+   {
+    "total": 0.7795944962425364,
+    "association": 0.7795944962425364,
+    "existence": null
+   },
+   {
+    "total": 0.7767590663782625,
+    "association": 0.7767590663782625,
+    "existence": null
+   },
+   {
+    "total": 0.774614129308697,
+    "association": 0.774614129308697,
+    "existence": null
+   },
+   {
+    "total": 0.773266664571316,
+    "association": 0.773266664571316,
+    "existence": null
+   },
+   {
+    "total": 0.7717716066972878,
+    "association": 0.7717716066972878,
+    "existence": null
+   },
+   {
+    "total": 0.7705459326224182,
+    "association": 0.7705459326224182,
+    "existence": null
+   },
+   {
+    "total": 0.7696788624727551,
+    "association": 0.7696788624727551,
+    "existence": null
+   },
+   {
+    "total": 0.7691586345291859,
+    "association": 0.7691586345291859,
+    "existence": null
+   }
+  ],
+  "validation_curve_terms": [
+   {
+    "total": 0.781828398429446,
+    "association": 0.781828398429446,
+    "existence": null
+   },
+   {
+    "total": 0.7713857525624552,
+    "association": 0.7713857525624552,
+    "existence": null
+   },
+   {
+    "total": 0.7950679595078683,
+    "association": 0.7950679595078683,
+    "existence": null
+   },
+   {
+    "total": 0.7765821739604484,
+    "association": 0.7765821739604484,
+    "existence": null
+   },
+   {
+    "total": 0.7694901173382717,
+    "association": 0.7694901173382717,
+    "existence": null
+   },
+   {
+    "total": 0.7664198229191079,
+    "association": 0.7664198229191079,
+    "existence": null
+   },
+   {
+    "total": 0.7867807225724746,
+    "association": 0.7867807225724746,
+    "existence": null
+   },
+   {
+    "total": 0.7680216376999425,
+    "association": 0.7680216376999425,
+    "existence": null
+   },
+   {
+    "total": 0.7667199721379601,
+    "association": 0.7667199721379601,
+    "existence": null
+   },
+   {
+    "total": 0.7690775503044335,
+    "association": 0.7690775503044335,
+    "existence": null
+   },
+   {
+    "total": 0.7617944259519702,
+    "association": 0.7617944259519702,
+    "existence": null
+   },
+   {
+    "total": 0.7651813739331444,
+    "association": 0.7651813739331444,
+    "existence": null
+   },
+   {
+    "total": 0.769037734533419,
+    "association": 0.769037734533419,
+    "existence": null
+   },
+   {
+    "total": 0.7607663331284754,
+    "association": 0.7607663331284754,
+    "existence": null
+   },
+   {
+    "total": 0.760453388586032,
+    "association": 0.760453388586032,
+    "existence": null
+   },
+   {
+    "total": 0.7649646736372372,
+    "association": 0.7649646736372372,
+    "existence": null
+   },
+   {
+    "total": 0.7629076328390012,
+    "association": 0.7629076328390012,
+    "existence": null
+   },
+   {
+    "total": 0.7626406494359571,
+    "association": 0.7626406494359571,
+    "existence": null
+   },
+   {
+    "total": 0.7599341233822416,
+    "association": 0.7599341233822416,
+    "existence": null
+   },
+   {
+    "total": 0.7605431715478316,
+    "association": 0.7605431715478316,
+    "existence": null
+   }
+  ],
+  "weights_sha256": "ed0ea78ab8c24be89060e85d21038238089bdb15ead4591b7eebc9cf14d4e6b8",
+  "group_selection": null,
+  "existence_class_weight": null,
+  "threads": {
+   "requested": 1,
+   "torch_num_threads": 1,
+   "env": {
+    "OMP_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1",
+    "OPENBLAS_NUM_THREADS": "1"
+   }
+  },
+  "wall_seconds": 21596.3,
+  "peak_rss_bytes": 5589893120,
+  "code_commit": "9a2b81a6829ac55298714d87394cc35cfc7de229",
+  "receipt_sha256": "5571d3c7b717c88b59b7ac67ec9308ab67c1c56a2f9b39d8e62463280cdbe72d"
+ },
+ "training/round1/AssocOnly/s31/training_receipt.json": {
+  "arm": "AssocOnly",
+  "round": 1,
+  "seed": 31,
+  "label_source": "teacher",
+  "uses": "total",
+  "mask_source": "simulator_instance_masks",
+  "sources": [
+   "/root/autodl-tmp/vsmt_private/s3-03-run/instance/round0:ELU-P:teacher",
+   "/root/autodl-tmp/vsmt_private/s3-03-run/instance/round1:AssocOnly:teacher"
+  ],
+  "split": {
+   "rule": "ruling 104-1 1a: the S3 train manifest (configs/vsmt/lean_s3_01_manifests.json, already in S0-02 split order) gives its first 240 houses to training and its last 60 to checkpoint selection; the split is fixed by the manifest, a house whose generation or cache failed is simply absent and never replaced; the encoding statistics and the class weight come from the training houses only, the ELU-P fit and the rollouts use every train house",
+   "training_houses_present": 205,
+   "selection_houses_present": 47,
+   "training_houses_absent": [
+    "procthor10k-0.1.2-train-00156",
+    "procthor10k-0.1.2-train-00211",
+    "procthor10k-0.1.2-train-02015",
+    "procthor10k-0.1.2-train-02018",
+    "procthor10k-0.1.2-train-02230",
+    "procthor10k-0.1.2-train-02239",
+    "procthor10k-0.1.2-train-02537",
+    "procthor10k-0.1.2-train-03940",
+    "procthor10k-0.1.2-train-04151",
+    "procthor10k-0.1.2-train-04206",
+    "procthor10k-0.1.2-train-04448",
+    "procthor10k-0.1.2-train-04771",
+    "procthor10k-0.1.2-train-04855",
+    "procthor10k-0.1.2-train-05390",
+    "procthor10k-0.1.2-train-05623",
+    "procthor10k-0.1.2-train-06054",
+    "procthor10k-0.1.2-train-06175",
+    "procthor10k-0.1.2-train-06362",
+    "procthor10k-0.1.2-train-06533",
+    "procthor10k-0.1.2-train-06964",
+    "procthor10k-0.1.2-train-07073",
+    "procthor10k-0.1.2-train-07293",
+    "procthor10k-0.1.2-train-07536",
+    "procthor10k-0.1.2-train-07870",
+    "procthor10k-0.1.2-train-07969",
+    "procthor10k-0.1.2-train-07985",
+    "procthor10k-0.1.2-train-08024",
+    "procthor10k-0.1.2-train-08168",
+    "procthor10k-0.1.2-train-08649",
+    "procthor10k-0.1.2-train-08933",
+    "procthor10k-0.1.2-train-08972",
+    "procthor10k-0.1.2-train-09021",
+    "procthor10k-0.1.2-train-09882",
+    "procthor10k-0.1.2-train-09908",
+    "procthor10k-0.1.2-train-09984"
+   ],
+   "selection_houses_absent": [
+    "procthor10k-0.1.2-train-00250",
+    "procthor10k-0.1.2-train-00340",
+    "procthor10k-0.1.2-train-00567",
+    "procthor10k-0.1.2-train-00864",
+    "procthor10k-0.1.2-train-03503",
+    "procthor10k-0.1.2-train-05350",
+    "procthor10k-0.1.2-train-05475",
+    "procthor10k-0.1.2-train-06606",
+    "procthor10k-0.1.2-train-06990",
+    "procthor10k-0.1.2-train-07413",
+    "procthor10k-0.1.2-train-08033",
+    "procthor10k-0.1.2-train-08401",
+    "procthor10k-0.1.2-train-09837"
+   ]
+  },
+  "best_epoch": 18,
+  "diverged": false,
+  "updates_taken": 9192500,
+  "optimizer_foreach": true,
+  "train_curve": [
+   0.8122417455459826,
+   0.7963137676413443,
+   0.7939698283180477,
+   0.7930465921199922,
+   0.7919220849686607,
+   0.7911378408374864,
+   0.7898918289597193,
+   0.7878102696020213,
+   0.7865314074873029,
+   0.7842040903328702,
+   0.7818592222723653,
+   0.7797594398797474,
+   0.7778036709983762,
+   0.7761211642073292,
+   0.7739641311685479,
+   0.7727278601756352,
+   0.7712411143374849,
+   0.7699702967219575,
+   0.7690303597601336,
+   0.7683389308033826
+  ],
+  "validation_curve": [
+   0.7846547211466884,
+   0.7674877625794146,
+   0.7715821897741744,
+   0.7725586085884615,
+   0.7863766813420631,
+   0.7771167199706343,
+   0.7763986201943406,
+   0.7754155796633392,
+   0.7651997292349314,
+   0.768623273645602,
+   0.7675615912919197,
+   0.7692590124799628,
+   0.7654294742271868,
+   0.7627211378549505,
+   0.7639434737333721,
+   0.7659090067570982,
+   0.7633611220961176,
+   0.7624148459244319,
+   0.7594975914086386,
+   0.7629594918637445
+  ],
+  "train_curve_terms": [
+   {
+    "total": 0.8122417455459826,
+    "association": 0.8122417455459826,
+    "existence": null
+   },
+   {
+    "total": 0.7963137676413443,
+    "association": 0.7963137676413443,
+    "existence": null
+   },
+   {
+    "total": 0.7939698283180477,
+    "association": 0.7939698283180477,
+    "existence": null
+   },
+   {
+    "total": 0.7930465921199922,
+    "association": 0.7930465921199922,
+    "existence": null
+   },
+   {
+    "total": 0.7919220849686607,
+    "association": 0.7919220849686607,
+    "existence": null
+   },
+   {
+    "total": 0.7911378408374864,
+    "association": 0.7911378408374864,
+    "existence": null
+   },
+   {
+    "total": 0.7898918289597193,
+    "association": 0.7898918289597193,
+    "existence": null
+   },
+   {
+    "total": 0.7878102696020213,
+    "association": 0.7878102696020213,
+    "existence": null
+   },
+   {
+    "total": 0.7865314074873029,
+    "association": 0.7865314074873029,
+    "existence": null
+   },
+   {
+    "total": 0.7842040903328702,
+    "association": 0.7842040903328702,
+    "existence": null
+   },
+   {
+    "total": 0.7818592222723653,
+    "association": 0.7818592222723653,
+    "existence": null
+   },
+   {
+    "total": 0.7797594398797474,
+    "association": 0.7797594398797474,
+    "existence": null
+   },
+   {
+    "total": 0.7778036709983762,
+    "association": 0.7778036709983762,
+    "existence": null
+   },
+   {
+    "total": 0.7761211642073292,
+    "association": 0.7761211642073292,
+    "existence": null
+   },
+   {
+    "total": 0.7739641311685479,
+    "association": 0.7739641311685479,
+    "existence": null
+   },
+   {
+    "total": 0.7727278601756352,
+    "association": 0.7727278601756352,
+    "existence": null
+   },
+   {
+    "total": 0.7712411143374849,
+    "association": 0.7712411143374849,
+    "existence": null
+   },
+   {
+    "total": 0.7699702967219575,
+    "association": 0.7699702967219575,
+    "existence": null
+   },
+   {
+    "total": 0.7690303597601336,
+    "association": 0.7690303597601336,
+    "existence": null
+   },
+   {
+    "total": 0.7683389308033826,
+    "association": 0.7683389308033826,
+    "existence": null
+   }
+  ],
+  "validation_curve_terms": [
+   {
+    "total": 0.7846547211466884,
+    "association": 0.7846547211466884,
+    "existence": null
+   },
+   {
+    "total": 0.7674877625794146,
+    "association": 0.7674877625794146,
+    "existence": null
+   },
+   {
+    "total": 0.7715821897741744,
+    "association": 0.7715821897741744,
+    "existence": null
+   },
+   {
+    "total": 0.7725586085884615,
+    "association": 0.7725586085884615,
+    "existence": null
+   },
+   {
+    "total": 0.7863766813420631,
+    "association": 0.7863766813420631,
+    "existence": null
+   },
+   {
+    "total": 0.7771167199706343,
+    "association": 0.7771167199706343,
+    "existence": null
+   },
+   {
+    "total": 0.7763986201943406,
+    "association": 0.7763986201943406,
+    "existence": null
+   },
+   {
+    "total": 0.7754155796633392,
+    "association": 0.7754155796633392,
+    "existence": null
+   },
+   {
+    "total": 0.7651997292349314,
+    "association": 0.7651997292349314,
+    "existence": null
+   },
+   {
+    "total": 0.768623273645602,
+    "association": 0.768623273645602,
+    "existence": null
+   },
+   {
+    "total": 0.7675615912919197,
+    "association": 0.7675615912919197,
+    "existence": null
+   },
+   {
+    "total": 0.7692590124799628,
+    "association": 0.7692590124799628,
+    "existence": null
+   },
+   {
+    "total": 0.7654294742271868,
+    "association": 0.7654294742271868,
+    "existence": null
+   },
+   {
+    "total": 0.7627211378549505,
+    "association": 0.7627211378549505,
+    "existence": null
+   },
+   {
+    "total": 0.7639434737333721,
+    "association": 0.7639434737333721,
+    "existence": null
+   },
+   {
+    "total": 0.7659090067570982,
+    "association": 0.7659090067570982,
+    "existence": null
+   },
+   {
+    "total": 0.7633611220961176,
+    "association": 0.7633611220961176,
+    "existence": null
+   },
+   {
+    "total": 0.7624148459244319,
+    "association": 0.7624148459244319,
+    "existence": null
+   },
+   {
+    "total": 0.7594975914086386,
+    "association": 0.7594975914086386,
+    "existence": null
+   },
+   {
+    "total": 0.7629594918637445,
+    "association": 0.7629594918637445,
+    "existence": null
+   }
+  ],
+  "weights_sha256": "f6a22a3f13deba40ec50a6d81693e962fca7646810bf5211124cdb211067cad7",
+  "group_selection": null,
+  "existence_class_weight": null,
+  "threads": {
+   "requested": 1,
+   "torch_num_threads": 1,
+   "env": {
+    "OMP_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1",
+    "OPENBLAS_NUM_THREADS": "1"
+   }
+  },
+  "wall_seconds": 22168.8,
+  "peak_rss_bytes": 5592154112,
+  "code_commit": "9a2b81a6829ac55298714d87394cc35cfc7de229",
+  "receipt_sha256": "84b6679983f923e13024de6d98a28893252b4373d7f6dc5c19a164431f8b84f2"
+ },
+ "training/round1/AssocOnly/s43/training_receipt.json": {
+  "arm": "AssocOnly",
+  "round": 1,
+  "seed": 43,
+  "label_source": "teacher",
+  "uses": "total",
+  "mask_source": "simulator_instance_masks",
+  "sources": [
+   "/root/autodl-tmp/vsmt_private/s3-03-run/instance/round0:ELU-P:teacher",
+   "/root/autodl-tmp/vsmt_private/s3-03-run/instance/round1:AssocOnly:teacher"
+  ],
+  "split": {
+   "rule": "ruling 104-1 1a: the S3 train manifest (configs/vsmt/lean_s3_01_manifests.json, already in S0-02 split order) gives its first 240 houses to training and its last 60 to checkpoint selection; the split is fixed by the manifest, a house whose generation or cache failed is simply absent and never replaced; the encoding statistics and the class weight come from the training houses only, the ELU-P fit and the rollouts use every train house",
+   "training_houses_present": 205,
+   "selection_houses_present": 47,
+   "training_houses_absent": [
+    "procthor10k-0.1.2-train-00156",
+    "procthor10k-0.1.2-train-00211",
+    "procthor10k-0.1.2-train-02015",
+    "procthor10k-0.1.2-train-02018",
+    "procthor10k-0.1.2-train-02230",
+    "procthor10k-0.1.2-train-02239",
+    "procthor10k-0.1.2-train-02537",
+    "procthor10k-0.1.2-train-03940",
+    "procthor10k-0.1.2-train-04151",
+    "procthor10k-0.1.2-train-04206",
+    "procthor10k-0.1.2-train-04448",
+    "procthor10k-0.1.2-train-04771",
+    "procthor10k-0.1.2-train-04855",
+    "procthor10k-0.1.2-train-05390",
+    "procthor10k-0.1.2-train-05623",
+    "procthor10k-0.1.2-train-06054",
+    "procthor10k-0.1.2-train-06175",
+    "procthor10k-0.1.2-train-06362",
+    "procthor10k-0.1.2-train-06533",
+    "procthor10k-0.1.2-train-06964",
+    "procthor10k-0.1.2-train-07073",
+    "procthor10k-0.1.2-train-07293",
+    "procthor10k-0.1.2-train-07536",
+    "procthor10k-0.1.2-train-07870",
+    "procthor10k-0.1.2-train-07969",
+    "procthor10k-0.1.2-train-07985",
+    "procthor10k-0.1.2-train-08024",
+    "procthor10k-0.1.2-train-08168",
+    "procthor10k-0.1.2-train-08649",
+    "procthor10k-0.1.2-train-08933",
+    "procthor10k-0.1.2-train-08972",
+    "procthor10k-0.1.2-train-09021",
+    "procthor10k-0.1.2-train-09882",
+    "procthor10k-0.1.2-train-09908",
+    "procthor10k-0.1.2-train-09984"
+   ],
+   "selection_houses_absent": [
+    "procthor10k-0.1.2-train-00250",
+    "procthor10k-0.1.2-train-00340",
+    "procthor10k-0.1.2-train-00567",
+    "procthor10k-0.1.2-train-00864",
+    "procthor10k-0.1.2-train-03503",
+    "procthor10k-0.1.2-train-05350",
+    "procthor10k-0.1.2-train-05475",
+    "procthor10k-0.1.2-train-06606",
+    "procthor10k-0.1.2-train-06990",
+    "procthor10k-0.1.2-train-07413",
+    "procthor10k-0.1.2-train-08033",
+    "procthor10k-0.1.2-train-08401",
+    "procthor10k-0.1.2-train-09837"
+   ]
+  },
+  "best_epoch": 16,
+  "diverged": false,
+  "updates_taken": 9192500,
+  "optimizer_foreach": true,
+  "train_curve": [
+   0.8127006810436102,
+   0.7958008812685085,
+   0.7930013987927871,
+   0.791922807727878,
+   0.7908896703237264,
+   0.7901468827707822,
+   0.7894825596405487,
+   0.7882281816851121,
+   0.7869710808094944,
+   0.7850071438457641,
+   0.782839944306797,
+   0.7810901324634588,
+   0.7791935525080823,
+   0.7773310116367395,
+   0.7757080675341382,
+   0.7743690298448602,
+   0.7729968453352375,
+   0.7719133290432447,
+   0.771064816363994,
+   0.770594027394773
+  ],
+  "validation_curve": [
+   0.7733938738494217,
+   0.7745988854428215,
+   0.775855505388397,
+   0.774620979427445,
+   0.779984037296892,
+   0.7749404981362991,
+   0.7797367645754724,
+   0.7655633397769008,
+   0.7766046778113452,
+   0.7727635382530254,
+   0.7625851559743532,
+   0.767721476748006,
+   0.7623789293852467,
+   0.7660656694242388,
+   0.7639263578332084,
+   0.7635073239375441,
+   0.7592871885852357,
+   0.7603400878405283,
+   0.7631321029791605,
+   0.7616170177507557
+  ],
+  "train_curve_terms": [
+   {
+    "total": 0.8127006810436102,
+    "association": 0.8127006810436102,
+    "existence": null
+   },
+   {
+    "total": 0.7958008812685085,
+    "association": 0.7958008812685085,
+    "existence": null
+   },
+   {
+    "total": 0.7930013987927871,
+    "association": 0.7930013987927871,
+    "existence": null
+   },
+   {
+    "total": 0.791922807727878,
+    "association": 0.791922807727878,
+    "existence": null
+   },
+   {
+    "total": 0.7908896703237264,
+    "association": 0.7908896703237264,
+    "existence": null
+   },
+   {
+    "total": 0.7901468827707822,
+    "association": 0.7901468827707822,
+    "existence": null
+   },
+   {
+    "total": 0.7894825596405487,
+    "association": 0.7894825596405487,
+    "existence": null
+   },
+   {
+    "total": 0.7882281816851121,
+    "association": 0.7882281816851121,
+    "existence": null
+   },
+   {
+    "total": 0.7869710808094944,
+    "association": 0.7869710808094944,
+    "existence": null
+   },
+   {
+    "total": 0.7850071438457641,
+    "association": 0.7850071438457641,
+    "existence": null
+   },
+   {
+    "total": 0.782839944306797,
+    "association": 0.782839944306797,
+    "existence": null
+   },
+   {
+    "total": 0.7810901324634588,
+    "association": 0.7810901324634588,
+    "existence": null
+   },
+   {
+    "total": 0.7791935525080823,
+    "association": 0.7791935525080823,
+    "existence": null
+   },
+   {
+    "total": 0.7773310116367395,
+    "association": 0.7773310116367395,
+    "existence": null
+   },
+   {
+    "total": 0.7757080675341382,
+    "association": 0.7757080675341382,
+    "existence": null
+   },
+   {
+    "total": 0.7743690298448602,
+    "association": 0.7743690298448602,
+    "existence": null
+   },
+   {
+    "total": 0.7729968453352375,
+    "association": 0.7729968453352375,
+    "existence": null
+   },
+   {
+    "total": 0.7719133290432447,
+    "association": 0.7719133290432447,
+    "existence": null
+   },
+   {
+    "total": 0.771064816363994,
+    "association": 0.771064816363994,
+    "existence": null
+   },
+   {
+    "total": 0.770594027394773,
+    "association": 0.770594027394773,
+    "existence": null
+   }
+  ],
+  "validation_curve_terms": [
+   {
+    "total": 0.7733938738494217,
+    "association": 0.7733938738494217,
+    "existence": null
+   },
+   {
+    "total": 0.7745988854428215,
+    "association": 0.7745988854428215,
+    "existence": null
+   },
+   {
+    "total": 0.775855505388397,
+    "association": 0.775855505388397,
+    "existence": null
+   },
+   {
+    "total": 0.774620979427445,
+    "association": 0.774620979427445,
+    "existence": null
+   },
+   {
+    "total": 0.779984037296892,
+    "association": 0.779984037296892,
+    "existence": null
+   },
+   {
+    "total": 0.7749404981362991,
+    "association": 0.7749404981362991,
+    "existence": null
+   },
+   {
+    "total": 0.7797367645754724,
+    "association": 0.7797367645754724,
+    "existence": null
+   },
+   {
+    "total": 0.7655633397769008,
+    "association": 0.7655633397769008,
+    "existence": null
+   },
+   {
+    "total": 0.7766046778113452,
+    "association": 0.7766046778113452,
+    "existence": null
+   },
+   {
+    "total": 0.7727635382530254,
+    "association": 0.7727635382530254,
+    "existence": null
+   },
+   {
+    "total": 0.7625851559743532,
+    "association": 0.7625851559743532,
+    "existence": null
+   },
+   {
+    "total": 0.767721476748006,
+    "association": 0.767721476748006,
+    "existence": null
+   },
+   {
+    "total": 0.7623789293852467,
+    "association": 0.7623789293852467,
+    "existence": null
+   },
+   {
+    "total": 0.7660656694242388,
+    "association": 0.7660656694242388,
+    "existence": null
+   },
+   {
+    "total": 0.7639263578332084,
+    "association": 0.7639263578332084,
+    "existence": null
+   },
+   {
+    "total": 0.7635073239375441,
+    "association": 0.7635073239375441,
+    "existence": null
+   },
+   {
+    "total": 0.7592871885852357,
+    "association": 0.7592871885852357,
+    "existence": null
+   },
+   {
+    "total": 0.7603400878405283,
+    "association": 0.7603400878405283,
+    "existence": null
+   },
+   {
+    "total": 0.7631321029791605,
+    "association": 0.7631321029791605,
+    "existence": null
+   },
+   {
+    "total": 0.7616170177507557,
+    "association": 0.7616170177507557,
+    "existence": null
+   }
+  ],
+  "weights_sha256": "2078e40234f54d118517174e0a842d38d03f4b585f7ab29dd6363356b8fa4877",
+  "group_selection": null,
+  "existence_class_weight": null,
+  "threads": {
+   "requested": 1,
+   "torch_num_threads": 1,
+   "env": {
+    "OMP_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1",
+    "OPENBLAS_NUM_THREADS": "1"
+   }
+  },
+  "wall_seconds": 23251.1,
+  "peak_rss_bytes": 5588373504,
+  "code_commit": "9a2b81a6829ac55298714d87394cc35cfc7de229",
+  "receipt_sha256": "d73b81e7452cf4a68a015219dc80625a9a8918eba2de1f537db58551eff88825"
+ },
+ "training/round1/AssocOnly/s59/training_receipt.json": {
+  "arm": "AssocOnly",
+  "round": 1,
+  "seed": 59,
+  "label_source": "teacher",
+  "uses": "total",
+  "mask_source": "simulator_instance_masks",
+  "sources": [
+   "/root/autodl-tmp/vsmt_private/s3-03-run/instance/round0:ELU-P:teacher",
+   "/root/autodl-tmp/vsmt_private/s3-03-run/instance/round1:AssocOnly:teacher"
+  ],
+  "split": {
+   "rule": "ruling 104-1 1a: the S3 train manifest (configs/vsmt/lean_s3_01_manifests.json, already in S0-02 split order) gives its first 240 houses to training and its last 60 to checkpoint selection; the split is fixed by the manifest, a house whose generation or cache failed is simply absent and never replaced; the encoding statistics and the class weight come from the training houses only, the ELU-P fit and the rollouts use every train house",
+   "training_houses_present": 205,
+   "selection_houses_present": 47,
+   "training_houses_absent": [
+    "procthor10k-0.1.2-train-00156",
+    "procthor10k-0.1.2-train-00211",
+    "procthor10k-0.1.2-train-02015",
+    "procthor10k-0.1.2-train-02018",
+    "procthor10k-0.1.2-train-02230",
+    "procthor10k-0.1.2-train-02239",
+    "procthor10k-0.1.2-train-02537",
+    "procthor10k-0.1.2-train-03940",
+    "procthor10k-0.1.2-train-04151",
+    "procthor10k-0.1.2-train-04206",
+    "procthor10k-0.1.2-train-04448",
+    "procthor10k-0.1.2-train-04771",
+    "procthor10k-0.1.2-train-04855",
+    "procthor10k-0.1.2-train-05390",
+    "procthor10k-0.1.2-train-05623",
+    "procthor10k-0.1.2-train-06054",
+    "procthor10k-0.1.2-train-06175",
+    "procthor10k-0.1.2-train-06362",
+    "procthor10k-0.1.2-train-06533",
+    "procthor10k-0.1.2-train-06964",
+    "procthor10k-0.1.2-train-07073",
+    "procthor10k-0.1.2-train-07293",
+    "procthor10k-0.1.2-train-07536",
+    "procthor10k-0.1.2-train-07870",
+    "procthor10k-0.1.2-train-07969",
+    "procthor10k-0.1.2-train-07985",
+    "procthor10k-0.1.2-train-08024",
+    "procthor10k-0.1.2-train-08168",
+    "procthor10k-0.1.2-train-08649",
+    "procthor10k-0.1.2-train-08933",
+    "procthor10k-0.1.2-train-08972",
+    "procthor10k-0.1.2-train-09021",
+    "procthor10k-0.1.2-train-09882",
+    "procthor10k-0.1.2-train-09908",
+    "procthor10k-0.1.2-train-09984"
+   ],
+   "selection_houses_absent": [
+    "procthor10k-0.1.2-train-00250",
+    "procthor10k-0.1.2-train-00340",
+    "procthor10k-0.1.2-train-00567",
+    "procthor10k-0.1.2-train-00864",
+    "procthor10k-0.1.2-train-03503",
+    "procthor10k-0.1.2-train-05350",
+    "procthor10k-0.1.2-train-05475",
+    "procthor10k-0.1.2-train-06606",
+    "procthor10k-0.1.2-train-06990",
+    "procthor10k-0.1.2-train-07413",
+    "procthor10k-0.1.2-train-08033",
+    "procthor10k-0.1.2-train-08401",
+    "procthor10k-0.1.2-train-09837"
+   ]
+  },
+  "best_epoch": 17,
+  "diverged": false,
+  "updates_taken": 9192500,
+  "optimizer_foreach": true,
+  "train_curve": [
+   0.8120914090955682,
+   0.7966518655995825,
+   0.7944831472324901,
+   0.7931589258399242,
+   0.7921248285261384,
+   0.790683341063985,
+   0.7890234926694314,
+   0.7875185918172896,
+   0.7857113691258006,
+   0.7842885243984469,
+   0.7818257531087105,
+   0.7798333399578443,
+   0.7780612494422184,
+   0.7765431102312889,
+   0.7744537095306875,
+   0.7729472748451572,
+   0.7717146876258556,
+   0.770443038362455,
+   0.7695229883326797,
+   0.769052685006982
+  ],
+  "validation_curve": [
+   0.7785821370936322,
+   0.78431184740896,
+   0.7815550593031981,
+   0.77761658131507,
+   0.7747256407320422,
+   0.7813494782692103,
+   0.7774888268270775,
+   0.7742654405206696,
+   0.7864835155236112,
+   0.7736714438909151,
+   0.7657958393397721,
+   0.7606553116280582,
+   0.7702148313814683,
+   0.7736531451441243,
+   0.7649513106075768,
+   0.7629396239347054,
+   0.7600812712994516,
+   0.7582606118589672,
+   0.759094066709903,
+   0.7585351068494319
+  ],
+  "train_curve_terms": [
+   {
+    "total": 0.8120914090955682,
+    "association": 0.8120914090955682,
+    "existence": null
+   },
+   {
+    "total": 0.7966518655995825,
+    "association": 0.7966518655995825,
+    "existence": null
+   },
+   {
+    "total": 0.7944831472324901,
+    "association": 0.7944831472324901,
+    "existence": null
+   },
+   {
+    "total": 0.7931589258399242,
+    "association": 0.7931589258399242,
+    "existence": null
+   },
+   {
+    "total": 0.7921248285261384,
+    "association": 0.7921248285261384,
+    "existence": null
+   },
+   {
+    "total": 0.790683341063985,
+    "association": 0.790683341063985,
+    "existence": null
+   },
+   {
+    "total": 0.7890234926694314,
+    "association": 0.7890234926694314,
+    "existence": null
+   },
+   {
+    "total": 0.7875185918172896,
+    "association": 0.7875185918172896,
+    "existence": null
+   },
+   {
+    "total": 0.7857113691258006,
+    "association": 0.7857113691258006,
+    "existence": null
+   },
+   {
+    "total": 0.7842885243984469,
+    "association": 0.7842885243984469,
+    "existence": null
+   },
+   {
+    "total": 0.7818257531087105,
+    "association": 0.7818257531087105,
+    "existence": null
+   },
+   {
+    "total": 0.7798333399578443,
+    "association": 0.7798333399578443,
+    "existence": null
+   },
+   {
+    "total": 0.7780612494422184,
+    "association": 0.7780612494422184,
+    "existence": null
+   },
+   {
+    "total": 0.7765431102312889,
+    "association": 0.7765431102312889,
+    "existence": null
+   },
+   {
+    "total": 0.7744537095306875,
+    "association": 0.7744537095306875,
+    "existence": null
+   },
+   {
+    "total": 0.7729472748451572,
+    "association": 0.7729472748451572,
+    "existence": null
+   },
+   {
+    "total": 0.7717146876258556,
+    "association": 0.7717146876258556,
+    "existence": null
+   },
+   {
+    "total": 0.770443038362455,
+    "association": 0.770443038362455,
+    "existence": null
+   },
+   {
+    "total": 0.7695229883326797,
+    "association": 0.7695229883326797,
+    "existence": null
+   },
+   {
+    "total": 0.769052685006982,
+    "association": 0.769052685006982,
+    "existence": null
+   }
+  ],
+  "validation_curve_terms": [
+   {
+    "total": 0.7785821370936322,
+    "association": 0.7785821370936322,
+    "existence": null
+   },
+   {
+    "total": 0.78431184740896,
+    "association": 0.78431184740896,
+    "existence": null
+   },
+   {
+    "total": 0.7815550593031981,
+    "association": 0.7815550593031981,
+    "existence": null
+   },
+   {
+    "total": 0.77761658131507,
+    "association": 0.77761658131507,
+    "existence": null
+   },
+   {
+    "total": 0.7747256407320422,
+    "association": 0.7747256407320422,
+    "existence": null
+   },
+   {
+    "total": 0.7813494782692103,
+    "association": 0.7813494782692103,
+    "existence": null
+   },
+   {
+    "total": 0.7774888268270775,
+    "association": 0.7774888268270775,
+    "existence": null
+   },
+   {
+    "total": 0.7742654405206696,
+    "association": 0.7742654405206696,
+    "existence": null
+   },
+   {
+    "total": 0.7864835155236112,
+    "association": 0.7864835155236112,
+    "existence": null
+   },
+   {
+    "total": 0.7736714438909151,
+    "association": 0.7736714438909151,
+    "existence": null
+   },
+   {
+    "total": 0.7657958393397721,
+    "association": 0.7657958393397721,
+    "existence": null
+   },
+   {
+    "total": 0.7606553116280582,
+    "association": 0.7606553116280582,
+    "existence": null
+   },
+   {
+    "total": 0.7702148313814683,
+    "association": 0.7702148313814683,
+    "existence": null
+   },
+   {
+    "total": 0.7736531451441243,
+    "association": 0.7736531451441243,
+    "existence": null
+   },
+   {
+    "total": 0.7649513106075768,
+    "association": 0.7649513106075768,
+    "existence": null
+   },
+   {
+    "total": 0.7629396239347054,
+    "association": 0.7629396239347054,
+    "existence": null
+   },
+   {
+    "total": 0.7600812712994516,
+    "association": 0.7600812712994516,
+    "existence": null
+   },
+   {
+    "total": 0.7582606118589672,
+    "association": 0.7582606118589672,
+    "existence": null
+   },
+   {
+    "total": 0.759094066709903,
+    "association": 0.759094066709903,
+    "existence": null
+   },
+   {
+    "total": 0.7585351068494319,
+    "association": 0.7585351068494319,
+    "existence": null
+   }
+  ],
+  "weights_sha256": "40d7d70d53c151c72f717b994488b2c248711376d3b24e1f5cb80a9271f6d2f7",
+  "group_selection": null,
+  "existence_class_weight": null,
+  "threads": {
+   "requested": 1,
+   "torch_num_threads": 1,
+   "env": {
+    "OMP_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1",
+    "OPENBLAS_NUM_THREADS": "1"
+   }
+  },
+  "wall_seconds": 21537.0,
+  "peak_rss_bytes": 5593038848,
+  "code_commit": "9a2b81a6829ac55298714d87394cc35cfc7de229",
+  "receipt_sha256": "b5b31ab09d1aa49b2b6a3f267db15de678e5a3edb4e260f57e1bf15067c90896"
+ },
+ "training/round1/AssocOnly/s7/training_receipt.json": {
+  "arm": "AssocOnly",
+  "round": 1,
+  "seed": 7,
+  "label_source": "teacher",
+  "uses": "total",
+  "mask_source": "simulator_instance_masks",
+  "sources": [
+   "/root/autodl-tmp/vsmt_private/s3-03-run/instance/round0:ELU-P:teacher",
+   "/root/autodl-tmp/vsmt_private/s3-03-run/instance/round1:AssocOnly:teacher"
+  ],
+  "split": {
+   "rule": "ruling 104-1 1a: the S3 train manifest (configs/vsmt/lean_s3_01_manifests.json, already in S0-02 split order) gives its first 240 houses to training and its last 60 to checkpoint selection; the split is fixed by the manifest, a house whose generation or cache failed is simply absent and never replaced; the encoding statistics and the class weight come from the training houses only, the ELU-P fit and the rollouts use every train house",
+   "training_houses_present": 205,
+   "selection_houses_present": 47,
+   "training_houses_absent": [
+    "procthor10k-0.1.2-train-00156",
+    "procthor10k-0.1.2-train-00211",
+    "procthor10k-0.1.2-train-02015",
+    "procthor10k-0.1.2-train-02018",
+    "procthor10k-0.1.2-train-02230",
+    "procthor10k-0.1.2-train-02239",
+    "procthor10k-0.1.2-train-02537",
+    "procthor10k-0.1.2-train-03940",
+    "procthor10k-0.1.2-train-04151",
+    "procthor10k-0.1.2-train-04206",
+    "procthor10k-0.1.2-train-04448",
+    "procthor10k-0.1.2-train-04771",
+    "procthor10k-0.1.2-train-04855",
+    "procthor10k-0.1.2-train-05390",
+    "procthor10k-0.1.2-train-05623",
+    "procthor10k-0.1.2-train-06054",
+    "procthor10k-0.1.2-train-06175",
+    "procthor10k-0.1.2-train-06362",
+    "procthor10k-0.1.2-train-06533",
+    "procthor10k-0.1.2-train-06964",
+    "procthor10k-0.1.2-train-07073",
+    "procthor10k-0.1.2-train-07293",
+    "procthor10k-0.1.2-train-07536",
+    "procthor10k-0.1.2-train-07870",
+    "procthor10k-0.1.2-train-07969",
+    "procthor10k-0.1.2-train-07985",
+    "procthor10k-0.1.2-train-08024",
+    "procthor10k-0.1.2-train-08168",
+    "procthor10k-0.1.2-train-08649",
+    "procthor10k-0.1.2-train-08933",
+    "procthor10k-0.1.2-train-08972",
+    "procthor10k-0.1.2-train-09021",
+    "procthor10k-0.1.2-train-09882",
+    "procthor10k-0.1.2-train-09908",
+    "procthor10k-0.1.2-train-09984"
+   ],
+   "selection_houses_absent": [
+    "procthor10k-0.1.2-train-00250",
+    "procthor10k-0.1.2-train-00340",
+    "procthor10k-0.1.2-train-00567",
+    "procthor10k-0.1.2-train-00864",
+    "procthor10k-0.1.2-train-03503",
+    "procthor10k-0.1.2-train-05350",
+    "procthor10k-0.1.2-train-05475",
+    "procthor10k-0.1.2-train-06606",
+    "procthor10k-0.1.2-train-06990",
+    "procthor10k-0.1.2-train-07413",
+    "procthor10k-0.1.2-train-08033",
+    "procthor10k-0.1.2-train-08401",
+    "procthor10k-0.1.2-train-09837"
+   ]
+  },
+  "best_epoch": 19,
+  "diverged": false,
+  "updates_taken": 9192500,
+  "optimizer_foreach": true,
+  "train_curve": [
+   0.8121568563004092,
+   0.7966819112462343,
+   0.7938593775370095,
+   0.7918490353532243,
+   0.7902179148451264,
+   0.7887877631557911,
+   0.7874092425628508,
+   0.7860063147804754,
+   0.7845797031369505,
+   0.7827471065032756,
+   0.7810168810477747,
+   0.779148253566568,
+   0.7774141613470616,
+   0.7757464739481024,
+   0.7742202176023666,
+   0.7727817000696859,
+   0.7712694069202545,
+   0.770266343077964,
+   0.7694894496406176,
+   0.7690798435667905
+  ],
+  "validation_curve": [
+   0.7753362332219723,
+   0.7693619080064749,
+   0.7805171219276555,
+   0.7828282633149042,
+   0.7752304294350025,
+   0.7701755973080064,
+   0.7694136693055394,
+   0.7642997966169375,
+   0.7738402752703959,
+   0.7641959423639303,
+   0.7671966667596566,
+   0.7712920836474244,
+   0.7632826031457811,
+   0.763467809879851,
+   0.7649369526153768,
+   0.7608680767345732,
+   0.7598072472489539,
+   0.7597616749964831,
+   0.7604492017937828,
+   0.7590852192726617
+  ],
+  "train_curve_terms": [
+   {
+    "total": 0.8121568563004092,
+    "association": 0.8121568563004092,
+    "existence": null
+   },
+   {
+    "total": 0.7966819112462343,
+    "association": 0.7966819112462343,
+    "existence": null
+   },
+   {
+    "total": 0.7938593775370095,
+    "association": 0.7938593775370095,
+    "existence": null
+   },
+   {
+    "total": 0.7918490353532243,
+    "association": 0.7918490353532243,
+    "existence": null
+   },
+   {
+    "total": 0.7902179148451264,
+    "association": 0.7902179148451264,
+    "existence": null
+   },
+   {
+    "total": 0.7887877631557911,
+    "association": 0.7887877631557911,
+    "existence": null
+   },
+   {
+    "total": 0.7874092425628508,
+    "association": 0.7874092425628508,
+    "existence": null
+   },
+   {
+    "total": 0.7860063147804754,
+    "association": 0.7860063147804754,
+    "existence": null
+   },
+   {
+    "total": 0.7845797031369505,
+    "association": 0.7845797031369505,
+    "existence": null
+   },
+   {
+    "total": 0.7827471065032756,
+    "association": 0.7827471065032756,
+    "existence": null
+   },
+   {
+    "total": 0.7810168810477747,
+    "association": 0.7810168810477747,
+    "existence": null
+   },
+   {
+    "total": 0.779148253566568,
+    "association": 0.779148253566568,
+    "existence": null
+   },
+   {
+    "total": 0.7774141613470616,
+    "association": 0.7774141613470616,
+    "existence": null
+   },
+   {
+    "total": 0.7757464739481024,
+    "association": 0.7757464739481024,
+    "existence": null
+   },
+   {
+    "total": 0.7742202176023666,
+    "association": 0.7742202176023666,
+    "existence": null
+   },
+   {
+    "total": 0.7727817000696859,
+    "association": 0.7727817000696859,
+    "existence": null
+   },
+   {
+    "total": 0.7712694069202545,
+    "association": 0.7712694069202545,
+    "existence": null
+   },
+   {
+    "total": 0.770266343077964,
+    "association": 0.770266343077964,
+    "existence": null
+   },
+   {
+    "total": 0.7694894496406176,
+    "association": 0.7694894496406176,
+    "existence": null
+   },
+   {
+    "total": 0.7690798435667905,
+    "association": 0.7690798435667905,
+    "existence": null
+   }
+  ],
+  "validation_curve_terms": [
+   {
+    "total": 0.7753362332219723,
+    "association": 0.7753362332219723,
+    "existence": null
+   },
+   {
+    "total": 0.7693619080064749,
+    "association": 0.7693619080064749,
+    "existence": null
+   },
+   {
+    "total": 0.7805171219276555,
+    "association": 0.7805171219276555,
+    "existence": null
+   },
+   {
+    "total": 0.7828282633149042,
+    "association": 0.7828282633149042,
+    "existence": null
+   },
+   {
+    "total": 0.7752304294350025,
+    "association": 0.7752304294350025,
+    "existence": null
+   },
+   {
+    "total": 0.7701755973080064,
+    "association": 0.7701755973080064,
+    "existence": null
+   },
+   {
+    "total": 0.7694136693055394,
+    "association": 0.7694136693055394,
+    "existence": null
+   },
+   {
+    "total": 0.7642997966169375,
+    "association": 0.7642997966169375,
+    "existence": null
+   },
+   {
+    "total": 0.7738402752703959,
+    "association": 0.7738402752703959,
+    "existence": null
+   },
+   {
+    "total": 0.7641959423639303,
+    "association": 0.7641959423639303,
+    "existence": null
+   },
+   {
+    "total": 0.7671966667596566,
+    "association": 0.7671966667596566,
+    "existence": null
+   },
+   {
+    "total": 0.7712920836474244,
+    "association": 0.7712920836474244,
+    "existence": null
+   },
+   {
+    "total": 0.7632826031457811,
+    "association": 0.7632826031457811,
+    "existence": null
+   },
+   {
+    "total": 0.763467809879851,
+    "association": 0.763467809879851,
+    "existence": null
+   },
+   {
+    "total": 0.7649369526153768,
+    "association": 0.7649369526153768,
+    "existence": null
+   },
+   {
+    "total": 0.7608680767345732,
+    "association": 0.7608680767345732,
+    "existence": null
+   },
+   {
+    "total": 0.7598072472489539,
+    "association": 0.7598072472489539,
+    "existence": null
+   },
+   {
+    "total": 0.7597616749964831,
+    "association": 0.7597616749964831,
+    "existence": null
+   },
+   {
+    "total": 0.7604492017937828,
+    "association": 0.7604492017937828,
+    "existence": null
+   },
+   {
+    "total": 0.7590852192726617,
+    "association": 0.7590852192726617,
+    "existence": null
+   }
+  ],
+  "weights_sha256": "e60f1431fc3e33e83c1d1623422efaa481c96cdde5bb2c506377bf573d26ac57",
+  "group_selection": null,
+  "existence_class_weight": null,
+  "threads": {
+   "requested": 1,
+   "torch_num_threads": 1,
+   "env": {
+    "OMP_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1",
+    "OPENBLAS_NUM_THREADS": "1"
+   }
+  },
+  "wall_seconds": 22870.4,
+  "peak_rss_bytes": 5592801280,
+  "code_commit": "9a2b81a6829ac55298714d87394cc35cfc7de229",
+  "receipt_sha256": "578f32ce01eadcb137b87c936b3f69b0e07d84daef1c349b4de89e4830c28f42"
+ },
+ "training/round1/HeuristicLabel/s19/training_receipt.json": {
+  "arm": "HeuristicLabel",
+  "round": 1,
+  "seed": 19,
+  "label_source": "heuristic",
+  "uses": "grouped",
+  "mask_source": "simulator_instance_masks",
+  "sources": [
+   "/root/autodl-tmp/vsmt_private/s3-03-run/instance/round0:ELU-P:heuristic",
+   "/root/autodl-tmp/vsmt_private/s3-03-run/instance/round1:HeuristicLabel:heuristic"
+  ],
+  "split": {
+   "rule": "ruling 104-1 1a: the S3 train manifest (configs/vsmt/lean_s3_01_manifests.json, already in S0-02 split order) gives its first 240 houses to training and its last 60 to checkpoint selection; the split is fixed by the manifest, a house whose generation or cache failed is simply absent and never replaced; the encoding statistics and the class weight come from the training houses only, the ELU-P fit and the rollouts use every train house",
+   "training_houses_present": 205,
+   "selection_houses_present": 47,
+   "training_houses_absent": [
+    "procthor10k-0.1.2-train-00156",
+    "procthor10k-0.1.2-train-00211",
+    "procthor10k-0.1.2-train-02015",
+    "procthor10k-0.1.2-train-02018",
+    "procthor10k-0.1.2-train-02230",
+    "procthor10k-0.1.2-train-02239",
+    "procthor10k-0.1.2-train-02537",
+    "procthor10k-0.1.2-train-03940",
+    "procthor10k-0.1.2-train-04151",
+    "procthor10k-0.1.2-train-04206",
+    "procthor10k-0.1.2-train-04448",
+    "procthor10k-0.1.2-train-04771",
+    "procthor10k-0.1.2-train-04855",
+    "procthor10k-0.1.2-train-05390",
+    "procthor10k-0.1.2-train-05623",
+    "procthor10k-0.1.2-train-06054",
+    "procthor10k-0.1.2-train-06175",
+    "procthor10k-0.1.2-train-06362",
+    "procthor10k-0.1.2-train-06533",
+    "procthor10k-0.1.2-train-06964",
+    "procthor10k-0.1.2-train-07073",
+    "procthor10k-0.1.2-train-07293",
+    "procthor10k-0.1.2-train-07536",
+    "procthor10k-0.1.2-train-07870",
+    "procthor10k-0.1.2-train-07969",
+    "procthor10k-0.1.2-train-07985",
+    "procthor10k-0.1.2-train-08024",
+    "procthor10k-0.1.2-train-08168",
+    "procthor10k-0.1.2-train-08649",
+    "procthor10k-0.1.2-train-08933",
+    "procthor10k-0.1.2-train-08972",
+    "procthor10k-0.1.2-train-09021",
+    "procthor10k-0.1.2-train-09882",
+    "procthor10k-0.1.2-train-09908",
+    "procthor10k-0.1.2-train-09984"
+   ],
+   "selection_houses_absent": [
+    "procthor10k-0.1.2-train-00250",
+    "procthor10k-0.1.2-train-00340",
+    "procthor10k-0.1.2-train-00567",
+    "procthor10k-0.1.2-train-00864",
+    "procthor10k-0.1.2-train-03503",
+    "procthor10k-0.1.2-train-05350",
+    "procthor10k-0.1.2-train-05475",
+    "procthor10k-0.1.2-train-06606",
+    "procthor10k-0.1.2-train-06990",
+    "procthor10k-0.1.2-train-07413",
+    "procthor10k-0.1.2-train-08033",
+    "procthor10k-0.1.2-train-08401",
+    "procthor10k-0.1.2-train-09837"
+   ]
+  },
+  "best_epoch": 18,
+  "diverged": false,
+  "updates_taken": 9201400,
+  "optimizer_foreach": true,
+  "train_curve": [
+   0.6368638416897605,
+   0.5428972258644492,
+   0.489226031749591,
+   0.4719587889841186,
+   0.4302777948036654,
+   0.4052877295928178,
+   0.39977711355743045,
+   0.3753283341684294,
+   0.3741896454616001,
+   0.38383132477582876,
+   0.3401804963057924,
+   0.3246065609630599,
+   0.28433288183848165,
+   0.27241763480677816,
+   0.2410318155054396,
+   0.2058386012117854,
+   0.16773158607673325,
+   0.1377610364556372,
+   0.11590534424878429,
+   0.10512808098467323
+  ],
+  "validation_curve": [
+   0.30919954843183123,
+   0.3157696877489967,
+   0.2639751996768423,
+   0.34572611713953655,
+   0.27956573901976606,
+   0.23155303166388835,
+   0.3939129982857473,
+   0.5954980491834331,
+   0.322828578649389,
+   0.7711994089207929,
+   0.5933838978591298,
+   0.37428939325973687,
+   0.23788247924080894,
+   0.26457540638118227,
+   0.3282454008611244,
+   0.25896888338457097,
+   0.2792370529832832,
+   0.19034915923228232,
+   0.11691591687452144,
+   0.16217851550789952
+  ],
+  "train_curve_terms": [
+   {
+    "total": 0.6368638416897605,
+    "association": 0.10195437147971913,
+    "existence": 0.5367598428037686
+   },
+   {
+    "total": 0.5428972258644492,
+    "association": 0.09269455533660594,
+    "existence": 0.45176002422452466
+   },
+   {
+    "total": 0.489226031749591,
+    "association": 0.09163036062109602,
+    "existence": 0.3989710450339091
+   },
+   {
+    "total": 0.4719587889841186,
+    "association": 0.09099152996581518,
+    "existence": 0.38228511130653087
+   },
+   {
+    "total": 0.4302777948036654,
+    "association": 0.09051170591920646,
+    "existence": 0.34094141687194396
+   },
+   {
+    "total": 0.4052877295928178,
+    "association": 0.0896524345566756,
+    "existence": 0.31672714905470134
+   },
+   {
+    "total": 0.39977711355743045,
+    "association": 0.08895704330590345,
+    "existence": 0.31189526731878064
+   },
+   {
+    "total": 0.3753283341684294,
+    "association": 0.0880645356428219,
+    "existence": 0.28825750958798035
+   },
+   {
+    "total": 0.3741896454616001,
+    "association": 0.08737249467416158,
+    "existence": 0.2878093160793272
+   },
+   {
+    "total": 0.38383132477582876,
+    "association": 0.08669676063258727,
+    "existence": 0.29816241961565826
+   },
+   {
+    "total": 0.3401804963057924,
+    "association": 0.08573454149490374,
+    "existence": 0.25532614056845454
+   },
+   {
+    "total": 0.3246065609630599,
+    "association": 0.08482271405108514,
+    "existence": 0.2406133133991197
+   },
+   {
+    "total": 0.28433288183848165,
+    "association": 0.08396818232446077,
+    "existence": 0.20105780629463016
+   },
+   {
+    "total": 0.27241763480677816,
+    "association": 0.08283424092925802,
+    "existence": 0.19023920572529318
+   },
+   {
+    "total": 0.2410318155054396,
+    "association": 0.0819502671066932,
+    "existence": 0.15963184751601653
+   },
+   {
+    "total": 0.2058386012117854,
+    "association": 0.08098812373734218,
+    "existence": 0.12528236358538167
+   },
+   {
+    "total": 0.16773158607673325,
+    "association": 0.08003810572985316,
+    "existence": 0.08799683178208882
+   },
+   {
+    "total": 0.1377610364556372,
+    "association": 0.0792306555383297,
+    "existence": 0.05873285081959841
+   },
+   {
+    "total": 0.11590534424878429,
+    "association": 0.07859957967417232,
+    "existence": 0.03743481364389054
+   },
+   {
+    "total": 0.10512808098467323,
+    "association": 0.0782721651802212,
+    "existence": 0.02694881659624124
+   }
+  ],
+  "validation_curve_terms": [
+   {
+    "total": 0.30919954843183123,
+    "association": 0.08071329096264022,
+    "existence": 0.22938881533776967
+   },
+   {
+    "total": 0.3157696877489967,
+    "association": 0.08005828478577709,
+    "existence": 0.23664249998989423
+   },
+   {
+    "total": 0.2639751996768423,
+    "association": 0.0809415509209909,
+    "existence": 0.18375666173296493
+   },
+   {
+    "total": 0.34572611713953655,
+    "association": 0.09229576125947608,
+    "existence": 0.2544314473800158
+   },
+   {
+    "total": 0.27956573901976606,
+    "association": 0.0868154776709455,
+    "existence": 0.1935116545500615
+   },
+   {
+    "total": 0.23155303166388835,
+    "association": 0.09407140139277206,
+    "existence": 0.1380247052036175
+   },
+   {
+    "total": 0.3939129982857473,
+    "association": 0.07815563779207438,
+    "existence": 0.31700465236906544
+   },
+   {
+    "total": 0.5954980491834331,
+    "association": 0.09219227697481656,
+    "existence": 0.505293910894109
+   },
+   {
+    "total": 0.322828578649389,
+    "association": 0.08277324269834373,
+    "existence": 0.24100359364052892
+   },
+   {
+    "total": 0.7711994089207929,
+    "association": 0.0867275490857713,
+    "existence": 0.6871756346971575
+   },
+   {
+    "total": 0.5933838978591298,
+    "association": 0.081633841164256,
+    "existence": 0.5137715520324648
+   },
+   {
+    "total": 0.37428939325973687,
+    "association": 0.08021369686803492,
+    "existence": 0.2952373436292983
+   },
+   {
+    "total": 0.23788247924080894,
+    "association": 0.07768817916416572,
+    "existence": 0.16082709387507482
+   },
+   {
+    "total": 0.26457540638118227,
+    "association": 0.07517041618291119,
+    "existence": 0.1901531703239136
+   },
+   {
+    "total": 0.3282454008611244,
+    "association": 0.08520703356360933,
+    "existence": 0.2439984090968513
+   },
+   {
+    "total": 0.25896888338457097,
+    "association": 0.07813292535307315,
+    "existence": 0.18155028967997083
+   },
+   {
+    "total": 0.2792370529832832,
+    "association": 0.07681399829367662,
+    "existence": 0.20322265927140754
+   },
+   {
+    "total": 0.19034915923228232,
+    "association": 0.07817708345700466,
+    "existence": 0.11261517330520458
+   },
+   {
+    "total": 0.11691591687452144,
+    "association": 0.0759012914995023,
+    "existence": 0.04117663938294211
+   },
+   {
+    "total": 0.16217851550789952,
+    "association": 0.07563851052794891,
+    "existence": 0.08688185182500789
+   }
+  ],
+  "weights_sha256": "1d04f53c27e182dec76894c16e54f850b2def2252215b41f2e1ede88dad20f5c",
+  "group_selection": {
+   "rule": "training unchanged; the association and birth heads keep together the epoch of the lowest association validation term, the existence head the epoch of the lowest existence validation term, ties to the earlier epoch; the total-loss selection is kept alongside",
+   "best_epoch_by_group": {
+    "association_birth": 13,
+    "existence": 18
+   },
+   "weights_sha256": "1465aba9787ddf3d5daf1eadcd987ad184d8cd0d82cb6d47410bda1b911115b2",
+   "file": "weights_grouped.json"
+  },
+  "existence_class_weight": {
+   "gone": 48716,
+   "present": 17366929,
+   "pos_weight": 356.4933286805156
+  },
+  "threads": {
+   "requested": 1,
+   "torch_num_threads": 1,
+   "env": {
+    "OMP_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1",
+    "OPENBLAS_NUM_THREADS": "1"
+   }
+  },
+  "wall_seconds": 31889.6,
+  "peak_rss_bytes": 6838648832,
+  "code_commit": "9a2b81a6829ac55298714d87394cc35cfc7de229",
+  "receipt_sha256": "190574b2d538340e6302afbd19a899afe8e2f28b34a9d4dc537a0dc02d23ec76"
+ },
+ "training/round1/HeuristicLabel/s31/training_receipt.json": {
+  "arm": "HeuristicLabel",
+  "round": 1,
+  "seed": 31,
+  "label_source": "heuristic",
+  "uses": "grouped",
+  "mask_source": "simulator_instance_masks",
+  "sources": [
+   "/root/autodl-tmp/vsmt_private/s3-03-run/instance/round0:ELU-P:heuristic",
+   "/root/autodl-tmp/vsmt_private/s3-03-run/instance/round1:HeuristicLabel:heuristic"
+  ],
+  "split": {
+   "rule": "ruling 104-1 1a: the S3 train manifest (configs/vsmt/lean_s3_01_manifests.json, already in S0-02 split order) gives its first 240 houses to training and its last 60 to checkpoint selection; the split is fixed by the manifest, a house whose generation or cache failed is simply absent and never replaced; the encoding statistics and the class weight come from the training houses only, the ELU-P fit and the rollouts use every train house",
+   "training_houses_present": 205,
+   "selection_houses_present": 47,
+   "training_houses_absent": [
+    "procthor10k-0.1.2-train-00156",
+    "procthor10k-0.1.2-train-00211",
+    "procthor10k-0.1.2-train-02015",
+    "procthor10k-0.1.2-train-02018",
+    "procthor10k-0.1.2-train-02230",
+    "procthor10k-0.1.2-train-02239",
+    "procthor10k-0.1.2-train-02537",
+    "procthor10k-0.1.2-train-03940",
+    "procthor10k-0.1.2-train-04151",
+    "procthor10k-0.1.2-train-04206",
+    "procthor10k-0.1.2-train-04448",
+    "procthor10k-0.1.2-train-04771",
+    "procthor10k-0.1.2-train-04855",
+    "procthor10k-0.1.2-train-05390",
+    "procthor10k-0.1.2-train-05623",
+    "procthor10k-0.1.2-train-06054",
+    "procthor10k-0.1.2-train-06175",
+    "procthor10k-0.1.2-train-06362",
+    "procthor10k-0.1.2-train-06533",
+    "procthor10k-0.1.2-train-06964",
+    "procthor10k-0.1.2-train-07073",
+    "procthor10k-0.1.2-train-07293",
+    "procthor10k-0.1.2-train-07536",
+    "procthor10k-0.1.2-train-07870",
+    "procthor10k-0.1.2-train-07969",
+    "procthor10k-0.1.2-train-07985",
+    "procthor10k-0.1.2-train-08024",
+    "procthor10k-0.1.2-train-08168",
+    "procthor10k-0.1.2-train-08649",
+    "procthor10k-0.1.2-train-08933",
+    "procthor10k-0.1.2-train-08972",
+    "procthor10k-0.1.2-train-09021",
+    "procthor10k-0.1.2-train-09882",
+    "procthor10k-0.1.2-train-09908",
+    "procthor10k-0.1.2-train-09984"
+   ],
+   "selection_houses_absent": [
+    "procthor10k-0.1.2-train-00250",
+    "procthor10k-0.1.2-train-00340",
+    "procthor10k-0.1.2-train-00567",
+    "procthor10k-0.1.2-train-00864",
+    "procthor10k-0.1.2-train-03503",
+    "procthor10k-0.1.2-train-05350",
+    "procthor10k-0.1.2-train-05475",
+    "procthor10k-0.1.2-train-06606",
+    "procthor10k-0.1.2-train-06990",
+    "procthor10k-0.1.2-train-07413",
+    "procthor10k-0.1.2-train-08033",
+    "procthor10k-0.1.2-train-08401",
+    "procthor10k-0.1.2-train-09837"
+   ]
+  },
+  "best_epoch": 15,
+  "diverged": false,
+  "updates_taken": 9201400,
+  "optimizer_foreach": true,
+  "train_curve": [
+   0.6225493216892866,
+   0.4679337867071129,
+   0.4761025716813182,
+   0.4535713629659054,
+   0.5026206001881841,
+   0.4172975273518755,
+   0.3996732055978476,
+   0.37969857110203453,
+   0.38477809511666483,
+   0.3352946596664391,
+   0.3318634364613945,
+   0.3003607273845736,
+   0.2963162770544797,
+   0.2669898531072376,
+   0.24357059177280482,
+   0.2125357904627052,
+   0.17245481567857054,
+   0.14604785644090007,
+   0.12618627263943258,
+   0.11017975098697791
+  ],
+  "validation_curve": [
+   0.3753422794912971,
+   0.34181253646423637,
+   0.49748351529895635,
+   0.36137242612665593,
+   0.6837546291439297,
+   0.566297642375907,
+   0.3430580964491603,
+   1.1263483074558005,
+   0.30163122274201437,
+   0.38532630309441873,
+   0.43734677617037804,
+   0.5619343375258511,
+   0.717311758333568,
+   0.1643565276673831,
+   0.19565550216234165,
+   0.1612322831172496,
+   0.28840497136464216,
+   0.37429168022994974,
+   0.21455690939564825,
+   0.2587062542157943
+  ],
+  "train_curve_terms": [
+   {
+    "total": 0.6225493216892866,
+    "association": 0.10223084102774935,
+    "existence": 0.5221183799694895
+   },
+   {
+    "total": 0.4679337867071129,
+    "association": 0.09330710931706869,
+    "existence": 0.3759225956647731
+   },
+   {
+    "total": 0.4761025716813182,
+    "association": 0.09206409301653988,
+    "existence": 0.38536695472133353
+   },
+   {
+    "total": 0.4535713629659054,
+    "association": 0.09123932845988011,
+    "existence": 0.3635854231530005
+   },
+   {
+    "total": 0.5026206001881841,
+    "association": 0.09033319368279366,
+    "existence": 0.4137136020621714
+   },
+   {
+    "total": 0.4172975273518755,
+    "association": 0.08958121482539472,
+    "existence": 0.32884995737099604
+   },
+   {
+    "total": 0.3996732055978476,
+    "association": 0.0889034986135247,
+    "existence": 0.31184472979963845
+   },
+   {
+    "total": 0.37969857110203453,
+    "association": 0.08831717164490593,
+    "existence": 0.2923893536588562
+   },
+   {
+    "total": 0.38477809511666483,
+    "association": 0.08734121972094264,
+    "existence": 0.2984657766190565
+   },
+   {
+    "total": 0.3352946596664391,
+    "association": 0.08665513396923459,
+    "existence": 0.24949962604425058
+   },
+   {
+    "total": 0.3318634364613945,
+    "association": 0.08558747457836954,
+    "existence": 0.2471278863408697
+   },
+   {
+    "total": 0.3003607273845736,
+    "association": 0.0844924715191044,
+    "existence": 0.2166149930643527
+   },
+   {
+    "total": 0.2963162770544797,
+    "association": 0.08344164851705212,
+    "existence": 0.21361101032113233
+   },
+   {
+    "total": 0.2669898531072376,
+    "association": 0.08232960073402869,
+    "existence": 0.1852990342677343
+   },
+   {
+    "total": 0.24357059177280482,
+    "association": 0.08125230765512076,
+    "existence": 0.16287977983337013
+   },
+   {
+    "total": 0.2125357904627052,
+    "association": 0.08019701697108218,
+    "existence": 0.13279656340979504
+   },
+   {
+    "total": 0.17245481567857054,
+    "association": 0.07938510237010946,
+    "existence": 0.09339166276625878
+   },
+   {
+    "total": 0.14604785644090007,
+    "association": 0.07851981671855417,
+    "existence": 0.06776163444410281
+   },
+   {
+    "total": 0.12618627263943258,
+    "association": 0.07797972263567718,
+    "existence": 0.04837330732397665
+   },
+   {
+    "total": 0.11017975098697791,
+    "association": 0.07765348759194535,
+    "existence": 0.03263877909643313
+   }
+  ],
+  "validation_curve_terms": [
+   {
+    "total": 0.3753422794912971,
+    "association": 0.08114798673104288,
+    "existence": 0.29535640751642245
+   },
+   {
+    "total": 0.34181253646423637,
+    "association": 0.08484341698600525,
+    "existence": 0.2579841891243017
+   },
+   {
+    "total": 0.49748351529895635,
+    "association": 0.08817115424700092,
+    "existence": 0.4109292101546981
+   },
+   {
+    "total": 0.36137242612665593,
+    "association": 0.08865284786022365,
+    "existence": 0.273796864524649
+   },
+   {
+    "total": 0.6837546291439297,
+    "association": 0.08277732944095383,
+    "existence": 0.6033512565327191
+   },
+   {
+    "total": 0.566297642375907,
+    "association": 0.07624015016267635,
+    "existence": 0.49199329891307747
+   },
+   {
+    "total": 0.3430580964491603,
+    "association": 0.0822051355526892,
+    "existence": 0.2618833721972537
+   },
+   {
+    "total": 1.1263483074558005,
+    "association": 0.08947036329434259,
+    "existence": 1.0409737778899861
+   },
+   {
+    "total": 0.30163122274201437,
+    "association": 0.08548675526387553,
+    "existence": 0.21699827160949614
+   },
+   {
+    "total": 0.38532630309441873,
+    "association": 0.07549534016322709,
+    "existence": 0.3110548444943545
+   },
+   {
+    "total": 0.43734677617037804,
+    "association": 0.08547853880600366,
+    "existence": 0.3532581740591344
+   },
+   {
+    "total": 0.5619343375258511,
+    "association": 0.08147391162576549,
+    "existence": 0.4823583223401909
+   },
+   {
+    "total": 0.717311758333568,
+    "association": 0.07685052171428536,
+    "existence": 0.6429911621272578
+   },
+   {
+    "total": 0.1643565276673831,
+    "association": 0.08517858193648023,
+    "existence": 0.07949071142296035
+   },
+   {
+    "total": 0.19565550216234165,
+    "association": 0.07296067638227055,
+    "existence": 0.12317949051108792
+   },
+   {
+    "total": 0.1612322831172496,
+    "association": 0.08038445206995402,
+    "existence": 0.08116719292220849
+   },
+   {
+    "total": 0.28840497136464216,
+    "association": 0.07693748002360469,
+    "existence": 0.21230282142769158
+   },
+   {
+    "total": 0.37429168022994974,
+    "association": 0.07523111022857143,
+    "existence": 0.3002419078233524
+   },
+   {
+    "total": 0.21455690939564825,
+    "association": 0.07569288106457808,
+    "existence": 0.13941256329274443
+   },
+   {
+    "total": 0.2587062542157943,
+    "association": 0.07544879033844797,
+    "existence": 0.18398136088075318
+   }
+  ],
+  "weights_sha256": "afa33ad2cfe0929358746720590f0f4551c67326f0314412efa5b3cf81514d3a",
+  "group_selection": {
+   "rule": "training unchanged; the association and birth heads keep together the epoch of the lowest association validation term, the existence head the epoch of the lowest existence validation term, ties to the earlier epoch; the total-loss selection is kept alongside",
+   "best_epoch_by_group": {
+    "association_birth": 14,
+    "existence": 13
+   },
+   "weights_sha256": "70473bbaf34ef90d28bbd5779ad078773d5ef87bc8f1d2c64056c1c4c7283cd8",
+   "file": "weights_grouped.json"
+  },
+  "existence_class_weight": {
+   "gone": 48716,
+   "present": 17366929,
+   "pos_weight": 356.4933286805156
+  },
+  "threads": {
+   "requested": 1,
+   "torch_num_threads": 1,
+   "env": {
+    "OMP_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1",
+    "OPENBLAS_NUM_THREADS": "1"
+   }
+  },
+  "wall_seconds": 32260.7,
+  "peak_rss_bytes": 6841372672,
+  "code_commit": "9a2b81a6829ac55298714d87394cc35cfc7de229",
+  "receipt_sha256": "bde672ba551956c8156c34f4e45513d8fe5e6bb3d95bdd918449ca48227970d4"
+ },
+ "training/round1/HeuristicLabel/s43/training_receipt.json": {
+  "arm": "HeuristicLabel",
+  "round": 1,
+  "seed": 43,
+  "label_source": "heuristic",
+  "uses": "grouped",
+  "mask_source": "simulator_instance_masks",
+  "sources": [
+   "/root/autodl-tmp/vsmt_private/s3-03-run/instance/round0:ELU-P:heuristic",
+   "/root/autodl-tmp/vsmt_private/s3-03-run/instance/round1:HeuristicLabel:heuristic"
+  ],
+  "split": {
+   "rule": "ruling 104-1 1a: the S3 train manifest (configs/vsmt/lean_s3_01_manifests.json, already in S0-02 split order) gives its first 240 houses to training and its last 60 to checkpoint selection; the split is fixed by the manifest, a house whose generation or cache failed is simply absent and never replaced; the encoding statistics and the class weight come from the training houses only, the ELU-P fit and the rollouts use every train house",
+   "training_houses_present": 205,
+   "selection_houses_present": 47,
+   "training_houses_absent": [
+    "procthor10k-0.1.2-train-00156",
+    "procthor10k-0.1.2-train-00211",
+    "procthor10k-0.1.2-train-02015",
+    "procthor10k-0.1.2-train-02018",
+    "procthor10k-0.1.2-train-02230",
+    "procthor10k-0.1.2-train-02239",
+    "procthor10k-0.1.2-train-02537",
+    "procthor10k-0.1.2-train-03940",
+    "procthor10k-0.1.2-train-04151",
+    "procthor10k-0.1.2-train-04206",
+    "procthor10k-0.1.2-train-04448",
+    "procthor10k-0.1.2-train-04771",
+    "procthor10k-0.1.2-train-04855",
+    "procthor10k-0.1.2-train-05390",
+    "procthor10k-0.1.2-train-05623",
+    "procthor10k-0.1.2-train-06054",
+    "procthor10k-0.1.2-train-06175",
+    "procthor10k-0.1.2-train-06362",
+    "procthor10k-0.1.2-train-06533",
+    "procthor10k-0.1.2-train-06964",
+    "procthor10k-0.1.2-train-07073",
+    "procthor10k-0.1.2-train-07293",
+    "procthor10k-0.1.2-train-07536",
+    "procthor10k-0.1.2-train-07870",
+    "procthor10k-0.1.2-train-07969",
+    "procthor10k-0.1.2-train-07985",
+    "procthor10k-0.1.2-train-08024",
+    "procthor10k-0.1.2-train-08168",
+    "procthor10k-0.1.2-train-08649",
+    "procthor10k-0.1.2-train-08933",
+    "procthor10k-0.1.2-train-08972",
+    "procthor10k-0.1.2-train-09021",
+    "procthor10k-0.1.2-train-09882",
+    "procthor10k-0.1.2-train-09908",
+    "procthor10k-0.1.2-train-09984"
+   ],
+   "selection_houses_absent": [
+    "procthor10k-0.1.2-train-00250",
+    "procthor10k-0.1.2-train-00340",
+    "procthor10k-0.1.2-train-00567",
+    "procthor10k-0.1.2-train-00864",
+    "procthor10k-0.1.2-train-03503",
+    "procthor10k-0.1.2-train-05350",
+    "procthor10k-0.1.2-train-05475",
+    "procthor10k-0.1.2-train-06606",
+    "procthor10k-0.1.2-train-06990",
+    "procthor10k-0.1.2-train-07413",
+    "procthor10k-0.1.2-train-08033",
+    "procthor10k-0.1.2-train-08401",
+    "procthor10k-0.1.2-train-09837"
+   ]
+  },
+  "best_epoch": 19,
+  "diverged": false,
+  "updates_taken": 9201400,
+  "optimizer_foreach": true,
+  "train_curve": [
+   0.6565182939655405,
+   0.5245371353685176,
+   0.46770179042846627,
+   0.4528036745102177,
+   0.4283618589572482,
+   0.4188281738459415,
+   0.39427240972059047,
+   0.38579395909079617,
+   0.3830303628828596,
+   0.3554364510572424,
+   0.32026917458939136,
+   0.31738702280737935,
+   0.2966965136797488,
+   0.27955630401174714,
+   0.244579911405214,
+   0.22014421652109864,
+   0.18671499645683096,
+   0.14939115824701057,
+   0.12272057506038822,
+   0.10621124867742315
+  ],
+  "validation_curve": [
+   0.6132182921679551,
+   0.28665502467571585,
+   0.4339478328895784,
+   0.44278446645296127,
+   0.23094446628134765,
+   0.9834193465942284,
+   0.3813019382412865,
+   0.23696935583857603,
+   0.3136343475180925,
+   0.291078636020298,
+   0.3709638350777085,
+   0.5489204180009926,
+   0.28448525974740296,
+   0.15512810136485736,
+   0.13356596201433318,
+   0.31866295271143913,
+   0.14450740199710335,
+   0.2599373941906974,
+   0.16633964103941676,
+   0.11278348874105229
+  ],
+  "train_curve_terms": [
+   {
+    "total": 0.6565182939655405,
+    "association": 0.1019231081342654,
+    "existence": 0.5565136559145434
+   },
+   {
+    "total": 0.5245371353685176,
+    "association": 0.09282342148218357,
+    "existence": 0.4332071094131899
+   },
+   {
+    "total": 0.46770179042846627,
+    "association": 0.09141968811826244,
+    "existence": 0.37758374712868253
+   },
+   {
+    "total": 0.4528036745102177,
+    "association": 0.09033456430969647,
+    "existence": 0.3637229726307738
+   },
+   {
+    "total": 0.4283618589572482,
+    "association": 0.08985267260571013,
+    "existence": 0.3396801657391762
+   },
+   {
+    "total": 0.4188281738459415,
+    "association": 0.0892543032741983,
+    "existence": 0.330713940862315
+   },
+   {
+    "total": 0.39427240972059047,
+    "association": 0.08858326941358882,
+    "existence": 0.306746588329917
+   },
+   {
+    "total": 0.38579395909079617,
+    "association": 0.08775067315385442,
+    "existence": 0.29907428517626555
+   },
+   {
+    "total": 0.3830303628828596,
+    "association": 0.08698550021679377,
+    "existence": 0.2970689491411383
+   },
+   {
+    "total": 0.3554364510572424,
+    "association": 0.08618504982949679,
+    "existence": 0.2701828034593968
+   },
+   {
+    "total": 0.32026917458939136,
+    "association": 0.08509599224166389,
+    "existence": 0.23598669930711422
+   },
+   {
+    "total": 0.31738702280737935,
+    "association": 0.08429777798987916,
+    "existence": 0.23389555327521871
+   },
+   {
+    "total": 0.2966965136797488,
+    "association": 0.08325776034929949,
+    "existence": 0.21417708634283378
+   },
+   {
+    "total": 0.27955630401174714,
+    "association": 0.08240994708285124,
+    "existence": 0.19782833090117083
+   },
+   {
+    "total": 0.244579911405214,
+    "association": 0.08123573303925831,
+    "existence": 0.16390922276636283
+   },
+   {
+    "total": 0.22014421652109864,
+    "association": 0.08028110655573024,
+    "existence": 0.14034692824807843
+   },
+   {
+    "total": 0.18671499645683096,
+    "association": 0.07940571751454885,
+    "existence": 0.10768048596068773
+   },
+   {
+    "total": 0.14939115824701057,
+    "association": 0.0784977605693606,
+    "existence": 0.07113863392320353
+   },
+   {
+    "total": 0.12272057506038822,
+    "association": 0.07790061655099123,
+    "existence": 0.044975000967340376
+   },
+   {
+    "total": 0.10621124867742315,
+    "association": 0.07757507832988536,
+    "existence": 0.02873522940404336
+   }
+  ],
+  "validation_curve_terms": [
+   {
+    "total": 0.6132182921679551,
+    "association": 0.08204578727011216,
+    "existence": 0.5332707213434484
+   },
+   {
+    "total": 0.28665502467571585,
+    "association": 0.0984158599015264,
+    "existence": 0.1889827405832216
+   },
+   {
+    "total": 0.4339478328895784,
+    "association": 0.08648200816932584,
+    "existence": 0.3488383706712585
+   },
+   {
+    "total": 0.44278446645296127,
+    "association": 0.08719786080958129,
+    "existence": 0.356991229767811
+   },
+   {
+    "total": 0.23094446628134765,
+    "association": 0.0869132765210592,
+    "existence": 0.14460013604728225
+   },
+   {
+    "total": 0.9834193465942284,
+    "association": 0.09362169738239003,
+    "existence": 0.8933124890523815
+   },
+   {
+    "total": 0.3813019382412865,
+    "association": 0.08587877682637964,
+    "existence": 0.29659013065190376
+   },
+   {
+    "total": 0.23696935583857603,
+    "association": 0.0814068510263005,
+    "existence": 0.15617700174891827
+   },
+   {
+    "total": 0.3136343475180925,
+    "association": 0.08645767022068579,
+    "existence": 0.22807406175120268
+   },
+   {
+    "total": 0.291078636020298,
+    "association": 0.07857380761525384,
+    "existence": 0.21334425612228516
+   },
+   {
+    "total": 0.3709638350777085,
+    "association": 0.08109916609537776,
+    "existence": 0.29100968072340216
+   },
+   {
+    "total": 0.5489204180009926,
+    "association": 0.0935388773004821,
+    "existence": 0.4571803707263149
+   },
+   {
+    "total": 0.28448525974740296,
+    "association": 0.08603349663715104,
+    "existence": 0.19923567880092607
+   },
+   {
+    "total": 0.15512810136485736,
+    "association": 0.07505602660006755,
+    "existence": 0.08038837231545104
+   },
+   {
+    "total": 0.13356596201433318,
+    "association": 0.07892747768385645,
+    "existence": 0.05485431484893093
+   },
+   {
+    "total": 0.31866295271143913,
+    "association": 0.07672600437438869,
+    "existence": 0.2428926364406025
+   },
+   {
+    "total": 0.14450740199710335,
+    "association": 0.0760044285944038,
+    "existence": 0.0687735709708489
+   },
+   {
+    "total": 0.2599373941906974,
+    "association": 0.07595678780510318,
+    "existence": 0.18470735982165565
+   },
+   {
+    "total": 0.16633964103941676,
+    "association": 0.07591165722891467,
+    "existence": 0.09078518889205019
+   },
+   {
+    "total": 0.11278348874105229,
+    "association": 0.0753836028774769,
+    "existence": 0.0375476215279435
+   }
+  ],
+  "weights_sha256": "72c4232fea1174a6b645957b4c5bf36b5715d2a5a425266e17203d1c7882068a",
+  "group_selection": {
+   "rule": "training unchanged; the association and birth heads keep together the epoch of the lowest association validation term, the existence head the epoch of the lowest existence validation term, ties to the earlier epoch; the total-loss selection is kept alongside",
+   "best_epoch_by_group": {
+    "association_birth": 13,
+    "existence": 19
+   },
+   "weights_sha256": "33744fb4c5f868fd3c5f6f7a111f6182380d9fe31733a46f4b67e7c013fe8c8d",
+   "file": "weights_grouped.json"
+  },
+  "existence_class_weight": {
+   "gone": 48716,
+   "present": 17366929,
+   "pos_weight": 356.4933286805156
+  },
+  "threads": {
+   "requested": 1,
+   "torch_num_threads": 1,
+   "env": {
+    "OMP_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1",
+    "OPENBLAS_NUM_THREADS": "1"
+   }
+  },
+  "wall_seconds": 33268.1,
+  "peak_rss_bytes": 6839644160,
+  "code_commit": "9a2b81a6829ac55298714d87394cc35cfc7de229",
+  "receipt_sha256": "a06ae465d5276f9ff438e94ec1baf2732c7d5d6d8e9bcb1412582ac12f51fecc"
+ },
+ "training/round1/HeuristicLabel/s59/training_receipt.json": {
+  "arm": "HeuristicLabel",
+  "round": 1,
+  "seed": 59,
+  "label_source": "heuristic",
+  "uses": "grouped",
+  "mask_source": "simulator_instance_masks",
+  "sources": [
+   "/root/autodl-tmp/vsmt_private/s3-03-run/instance/round0:ELU-P:heuristic",
+   "/root/autodl-tmp/vsmt_private/s3-03-run/instance/round1:HeuristicLabel:heuristic"
+  ],
+  "split": {
+   "rule": "ruling 104-1 1a: the S3 train manifest (configs/vsmt/lean_s3_01_manifests.json, already in S0-02 split order) gives its first 240 houses to training and its last 60 to checkpoint selection; the split is fixed by the manifest, a house whose generation or cache failed is simply absent and never replaced; the encoding statistics and the class weight come from the training houses only, the ELU-P fit and the rollouts use every train house",
+   "training_houses_present": 205,
+   "selection_houses_present": 47,
+   "training_houses_absent": [
+    "procthor10k-0.1.2-train-00156",
+    "procthor10k-0.1.2-train-00211",
+    "procthor10k-0.1.2-train-02015",
+    "procthor10k-0.1.2-train-02018",
+    "procthor10k-0.1.2-train-02230",
+    "procthor10k-0.1.2-train-02239",
+    "procthor10k-0.1.2-train-02537",
+    "procthor10k-0.1.2-train-03940",
+    "procthor10k-0.1.2-train-04151",
+    "procthor10k-0.1.2-train-04206",
+    "procthor10k-0.1.2-train-04448",
+    "procthor10k-0.1.2-train-04771",
+    "procthor10k-0.1.2-train-04855",
+    "procthor10k-0.1.2-train-05390",
+    "procthor10k-0.1.2-train-05623",
+    "procthor10k-0.1.2-train-06054",
+    "procthor10k-0.1.2-train-06175",
+    "procthor10k-0.1.2-train-06362",
+    "procthor10k-0.1.2-train-06533",
+    "procthor10k-0.1.2-train-06964",
+    "procthor10k-0.1.2-train-07073",
+    "procthor10k-0.1.2-train-07293",
+    "procthor10k-0.1.2-train-07536",
+    "procthor10k-0.1.2-train-07870",
+    "procthor10k-0.1.2-train-07969",
+    "procthor10k-0.1.2-train-07985",
+    "procthor10k-0.1.2-train-08024",
+    "procthor10k-0.1.2-train-08168",
+    "procthor10k-0.1.2-train-08649",
+    "procthor10k-0.1.2-train-08933",
+    "procthor10k-0.1.2-train-08972",
+    "procthor10k-0.1.2-train-09021",
+    "procthor10k-0.1.2-train-09882",
+    "procthor10k-0.1.2-train-09908",
+    "procthor10k-0.1.2-train-09984"
+   ],
+   "selection_houses_absent": [
+    "procthor10k-0.1.2-train-00250",
+    "procthor10k-0.1.2-train-00340",
+    "procthor10k-0.1.2-train-00567",
+    "procthor10k-0.1.2-train-00864",
+    "procthor10k-0.1.2-train-03503",
+    "procthor10k-0.1.2-train-05350",
+    "procthor10k-0.1.2-train-05475",
+    "procthor10k-0.1.2-train-06606",
+    "procthor10k-0.1.2-train-06990",
+    "procthor10k-0.1.2-train-07413",
+    "procthor10k-0.1.2-train-08033",
+    "procthor10k-0.1.2-train-08401",
+    "procthor10k-0.1.2-train-09837"
+   ]
+  },
+  "best_epoch": 14,
+  "diverged": false,
+  "updates_taken": 9201400,
+  "optimizer_foreach": true,
+  "train_curve": [
+   0.6483603791304584,
+   0.49130339152803904,
+   0.45840091155835316,
+   0.44722065900507246,
+   0.4247906408598674,
+   0.4106403573003273,
+   0.3975135013663056,
+   0.363356222779786,
+   0.3634667099135627,
+   0.3506648069436346,
+   0.3305552667901921,
+   0.30213242973021276,
+   0.28229273609727723,
+   0.2562569369268627,
+   0.2426762017674573,
+   0.21015831986111638,
+   0.1848459626013285,
+   0.1502102692329992,
+   0.12214689677335037,
+   0.11041299076379382
+  ],
+  "validation_curve": [
+   0.40315155429014116,
+   0.5741868490489505,
+   0.7810733662196794,
+   0.6782729835029169,
+   0.458976885497572,
+   0.844790355791055,
+   0.3527519757265956,
+   0.24651079809879306,
+   0.3544198050857504,
+   0.23547613648176022,
+   0.3014913129334615,
+   0.4951708648275927,
+   0.1640262256029952,
+   0.3432372356187355,
+   0.11157084341661187,
+   0.3617014456504662,
+   0.2336202026332956,
+   0.17488942064778495,
+   0.27095069328293,
+   0.12289608354728167
+  ],
+  "train_curve_terms": [
+   {
+    "total": 0.6483603791304584,
+    "association": 0.1022141913033306,
+    "existence": 0.5480354311266636
+   },
+   {
+    "total": 0.49130339152803904,
+    "association": 0.09319280698161894,
+    "existence": 0.399487739652005
+   },
+   {
+    "total": 0.45840091155835316,
+    "association": 0.091894908124474,
+    "existence": 0.36777383091099464
+   },
+   {
+    "total": 0.44722065900507246,
+    "association": 0.09104243401454269,
+    "existence": 0.3574103263454394
+   },
+   {
+    "total": 0.4247906408598674,
+    "association": 0.09047984989586741,
+    "existence": 0.33546724774748343
+   },
+   {
+    "total": 0.4106403573003273,
+    "association": 0.08980094995388674,
+    "existence": 0.32194926394879325
+   },
+   {
+    "total": 0.3975135013663056,
+    "association": 0.08912193038625574,
+    "existence": 0.3094583672005043
+   },
+   {
+    "total": 0.363356222779786,
+    "association": 0.08847833592146004,
+    "existence": 0.27582875156550823
+   },
+   {
+    "total": 0.3634667099135627,
+    "association": 0.08772358459535862,
+    "existence": 0.2766969833919422
+   },
+   {
+    "total": 0.3506648069436346,
+    "association": 0.08707877386748375,
+    "existence": 0.2644978372102584
+   },
+   {
+    "total": 0.3305552667901921,
+    "association": 0.0863108380487113,
+    "existence": 0.24508932548934861
+   },
+   {
+    "total": 0.30213242973021276,
+    "association": 0.08540710302918593,
+    "existence": 0.21747502905742924
+   },
+   {
+    "total": 0.28229273609727723,
+    "association": 0.08448017039327844,
+    "existence": 0.19849684427233513
+   },
+   {
+    "total": 0.2562569369268627,
+    "association": 0.08358237140856736,
+    "existence": 0.1732718860568869
+   },
+   {
+    "total": 0.2426762017674573,
+    "association": 0.08267132072208284,
+    "existence": 0.16055837425752326
+   },
+   {
+    "total": 0.21015831986111638,
+    "association": 0.08186666670171279,
+    "existence": 0.12873544309851245
+   },
+   {
+    "total": 0.1848459626013285,
+    "association": 0.08117722109922233,
+    "existence": 0.10402735540530195
+   },
+   {
+    "total": 0.1502102692329992,
+    "association": 0.08048244689153602,
+    "existence": 0.0699690268143159
+   },
+   {
+    "total": 0.12214689677335037,
+    "association": 0.08003469334777878,
+    "existence": 0.04225787895668612
+   },
+   {
+    "total": 0.11041299076379382,
+    "association": 0.07973769412839188,
+    "existence": 0.030781409507532966
+   }
+  ],
+  "validation_curve_terms": [
+   {
+    "total": 0.40315155429014116,
+    "association": 0.12015101240636031,
+    "existence": 0.28411843996652125
+   },
+   {
+    "total": 0.5741868490489505,
+    "association": 0.09126869515550405,
+    "existence": 0.4848257582692935
+   },
+   {
+    "total": 0.7810733662196794,
+    "association": 0.07935462769278159,
+    "existence": 0.7044906415445639
+   },
+   {
+    "total": 0.6782729835029169,
+    "association": 0.08888558139373359,
+    "existence": 0.591715577863424
+   },
+   {
+    "total": 0.458976885497572,
+    "association": 0.07810025209755911,
+    "existence": 0.38238115829056524
+   },
+   {
+    "total": 0.844790355791055,
+    "association": 0.08085728572599542,
+    "existence": 0.7669507285774213
+   },
+   {
+    "total": 0.3527519757265956,
+    "association": 0.0790063156520054,
+    "existence": 0.2748269996356826
+   },
+   {
+    "total": 0.24651079809879306,
+    "association": 0.09058583739445294,
+    "existence": 0.15654089016621342
+   },
+   {
+    "total": 0.3544198050857504,
+    "association": 0.08568233710219288,
+    "existence": 0.2697990235940661
+   },
+   {
+    "total": 0.23547613648176022,
+    "association": 0.0807408144259088,
+    "existence": 0.1553465508954095
+   },
+   {
+    "total": 0.3014913129334615,
+    "association": 0.08220198753295518,
+    "existence": 0.22015555400741016
+   },
+   {
+    "total": 0.4951708648275927,
+    "association": 0.07730139899248595,
+    "existence": 0.419520116708399
+   },
+   {
+    "total": 0.1640262256029952,
+    "association": 0.08668546555816004,
+    "existence": 0.07764626874215019
+   },
+   {
+    "total": 0.3432372356187355,
+    "association": 0.0805164574416612,
+    "existence": 0.2637585680339873
+   },
+   {
+    "total": 0.11157084341661187,
+    "association": 0.08783306066680012,
+    "existence": 0.023831551001563814
+   },
+   {
+    "total": 0.3617014456504662,
+    "association": 0.07785419994751462,
+    "existence": 0.28496848818572246
+   },
+   {
+    "total": 0.2336202026332956,
+    "association": 0.07700070529849348,
+    "existence": 0.15723816922567344
+   },
+   {
+    "total": 0.17488942064778495,
+    "association": 0.0786760925368297,
+    "existence": 0.09659338600105627
+   },
+   {
+    "total": 0.27095069328293,
+    "association": 0.0775160939620811,
+    "existence": 0.1941986966905958
+   },
+   {
+    "total": 0.12289608354728167,
+    "association": 0.07760542254571788,
+    "existence": 0.04546956621768561
+   }
+  ],
+  "weights_sha256": "a751f8a0ed88df66982d1922787eda428e6359807a5cb302476b532571110f34",
+  "group_selection": {
+   "rule": "training unchanged; the association and birth heads keep together the epoch of the lowest association validation term, the existence head the epoch of the lowest existence validation term, ties to the earlier epoch; the total-loss selection is kept alongside",
+   "best_epoch_by_group": {
+    "association_birth": 16,
+    "existence": 14
+   },
+   "weights_sha256": "585cdb966f86e9c2408d2215d251165a36652d329f31e1e9f4412460cbc256dd",
+   "file": "weights_grouped.json"
+  },
+  "existence_class_weight": {
+   "gone": 48716,
+   "present": 17366929,
+   "pos_weight": 356.4933286805156
+  },
+  "threads": {
+   "requested": 1,
+   "torch_num_threads": 1,
+   "env": {
+    "OMP_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1",
+    "OPENBLAS_NUM_THREADS": "1"
+   }
+  },
+  "wall_seconds": 25827.4,
+  "peak_rss_bytes": 6840004608,
+  "code_commit": "5c9ec8d222ac90de9412690884acad6a3f85515f",
+  "receipt_sha256": "25e897f4dd7db685fa9137a84fca342e365555ad0b6efa4b9df2204a401434be"
+ },
+ "training/round1/HeuristicLabel/s7/training_receipt.json": {
+  "arm": "HeuristicLabel",
+  "round": 1,
+  "seed": 7,
+  "label_source": "heuristic",
+  "uses": "grouped",
+  "mask_source": "simulator_instance_masks",
+  "sources": [
+   "/root/autodl-tmp/vsmt_private/s3-03-run/instance/round0:ELU-P:heuristic",
+   "/root/autodl-tmp/vsmt_private/s3-03-run/instance/round1:HeuristicLabel:heuristic"
+  ],
+  "split": {
+   "rule": "ruling 104-1 1a: the S3 train manifest (configs/vsmt/lean_s3_01_manifests.json, already in S0-02 split order) gives its first 240 houses to training and its last 60 to checkpoint selection; the split is fixed by the manifest, a house whose generation or cache failed is simply absent and never replaced; the encoding statistics and the class weight come from the training houses only, the ELU-P fit and the rollouts use every train house",
+   "training_houses_present": 205,
+   "selection_houses_present": 47,
+   "training_houses_absent": [
+    "procthor10k-0.1.2-train-00156",
+    "procthor10k-0.1.2-train-00211",
+    "procthor10k-0.1.2-train-02015",
+    "procthor10k-0.1.2-train-02018",
+    "procthor10k-0.1.2-train-02230",
+    "procthor10k-0.1.2-train-02239",
+    "procthor10k-0.1.2-train-02537",
+    "procthor10k-0.1.2-train-03940",
+    "procthor10k-0.1.2-train-04151",
+    "procthor10k-0.1.2-train-04206",
+    "procthor10k-0.1.2-train-04448",
+    "procthor10k-0.1.2-train-04771",
+    "procthor10k-0.1.2-train-04855",
+    "procthor10k-0.1.2-train-05390",
+    "procthor10k-0.1.2-train-05623",
+    "procthor10k-0.1.2-train-06054",
+    "procthor10k-0.1.2-train-06175",
+    "procthor10k-0.1.2-train-06362",
+    "procthor10k-0.1.2-train-06533",
+    "procthor10k-0.1.2-train-06964",
+    "procthor10k-0.1.2-train-07073",
+    "procthor10k-0.1.2-train-07293",
+    "procthor10k-0.1.2-train-07536",
+    "procthor10k-0.1.2-train-07870",
+    "procthor10k-0.1.2-train-07969",
+    "procthor10k-0.1.2-train-07985",
+    "procthor10k-0.1.2-train-08024",
+    "procthor10k-0.1.2-train-08168",
+    "procthor10k-0.1.2-train-08649",
+    "procthor10k-0.1.2-train-08933",
+    "procthor10k-0.1.2-train-08972",
+    "procthor10k-0.1.2-train-09021",
+    "procthor10k-0.1.2-train-09882",
+    "procthor10k-0.1.2-train-09908",
+    "procthor10k-0.1.2-train-09984"
+   ],
+   "selection_houses_absent": [
+    "procthor10k-0.1.2-train-00250",
+    "procthor10k-0.1.2-train-00340",
+    "procthor10k-0.1.2-train-00567",
+    "procthor10k-0.1.2-train-00864",
+    "procthor10k-0.1.2-train-03503",
+    "procthor10k-0.1.2-train-05350",
+    "procthor10k-0.1.2-train-05475",
+    "procthor10k-0.1.2-train-06606",
+    "procthor10k-0.1.2-train-06990",
+    "procthor10k-0.1.2-train-07413",
+    "procthor10k-0.1.2-train-08033",
+    "procthor10k-0.1.2-train-08401",
+    "procthor10k-0.1.2-train-09837"
+   ]
+  },
+  "best_epoch": 18,
+  "diverged": false,
+  "updates_taken": 9201400,
+  "optimizer_foreach": true,
+  "train_curve": [
+   0.6276654365056991,
+   0.485194930720932,
+   0.46497498780683794,
+   0.4740948507011279,
+   0.4549243486257308,
+   0.40309166554350534,
+   0.3849545755197684,
+   0.39272043478727225,
+   0.362343024451169,
+   0.36958715257558494,
+   0.3526619630887738,
+   0.3205465716401086,
+   0.2878694812232231,
+   0.26968867986575173,
+   0.24262026859004235,
+   0.20844062080501824,
+   0.18016545252548227,
+   0.14183727445879396,
+   0.12629602482545121,
+   0.10861007819968138
+  ],
+  "validation_curve": [
+   0.3697682668976708,
+   0.38505961632178365,
+   0.5927346555279391,
+   0.7579468463010974,
+   0.5761886085607344,
+   0.5366509537006308,
+   0.3060431351879007,
+   0.2693560327659318,
+   0.6915403740152686,
+   0.3941557167202159,
+   0.33553055113505875,
+   0.7906274499184284,
+   0.2293180571699739,
+   0.3964164189826718,
+   0.16130925594353732,
+   0.17069546034681343,
+   0.6586764699103109,
+   0.12995541227684068,
+   0.11896002788921685,
+   0.12381580012533104
+  ],
+  "train_curve_terms": [
+   {
+    "total": 0.6276654365056991,
+    "association": 0.1021053014290987,
+    "existence": 0.5273781665571775
+   },
+   {
+    "total": 0.485194930720932,
+    "association": 0.09280940398021006,
+    "existence": 0.39374287668442054
+   },
+   {
+    "total": 0.46497498780683794,
+    "association": 0.09146027126105574,
+    "existence": 0.3748067889536444
+   },
+   {
+    "total": 0.4740948507011279,
+    "association": 0.09117500482675428,
+    "existence": 0.3842444521609695
+   },
+   {
+    "total": 0.4549243486257308,
+    "association": 0.09038392911854519,
+    "existence": 0.36580144786224394
+   },
+   {
+    "total": 0.40309166554350534,
+    "association": 0.0896114894748821,
+    "existence": 0.3145645752350018
+   },
+   {
+    "total": 0.3849545755197684,
+    "association": 0.08893140979862282,
+    "existence": 0.2970471767794079
+   },
+   {
+    "total": 0.39272043478727225,
+    "association": 0.08788169687338492,
+    "existence": 0.3058932437714876
+   },
+   {
+    "total": 0.362343024451169,
+    "association": 0.08747557043676822,
+    "existence": 0.2758182829815665
+   },
+   {
+    "total": 0.36958715257558494,
+    "association": 0.08690301812811087,
+    "existence": 0.2836620035759863
+   },
+   {
+    "total": 0.3526619630887738,
+    "association": 0.08590977980895505,
+    "existence": 0.2676749395053979
+   },
+   {
+    "total": 0.3205465716401086,
+    "association": 0.08483823213398432,
+    "existence": 0.2365237085057597
+   },
+   {
+    "total": 0.2878694812232231,
+    "association": 0.08380344248167633,
+    "existence": 0.2047719496448909
+   },
+   {
+    "total": 0.26968867986575173,
+    "association": 0.08290315967899016,
+    "existence": 0.18743165353469743
+   },
+   {
+    "total": 0.24262026859004235,
+    "association": 0.08180545485933595,
+    "existence": 0.161371108437761
+   },
+   {
+    "total": 0.20844062080501824,
+    "association": 0.08093678739814436,
+    "existence": 0.1279448980622834
+   },
+   {
+    "total": 0.18016545252548227,
+    "association": 0.08008449003321254,
+    "existence": 0.10042716532348771
+   },
+   {
+    "total": 0.14183727445879396,
+    "association": 0.07937017805272616,
+    "existence": 0.0626831842553123
+   },
+   {
+    "total": 0.12629602482545121,
+    "association": 0.07868829104984695,
+    "existence": 0.04777241972847377
+   },
+   {
+    "total": 0.10861007819968138,
+    "association": 0.07841617544994112,
+    "existence": 0.030298350269208307
+   }
+  ],
+  "validation_curve_terms": [
+   {
+    "total": 0.3697682668976708,
+    "association": 0.08822820989079233,
+    "existence": 0.28265218579644463
+   },
+   {
+    "total": 0.38505961632178365,
+    "association": 0.07933348567083269,
+    "existence": 0.30693379780903324
+   },
+   {
+    "total": 0.5927346555279391,
+    "association": 0.10839164960330232,
+    "existence": 0.4862562376273157
+   },
+   {
+    "total": 0.7579468463010974,
+    "association": 0.08704500777013482,
+    "existence": 0.6735520087373017
+   },
+   {
+    "total": 0.5761886085607344,
+    "association": 0.10215704967558506,
+    "existence": 0.4759040610670899
+   },
+   {
+    "total": 0.5366509537006308,
+    "association": 0.09090092280558516,
+    "existence": 0.44751081455507974
+   },
+   {
+    "total": 0.3060431351879007,
+    "association": 0.09415197513734061,
+    "existence": 0.21272816452690843
+   },
+   {
+    "total": 0.2693560327659318,
+    "association": 0.08063080607502246,
+    "existence": 0.18947072171003515
+   },
+   {
+    "total": 0.6915403740152686,
+    "association": 0.07932794556089097,
+    "existence": 0.6146307648873675
+   },
+   {
+    "total": 0.3941557167202159,
+    "association": 0.08195998065382294,
+    "existence": 0.31342896001526316
+   },
+   {
+    "total": 0.33553055113505875,
+    "association": 0.08366774490656081,
+    "existence": 0.2528577052552071
+   },
+   {
+    "total": 0.7906274499184284,
+    "association": 0.08725770524362407,
+    "existence": 0.7061481657818947
+   },
+   {
+    "total": 0.2293180571699739,
+    "association": 0.08686862644717984,
+    "existence": 0.14301212877796188
+   },
+   {
+    "total": 0.3964164189826718,
+    "association": 0.08571633811240263,
+    "existence": 0.31192739604227193
+   },
+   {
+    "total": 0.16130925594353732,
+    "association": 0.07828945560001715,
+    "existence": 0.08334774231611371
+   },
+   {
+    "total": 0.17069546034681343,
+    "association": 0.07780293080094859,
+    "existence": 0.09325947000623458
+   },
+   {
+    "total": 0.6586764699103109,
+    "association": 0.07685236454087893,
+    "existence": 0.5841224055971408
+   },
+   {
+    "total": 0.12995541227684068,
+    "association": 0.0775124745095263,
+    "existence": 0.05265009534353513
+   },
+   {
+    "total": 0.11896002788921685,
+    "association": 0.07763731911291397,
+    "existence": 0.04148594025909516
+   },
+   {
+    "total": 0.12381580012533104,
+    "association": 0.07682394968120955,
+    "existence": 0.04717747577960779
+   }
+  ],
+  "weights_sha256": "6b2f42fdd02546c5038c52f7d568d52b92afe8b0251ec93728975e6724b27592",
+  "group_selection": {
+   "rule": "training unchanged; the association and birth heads keep together the epoch of the lowest association validation term, the existence head the epoch of the lowest existence validation term, ties to the earlier epoch; the total-loss selection is kept alongside",
+   "best_epoch_by_group": {
+    "association_birth": 19,
+    "existence": 18
+   },
+   "weights_sha256": "6ebac389ddbe7460ba1548cddfb3fc8f971366f7715f4dea2a2c86277fe3f787",
+   "file": "weights_grouped.json"
+  },
+  "existence_class_weight": {
+   "gone": 48716,
+   "present": 17366929,
+   "pos_weight": 356.4933286805156
+  },
+  "threads": {
+   "requested": 1,
+   "torch_num_threads": 1,
+   "env": {
+    "OMP_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1",
+    "OPENBLAS_NUM_THREADS": "1"
+   }
+  },
+  "wall_seconds": 16989.1,
+  "peak_rss_bytes": 6837964800,
+  "code_commit": "5c9ec8d222ac90de9412690884acad6a3f85515f",
+  "receipt_sha256": "25d03728af6572012f0aacedfa425e2ffa39242e031fdba88d691c574badd4f2"
+ },
+ "training/round1/VSMT-lean/s19/training_receipt.json": {
+  "arm": "VSMT-lean",
+  "round": 1,
+  "seed": 19,
+  "label_source": "teacher",
+  "uses": "grouped",
+  "mask_source": "simulator_instance_masks",
+  "sources": [
+   "/root/autodl-tmp/vsmt_private/s3-03-run/instance/round0:ELU-P:teacher",
+   "/root/autodl-tmp/vsmt_private/s3-03-run/instance/round1:VSMT-lean:teacher"
+  ],
+  "split": {
+   "rule": "ruling 104-1 1a: the S3 train manifest (configs/vsmt/lean_s3_01_manifests.json, already in S0-02 split order) gives its first 240 houses to training and its last 60 to checkpoint selection; the split is fixed by the manifest, a house whose generation or cache failed is simply absent and never replaced; the encoding statistics and the class weight come from the training houses only, the ELU-P fit and the rollouts use every train house",
+   "training_houses_present": 205,
+   "selection_houses_present": 47,
+   "training_houses_absent": [
+    "procthor10k-0.1.2-train-00156",
+    "procthor10k-0.1.2-train-00211",
+    "procthor10k-0.1.2-train-02015",
+    "procthor10k-0.1.2-train-02018",
+    "procthor10k-0.1.2-train-02230",
+    "procthor10k-0.1.2-train-02239",
+    "procthor10k-0.1.2-train-02537",
+    "procthor10k-0.1.2-train-03940",
+    "procthor10k-0.1.2-train-04151",
+    "procthor10k-0.1.2-train-04206",
+    "procthor10k-0.1.2-train-04448",
+    "procthor10k-0.1.2-train-04771",
+    "procthor10k-0.1.2-train-04855",
+    "procthor10k-0.1.2-train-05390",
+    "procthor10k-0.1.2-train-05623",
+    "procthor10k-0.1.2-train-06054",
+    "procthor10k-0.1.2-train-06175",
+    "procthor10k-0.1.2-train-06362",
+    "procthor10k-0.1.2-train-06533",
+    "procthor10k-0.1.2-train-06964",
+    "procthor10k-0.1.2-train-07073",
+    "procthor10k-0.1.2-train-07293",
+    "procthor10k-0.1.2-train-07536",
+    "procthor10k-0.1.2-train-07870",
+    "procthor10k-0.1.2-train-07969",
+    "procthor10k-0.1.2-train-07985",
+    "procthor10k-0.1.2-train-08024",
+    "procthor10k-0.1.2-train-08168",
+    "procthor10k-0.1.2-train-08649",
+    "procthor10k-0.1.2-train-08933",
+    "procthor10k-0.1.2-train-08972",
+    "procthor10k-0.1.2-train-09021",
+    "procthor10k-0.1.2-train-09882",
+    "procthor10k-0.1.2-train-09908",
+    "procthor10k-0.1.2-train-09984"
+   ],
+   "selection_houses_absent": [
+    "procthor10k-0.1.2-train-00250",
+    "procthor10k-0.1.2-train-00340",
+    "procthor10k-0.1.2-train-00567",
+    "procthor10k-0.1.2-train-00864",
+    "procthor10k-0.1.2-train-03503",
+    "procthor10k-0.1.2-train-05350",
+    "procthor10k-0.1.2-train-05475",
+    "procthor10k-0.1.2-train-06606",
+    "procthor10k-0.1.2-train-06990",
+    "procthor10k-0.1.2-train-07413",
+    "procthor10k-0.1.2-train-08033",
+    "procthor10k-0.1.2-train-08401",
+    "procthor10k-0.1.2-train-09837"
+   ]
+  },
+  "best_epoch": 7,
+  "diverged": false,
+  "updates_taken": 9198560,
+  "optimizer_foreach": true,
+  "train_curve": [
+   4.909121425397791,
+   5.208788780922014,
+   5.290350322062609,
+   5.330247040631475,
+   5.302498197816495,
+   5.284332500509369,
+   5.286599944027093,
+   5.281673179386899,
+   5.280482638002181,
+   5.278598781143574,
+   5.252996222442813,
+   5.249934698123389,
+   5.220343223912479,
+   5.212508623152434,
+   5.215492663079057,
+   5.183464931800079,
+   5.169086971346012,
+   5.165071168322258,
+   5.152011899955188,
+   5.140023190312204
+  ],
+  "validation_curve": [
+   4.793135800022907,
+   5.004091857212462,
+   4.953458722430159,
+   5.124730903171483,
+   4.496400430689847,
+   5.29653162948939,
+   5.000249984322988,
+   4.364881566016513,
+   5.053929898994715,
+   5.26534202106034,
+   4.755027664806979,
+   5.12429832356642,
+   5.23008984755733,
+   5.1987673492576825,
+   5.210522428521449,
+   4.699009520599109,
+   4.873515028910523,
+   5.026322783971766,
+   5.06085493653087,
+   5.083531543354853
+  ],
+  "train_curve_terms": [
+   {
+    "total": 4.909121425397791,
+    "association": 0.8081571522322619,
+    "existence": 4.282772792056913
+   },
+   {
+    "total": 5.208788780922014,
+    "association": 0.7925007530278776,
+    "existence": 4.612008009663927
+   },
+   {
+    "total": 5.290350322062609,
+    "association": 0.7900509217891079,
+    "existence": 4.69972729961508
+   },
+   {
+    "total": 5.330247040631475,
+    "association": 0.788384814601464,
+    "existence": 4.743124141659027
+   },
+   {
+    "total": 5.302498197816495,
+    "association": 0.7870386284125976,
+    "existence": 4.71555433578582
+   },
+   {
+    "total": 5.284332500509369,
+    "association": 0.7859510606549325,
+    "existence": 4.697721065970248
+   },
+   {
+    "total": 5.286599944027093,
+    "association": 0.784861579248339,
+    "existence": 4.701225287414304
+   },
+   {
+    "total": 5.281673179386899,
+    "association": 0.7829651946336581,
+    "existence": 4.6980594289621935
+   },
+   {
+    "total": 5.280482638002181,
+    "association": 0.781362481254159,
+    "existence": 4.69848840502813
+   },
+   {
+    "total": 5.278598781143574,
+    "association": 0.7797690698600327,
+    "existence": 4.6981837436478395
+   },
+   {
+    "total": 5.252996222442813,
+    "association": 0.7775777764397045,
+    "existence": 4.673736697546051
+   },
+   {
+    "total": 5.249934698123389,
+    "association": 0.7759359481061905,
+    "existence": 4.672252872166072
+   },
+   {
+    "total": 5.220343223912479,
+    "association": 0.7738346154095206,
+    "existence": 4.643546898989396
+   },
+   {
+    "total": 5.212508623152434,
+    "association": 0.7717791294909468,
+    "existence": 4.637510779866381
+   },
+   {
+    "total": 5.215492663079057,
+    "association": 0.7699542515252036,
+    "existence": 4.642530474449255
+   },
+   {
+    "total": 5.183464931800079,
+    "association": 0.7679666680717225,
+    "existence": 4.611161979473487
+   },
+   {
+    "total": 5.169086971346012,
+    "association": 0.766942172033558,
+    "existence": 4.597217916493042
+   },
+   {
+    "total": 5.165071168322258,
+    "association": 0.7657404632795213,
+    "existence": 4.594278500833132
+   },
+   {
+    "total": 5.152011899955188,
+    "association": 0.7648305749468481,
+    "existence": 4.581591795552688
+   },
+   {
+    "total": 5.140023190312204,
+    "association": 0.7645165722378088,
+    "existence": 4.569401242079079
+   }
+  ],
+  "validation_curve_terms": [
+   {
+    "total": 4.793135800022907,
+    "association": 0.7813225710806173,
+    "existence": 4.2068317271221405
+   },
+   {
+    "total": 5.004091857212462,
+    "association": 0.7662777924058575,
+    "existence": 4.443786129741162
+   },
+   {
+    "total": 4.953458722430159,
+    "association": 0.7903279118082898,
+    "existence": 4.365493731169038
+   },
+   {
+    "total": 5.124730903171483,
+    "association": 0.7714273761136865,
+    "existence": 4.564880083357227
+   },
+   {
+    "total": 4.496400430689847,
+    "association": 0.7799458456122008,
+    "existence": 3.8971463619378954
+   },
+   {
+    "total": 5.29653162948939,
+    "association": 0.7733774052614448,
+    "existence": 4.742970234255388
+   },
+   {
+    "total": 5.000249984322988,
+    "association": 0.7772421056916075,
+    "existence": 4.428267833059358
+   },
+   {
+    "total": 4.364881566016513,
+    "association": 0.7656803022758303,
+    "existence": 3.774197958735396
+   },
+   {
+    "total": 5.053929898994715,
+    "association": 0.7652483540605898,
+    "existence": 4.497120293573059
+   },
+   {
+    "total": 5.26534202106034,
+    "association": 0.7674490120235936,
+    "existence": 4.716480485704206
+   },
+   {
+    "total": 4.755027664806979,
+    "association": 0.7591039159390597,
+    "existence": 4.1901592935411
+   },
+   {
+    "total": 5.12429832356642,
+    "association": 0.7660896313671881,
+    "existence": 4.570020223811904
+   },
+   {
+    "total": 5.23008984755733,
+    "association": 0.7639324417495946,
+    "existence": 4.683203650906639
+   },
+   {
+    "total": 5.1987673492576825,
+    "association": 0.7583903331002649,
+    "existence": 4.656169762787791
+   },
+   {
+    "total": 5.210522428521449,
+    "association": 0.7610829888185687,
+    "existence": 4.6656732289368925
+   },
+   {
+    "total": 4.699009520599109,
+    "association": 0.7643137837397129,
+    "existence": 4.125964375892952
+   },
+   {
+    "total": 4.873515028910523,
+    "association": 0.7600470057575978,
+    "existence": 4.313405411205245
+   },
+   {
+    "total": 5.026322783971766,
+    "association": 0.7613190749241366,
+    "existence": 4.4722918321817255
+   },
+   {
+    "total": 5.06085493653087,
+    "association": 0.7584096903011334,
+    "existence": 4.5115478090342025
+   },
+   {
+    "total": 5.083531543354853,
+    "association": 0.7580832198065838,
+    "existence": 4.535666439865009
+   }
+  ],
+  "weights_sha256": "f7a626f1444c3e726bd387f16ded803825cbc5b1fb3a388ade9332d0298c6950",
+  "group_selection": {
+   "rule": "training unchanged; the association and birth heads keep together the epoch of the lowest association validation term, the existence head the epoch of the lowest existence validation term, ties to the earlier epoch; the total-loss selection is kept alongside",
+   "best_epoch_by_group": {
+    "association_birth": 19,
+    "existence": 7
+   },
+   "weights_sha256": "bc98d98ee5ac087f5a5f45e7ce146af94b07a6b9b089b2f09423d91dc3a70580",
+   "file": "weights_grouped.json"
+  },
+  "existence_class_weight": {
+   "gone": 132542,
+   "present": 9795902,
+   "pos_weight": 73.90790843657105
+  },
+  "threads": {
+   "requested": 1,
+   "torch_num_threads": 1,
+   "env": {
+    "OMP_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1",
+    "OPENBLAS_NUM_THREADS": "1"
+   }
+  },
+  "wall_seconds": 10141.0,
+  "peak_rss_bytes": 6025969664,
+  "code_commit": "5c9ec8d222ac90de9412690884acad6a3f85515f",
+  "receipt_sha256": "3932dea51549ec32ae46235ffffe604839efca347d54d44f45cb13ecbc8e27b2"
+ },
+ "training/round1/VSMT-lean/s31/training_receipt.json": {
+  "arm": "VSMT-lean",
+  "round": 1,
+  "seed": 31,
+  "label_source": "teacher",
+  "uses": "grouped",
+  "mask_source": "simulator_instance_masks",
+  "sources": [
+   "/root/autodl-tmp/vsmt_private/s3-03-run/instance/round0:ELU-P:teacher",
+   "/root/autodl-tmp/vsmt_private/s3-03-run/instance/round1:VSMT-lean:teacher"
+  ],
+  "split": {
+   "rule": "ruling 104-1 1a: the S3 train manifest (configs/vsmt/lean_s3_01_manifests.json, already in S0-02 split order) gives its first 240 houses to training and its last 60 to checkpoint selection; the split is fixed by the manifest, a house whose generation or cache failed is simply absent and never replaced; the encoding statistics and the class weight come from the training houses only, the ELU-P fit and the rollouts use every train house",
+   "training_houses_present": 205,
+   "selection_houses_present": 47,
+   "training_houses_absent": [
+    "procthor10k-0.1.2-train-00156",
+    "procthor10k-0.1.2-train-00211",
+    "procthor10k-0.1.2-train-02015",
+    "procthor10k-0.1.2-train-02018",
+    "procthor10k-0.1.2-train-02230",
+    "procthor10k-0.1.2-train-02239",
+    "procthor10k-0.1.2-train-02537",
+    "procthor10k-0.1.2-train-03940",
+    "procthor10k-0.1.2-train-04151",
+    "procthor10k-0.1.2-train-04206",
+    "procthor10k-0.1.2-train-04448",
+    "procthor10k-0.1.2-train-04771",
+    "procthor10k-0.1.2-train-04855",
+    "procthor10k-0.1.2-train-05390",
+    "procthor10k-0.1.2-train-05623",
+    "procthor10k-0.1.2-train-06054",
+    "procthor10k-0.1.2-train-06175",
+    "procthor10k-0.1.2-train-06362",
+    "procthor10k-0.1.2-train-06533",
+    "procthor10k-0.1.2-train-06964",
+    "procthor10k-0.1.2-train-07073",
+    "procthor10k-0.1.2-train-07293",
+    "procthor10k-0.1.2-train-07536",
+    "procthor10k-0.1.2-train-07870",
+    "procthor10k-0.1.2-train-07969",
+    "procthor10k-0.1.2-train-07985",
+    "procthor10k-0.1.2-train-08024",
+    "procthor10k-0.1.2-train-08168",
+    "procthor10k-0.1.2-train-08649",
+    "procthor10k-0.1.2-train-08933",
+    "procthor10k-0.1.2-train-08972",
+    "procthor10k-0.1.2-train-09021",
+    "procthor10k-0.1.2-train-09882",
+    "procthor10k-0.1.2-train-09908",
+    "procthor10k-0.1.2-train-09984"
+   ],
+   "selection_houses_absent": [
+    "procthor10k-0.1.2-train-00250",
+    "procthor10k-0.1.2-train-00340",
+    "procthor10k-0.1.2-train-00567",
+    "procthor10k-0.1.2-train-00864",
+    "procthor10k-0.1.2-train-03503",
+    "procthor10k-0.1.2-train-05350",
+    "procthor10k-0.1.2-train-05475",
+    "procthor10k-0.1.2-train-06606",
+    "procthor10k-0.1.2-train-06990",
+    "procthor10k-0.1.2-train-07413",
+    "procthor10k-0.1.2-train-08033",
+    "procthor10k-0.1.2-train-08401",
+    "procthor10k-0.1.2-train-09837"
+   ]
+  },
+  "best_epoch": 12,
+  "diverged": false,
+  "updates_taken": 9198560,
+  "optimizer_foreach": true,
+  "train_curve": [
+   4.81683276016788,
+   5.035607041582734,
+   5.203004398368399,
+   5.284081853847134,
+   5.348824138046441,
+   5.42406486238596,
+   5.451803827835481,
+   5.455417146847201,
+   5.487553084654669,
+   5.506140624698874,
+   5.4901694350099435,
+   5.497353319246858,
+   5.48979941936299,
+   5.481630291632868,
+   5.510072139121876,
+   5.502436968456027,
+   5.504541922758287,
+   5.4979944023991685,
+   5.498504096921766,
+   5.49912062884041
+  ],
+  "validation_curve": [
+   5.144257585788723,
+   4.738277692974115,
+   4.856135829690953,
+   5.300396722263718,
+   4.863419574132256,
+   5.019595731999585,
+   5.895016150340546,
+   5.519110883091176,
+   4.772372083403786,
+   4.894461344127167,
+   5.598292471491017,
+   4.904505137706244,
+   4.448673844162671,
+   5.0166582521940155,
+   5.5512909664334416,
+   5.359553595340146,
+   5.6768044377494755,
+   5.21246238927803,
+   5.522134573544937,
+   5.5109795100151056
+  ],
+  "train_curve_terms": [
+   {
+    "total": 4.81683276016788,
+    "association": 0.8082341237469024,
+    "existence": 4.186328234916815
+   },
+   {
+    "total": 5.035607041582734,
+    "association": 0.7921479796523127,
+    "existence": 4.4315463834743705
+   },
+   {
+    "total": 5.203004398368399,
+    "association": 0.788995753868929,
+    "existence": 4.609624910505804
+   },
+   {
+    "total": 5.284081853847134,
+    "association": 0.78845111754767,
+    "existence": 4.694851066822922
+   },
+   {
+    "total": 5.348824138046441,
+    "association": 0.7867000859487553,
+    "existence": 4.764279289667812
+   },
+   {
+    "total": 5.42406486238596,
+    "association": 0.7861399575843319,
+    "existence": 4.843427117182148
+   },
+   {
+    "total": 5.451803827835481,
+    "association": 0.7851389316935932,
+    "existence": 4.873435431879877
+   },
+   {
+    "total": 5.455417146847201,
+    "association": 0.7831218575476205,
+    "existence": 4.879312713735421
+   },
+   {
+    "total": 5.487553084654669,
+    "association": 0.7817278421259295,
+    "existence": 4.9143221777319575
+   },
+   {
+    "total": 5.506140624698874,
+    "association": 0.7796157002809174,
+    "existence": 4.935934144545793
+   },
+   {
+    "total": 5.4901694350099435,
+    "association": 0.7769992816037119,
+    "existence": 4.921987327854172
+   },
+   {
+    "total": 5.497353319246858,
+    "association": 0.7750362596826597,
+    "existence": 4.931536459762812
+   },
+   {
+    "total": 5.48979941936299,
+    "association": 0.7731903068249076,
+    "existence": 4.925574834799222
+   },
+   {
+    "total": 5.481630291632868,
+    "association": 0.771513114980724,
+    "existence": 4.918794744575289
+   },
+   {
+    "total": 5.510072139121876,
+    "association": 0.7696505933301097,
+    "existence": 4.950435772064428
+   },
+   {
+    "total": 5.502436968456027,
+    "association": 0.7682102137920638,
+    "existence": 4.943966154822721
+   },
+   {
+    "total": 5.504541922758287,
+    "association": 0.7669968239062319,
+    "existence": 4.94742998354013
+   },
+   {
+    "total": 5.4979944023991685,
+    "association": 0.7657920419430047,
+    "existence": 4.941850251809529
+   },
+   {
+    "total": 5.498504096921766,
+    "association": 0.7649837980990983,
+    "existence": 4.9432256871538955
+   },
+   {
+    "total": 5.49912062884041,
+    "association": 0.7643404734528273,
+    "existence": 4.944540619090889
+   }
+  ],
+  "validation_curve_terms": [
+   {
+    "total": 5.144257585788723,
+    "association": 0.7869855159022474,
+    "existence": 4.56904969928724
+   },
+   {
+    "total": 4.738277692974115,
+    "association": 0.7676857936953645,
+    "existence": 4.163603491766862
+   },
+   {
+    "total": 4.856135829690953,
+    "association": 0.7733401023820475,
+    "existence": 4.281252735150672
+   },
+   {
+    "total": 5.300396722263718,
+    "association": 0.7712882532887103,
+    "existence": 4.749212127644077
+   },
+   {
+    "total": 4.863419574132256,
+    "association": 0.7808598324252037,
+    "existence": 4.281009451004344
+   },
+   {
+    "total": 5.019595731999585,
+    "association": 0.7755247474717833,
+    "existence": 4.450351627408666
+   },
+   {
+    "total": 5.895016150340546,
+    "association": 0.7785328111922291,
+    "existence": 5.365080798065768
+   },
+   {
+    "total": 5.519110883091176,
+    "association": 0.769071550705,
+    "existence": 4.980857716106145
+   },
+   {
+    "total": 4.772372083403786,
+    "association": 0.7630304302911288,
+    "existence": 4.204230181534366
+   },
+   {
+    "total": 4.894461344127167,
+    "association": 0.7665456189423158,
+    "existence": 4.328557463550371
+   },
+   {
+    "total": 5.598292471491017,
+    "association": 0.7700449460192388,
+    "existence": 5.062859823342475
+   },
+   {
+    "total": 4.904505137706244,
+    "association": 0.7709916173263206,
+    "existence": 4.334429227734793
+   },
+   {
+    "total": 4.448673844162671,
+    "association": 0.763649624758585,
+    "existence": 3.864182518930955
+   },
+   {
+    "total": 5.0166582521940155,
+    "association": 0.7567410968384902,
+    "existence": 4.466956034446229
+   },
+   {
+    "total": 5.5512909664334416,
+    "association": 0.7591573756559612,
+    "existence": 5.024988228294199
+   },
+   {
+    "total": 5.359553595340146,
+    "association": 0.7633238365058276,
+    "existence": 4.819584648859843
+   },
+   {
+    "total": 5.6768044377494755,
+    "association": 0.7541768605956933,
+    "existence": 5.161808900779462
+   },
+   {
+    "total": 5.21246238927803,
+    "association": 0.7615281325531169,
+    "existence": 4.667240799671965
+   },
+   {
+    "total": 5.522134573544937,
+    "association": 0.7567099832018485,
+    "existence": 4.996982391694089
+   },
+   {
+    "total": 5.5109795100151056,
+    "association": 0.7589966126994933,
+    "existence": 4.982889990156892
+   }
+  ],
+  "weights_sha256": "f104175e7bed16ce0b87ae603f0250bc50f950e31999f1d8e4e42178ed665485",
+  "group_selection": {
+   "rule": "training unchanged; the association and birth heads keep together the epoch of the lowest association validation term, the existence head the epoch of the lowest existence validation term, ties to the earlier epoch; the total-loss selection is kept alongside",
+   "best_epoch_by_group": {
+    "association_birth": 16,
+    "existence": 12
+   },
+   "weights_sha256": "c6bc8c0788a92861eaabcb104b70fbe7c3a0194a8874a0c9b0a2755df8f6ffef",
+   "file": "weights_grouped.json"
+  },
+  "existence_class_weight": {
+   "gone": 132542,
+   "present": 9795902,
+   "pos_weight": 73.90790843657105
+  },
+  "threads": {
+   "requested": 1,
+   "torch_num_threads": 1,
+   "env": {
+    "OMP_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1",
+    "OPENBLAS_NUM_THREADS": "1"
+   }
+  },
+  "wall_seconds": 10713.4,
+  "peak_rss_bytes": 6035259392,
+  "code_commit": "5c9ec8d222ac90de9412690884acad6a3f85515f",
+  "receipt_sha256": "ed1a666227f6c70da333cd96a4e047a627c628ccd6e3197bd38e8c0bdcae8fcb"
+ },
+ "training/round1/VSMT-lean/s43/training_receipt.json": {
+  "arm": "VSMT-lean",
+  "round": 1,
+  "seed": 43,
+  "label_source": "teacher",
+  "uses": "grouped",
+  "mask_source": "simulator_instance_masks",
+  "sources": [
+   "/root/autodl-tmp/vsmt_private/s3-03-run/instance/round0:ELU-P:teacher",
+   "/root/autodl-tmp/vsmt_private/s3-03-run/instance/round1:VSMT-lean:teacher"
+  ],
+  "split": {
+   "rule": "ruling 104-1 1a: the S3 train manifest (configs/vsmt/lean_s3_01_manifests.json, already in S0-02 split order) gives its first 240 houses to training and its last 60 to checkpoint selection; the split is fixed by the manifest, a house whose generation or cache failed is simply absent and never replaced; the encoding statistics and the class weight come from the training houses only, the ELU-P fit and the rollouts use every train house",
+   "training_houses_present": 205,
+   "selection_houses_present": 47,
+   "training_houses_absent": [
+    "procthor10k-0.1.2-train-00156",
+    "procthor10k-0.1.2-train-00211",
+    "procthor10k-0.1.2-train-02015",
+    "procthor10k-0.1.2-train-02018",
+    "procthor10k-0.1.2-train-02230",
+    "procthor10k-0.1.2-train-02239",
+    "procthor10k-0.1.2-train-02537",
+    "procthor10k-0.1.2-train-03940",
+    "procthor10k-0.1.2-train-04151",
+    "procthor10k-0.1.2-train-04206",
+    "procthor10k-0.1.2-train-04448",
+    "procthor10k-0.1.2-train-04771",
+    "procthor10k-0.1.2-train-04855",
+    "procthor10k-0.1.2-train-05390",
+    "procthor10k-0.1.2-train-05623",
+    "procthor10k-0.1.2-train-06054",
+    "procthor10k-0.1.2-train-06175",
+    "procthor10k-0.1.2-train-06362",
+    "procthor10k-0.1.2-train-06533",
+    "procthor10k-0.1.2-train-06964",
+    "procthor10k-0.1.2-train-07073",
+    "procthor10k-0.1.2-train-07293",
+    "procthor10k-0.1.2-train-07536",
+    "procthor10k-0.1.2-train-07870",
+    "procthor10k-0.1.2-train-07969",
+    "procthor10k-0.1.2-train-07985",
+    "procthor10k-0.1.2-train-08024",
+    "procthor10k-0.1.2-train-08168",
+    "procthor10k-0.1.2-train-08649",
+    "procthor10k-0.1.2-train-08933",
+    "procthor10k-0.1.2-train-08972",
+    "procthor10k-0.1.2-train-09021",
+    "procthor10k-0.1.2-train-09882",
+    "procthor10k-0.1.2-train-09908",
+    "procthor10k-0.1.2-train-09984"
+   ],
+   "selection_houses_absent": [
+    "procthor10k-0.1.2-train-00250",
+    "procthor10k-0.1.2-train-00340",
+    "procthor10k-0.1.2-train-00567",
+    "procthor10k-0.1.2-train-00864",
+    "procthor10k-0.1.2-train-03503",
+    "procthor10k-0.1.2-train-05350",
+    "procthor10k-0.1.2-train-05475",
+    "procthor10k-0.1.2-train-06606",
+    "procthor10k-0.1.2-train-06990",
+    "procthor10k-0.1.2-train-07413",
+    "procthor10k-0.1.2-train-08033",
+    "procthor10k-0.1.2-train-08401",
+    "procthor10k-0.1.2-train-09837"
+   ]
+  },
+  "best_epoch": 0,
+  "diverged": false,
+  "updates_taken": 9198560,
+  "optimizer_foreach": true,
+  "train_curve": [
+   4.8953978581240865,
+   5.169200731047675,
+   5.2930408582245105,
+   5.346648292926162,
+   5.33875284904229,
+   5.368891036957185,
+   5.365622331824819,
+   5.351033834162952,
+   5.3069678022663265,
+   5.270299961998348,
+   5.232498796703916,
+   5.186531110562869,
+   5.132326224979439,
+   5.0856105042151,
+   5.053088900763282,
+   5.01369870996214,
+   4.973756616544857,
+   4.947260742308588,
+   4.923852308831364,
+   4.909203968991399
+  ],
+  "validation_curve": [
+   4.308269731612918,
+   5.6072563597073515,
+   4.554089958492811,
+   5.078815852256452,
+   4.726382740000318,
+   5.053254192844904,
+   5.121243469070573,
+   4.602232346538116,
+   5.744906226115296,
+   5.263522216924391,
+   4.863723679029335,
+   5.007703070041665,
+   4.379038615584067,
+   5.014018242358639,
+   5.022439840061265,
+   4.942334714542102,
+   5.030974100011108,
+   5.074218886426281,
+   4.865903556330939,
+   4.844449334530063
+  ],
+  "train_curve_terms": [
+   {
+    "total": 4.8953978581240865,
+    "association": 0.8083586668654071,
+    "existence": 4.268232936975578
+   },
+   {
+    "total": 5.169200731047675,
+    "association": 0.7919776577591128,
+    "existence": 4.571217438591032
+   },
+   {
+    "total": 5.2930408582245105,
+    "association": 0.7892427256656203,
+    "existence": 4.703379835573706
+   },
+   {
+    "total": 5.346648292926162,
+    "association": 0.7881127317117913,
+    "existence": 4.760533557220914
+   },
+   {
+    "total": 5.33875284904229,
+    "association": 0.7867398347011788,
+    "existence": 4.753721768645814
+   },
+   {
+    "total": 5.368891036957185,
+    "association": 0.7856824637522951,
+    "existence": 4.7862940432662135
+   },
+   {
+    "total": 5.365622331824819,
+    "association": 0.7844335549789708,
+    "existence": 4.784183959603261
+   },
+   {
+    "total": 5.351033834162952,
+    "association": 0.7830006207758754,
+    "existence": 4.770446179436161
+   },
+   {
+    "total": 5.3069678022663265,
+    "association": 0.7813063146479384,
+    "existence": 4.726201786599652
+   },
+   {
+    "total": 5.270299961998348,
+    "association": 0.7791733057951084,
+    "existence": 4.690139993700588
+   },
+   {
+    "total": 5.232498796703916,
+    "association": 0.7773219399816258,
+    "existence": 4.652600988006087
+   },
+   {
+    "total": 5.186531110562869,
+    "association": 0.7752983013154948,
+    "existence": 4.606714549176322
+   },
+   {
+    "total": 5.132326224979439,
+    "association": 0.7733904783064255,
+    "existence": 4.552106317516739
+   },
+   {
+    "total": 5.0856105042151,
+    "association": 0.7713059822898146,
+    "existence": 4.5055023001203125
+   },
+   {
+    "total": 5.053088900763282,
+    "association": 0.7695322690347358,
+    "existence": 4.473394997466142
+   },
+   {
+    "total": 5.01369870996214,
+    "association": 0.7679351509881732,
+    "existence": 4.4339315409852205
+   },
+   {
+    "total": 4.973756616544857,
+    "association": 0.7664918395422987,
+    "existence": 4.393731342992157
+   },
+   {
+    "total": 4.947260742308588,
+    "association": 0.7653672349660077,
+    "existence": 4.367238663281615
+   },
+   {
+    "total": 4.923852308831364,
+    "association": 0.764262363419092,
+    "existence": 4.343949187246486
+   },
+   {
+    "total": 4.909203968991399,
+    "association": 0.7637521067520233,
+    "existence": 4.329186300260568
+   }
+  ],
+  "validation_curve_terms": [
+   {
+    "total": 4.308269731612918,
+    "association": 0.7977868357484074,
+    "existence": 3.6811941418717673
+   },
+   {
+    "total": 5.6072563597073515,
+    "association": 0.7894735253849929,
+    "existence": 5.051898276399668
+   },
+   {
+    "total": 4.554089958492811,
+    "association": 0.7773022941326836,
+    "existence": 3.960404353668511
+   },
+   {
+    "total": 5.078815852256452,
+    "association": 0.7667644871058703,
+    "existence": 4.521624468734071
+   },
+   {
+    "total": 4.726382740000318,
+    "association": 0.7804145908195664,
+    "existence": 4.137792425519443
+   },
+   {
+    "total": 5.053254192844904,
+    "association": 0.7843558664034551,
+    "existence": 4.476388060933935
+   },
+   {
+    "total": 5.121243469070573,
+    "association": 0.7858166586395331,
+    "existence": 4.54614422131895
+   },
+   {
+    "total": 4.602232346538116,
+    "association": 0.7643514715512382,
+    "existence": 4.0244536621585265
+   },
+   {
+    "total": 5.744906226115296,
+    "association": 0.7628762192978045,
+    "existence": 5.22409736026019
+   },
+   {
+    "total": 5.263522216924391,
+    "association": 0.7656685855146365,
+    "existence": 4.7164382160296725
+   },
+   {
+    "total": 4.863723679029335,
+    "association": 0.7621319981091296,
+    "existence": 4.30095417441729
+   },
+   {
+    "total": 5.007703070041665,
+    "association": 0.7733580464188168,
+    "existence": 4.44015272618137
+   },
+   {
+    "total": 4.379038615584067,
+    "association": 0.7673542988539503,
+    "existence": 3.7872874080637993
+   },
+   {
+    "total": 5.014018242358639,
+    "association": 0.7571360279848911,
+    "existence": 4.4637741041797465
+   },
+   {
+    "total": 5.022439840061265,
+    "association": 0.7667655927350439,
+    "existence": 4.462512859824523
+   },
+   {
+    "total": 4.942334714542102,
+    "association": 0.7566426158380313,
+    "existence": 4.389130737200591
+   },
+   {
+    "total": 5.030974100011108,
+    "association": 0.7578993828760102,
+    "existence": 4.480752428736025
+   },
+   {
+    "total": 5.074218886426281,
+    "association": 0.7597247741913797,
+    "existence": 4.524181817878119
+   },
+   {
+    "total": 4.865903556330939,
+    "association": 0.759160765733971,
+    "existence": 4.306353495082336
+   },
+   {
+    "total": 4.844449334530063,
+    "association": 0.7594199916063128,
+    "existence": 4.28358700794894
+   }
+  ],
+  "weights_sha256": "cfa13db62e786c0669b9ee41d9dd06b0a9d9a81aefd1670c3b20a1f4308e580d",
+  "group_selection": {
+   "rule": "training unchanged; the association and birth heads keep together the epoch of the lowest association validation term, the existence head the epoch of the lowest existence validation term, ties to the earlier epoch; the total-loss selection is kept alongside",
+   "best_epoch_by_group": {
+    "association_birth": 15,
+    "existence": 0
+   },
+   "weights_sha256": "4fbd7217d4af62179ee438945a45585dcfc37523281c006726b17a13c0533303",
+   "file": "weights_grouped.json"
+  },
+  "existence_class_weight": {
+   "gone": 132542,
+   "present": 9795902,
+   "pos_weight": 73.90790843657105
+  },
+  "threads": {
+   "requested": 1,
+   "torch_num_threads": 1,
+   "env": {
+    "OMP_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1",
+    "OPENBLAS_NUM_THREADS": "1"
+   }
+  },
+  "wall_seconds": 10228.1,
+  "peak_rss_bytes": 6029185024,
+  "code_commit": "5c9ec8d222ac90de9412690884acad6a3f85515f",
+  "receipt_sha256": "0fbf1dd51798c2ab13e28fdf5a545a6acfa864e84e2d53121df9722d0cce25d8"
+ },
+ "training/round1/VSMT-lean/s59/training_receipt.json": {
+  "arm": "VSMT-lean",
+  "round": 1,
+  "seed": 59,
+  "label_source": "teacher",
+  "uses": "grouped",
+  "mask_source": "simulator_instance_masks",
+  "sources": [
+   "/root/autodl-tmp/vsmt_private/s3-03-run/instance/round0:ELU-P:teacher",
+   "/root/autodl-tmp/vsmt_private/s3-03-run/instance/round1:VSMT-lean:teacher"
+  ],
+  "split": {
+   "rule": "ruling 104-1 1a: the S3 train manifest (configs/vsmt/lean_s3_01_manifests.json, already in S0-02 split order) gives its first 240 houses to training and its last 60 to checkpoint selection; the split is fixed by the manifest, a house whose generation or cache failed is simply absent and never replaced; the encoding statistics and the class weight come from the training houses only, the ELU-P fit and the rollouts use every train house",
+   "training_houses_present": 205,
+   "selection_houses_present": 47,
+   "training_houses_absent": [
+    "procthor10k-0.1.2-train-00156",
+    "procthor10k-0.1.2-train-00211",
+    "procthor10k-0.1.2-train-02015",
+    "procthor10k-0.1.2-train-02018",
+    "procthor10k-0.1.2-train-02230",
+    "procthor10k-0.1.2-train-02239",
+    "procthor10k-0.1.2-train-02537",
+    "procthor10k-0.1.2-train-03940",
+    "procthor10k-0.1.2-train-04151",
+    "procthor10k-0.1.2-train-04206",
+    "procthor10k-0.1.2-train-04448",
+    "procthor10k-0.1.2-train-04771",
+    "procthor10k-0.1.2-train-04855",
+    "procthor10k-0.1.2-train-05390",
+    "procthor10k-0.1.2-train-05623",
+    "procthor10k-0.1.2-train-06054",
+    "procthor10k-0.1.2-train-06175",
+    "procthor10k-0.1.2-train-06362",
+    "procthor10k-0.1.2-train-06533",
+    "procthor10k-0.1.2-train-06964",
+    "procthor10k-0.1.2-train-07073",
+    "procthor10k-0.1.2-train-07293",
+    "procthor10k-0.1.2-train-07536",
+    "procthor10k-0.1.2-train-07870",
+    "procthor10k-0.1.2-train-07969",
+    "procthor10k-0.1.2-train-07985",
+    "procthor10k-0.1.2-train-08024",
+    "procthor10k-0.1.2-train-08168",
+    "procthor10k-0.1.2-train-08649",
+    "procthor10k-0.1.2-train-08933",
+    "procthor10k-0.1.2-train-08972",
+    "procthor10k-0.1.2-train-09021",
+    "procthor10k-0.1.2-train-09882",
+    "procthor10k-0.1.2-train-09908",
+    "procthor10k-0.1.2-train-09984"
+   ],
+   "selection_houses_absent": [
+    "procthor10k-0.1.2-train-00250",
+    "procthor10k-0.1.2-train-00340",
+    "procthor10k-0.1.2-train-00567",
+    "procthor10k-0.1.2-train-00864",
+    "procthor10k-0.1.2-train-03503",
+    "procthor10k-0.1.2-train-05350",
+    "procthor10k-0.1.2-train-05475",
+    "procthor10k-0.1.2-train-06606",
+    "procthor10k-0.1.2-train-06990",
+    "procthor10k-0.1.2-train-07413",
+    "procthor10k-0.1.2-train-08033",
+    "procthor10k-0.1.2-train-08401",
+    "procthor10k-0.1.2-train-09837"
+   ]
+  },
+  "best_epoch": 11,
+  "diverged": false,
+  "updates_taken": 9198560,
+  "optimizer_foreach": true,
+  "train_curve": [
+   4.8627642969038085,
+   5.0516438430407495,
+   5.241749948420547,
+   5.331315069936304,
+   5.322987627169918,
+   5.323865111701934,
+   5.301586168053531,
+   5.307634670746133,
+   5.290642881699482,
+   5.278746561443188,
+   5.264034294169768,
+   5.239870575673238,
+   5.197927719919444,
+   5.165926646792087,
+   5.154648930617046,
+   5.136102005532311,
+   5.118902976824615,
+   5.111101830516779,
+   5.099216846760937,
+   5.090244487312267
+  ],
+  "validation_curve": [
+   4.487016084170161,
+   4.981707961852437,
+   4.6666547720925955,
+   4.382205902852275,
+   5.213816509086558,
+   5.23811257779126,
+   4.547993561830336,
+   4.6777121548192415,
+   5.26271154998355,
+   4.9855882526681015,
+   5.203217777753502,
+   3.920935205762235,
+   5.317161594765512,
+   4.769145867653989,
+   4.9591023051881065,
+   4.849980065097861,
+   4.920963070461801,
+   4.996391584846684,
+   4.865249349803633,
+   4.927831361083922
+  ],
+  "train_curve_terms": [
+   {
+    "total": 4.8627642969038085,
+    "association": 0.8083961225876438,
+    "existence": 4.234119157108898
+   },
+   {
+    "total": 5.0516438430407495,
+    "association": 0.791480754881599,
+    "existence": 4.44898749893562
+   },
+   {
+    "total": 5.241749948420547,
+    "association": 0.7889380434563258,
+    "existence": 4.650141723550476
+   },
+   {
+    "total": 5.331315069936304,
+    "association": 0.7879947555378957,
+    "existence": 4.744646280832779
+   },
+   {
+    "total": 5.322987627169918,
+    "association": 0.7872176535176841,
+    "existence": 4.7367618312229185
+   },
+   {
+    "total": 5.323865111701934,
+    "association": 0.7865261341413612,
+    "existence": 4.738399521338333
+   },
+   {
+    "total": 5.301586168053531,
+    "association": 0.7860162534407976,
+    "existence": 4.715668661650891
+   },
+   {
+    "total": 5.307634670746133,
+    "association": 0.7843205596373284,
+    "existence": 4.723753374889535
+   },
+   {
+    "total": 5.290642881699482,
+    "association": 0.7825841362159638,
+    "existence": 4.7078227992574595
+   },
+   {
+    "total": 5.278746561443188,
+    "association": 0.7808419114343832,
+    "existence": 4.6972187673074846
+   },
+   {
+    "total": 5.264034294169768,
+    "association": 0.7790638494065752,
+    "existence": 4.683711818446509
+   },
+   {
+    "total": 5.239870575673238,
+    "association": 0.7773462599916443,
+    "existence": 4.660272942535828
+   },
+   {
+    "total": 5.197927719919444,
+    "association": 0.7751676828499813,
+    "existence": 4.6187507222783015
+   },
+   {
+    "total": 5.165926646792087,
+    "association": 0.7728077360170594,
+    "existence": 4.587798545877178
+   },
+   {
+    "total": 5.154648930617046,
+    "association": 0.7708974657731925,
+    "existence": 4.578015756009988
+   },
+   {
+    "total": 5.136102005532311,
+    "association": 0.7692013931129132,
+    "existence": 4.560419269924348
+   },
+   {
+    "total": 5.118902976824615,
+    "association": 0.7676445837690149,
+    "existence": 4.54408491258513
+   },
+   {
+    "total": 5.111101830516779,
+    "association": 0.7664648487253792,
+    "existence": 4.537170062354215
+   },
+   {
+    "total": 5.099216846760937,
+    "association": 0.765474015024018,
+    "existence": 4.525793948059615
+   },
+   {
+    "total": 5.090244487312267,
+    "association": 0.7649248929170241,
+    "existence": 4.516998251274826
+   }
+  ],
+  "validation_curve_terms": [
+   {
+    "total": 4.487016084170161,
+    "association": 0.7877342782057344,
+    "existence": 3.879144937847347
+   },
+   {
+    "total": 4.981707961852437,
+    "association": 0.7766680740342934,
+    "existence": 4.409428015262919
+   },
+   {
+    "total": 4.6666547720925955,
+    "association": 0.7788037924956804,
+    "existence": 4.076855473716382
+   },
+   {
+    "total": 4.382205902852275,
+    "association": 0.7892706182046496,
+    "existence": 3.767641070715003
+   },
+   {
+    "total": 5.213816509086558,
+    "association": 0.7807406697270532,
+    "existence": 4.648526782099487
+   },
+   {
+    "total": 5.23811257779126,
+    "association": 0.7686925999665237,
+    "existence": 4.686627097137578
+   },
+   {
+    "total": 4.547993561830336,
+    "association": 0.7684126829769597,
+    "existence": 3.963328148720252
+   },
+   {
+    "total": 4.6777121548192415,
+    "association": 0.7732658535570763,
+    "existence": 4.094252672988304
+   },
+   {
+    "total": 5.26271154998355,
+    "association": 0.7907140216373701,
+    "existence": 4.689341815525266
+   },
+   {
+    "total": 4.9855882526681015,
+    "association": 0.7735375470434438,
+    "existence": 4.416777152816043
+   },
+   {
+    "total": 5.203217777753502,
+    "association": 0.7678793715185418,
+    "existence": 4.650891994865919
+   },
+   {
+    "total": 3.920935205762235,
+    "association": 0.761553806966765,
+    "existence": 3.3130429622098694
+   },
+   {
+    "total": 5.317161594765512,
+    "association": 0.7667944998946338,
+    "existence": 4.771499396102841
+   },
+   {
+    "total": 4.769145867653989,
+    "association": 0.7774888129652737,
+    "existence": 4.185695791496162
+   },
+   {
+    "total": 4.9591023051881065,
+    "association": 0.7560526435606183,
+    "existence": 4.407329884963257
+   },
+   {
+    "total": 4.849980065097861,
+    "association": 0.7620892466329686,
+    "existence": 4.2865887487935925
+   },
+   {
+    "total": 4.920963070461801,
+    "association": 0.7588365426556025,
+    "existence": 4.364423360883326
+   },
+   {
+    "total": 4.996391584846684,
+    "association": 0.7623222218401962,
+    "existence": 4.439857609082005
+   },
+   {
+    "total": 4.865249349803633,
+    "association": 0.7579512077060171,
+    "existence": 4.30693511317031
+   },
+   {
+    "total": 4.927831361083922,
+    "association": 0.7593857032088037,
+    "existence": 4.371049294196394
+   }
+  ],
+  "weights_sha256": "3d2d4b6a0779e6a1a6fb06feb3d9c5bce84b140227b736b349263349a9efa94a",
+  "group_selection": {
+   "rule": "training unchanged; the association and birth heads keep together the epoch of the lowest association validation term, the existence head the epoch of the lowest existence validation term, ties to the earlier epoch; the total-loss selection is kept alongside",
+   "best_epoch_by_group": {
+    "association_birth": 14,
+    "existence": 11
+   },
+   "weights_sha256": "26d81a5c7a29430d059a0208f1d281bc17fee381bc25230707ca3d41056ffb9a",
+   "file": "weights_grouped.json"
+  },
+  "existence_class_weight": {
+   "gone": 132542,
+   "present": 9795902,
+   "pos_weight": 73.90790843657105
+  },
+  "threads": {
+   "requested": 1,
+   "torch_num_threads": 1,
+   "env": {
+    "OMP_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1",
+    "OPENBLAS_NUM_THREADS": "1"
+   }
+  },
+  "wall_seconds": 24463.1,
+  "peak_rss_bytes": 6032748544,
+  "code_commit": "5c9ec8d222ac90de9412690884acad6a3f85515f",
+  "receipt_sha256": "6e3e8ba2fbfc3f16fbed0cac1f5cf1ed71b69bf475c701d2ce3af678d239ded6"
+ },
+ "training/round1/VSMT-lean/s7/training_receipt.json": {
+  "arm": "VSMT-lean",
+  "round": 1,
+  "seed": 7,
+  "label_source": "teacher",
+  "uses": "grouped",
+  "mask_source": "simulator_instance_masks",
+  "sources": [
+   "/root/autodl-tmp/vsmt_private/s3-03-run/instance/round0:ELU-P:teacher",
+   "/root/autodl-tmp/vsmt_private/s3-03-run/instance/round1:VSMT-lean:teacher"
+  ],
+  "split": {
+   "rule": "ruling 104-1 1a: the S3 train manifest (configs/vsmt/lean_s3_01_manifests.json, already in S0-02 split order) gives its first 240 houses to training and its last 60 to checkpoint selection; the split is fixed by the manifest, a house whose generation or cache failed is simply absent and never replaced; the encoding statistics and the class weight come from the training houses only, the ELU-P fit and the rollouts use every train house",
+   "training_houses_present": 205,
+   "selection_houses_present": 47,
+   "training_houses_absent": [
+    "procthor10k-0.1.2-train-00156",
+    "procthor10k-0.1.2-train-00211",
+    "procthor10k-0.1.2-train-02015",
+    "procthor10k-0.1.2-train-02018",
+    "procthor10k-0.1.2-train-02230",
+    "procthor10k-0.1.2-train-02239",
+    "procthor10k-0.1.2-train-02537",
+    "procthor10k-0.1.2-train-03940",
+    "procthor10k-0.1.2-train-04151",
+    "procthor10k-0.1.2-train-04206",
+    "procthor10k-0.1.2-train-04448",
+    "procthor10k-0.1.2-train-04771",
+    "procthor10k-0.1.2-train-04855",
+    "procthor10k-0.1.2-train-05390",
+    "procthor10k-0.1.2-train-05623",
+    "procthor10k-0.1.2-train-06054",
+    "procthor10k-0.1.2-train-06175",
+    "procthor10k-0.1.2-train-06362",
+    "procthor10k-0.1.2-train-06533",
+    "procthor10k-0.1.2-train-06964",
+    "procthor10k-0.1.2-train-07073",
+    "procthor10k-0.1.2-train-07293",
+    "procthor10k-0.1.2-train-07536",
+    "procthor10k-0.1.2-train-07870",
+    "procthor10k-0.1.2-train-07969",
+    "procthor10k-0.1.2-train-07985",
+    "procthor10k-0.1.2-train-08024",
+    "procthor10k-0.1.2-train-08168",
+    "procthor10k-0.1.2-train-08649",
+    "procthor10k-0.1.2-train-08933",
+    "procthor10k-0.1.2-train-08972",
+    "procthor10k-0.1.2-train-09021",
+    "procthor10k-0.1.2-train-09882",
+    "procthor10k-0.1.2-train-09908",
+    "procthor10k-0.1.2-train-09984"
+   ],
+   "selection_houses_absent": [
+    "procthor10k-0.1.2-train-00250",
+    "procthor10k-0.1.2-train-00340",
+    "procthor10k-0.1.2-train-00567",
+    "procthor10k-0.1.2-train-00864",
+    "procthor10k-0.1.2-train-03503",
+    "procthor10k-0.1.2-train-05350",
+    "procthor10k-0.1.2-train-05475",
+    "procthor10k-0.1.2-train-06606",
+    "procthor10k-0.1.2-train-06990",
+    "procthor10k-0.1.2-train-07413",
+    "procthor10k-0.1.2-train-08033",
+    "procthor10k-0.1.2-train-08401",
+    "procthor10k-0.1.2-train-09837"
+   ]
+  },
+  "best_epoch": 5,
+  "diverged": false,
+  "updates_taken": 9198560,
+  "optimizer_foreach": true,
+  "train_curve": [
+   4.933848773541639,
+   5.130724220886691,
+   5.2555167001773775,
+   5.386173797190194,
+   5.518372306063298,
+   5.617934130061637,
+   5.695643418334454,
+   5.747119687687906,
+   5.765421139752689,
+   5.819309155490913,
+   5.865149439505691,
+   5.906063344137299,
+   5.934801993741752,
+   5.97233808479151,
+   6.00154771574297,
+   6.009842259909578,
+   6.021676862859836,
+   6.044474346847923,
+   6.043382313045067,
+   6.046550556854626
+  ],
+  "validation_curve": [
+   4.440752326002066,
+   4.384939242318809,
+   4.898812964688646,
+   5.372963477861279,
+   5.65478902620501,
+   4.2184260619661895,
+   5.207711451724437,
+   5.161423108288103,
+   4.389232165424663,
+   5.625407316229728,
+   5.435810770081736,
+   5.8174859805796615,
+   5.218265488137103,
+   5.72828845715904,
+   4.953385523856392,
+   5.486737775244153,
+   5.810274999412281,
+   5.810487561049328,
+   5.845751003848065,
+   5.749774424944889
+  ],
+  "train_curve_terms": [
+   {
+    "total": 4.933848773541639,
+    "association": 0.8081613175117744,
+    "existence": 4.308587787195047
+   },
+   {
+    "total": 5.130724220886691,
+    "association": 0.791938507321788,
+    "existence": 4.5310826021720425
+   },
+   {
+    "total": 5.2555167001773775,
+    "association": 0.7897605742647714,
+    "existence": 4.66365829519532
+   },
+   {
+    "total": 5.386173797190194,
+    "association": 0.788800266181828,
+    "existence": 4.801087262844506
+   },
+   {
+    "total": 5.518372306063298,
+    "association": 0.7886445351497916,
+    "existence": 4.939286304510584
+   },
+   {
+    "total": 5.617934130061637,
+    "association": 0.7877239447978426,
+    "existence": 5.044205351761205
+   },
+   {
+    "total": 5.695643418334454,
+    "association": 0.7856602578359668,
+    "existence": 5.127499406430004
+   },
+   {
+    "total": 5.747119687687906,
+    "association": 0.7843698820438939,
+    "existence": 5.182595171930654
+   },
+   {
+    "total": 5.765421139752689,
+    "association": 0.7829455052854084,
+    "existence": 5.203190876769459
+   },
+   {
+    "total": 5.819309155490913,
+    "association": 0.7810890183987117,
+    "existence": 5.261395511956461
+   },
+   {
+    "total": 5.865149439505691,
+    "association": 0.7793946531418554,
+    "existence": 5.3110278764223455
+   },
+   {
+    "total": 5.906063344137299,
+    "association": 0.7766843028538345,
+    "existence": 5.356576272347497
+   },
+   {
+    "total": 5.934801993741752,
+    "association": 0.774938350896941,
+    "existence": 5.388405592700206
+   },
+   {
+    "total": 5.97233808479151,
+    "association": 0.7731136622697572,
+    "existence": 5.429503004258908
+   },
+   {
+    "total": 6.00154771574297,
+    "association": 0.7711454368619698,
+    "existence": 5.462056001764998
+   },
+   {
+    "total": 6.009842259909578,
+    "association": 0.7694409841674226,
+    "existence": 5.4724950794401295
+   },
+   {
+    "total": 6.021676862859836,
+    "association": 0.7681235658907304,
+    "existence": 5.486226764090472
+   },
+   {
+    "total": 6.044474346847923,
+    "association": 0.7668030234113544,
+    "existence": 5.511408723179649
+   },
+   {
+    "total": 6.043382313045067,
+    "association": 0.7662841659736916,
+    "existence": 5.510809782528275
+   },
+   {
+    "total": 6.046550556854626,
+    "association": 0.7653412850420231,
+    "existence": 5.515101637812969
+   }
+  ],
+  "validation_curve_terms": [
+   {
+    "total": 4.440752326002066,
+    "association": 0.7804284131458401,
+    "existence": 3.8382934156413246
+   },
+   {
+    "total": 4.384939242318809,
+    "association": 0.7726258641037408,
+    "existence": 3.787949891833748
+   },
+   {
+    "total": 4.898812964688646,
+    "association": 0.7747394173872395,
+    "existence": 4.324533449980149
+   },
+   {
+    "total": 5.372963477861279,
+    "association": 0.7895641784862911,
+    "existence": 4.806146340825242
+   },
+   {
+    "total": 5.65478902620501,
+    "association": 0.7711667069407131,
+    "existence": 5.12092111772926
+   },
+   {
+    "total": 4.2184260619661895,
+    "association": 0.7761173201251674,
+    "existence": 3.609701337970271
+   },
+   {
+    "total": 5.207711451724437,
+    "association": 0.7660749830168199,
+    "existence": 4.657494544554039
+   },
+   {
+    "total": 5.161423108288103,
+    "association": 0.7736583321394985,
+    "existence": 4.6010140606275725
+   },
+   {
+    "total": 4.389232165424663,
+    "association": 0.7718029631697868,
+    "existence": 3.793313396301241
+   },
+   {
+    "total": 5.625407316229728,
+    "association": 0.7668097509651967,
+    "existence": 5.094680168702279
+   },
+   {
+    "total": 5.435810770081736,
+    "association": 0.7713134982691402,
+    "existence": 4.8911677905283835
+   },
+   {
+    "total": 5.8174859805796615,
+    "association": 0.7707614234908999,
+    "existence": 5.291934176812866
+   },
+   {
+    "total": 5.218265488137103,
+    "association": 0.7641726965114654,
+    "existence": 4.6705539920671395
+   },
+   {
+    "total": 5.72828845715904,
+    "association": 0.7589395165969495,
+    "existence": 5.2107990434464
+   },
+   {
+    "total": 4.953385523856392,
+    "association": 0.7582865579875832,
+    "existence": 4.398994779087356
+   },
+   {
+    "total": 5.486737775244153,
+    "association": 0.7590712011085363,
+    "existence": 4.957394278463496
+   },
+   {
+    "total": 5.810274999412281,
+    "association": 0.7594757254344261,
+    "existence": 5.2962003087778085
+   },
+   {
+    "total": 5.810487561049328,
+    "association": 0.7609705001013004,
+    "existence": 5.294856728756031
+   },
+   {
+    "total": 5.845751003848065,
+    "association": 0.7603462938854524,
+    "existence": 5.332484715857788
+   },
+   {
+    "total": 5.749774424944889,
+    "association": 0.7587989306693604,
+    "existence": 5.233474485363767
+   }
+  ],
+  "weights_sha256": "d629320d2dc6ae73c9cb071b9515a5cd1c57349bc3b79cf76597d5c53aad13ed",
+  "group_selection": {
+   "rule": "training unchanged; the association and birth heads keep together the epoch of the lowest association validation term, the existence head the epoch of the lowest existence validation term, ties to the earlier epoch; the total-loss selection is kept alongside",
+   "best_epoch_by_group": {
+    "association_birth": 14,
+    "existence": 5
+   },
+   "weights_sha256": "c3f38c1419eaeec45fa1bcecd5971839426b6b797d677da960892300ee34cae0",
+   "file": "weights_grouped.json"
+  },
+  "existence_class_weight": {
+   "gone": 132542,
+   "present": 9795902,
+   "pos_weight": 73.90790843657105
+  },
+  "threads": {
+   "requested": 1,
+   "torch_num_threads": 1,
+   "env": {
+    "OMP_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1",
+    "OPENBLAS_NUM_THREADS": "1"
+   }
+  },
+  "wall_seconds": 11022.0,
+  "peak_rss_bytes": 6030311424,
+  "code_commit": "5c9ec8d222ac90de9412690884acad6a3f85515f",
+  "receipt_sha256": "9fc8394959a6b7150376868bb897329f68ff1df1710e8a82dc94c56055f5ce8a"
+ }
+}

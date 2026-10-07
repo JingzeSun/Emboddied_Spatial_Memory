@@ -1,0 +1,13 @@
+{
+ "front": "instance",
+ "mask_source": "simulator_instance_masks",
+ "values": {
+  "initial_log_odds": 4.715758278823018,
+  "persistence_log_decay_per_tick": 1.9468203738496008e-05,
+  "match_gain": 3.5202657867949485
+ },
+ "values_sha256": "b44fbcf7edb6fef7e44b6b912be68a1303e1b3e0e9788ee660cea634366863ca",
+ "episodes": 252,
+ "code_commit": "24df3242ce8e49a35411ee95a4ed87747459b2f6",
+ "written_utc": "2026-10-03T20:32:01Z"
+}

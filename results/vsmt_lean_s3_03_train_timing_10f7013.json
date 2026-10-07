@@ -1,0 +1,89 @@
+{
+ "stage": "vsmt.lean.s3_03.train.v1",
+ "check": "ruling 104-3 per-epoch time by thread count on a fixed subset",
+ "arm": "VSMT-lean",
+ "round": 0,
+ "houses": [
+  "procthor10k-0.1.2-train-00107",
+  "procthor10k-0.1.2-train-00118",
+  "procthor10k-0.1.2-train-00630",
+  "procthor10k-0.1.2-train-00987",
+  "procthor10k-0.1.2-train-01871",
+  "procthor10k-0.1.2-train-02038",
+  "procthor10k-0.1.2-train-02500",
+  "procthor10k-0.1.2-train-02969",
+  "procthor10k-0.1.2-train-03420",
+  "procthor10k-0.1.2-train-03702",
+  "procthor10k-0.1.2-train-04274",
+  "procthor10k-0.1.2-train-04466",
+  "procthor10k-0.1.2-train-04755",
+  "procthor10k-0.1.2-train-04982",
+  "procthor10k-0.1.2-train-05231",
+  "procthor10k-0.1.2-train-05947",
+  "procthor10k-0.1.2-train-06346",
+  "procthor10k-0.1.2-train-06630",
+  "procthor10k-0.1.2-train-06660",
+  "procthor10k-0.1.2-train-06797",
+  "procthor10k-0.1.2-train-06806",
+  "procthor10k-0.1.2-train-07383",
+  "procthor10k-0.1.2-train-07605",
+  "procthor10k-0.1.2-train-09086",
+  "procthor10k-0.1.2-train-09095"
+ ],
+ "timings": [
+  {
+   "threads": 1,
+   "thread_settings": {
+    "requested": 1,
+    "torch_num_threads": 1,
+    "env": {
+     "OMP_NUM_THREADS": "4",
+     "MKL_NUM_THREADS": "4",
+     "OPENBLAS_NUM_THREADS": "4"
+    }
+   },
+   "epoch_seconds": 65.389
+  },
+  {
+   "threads": 2,
+   "thread_settings": {
+    "requested": 2,
+    "torch_num_threads": 2,
+    "env": {
+     "OMP_NUM_THREADS": "4",
+     "MKL_NUM_THREADS": "4",
+     "OPENBLAS_NUM_THREADS": "4"
+    }
+   },
+   "epoch_seconds": 66.2
+  },
+  {
+   "threads": 3,
+   "thread_settings": {
+    "requested": 3,
+    "torch_num_threads": 3,
+    "env": {
+     "OMP_NUM_THREADS": "4",
+     "MKL_NUM_THREADS": "4",
+     "OPENBLAS_NUM_THREADS": "4"
+    }
+   },
+   "epoch_seconds": 65.319
+  },
+  {
+   "threads": 4,
+   "thread_settings": {
+    "requested": 4,
+    "torch_num_threads": 4,
+    "env": {
+     "OMP_NUM_THREADS": "4",
+     "MKL_NUM_THREADS": "4",
+     "OPENBLAS_NUM_THREADS": "4"
+    }
+   },
+   "epoch_seconds": 69.659
+  }
+ ],
+ "code_commit": "0c085db6f2e85775a76642b78ca76c5885ab77ff",
+ "measured_utc": "2026-10-03T22:19:28Z"
+}

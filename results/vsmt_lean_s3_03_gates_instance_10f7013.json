@@ -1,0 +1,292 @@
+{
+ "adopt_calibration": {
+  "stage": "vsmt.lean.s3_03.driver.v1",
+  "front": "instance",
+  "adopted_from": "/root/autodl-tmp/vsmt_private/s3-03-prefit-instance/calibration",
+  "receipt_commits": [
+   "74905f4a9d8ae35db8a102a5c2f8741e58ed54af"
+  ],
+  "probe_episode": "procthor10k-0.1.2-train-03642",
+  "probe_identical": {
+   "calibration.json": true,
+   "elu_p_counts.json": true
+  },
+  "identical": true,
+  "checked_utc": "2026-10-03T20:32:00Z"
+ },
+ "audit_equivalence": {
+  "stage": "vsmt.lean.s3_03.driver.v1",
+  "gate": "audit_equivalence",
+  "front": "instance",
+  "episode_id": "procthor10k-0.1.2-train-03642",
+  "arm": "TAF",
+  "identical": true,
+  "differing_fields": [],
+  "compared_fields": [
+   "arm",
+   "config",
+   "decomposition_totals",
+   "dedup_override",
+   "dedup_policy",
+   "descriptor",
+   "dormancy_override",
+   "episode_id",
+   "episode_seal_sha256",
+   "final_entities_by_state",
+   "final_memory_digest",
+   "frames",
+   "frames_requested",
+   "mask_source",
+   "oracle",
+   "recall_global_count",
+   "recall_global_count_override",
+   "report",
+   "report_node_prf1",
+   "report_node_prf1_iou",
+   "residual_trace",
+   "schema_version",
+   "stage",
+   "trajectory_sha256",
+   "weights_sha256"
+  ],
+  "excluded": {
+   "keys": [
+    "wall_seconds",
+    "code_commit",
+    "heads",
+    "audit",
+    "metrics_only"
+   ],
+   "size_and_cost": [
+    "runtime_per_frame_s",
+    "peak_memory_bytes"
+   ]
+  },
+  "files": {
+   "full": "/root/autodl-tmp/vsmt_private/s3-03-run/instance/gates/audit_probe/full/procthor10k-0.1.2-train-03642/TAF/node_audit.json",
+   "metrics": "/root/autodl-tmp/vsmt_private/s3-03-run/instance/gates/audit_probe/metrics/procthor10k-0.1.2-train-03642/TAF/node_audit.json"
+  },
+  "checked_utc": "2026-10-03T20:32:11Z"
+ },
+ "determinism": {
+  "stage": "vsmt.lean.s3_03.driver.v1",
+  "gate": "determinism",
+  "front": "instance",
+  "episode_id": "procthor10k-0.1.2-train-08194",
+  "group": "VSMT-lean-c05-s7",
+  "identical": true,
+  "compared": "everything but wall time, commit, head path and timings",
+  "checked_utc": "2026-10-06T10:03:53Z"
+ },
+ "round0": {
+  "stage": "vsmt.lean.s3_03.driver.v1",
+  "gate": "round0",
+  "front": "instance",
+  "episodes": 252,
+  "problems": [],
+  "g4": {
+   "rule": "ruling 104-2 G4: on ELU-P's own round-0 trajectory the HeuristicLabel label function reproduces ELU-P's association and existence decisions row for row; any mismatch stops the run before training",
+   "reproduction": {
+    "fragments": 2735976,
+    "fragment_mismatches": 0,
+    "existence_rows": 10415904,
+    "existence_mismatches": 0
+   },
+   "pass": true
+  },
+  "nuisance": {
+   "rule": "ruling 104-2: the round-0 split passes when the largest advantage of the nuisance probe over its pooled rows (lean_teacher NUISANCE_FIELDS x labels, S0-04 scope rule) is at most S0-04's maximum_advantage (0.05); a failure stops the run before training, for a read-only breakdown and a ruling, never a wider line",
+   "maximum_advantage": 0.05,
+   "largest_advantage": 0.0008315131419281974,
+   "pass": true,
+   "probes": {
+    "association_rows": 2735976,
+    "existence_rows": 10415904,
+    "association": {
+     "per_label": {
+      "association_status": {
+       "path": {
+        "field": "path",
+        "label": "association_status",
+        "probe_accuracy": 0.9270494331821624,
+        "majority_accuracy": 0.9270494331821624,
+        "advantage": 0.0
+       },
+       "seed": {
+        "field": "seed",
+        "label": "association_status",
+        "probe_accuracy": 0.9270494331821624,
+        "majority_accuracy": 0.9270494331821624,
+        "advantage": 0.0
+       },
+       "frame_index": {
+        "field": "frame_index",
+        "label": "association_status",
+        "probe_accuracy": 0.9278809463240906,
+        "majority_accuracy": 0.9270494331821624,
+        "advantage": 0.0008315131419281974
+       },
+       "house_index": {
+        "field": "house_index",
+        "label": "association_status",
+        "probe_accuracy": 0.9270494331821624,
+        "majority_accuracy": 0.9270494331821624,
+        "advantage": 0.0
+       }
+      },
+      "association_target_is_birth": {
+       "path": {
+        "field": "path",
+        "label": "association_target_is_birth",
+        "probe_accuracy": 0.9830071608815282,
+        "majority_accuracy": 0.9830071608815282,
+        "advantage": 0.0
+       },
+       "seed": {
+        "field": "seed",
+        "label": "association_target_is_birth",
+        "probe_accuracy": 0.9830071608815282,
+        "majority_accuracy": 0.9830071608815282,
+        "advantage": 0.0
+       },
+       "frame_index": {
+        "field": "frame_index",
+        "label": "association_target_is_birth",
+        "probe_accuracy": 0.983837943022892,
+        "majority_accuracy": 0.9830071608815282,
+        "advantage": 0.0008307821413637839
+       },
+       "house_index": {
+        "field": "house_index",
+        "label": "association_target_is_birth",
+        "probe_accuracy": 0.9830071608815282,
+        "majority_accuracy": 0.9830071608815282,
+        "advantage": 0.0
+       }
+      }
+     },
+     "largest_advantage": 0.0008315131419281974
+    },
+    "existence": {
+     "per_label": {
+      "existence_status": {
+       "path": {
+        "field": "path",
+        "label": "existence_status",
+        "probe_accuracy": 0.9535385502784972,
+        "majority_accuracy": 0.9535385502784972,
+        "advantage": 0.0
+       },
+       "seed": {
+        "field": "seed",
+        "label": "existence_status",
+        "probe_accuracy": 0.9535385502784972,
+        "majority_accuracy": 0.9535385502784972,
+        "advantage": 0.0
+       },
+       "frame_index": {
+        "field": "frame_index",
+        "label": "existence_status",
+        "probe_accuracy": 0.953538454271468,
+        "majority_accuracy": 0.9535385502784972,
+        "advantage": -9.600702921552795e-08
+       },
+       "house_index": {
+        "field": "house_index",
+        "label": "existence_status",
+        "probe_accuracy": 0.9535385502784972,
+        "majority_accuracy": 0.9535385502784972,
+        "advantage": 0.0
+       }
+      }
+     },
+     "largest_advantage": 0.0
+    },
+    "largest_advantage": 0.0008315131419281974
+   }
+  },
+  "label_composition_report_only": {
+   "teacher": {
+    "association": {
+     "association_status": {
+      "birth": 46492,
+      "labelled": 2536385,
+      "identity_ambiguous": 64334,
+      "recall_miss": 88765
+     },
+     "association_target_is_birth": {
+      "True": 46492,
+      "False": 2689484
+     }
+    },
+    "existence": {
+     "existence_status": {
+      "present": 9931966,
+      "identity_ambiguous": 403054,
+      "gone": 80884
+     }
+    }
+   },
+   "heuristic_label_totals": {
+    "frames": 279468,
+    "fragments": 2735976,
+    "fragments_birth": 224482,
+    "existence_rows": 10415904,
+    "existence_gone": 28430,
+    "bound_by_the_labeller_while_eligible": 0
+   }
+  },
+  "pass": true,
+  "checked_utc": "2026-10-03T22:30:17Z"
+ },
+ "train_probe": {
+  "stage": "vsmt.lean.s3_03.train.v1",
+  "check": "ruling 104-2 training equivalence probe: the list-based train_heads on the default optimizer path against the streamed path as the run trains (with AdamW foreach when given, ruling 104-7)",
+  "optimizer_foreach": true,
+  "arm": "VSMT-lean",
+  "round": 0,
+  "seed": 7,
+  "epochs": 1,
+  "houses": [
+   "procthor10k-0.1.2-train-00107",
+   "procthor10k-0.1.2-train-00630",
+   "procthor10k-0.1.2-train-02500",
+   "procthor10k-0.1.2-train-02969",
+   "procthor10k-0.1.2-train-03702",
+   "procthor10k-0.1.2-train-04274",
+   "procthor10k-0.1.2-train-04755",
+   "procthor10k-0.1.2-train-04982",
+   "procthor10k-0.1.2-train-05231",
+   "procthor10k-0.1.2-train-05947",
+   "procthor10k-0.1.2-train-06630",
+   "procthor10k-0.1.2-train-07383",
+   "procthor10k-0.1.2-train-07605",
+   "procthor10k-0.1.2-train-09086",
+   "procthor10k-0.1.2-train-09095"
+  ],
+  "identical": true,
+  "compared": {
+   "weights_sha256": true,
+   "grouped_sha256": true,
+   "train_curve": true,
+   "validation_curve": true,
+   "validation_curve_terms": true,
+   "train_curve_terms": true
+  },
+  "weights_sha256": [
+   "1c2a6c7284868a82521d536128802dc1802a7bde79206da1209a518e07283045",
+   "1c2a6c7284868a82521d536128802dc1802a7bde79206da1209a518e07283045"
+  ],
+  "threads": {
+   "requested": 1,
+   "torch_num_threads": 1,
+   "env": {
+    "OMP_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1",
+    "OPENBLAS_NUM_THREADS": "1"
+   }
+  },
+  "code_commit": "0c085db6f2e85775a76642b78ca76c5885ab77ff",
+  "checked_utc": "2026-10-03T22:33:09Z"
+ }
+}

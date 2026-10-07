@@ -1,0 +1,7 @@
+{
+ "stage": "vsmt.lean.s3_04.driver.v1",
+ "step": "verify",
+ "problems": [],
+ "exports_checked": 6,
+ "manifest_sha256": "1e1234d3e4f1f9095060dc72ed802b2b5a77f8d4b9863e096bc7c34f913c1853"
+}

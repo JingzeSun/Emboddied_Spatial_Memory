@@ -1,0 +1,137 @@
+{
+ "stage": "vsmt.lean.s3_03.driver.v1",
+ "step": "manifest",
+ "tag": "10f7013",
+ "written_utc": "2026-10-07T00:14:22Z",
+ "code_commit": "5a9fd9431d57a1e422105eaeaadf5413b7875f59",
+ "inputs_commit": "5a9fd9431d57a1e422105eaeaadf5413b7875f59",
+ "problems": [],
+ "registered_values": {
+  "instance": {
+   "run_local": {
+    "initial_log_odds": 4.715758278823018,
+    "persistence_log_decay_per_tick": 1.9468203738496008e-05,
+    "match_gain": 3.5202657867949485
+   },
+   "registered": {
+    "initial_log_odds": 4.715758278823018,
+    "persistence_log_decay_per_tick": 1.9468203738496008e-05,
+    "match_gain": 3.5202657867949485
+   },
+   "equal": true
+  },
+  "sam2": {
+   "run_local": {
+    "initial_log_odds": 4.713527527677658,
+    "persistence_log_decay_per_tick": 1.961980922031749e-05,
+    "match_gain": 3.4430935995987832
+   },
+   "registered": {
+    "initial_log_odds": 4.713527527677658,
+    "persistence_log_decay_per_tick": 1.961980922031749e-05,
+    "match_gain": 3.4430935995987832
+   },
+   "equal": true
+  }
+ },
+ "exports": {
+  "vsmt_lean_s3_03_calibration_instance_10f7013.json": {
+   "sha256": "32f9487f9b90d6e8c143c2c51391ddb41ade843d3cec97afedb87ab5f649db30",
+   "bytes": 70430
+  },
+  "vsmt_lean_s3_03_calibration_sam2_10f7013.json": {
+   "sha256": "a634d259987a98cdad20d9e943933ef41f1857d218e8394c54b7fa8086ef1873",
+   "bytes": 71104
+  },
+  "vsmt_lean_s3_03_coverage_instance_10f7013.json": {
+   "sha256": "00fd21c2bb69810024b64a66c335e1dbfebb8547777c9c456a2b13776e7ae28f",
+   "bytes": 489
+  },
+  "vsmt_lean_s3_03_coverage_sam2_10f7013.json": {
+   "sha256": "0777199cfc7c48d3f9f4a82783ab0adc7b8daedc6db091ec879186024bfd4016",
+   "bytes": 486
+  },
+  "vsmt_lean_s3_03_fit_instance_10f7013.json": {
+   "sha256": "ca16d907b4e076bd91bcb6c5a379bd3206fbcd6939e9d57db9fd6aa150153747",
+   "bytes": 11465
+  },
+  "vsmt_lean_s3_03_fit_sam2_10f7013.json": {
+   "sha256": "9dc80ce3783de68eff45d4d6701c33213470b664faf95a9f2a19e8e9e789725e",
+   "bytes": 11334
+  },
+  "vsmt_lean_s3_03_fit_values_instance_10f7013.json": {
+   "sha256": "92b8a28d9acb6c6da5f395df62847348e47cc8dcad2477e3dea851731d32c44f",
+   "bytes": 425
+  },
+  "vsmt_lean_s3_03_fit_values_sam2_10f7013.json": {
+   "sha256": "644a42be1b4e33e5571db0f42f713c8566bbe28c95a2b9816ad2581381e9b5f1",
+   "bytes": 400
+  },
+  "vsmt_lean_s3_03_gates_instance_10f7013.json": {
+   "sha256": "904b4e9373627daa3ec499f6a3c3ee1e673f24ddc6d773d731894f7c3ff62c67",
+   "bytes": 8508
+  },
+  "vsmt_lean_s3_03_gates_sam2_10f7013.json": {
+   "sha256": "9c3ef8afc99cc700dc9deec6585bb0905e574216896497b86f5bf1f5dcfb4db7",
+   "bytes": 8560
+  },
+  "vsmt_lean_s3_03_grid_reading_10f7013.json": {
+   "sha256": "572b79e4cf42607d0d7e8139026de99deb34e586a0d7bc275db2339b52857a95",
+   "bytes": 9026
+  },
+  "vsmt_lean_s3_03_inputs_10f7013.json": {
+   "sha256": "006a9d1c899bc6f74d6d997addfd23c59584f295fb12a8daebba63a69e0a1861",
+   "bytes": 53242
+  },
+  "vsmt_lean_s3_03_jobs_10f7013.json": {
+   "sha256": "2a7edbb19015b1060bd08402f59cc8f2460133d9520e3f5b83594f151456720d",
+   "bytes": 2252
+  },
+  "vsmt_lean_s3_03_memory_classes_10f7013.json": {
+   "sha256": "7295b0cc6828e32b743cc711a99f1d6a9d085a6cb725e41ca4b217e5e1c27667",
+   "bytes": 282
+  },
+  "vsmt_lean_s3_03_pool_10f7013.json": {
+   "sha256": "845c48e5b4fa8880e7f9c8314d9a6b216515918083fed42f1416595b719359c9",
+   "bytes": 1076
+  },
+  "vsmt_lean_s3_03_readings_instance_10f7013.json": {
+   "sha256": "c4dd39180ceb0d56c5086b64a8e6c3dec18968c2b028a2eae53b3387f58e3ab1",
+   "bytes": 154870
+  },
+  "vsmt_lean_s3_03_readings_sam2_10f7013.json": {
+   "sha256": "67f14dab2b363511eea2e6117c53a02292a55e9b465865b961f5e55ffba6bbde",
+   "bytes": 155382
+  },
+  "vsmt_lean_s3_03_train_threads_10f7013.json": {
+   "sha256": "34c9b971806ebed438a0a25e6cf6c56212e1e8fb1b39a6d193711b2a0ebc7741",
+   "bytes": 1822
+  },
+  "vsmt_lean_s3_03_train_timing_10f7013.json": {
+   "sha256": "d13537faf1a1f241fd86847f14eee4b3b28adff54531191d6d7fcca3efa64271",
+   "bytes": 2120
+  },
+  "vsmt_lean_s3_03_trainings_instance_10f7013.json": {
+   "sha256": "91c54892ec32b1abc14f5f00c82aec5c9eddfa3786b3f58b32d08253c9c0523a",
+   "bytes": 167377
+  },
+  "vsmt_lean_s3_03_trainings_sam2_10f7013.json": {
+   "sha256": "827c4f245620c00a4ed42226c63d70b7116e59fdba9bd77ff6a9ac24e7dd657a",
+   "bytes": 168855
+  },
+  "vsmt_lean_s3_03_workers_10f7013.json": {
+   "sha256": "9ba86735fb2711c69acf403e5f828307d889135eb8a560995de4fddffe6c0fad",
+   "bytes": 1991
+  }
+ },
+ "jobs_by_status": {
+  "pending": 0,
+  "running": 0,
+  "done": 7033,
+  "failed": 0,
+  "diverged": 0,
+  "skipped": 0,
+  "gate_failed": 0
+ },
+ "reproduction": "bash ops/vsmt/s3_03_train_select.sh all at the recorded commits reproduces every export; trainings are bit-identical at the same commit and TRAIN_THREADS, audits are deterministic (the probe); README 'How to reproduce S3-03'"
+}

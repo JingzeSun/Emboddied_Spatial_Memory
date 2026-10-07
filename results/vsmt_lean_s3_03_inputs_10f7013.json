@@ -1,0 +1,2477 @@
+{
+ "stage": "vsmt.lean.s3_03.driver.v1",
+ "step": "check",
+ "checked_utc": "2026-10-07T00:14:18Z",
+ "code_commit": "5a9fd9431d57a1e422105eaeaadf5413b7875f59",
+ "run_root": "/root/autodl-tmp/vsmt_private/s3-03-run",
+ "fronts": [
+  "instance",
+  "sam2"
+ ],
+ "resources": {
+  "cpu_quota": 32,
+  "cpu_quota_source": "cgroup cpu.max",
+  "memory_bytes": 64424509440,
+  "memory_source": "cgroup memory.max",
+  "disks": {
+   "/root/autodl-tmp": {
+    "free_gib": 94.3,
+    "total_gib": 500.0
+   },
+   "/root": {
+    "free_gib": 29.8,
+    "total_gib": 30.0
+   }
+  }
+ },
+ "disk_free_gib": 94.3,
+ "problems": [],
+ "s3_02": {
+  "tag": "3f6ef1d",
+  "manifest": {
+   "file": "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_s3_02_manifest_3f6ef1d.json",
+   "sha256": "5d79f2da285c0f4ed174abdc67a47f90eec3929f755add4d11fedd2da1c1d292"
+  },
+  "code_commit": "74905f4a9d8ae35db8a102a5c2f8741e58ed54af"
+ },
+ "roots": {
+  "raw": {
+   "train": "/root/autodl-tmp/vsmt_outputs/s3-02-3f6ef1d/train",
+   "validation": "/root/autodl-tmp/vsmt_outputs/s3-02-3f6ef1d/validation"
+  },
+  "geometry": {
+   "train": "/root/autodl-tmp/vsmt_private/s3-02-geometry-3f6ef1d/train",
+   "validation": "/root/autodl-tmp/vsmt_private/s3-02-geometry-3f6ef1d/validation"
+  },
+  "cache": {
+   "instance": {
+    "train": "/root/autodl-tmp/vsmt_caches/s3-02-instance-3f6ef1d/train",
+    "validation": "/root/autodl-tmp/vsmt_caches/s3-02-instance-3f6ef1d/validation"
+   },
+   "sam2": {
+    "train": "/root/autodl-tmp/vsmt_caches/s3-02-sam2-3f6ef1d/train",
+    "validation": "/root/autodl-tmp/vsmt_caches/s3-02-sam2-3f6ef1d/validation"
+   }
+  }
+ },
+ "reid": {
+  "instance": {
+   "file": "/root/autodl-tmp/vsmt_private/lean-s1-04-diagnostics-oracle-caa50c7/reid_head_vitb14.json",
+   "file_sha256": "27bf6a10767f68c3b7aef6e76f91e48c9bea8de6750cfb8620e16e0c388217e0",
+   "payload_sha256": "5cea91cf77901f1eb38e5942ee12a2afbe14e11ba1475bd2957e1cbfe3659a88",
+   "pinned_sha256": "5cea91cf77901f1eb38e5942ee12a2afbe14e11ba1475bd2957e1cbfe3659a88",
+   "matches": true
+  },
+  "sam2": {
+   "file": "/root/autodl-tmp/vsmt_private/exports/reid_head_vitb14_154776d.json",
+   "file_sha256": "823508e4f7f296a75b027676fc24fbb711de5388bb3ab9353aff4dcf1ff44e17",
+   "payload_sha256": "f6fc67e5f365a4f6d375d6aa16afe15cb0d9769879aa0cc1ab84ff6de9b65073",
+   "pinned_sha256": "f6fc67e5f365a4f6d375d6aa16afe15cb0d9769879aa0cc1ab84ff6de9b65073",
+   "matches": true
+  }
+ },
+ "test_seal": {
+  "file": "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_s3_02_test_seal_3f6ef1d.json",
+  "seal_sha256": "625c702bc352f352b17744661692f6568c03ab824b22c3af25d6c91b8f90c96a",
+  "markers": {
+   "raw": {
+    "path": "/root/autodl-tmp/vsmt_outputs/s3-02-3f6ef1d/test/TEST_SEALED.json",
+    "state": "sealed",
+    "matches": true
+   },
+   "geometry": {
+    "path": "/root/autodl-tmp/vsmt_private/s3-02-geometry-3f6ef1d/test/TEST_SEALED.json",
+    "state": "sealed",
+    "matches": true
+   },
+   "instance_cache": {
+    "path": "/root/autodl-tmp/vsmt_caches/s3-02-instance-3f6ef1d/test/TEST_SEALED.json",
+    "state": "sealed",
+    "matches": true
+   },
+   "sam2_cache": {
+    "path": "/root/autodl-tmp/vsmt_caches/s3-02-sam2-3f6ef1d/test/TEST_SEALED.json",
+    "state": "sealed",
+    "matches": true
+   }
+  }
+ },
+ "episodes": {
+  "instance": {
+   "train": [
+    {
+     "episode_id": "procthor10k-0.1.2-train-06630",
+     "frames": 808
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-05947",
+     "frames": 1032
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-09095",
+     "frames": 321
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-07383",
+     "frames": 101
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-02969",
+     "frames": 1824
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-04755",
+     "frames": 1977
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-04982",
+     "frames": 1937
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00107",
+     "frames": 557
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-02500",
+     "frames": 1163
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-07605",
+     "frames": 2701
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-05231",
+     "frames": 1882
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-04274",
+     "frames": 900
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-02038",
+     "frames": 802
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-01871",
+     "frames": 1049
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06806",
+     "frames": 2589
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06346",
+     "frames": 1140
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00987",
+     "frames": 802
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00118",
+     "frames": 985
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06797",
+     "frames": 1348
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-04466",
+     "frames": 232
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-01698",
+     "frames": 1263
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-09185",
+     "frames": 118
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06672",
+     "frames": 1365
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-04521",
+     "frames": 2468
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06415",
+     "frames": 284
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-01025",
+     "frames": 420
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00536",
+     "frames": 1008
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-03642",
+     "frames": 100
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-03700",
+     "frames": 954
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00749",
+     "frames": 1631
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-09193",
+     "frames": 701
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-07236",
+     "frames": 2214
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-05095",
+     "frames": 648
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-05093",
+     "frames": 2452
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-09408",
+     "frames": 1818
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06756",
+     "frames": 221
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-07228",
+     "frames": 245
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-09621",
+     "frames": 279
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-05519",
+     "frames": 320
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00968",
+     "frames": 1518
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00086",
+     "frames": 896
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-09879",
+     "frames": 785
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00586",
+     "frames": 586
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-09801",
+     "frames": 3299
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06308",
+     "frames": 953
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-02151",
+     "frames": 1207
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-07306",
+     "frames": 2887
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-02450",
+     "frames": 1103
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06760",
+     "frames": 3331
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-09199",
+     "frames": 214
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-07200",
+     "frames": 504
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00343",
+     "frames": 1546
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-09716",
+     "frames": 299
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-02593",
+     "frames": 493
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-02859",
+     "frames": 1827
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-08733",
+     "frames": 277
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-05044",
+     "frames": 1447
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-05051",
+     "frames": 737
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-07592",
+     "frames": 1463
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00624",
+     "frames": 1582
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-01369",
+     "frames": 210
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-03681",
+     "frames": 445
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-02280",
+     "frames": 612
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00504",
+     "frames": 1271
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-02392",
+     "frames": 653
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-03995",
+     "frames": 503
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-04428",
+     "frames": 2938
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-08044",
+     "frames": 1011
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-09293",
+     "frames": 1781
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-01409",
+     "frames": 1235
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-02125",
+     "frames": 1079
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00845",
+     "frames": 398
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-08256",
+     "frames": 213
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06464",
+     "frames": 333
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-07077",
+     "frames": 310
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-04357",
+     "frames": 371
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-03985",
+     "frames": 858
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-05223",
+     "frames": 1319
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-01089",
+     "frames": 942
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-02204",
+     "frames": 788
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-03157",
+     "frames": 419
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06112",
+     "frames": 3169
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-02887",
+     "frames": 369
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-04256",
+     "frames": 1396
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06908",
+     "frames": 121
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06068",
+     "frames": 301
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-07549",
+     "frames": 160
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-09891",
+     "frames": 783
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-09190",
+     "frames": 2929
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-04169",
+     "frames": 2872
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00401",
+     "frames": 1488
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06974",
+     "frames": 1483
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-07105",
+     "frames": 3131
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-03096",
+     "frames": 1072
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-09216",
+     "frames": 161
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-04366",
+     "frames": 576
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-08546",
+     "frames": 1098
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-04134",
+     "frames": 349
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-07598",
+     "frames": 857
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00395",
+     "frames": 1049
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-09052",
+     "frames": 553
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-04679",
+     "frames": 2024
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-07685",
+     "frames": 3160
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-03000",
+     "frames": 566
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-09287",
+     "frames": 771
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00314",
+     "frames": 3477
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-08667",
+     "frames": 904
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-09362",
+     "frames": 666
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00919",
+     "frames": 331
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-03263",
+     "frames": 2025
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00232",
+     "frames": 2823
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-01123",
+     "frames": 1511
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-02688",
+     "frames": 2724
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-08490",
+     "frames": 3557
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-02672",
+     "frames": 858
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00900",
+     "frames": 635
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-09018",
+     "frames": 1511
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00225",
+     "frames": 1860
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-01433",
+     "frames": 1101
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-02779",
+     "frames": 271
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-02161",
+     "frames": 2326
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-05355",
+     "frames": 1650
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06299",
+     "frames": 256
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-05573",
+     "frames": 335
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-01520",
+     "frames": 258
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00438",
+     "frames": 246
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00162",
+     "frames": 3322
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06924",
+     "frames": 336
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-02234",
+     "frames": 666
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-04431",
+     "frames": 1294
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-03879",
+     "frames": 380
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-04786",
+     "frames": 970
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-05280",
+     "frames": 324
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-03190",
+     "frames": 2967
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-09605",
+     "frames": 307
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00533",
+     "frames": 669
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00297",
+     "frames": 626
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-02877",
+     "frames": 1382
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06516",
+     "frames": 910
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-07897",
+     "frames": 292
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-05275",
+     "frames": 843
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-02721",
+     "frames": 244
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-04320",
+     "frames": 1267
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-05268",
+     "frames": 358
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-04867",
+     "frames": 1107
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-09302",
+     "frames": 857
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-04928",
+     "frames": 1844
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-05292",
+     "frames": 3121
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06592",
+     "frames": 733
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-07612",
+     "frames": 194
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00840",
+     "frames": 642
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00335",
+     "frames": 908
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-05924",
+     "frames": 2871
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-03554",
+     "frames": 347
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-08601",
+     "frames": 1208
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-07604",
+     "frames": 1381
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-04622",
+     "frames": 1464
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-07634",
+     "frames": 1638
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-08976",
+     "frames": 291
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-02262",
+     "frames": 181
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-07376",
+     "frames": 817
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06835",
+     "frames": 1390
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-09675",
+     "frames": 1409
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00329",
+     "frames": 759
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-07715",
+     "frames": 173
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-01993",
+     "frames": 2829
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-02987",
+     "frames": 1325
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06777",
+     "frames": 409
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-09527",
+     "frames": 375
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-02235",
+     "frames": 288
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-04763",
+     "frames": 184
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-08570",
+     "frames": 836
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-03397",
+     "frames": 773
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-04706",
+     "frames": 1472
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-05180",
+     "frames": 401
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-07172",
+     "frames": 649
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-02509",
+     "frames": 1092
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-05033",
+     "frames": 209
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06485",
+     "frames": 499
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06063",
+     "frames": 417
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-08964",
+     "frames": 937
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00444",
+     "frames": 504
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-04272",
+     "frames": 2063
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-01096",
+     "frames": 742
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-08318",
+     "frames": 603
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-01844",
+     "frames": 1089
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06438",
+     "frames": 1225
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06002",
+     "frames": 776
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-05980",
+     "frames": 747
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-08644",
+     "frames": 1792
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-03322",
+     "frames": 1330
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00493",
+     "frames": 947
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06159",
+     "frames": 1815
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06106",
+     "frames": 3757
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-07185",
+     "frames": 1099
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-08069",
+     "frames": 1172
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-01239",
+     "frames": 889
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-02883",
+     "frames": 2743
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00234",
+     "frames": 381
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00930",
+     "frames": 985
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-07839",
+     "frames": 1170
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-04355",
+     "frames": 1130
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-09202",
+     "frames": 800
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-07316",
+     "frames": 201
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-03795",
+     "frames": 1823
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-09086",
+     "frames": 392
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-03702",
+     "frames": 288
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00630",
+     "frames": 1392
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06660",
+     "frames": 649
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-03420",
+     "frames": 508
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-07454",
+     "frames": 3652
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-05521",
+     "frames": 864
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-08444",
+     "frames": 1316
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-05836",
+     "frames": 772
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06186",
+     "frames": 1576
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06071",
+     "frames": 1863
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-03767",
+     "frames": 1832
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00263",
+     "frames": 929
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-09013",
+     "frames": 1289
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-01037",
+     "frames": 605
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-07287",
+     "frames": 519
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06338",
+     "frames": 1195
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-04116",
+     "frames": 1477
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-03005",
+     "frames": 1445
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-07208",
+     "frames": 1287
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-01609",
+     "frames": 220
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00946",
+     "frames": 101
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-04598",
+     "frames": 1512
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-04694",
+     "frames": 734
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-04657",
+     "frames": 2525
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00204",
+     "frames": 861
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-04968",
+     "frames": 769
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-05006",
+     "frames": 1484
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-03962",
+     "frames": 1205
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-04487",
+     "frames": 708
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06984",
+     "frames": 1089
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-01066",
+     "frames": 587
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-04004",
+     "frames": 997
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00187",
+     "frames": 1736
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-03121",
+     "frames": 449
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-05186",
+     "frames": 995
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00764",
+     "frames": 1795
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00089",
+     "frames": 813
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-03362",
+     "frames": 467
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-01633",
+     "frames": 1056
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-05385",
+     "frames": 766
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-03051",
+     "frames": 468
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-09491",
+     "frames": 785
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-03107",
+     "frames": 1151
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-09838",
+     "frames": 985
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06519",
+     "frames": 152
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-07312",
+     "frames": 1173
+    }
+   ],
+   "validation": [
+    {
+     "episode_id": "procthor10k-0.1.2-train-03949",
+     "frames": 787
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-04625",
+     "frames": 1518
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-04409",
+     "frames": 1552
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00359",
+     "frames": 353
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-08800",
+     "frames": 430
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-02126",
+     "frames": 225
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-02522",
+     "frames": 1460
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-05667",
+     "frames": 1028
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-04497",
+     "frames": 3244
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-04188",
+     "frames": 439
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-05042",
+     "frames": 558
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-03137",
+     "frames": 531
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-02334",
+     "frames": 831
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00405",
+     "frames": 161
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06303",
+     "frames": 416
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-07686",
+     "frames": 2607
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-04283",
+     "frames": 147
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06101",
+     "frames": 750
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-02047",
+     "frames": 235
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-09920",
+     "frames": 1230
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-02318",
+     "frames": 341
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-08194",
+     "frames": 146
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06317",
+     "frames": 2655
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00974",
+     "frames": 3009
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06796",
+     "frames": 1267
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00269",
+     "frames": 3872
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-02381",
+     "frames": 636
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-07336",
+     "frames": 784
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06177",
+     "frames": 788
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-08029",
+     "frames": 1154
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-09834",
+     "frames": 981
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-01857",
+     "frames": 1471
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-01079",
+     "frames": 690
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-07464",
+     "frames": 591
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-01541",
+     "frames": 2341
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-01784",
+     "frames": 1650
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06894",
+     "frames": 379
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-07621",
+     "frames": 814
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-07277",
+     "frames": 913
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-01923",
+     "frames": 604
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-02257",
+     "frames": 1477
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-07918",
+     "frames": 483
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-05751",
+     "frames": 278
+    }
+   ]
+  },
+  "sam2": {
+   "train": [
+    {
+     "episode_id": "procthor10k-0.1.2-train-06630",
+     "frames": 808
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-05947",
+     "frames": 1032
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-09095",
+     "frames": 321
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-07383",
+     "frames": 101
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-02969",
+     "frames": 1824
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-04755",
+     "frames": 1977
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-04982",
+     "frames": 1937
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00107",
+     "frames": 557
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-02500",
+     "frames": 1163
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-07605",
+     "frames": 2701
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-05231",
+     "frames": 1882
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-04274",
+     "frames": 900
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-02038",
+     "frames": 802
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-01871",
+     "frames": 1049
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06806",
+     "frames": 2589
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06346",
+     "frames": 1140
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00987",
+     "frames": 802
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00118",
+     "frames": 985
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06797",
+     "frames": 1348
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-04466",
+     "frames": 232
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-01698",
+     "frames": 1263
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-09185",
+     "frames": 118
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06672",
+     "frames": 1365
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-04521",
+     "frames": 2468
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06415",
+     "frames": 284
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-01025",
+     "frames": 420
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00536",
+     "frames": 1008
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-03642",
+     "frames": 100
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-03700",
+     "frames": 954
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00749",
+     "frames": 1631
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-09193",
+     "frames": 701
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-07236",
+     "frames": 2214
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-05093",
+     "frames": 2452
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-09408",
+     "frames": 1818
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06756",
+     "frames": 221
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-07228",
+     "frames": 245
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-09621",
+     "frames": 279
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-05519",
+     "frames": 320
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00968",
+     "frames": 1518
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00086",
+     "frames": 896
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-09879",
+     "frames": 785
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00586",
+     "frames": 586
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-09801",
+     "frames": 3299
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06308",
+     "frames": 953
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-02151",
+     "frames": 1207
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-07306",
+     "frames": 2887
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-02450",
+     "frames": 1103
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-09199",
+     "frames": 214
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-07200",
+     "frames": 504
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00343",
+     "frames": 1546
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-09716",
+     "frames": 299
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-02593",
+     "frames": 493
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-02859",
+     "frames": 1827
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-08733",
+     "frames": 277
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-05044",
+     "frames": 1447
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-05051",
+     "frames": 737
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-07592",
+     "frames": 1463
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00624",
+     "frames": 1582
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-01369",
+     "frames": 210
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-03681",
+     "frames": 445
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-02280",
+     "frames": 612
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00504",
+     "frames": 1271
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-02392",
+     "frames": 653
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-03995",
+     "frames": 503
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-04428",
+     "frames": 2938
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-08044",
+     "frames": 1011
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-09293",
+     "frames": 1781
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-01409",
+     "frames": 1235
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-02125",
+     "frames": 1079
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00845",
+     "frames": 398
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-08256",
+     "frames": 213
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06464",
+     "frames": 333
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-07077",
+     "frames": 310
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-04357",
+     "frames": 371
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-03985",
+     "frames": 858
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-05223",
+     "frames": 1319
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-01089",
+     "frames": 942
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-02204",
+     "frames": 788
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-03157",
+     "frames": 419
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06112",
+     "frames": 3169
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-02887",
+     "frames": 369
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-04256",
+     "frames": 1396
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06908",
+     "frames": 121
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06068",
+     "frames": 301
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-07549",
+     "frames": 160
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-09891",
+     "frames": 783
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-09190",
+     "frames": 2929
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-04169",
+     "frames": 2872
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00401",
+     "frames": 1488
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06974",
+     "frames": 1483
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-07105",
+     "frames": 3131
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-03096",
+     "frames": 1072
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-09216",
+     "frames": 161
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-04366",
+     "frames": 576
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-08546",
+     "frames": 1098
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-04134",
+     "frames": 349
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-07598",
+     "frames": 857
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00395",
+     "frames": 1049
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-09052",
+     "frames": 553
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-04679",
+     "frames": 2024
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-07685",
+     "frames": 3160
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-03000",
+     "frames": 566
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-09287",
+     "frames": 771
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00314",
+     "frames": 3477
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-09362",
+     "frames": 666
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00919",
+     "frames": 331
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-03263",
+     "frames": 2025
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00232",
+     "frames": 2823
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-01123",
+     "frames": 1511
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-02688",
+     "frames": 2724
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-08490",
+     "frames": 3557
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-02672",
+     "frames": 858
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00900",
+     "frames": 635
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-09018",
+     "frames": 1511
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00225",
+     "frames": 1860
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-01433",
+     "frames": 1101
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-02779",
+     "frames": 271
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-02161",
+     "frames": 2326
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-05355",
+     "frames": 1650
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06299",
+     "frames": 256
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-05573",
+     "frames": 335
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-01520",
+     "frames": 258
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00438",
+     "frames": 246
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00162",
+     "frames": 3322
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06924",
+     "frames": 336
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-02234",
+     "frames": 666
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-04431",
+     "frames": 1294
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-03879",
+     "frames": 380
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-04786",
+     "frames": 970
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-05280",
+     "frames": 324
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-03190",
+     "frames": 2967
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-09605",
+     "frames": 307
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00533",
+     "frames": 669
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00297",
+     "frames": 626
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-02877",
+     "frames": 1382
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06516",
+     "frames": 910
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-07897",
+     "frames": 292
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-05275",
+     "frames": 843
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-02721",
+     "frames": 244
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-04320",
+     "frames": 1267
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-05268",
+     "frames": 358
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-04867",
+     "frames": 1107
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-09302",
+     "frames": 857
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-04928",
+     "frames": 1844
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-05292",
+     "frames": 3121
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06592",
+     "frames": 733
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-07612",
+     "frames": 194
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00840",
+     "frames": 642
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00335",
+     "frames": 908
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-05924",
+     "frames": 2871
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-03554",
+     "frames": 347
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-08601",
+     "frames": 1208
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-07604",
+     "frames": 1381
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-04622",
+     "frames": 1464
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-07634",
+     "frames": 1638
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-08976",
+     "frames": 291
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-02262",
+     "frames": 181
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-07376",
+     "frames": 817
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06835",
+     "frames": 1390
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-09675",
+     "frames": 1409
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00329",
+     "frames": 759
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-07715",
+     "frames": 173
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-01993",
+     "frames": 2829
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-02987",
+     "frames": 1325
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06777",
+     "frames": 409
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-09527",
+     "frames": 375
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-02235",
+     "frames": 288
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-04763",
+     "frames": 184
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-08570",
+     "frames": 836
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-03397",
+     "frames": 773
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-04706",
+     "frames": 1472
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-05180",
+     "frames": 401
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-07172",
+     "frames": 649
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-02509",
+     "frames": 1092
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-05033",
+     "frames": 209
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06485",
+     "frames": 499
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06063",
+     "frames": 417
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-08964",
+     "frames": 937
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00444",
+     "frames": 504
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-04272",
+     "frames": 2063
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-01096",
+     "frames": 742
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-08318",
+     "frames": 603
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-01844",
+     "frames": 1089
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06438",
+     "frames": 1225
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06002",
+     "frames": 776
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-05980",
+     "frames": 747
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-08644",
+     "frames": 1792
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-03322",
+     "frames": 1330
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00493",
+     "frames": 947
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06159",
+     "frames": 1815
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06106",
+     "frames": 3757
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-07185",
+     "frames": 1099
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-08069",
+     "frames": 1172
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-01239",
+     "frames": 889
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-02883",
+     "frames": 2743
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00234",
+     "frames": 381
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00930",
+     "frames": 985
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-07839",
+     "frames": 1170
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-04355",
+     "frames": 1130
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-09202",
+     "frames": 800
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-07316",
+     "frames": 201
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-03795",
+     "frames": 1823
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-09086",
+     "frames": 392
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-03702",
+     "frames": 288
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00630",
+     "frames": 1392
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06660",
+     "frames": 649
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-03420",
+     "frames": 508
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-07454",
+     "frames": 3652
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-05521",
+     "frames": 864
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-08444",
+     "frames": 1316
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-05836",
+     "frames": 772
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06186",
+     "frames": 1576
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06071",
+     "frames": 1863
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-03767",
+     "frames": 1832
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00263",
+     "frames": 929
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-09013",
+     "frames": 1289
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-01037",
+     "frames": 605
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-07287",
+     "frames": 519
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06338",
+     "frames": 1195
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-04116",
+     "frames": 1477
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-03005",
+     "frames": 1445
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-07208",
+     "frames": 1287
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-01609",
+     "frames": 220
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00946",
+     "frames": 101
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-04598",
+     "frames": 1512
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-04694",
+     "frames": 734
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-04657",
+     "frames": 2525
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00204",
+     "frames": 861
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-04968",
+     "frames": 769
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-05006",
+     "frames": 1484
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-03962",
+     "frames": 1205
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-04487",
+     "frames": 708
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06984",
+     "frames": 1089
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-01066",
+     "frames": 587
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-04004",
+     "frames": 997
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00187",
+     "frames": 1736
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-03121",
+     "frames": 449
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-05186",
+     "frames": 995
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00764",
+     "frames": 1795
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00089",
+     "frames": 813
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-03362",
+     "frames": 467
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-01633",
+     "frames": 1056
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-05385",
+     "frames": 766
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-03051",
+     "frames": 468
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-09491",
+     "frames": 785
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-03107",
+     "frames": 1151
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-09838",
+     "frames": 985
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06519",
+     "frames": 152
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-07312",
+     "frames": 1173
+    }
+   ],
+   "validation": [
+    {
+     "episode_id": "procthor10k-0.1.2-train-03949",
+     "frames": 787
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-04625",
+     "frames": 1518
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-04409",
+     "frames": 1552
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00359",
+     "frames": 353
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-08800",
+     "frames": 430
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-02126",
+     "frames": 225
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-02522",
+     "frames": 1460
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-05667",
+     "frames": 1028
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-04497",
+     "frames": 3244
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-04188",
+     "frames": 439
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-05042",
+     "frames": 558
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-03137",
+     "frames": 531
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-02334",
+     "frames": 831
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00405",
+     "frames": 161
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06303",
+     "frames": 416
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-07686",
+     "frames": 2607
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-04283",
+     "frames": 147
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06101",
+     "frames": 750
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-02047",
+     "frames": 235
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-09920",
+     "frames": 1230
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-02318",
+     "frames": 341
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-08194",
+     "frames": 146
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06317",
+     "frames": 2655
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00974",
+     "frames": 3009
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06796",
+     "frames": 1267
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-00269",
+     "frames": 3872
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-02381",
+     "frames": 636
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-07336",
+     "frames": 784
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06177",
+     "frames": 788
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-08029",
+     "frames": 1154
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-09834",
+     "frames": 981
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-01857",
+     "frames": 1471
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-01079",
+     "frames": 690
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-07464",
+     "frames": 591
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-01541",
+     "frames": 2341
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-01784",
+     "frames": 1650
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-06894",
+     "frames": 379
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-07621",
+     "frames": 814
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-07277",
+     "frames": 913
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-01923",
+     "frames": 604
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-02257",
+     "frames": 1477
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-07918",
+     "frames": 483
+    },
+    {
+     "episode_id": "procthor10k-0.1.2-train-05751",
+     "frames": 278
+    }
+   ]
+  }
+ },
+ "counts": {
+  "train": {
+   "manifest_houses": 300,
+   "raw_succeeded": 252,
+   "geometry_tables": 252,
+   "usable_instance": 252,
+   "usable_sam2": 249
+  },
+  "validation": {
+   "manifest_houses": 50,
+   "raw_succeeded": 43,
+   "geometry_tables": 43,
+   "usable_instance": 43,
+   "usable_sam2": 43
+  }
+ }
+}

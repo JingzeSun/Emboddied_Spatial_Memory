@@ -1,0 +1,24 @@
+{
+ "stage": "vsmt.lean.s3_03.driver.v1",
+ "reading": "ruling 89-3 (1) state coverage in events, report only",
+ "front": "sam2",
+ "training_houses": 202,
+ "train": {
+  "retracted": {
+   "events": 14719,
+   "houses": 197,
+   "labelled_target_rows": 56552
+  },
+  "dormant": {
+   "events": 237833,
+   "houses": 202,
+   "labelled_target_rows": 752054
+  }
+ },
+ "pass": true,
+ "lines": {
+  "events_per_state": 200,
+  "training_houses_per_state": 15
+ },
+ "written_utc": "2026-10-05T05:27:28Z"
+}

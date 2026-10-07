@@ -5538,6 +5538,25 @@ move 仍要两个 U 容器、add 仍要过 dry-run，成品率不会等于这些
   - 兜底关机：S3-02 结束时它的 `sleep 7200` 被守护脚本撤掉，因为同一台机器上正在跑 S3-03（见 LOG-304）。A 未关机。
 - 下一步：S3-03 在同一台机器上按裁决 104 运行，之后迁到 B1（Intel 8352V，500 GB）；数据已大部分传到 B1。
 
+### LOG-304：S3-03 跑完并收尾核验通过，S3-04 冻结通过（G1～G5 全过，两套前端 50/50 个探针审计逐位一致，九臂都满足选参约束）；冻结回执 `4fd08d4f…`（2026-10-04 14:31 ～ 10-07 08:26 CST）
+
+- 白话：S3-03 在 validation 上训练全部学习臂、按登记网格审计全部配置；S3-04 按裁决 102-4 给每个臂选一个配置，并把代码、权重、拟合值、test 清单与封印的摘要写进冻结回执。输入是 S3-02 的 train／validation 数据与两套 cache，输出是 `results/` 里的 32 个导出。例如 instance 前端 VSMT-lean 选 τ_r＝0.8。它不是 test 结果，validation 上的数字只用于选择，不支持任何主张。
+- 结果（导出已拉回 `results/vsmt_lean_s3_03_*_10f7013.json` 24 个、`results/vsmt_lean_s3_04_*_dea8c20.json` 8 个，32 个文件的 sha256 与 B1 逐一相等，两份 manifest 内的 22＋6 项核对无误）：
+  - S3-03：7,033 个作业全部完成（训练 round0 501、round1 1,503、train1 30、审计 4,558、合并 416 等），最终 0 失败、0 分歧；运行代码 `5c9ec8d`，首次 verify 只报预期的 `elu_p_values_not_registered`（instance、sam2），在登记提交 `5a9fd94` 上的只核验 `all` 于 08:14 通过（“every job ended, every gate passed, the fitted values are registered”）。
+  - S3-04（`dea8c20`，08:14～08:26 CST，只用 B1）：check（G1 S3-03 verify／导出／30 份第 1 轮权重／ELU-P 登记值，G5 四个 test 根仍封存、封印 `625c702b…`）、两套前端的 select（G2 读数重算相等、G3 事件数一致：instance 身份连续与检索各 50、sam2 49／44，残留率 31 个 house）、probe（G4：两套前端各 50 个探针审计在 `train-02318`／`train-00359` 上与 S3-03 逐位一致）、receipt、verify 全部通过；冻结回执 `receipt_sha256` = `4fd08d4fc6d00c0063fc210a1ad4e8e8cbf0382b1d93d0e0e8331487b32910e0`，每个前端 25 个 test 运行。
+  - 选择（validation 五种子均值；约束为“带 RETRACT 的臂只在残留率低于同前端 AssocOnly 的配置里选”，参照 AssocOnly 残留率 instance 0.727、sam2 0.263）：两套前端九个臂都满足约束，`constraint_not_satisfiable` 为空，没有缺种子、没有缺臂。instance：VSMT-lean τ_r 0.8（节点 F1 0.858、残留率 0.176）、NoVersion τ_r 0.9（0.858／0.168）、HeuristicLabel τ_r 0.2（0.649／0.183）、AssocOnly（0.853／0.727）、TAF #2、ELU-P #10、RAC #6、LOW d_low 0.5、HandCost #7。sam2：VSMT-lean τ_r 0.25（0.528／0.070）、NoVersion τ_r 0.25（0.530／0.045）、HeuristicLabel τ_r 0.5（0.408／0.117）、AssocOnly（0.519／0.263）、TAF #3、ELU-P #10、RAC #6、LOW d_low 1.0、HandCost #2。完整配置与各指标见两份 selection 导出。
+  - 只报告的网格边缘（选中值落在登记网格端点）：instance NoVersion τ_r＝0.9（末端）、TAF θ_a＝0.6（首端）、ELU-P d_a＝1.0／free_space_weight＝2.0（末端）与 retract_threshold＝0（首端）、RAC d_a＝1.0（末端）与 ρ_rac＝0.7、n_rac＝2（首端）、HandCost ρ_h＝0.9（末端）；sam2 TAF θ_a＝0.6（首端）与 d_a＝2.0（末端）、ELU-P 与 RAC 同上、HandCost θ_b＝0.6（首端）。按裁决 106 只报告，不扩网格。
+- 运行过程（工程记录，均不改科学口径）：
+  - 10-04 在 S3-02 主机的空闲 CPU 上以临时输入提前起跑（`10f7013`；`24df324` 让临时 check 接受 S3-02 尚未建好的 test 根；`0c085db` 修正 pass 作业的输出根取自派发时的循环变量），随后迁到 CPU 主机 B1（connect.westb:25025，Xeon 8352V，32 核／60 GiB）。
+  - 内存预留改为固定值（`9a2b81a`，MEMORY_FIXED_GIB train1＝6.5 等）；两次中途重启丢掉 9 个第 1 轮训练后加了纪元末检查点续训（`96c17b5`）与 DRAIN 开关（`e326a99`），此后改动一律等批次结束；一段第 1 轮训练在池外用池的原命令与检查点先跑（“桥接”），再交回池续训。
+  - 远程工作机（`6a31c8e` 修正 remote_hosts 的参数名冲突，`5c9ec8d` 审计每 10 分钟与被停时拉回已完成配置）：w2（Xeon 4214R，后以别名 w2b 只跑审计，10-06 退役）、w1（AMD EPYC 9654，经 `/etc/environment` 的 MKL 修正后逐位一致才准入）、w4、w5（Xeon 8352V）、w6（LLM-op 机兼作审计，因准入时掉线以别名 w6b 加入）；每台都在冻结提交上重跑审计逐位比对后才准入。
+  - 收尾守卫 v1～v4：在驱动的兜底关机 sleep 上先结束驱动再结束 sleep，只在 verify 仅报登记项时于 `5a9fd94` 上跑只核验的 `all`，随后接着跑 S3-04；因 LLM-op 会话两次合入改动 `configs/`，S3-04 的冻结提交从 `5f5f75d` 改指 `5b701a7` 再改指 `dea8c20`（DECISIONS 裁决 110 附记）。
+  - 失败与损失（如实记录）：w1 上三个 sam2 规则审计被 SIGKILL（10-06 18:48 ELU-P c06-08 train-06317、21:27 TAF c00-02 train-00269、21:55 LOW c00-02 train-00269），cgroup oom_kill 均为 0，进程峰值 1.19～1.48 GiB 低于 2 GiB 预留，当时 w1 容器 memory.current 约 57/60 GiB、其中绝大部分是页缓存——原因未证实（推测为平台按容器内存杀进程）。池在任一作业失败时停止派发，第一次按“等批次结束”的规则空转约 1.5 小时后由用户批准提前重启（20:21）；第二、三次之后执行者在已知空转约 6 小时的情况下仍等待用户输入，直到 10-07 03:21 才重启——这是执行者的错误，损失约 6 小时；之后规则改为用户睡觉时由执行者按推荐方案处理运维决定。两次重启都以 `RETRY_FAILED=1` 在 `5c9ec8d` 上续跑，被杀或被打断的审计已完成的配置保留，其余配置在同一代码上从头重算。
+  - 03:26 重启后的集中派发被 westc 网关拒连（“kex_exchange_identification: Connection closed”），池把 w1、w4、w5、w6b 在内存中挂起；用户批准后以别名 w1b／w4b／w5b／w6c 加回，别名预算等于原名仍在跑的作业让出的核、每 2 分钟最多加 8 核（`vsmt_private/alias_budget.py`）。各机加了页缓存清理（`posix_fadvise(DONTNEED)`，超过 memory.max 的 70% 时执行；容器内 `drop_caches` 被拒）。重启时组 SIGTERM 不会停掉远程作业，第一次重启后按 pid 文件手工停了 19 组残留审计。
+  - 机器：w1、w6 在各自 S3-03 作业结束后暂停并关机，由用户释放（w6 先把 LLM-op 的运行目录 98 MB 复制到 B1 `vsmt_private/llm-op-run-from-w6`，整树摘要一致，未复制 API 密钥文件）；B1、w4、w5 保留给 S3-05（裁决 107 的机器修订）。
+- 留待 S3-05 后修的代码问题（不在冻结代码里改）：单个作业失败即停止全池派发、一次拒连即在内存中挂起整台主机、重启集中派发无节流、组信号不停远程作业、拉回重试次数偏少、审计内存类不分学习／规则。
+- 下一步：用户确认并推送本条与导出（回执须先发布）；用户给出放行口令（回执摘要前 12 位 `4fd08d4fc6d0`）后在 B1 跑 `ops/vsmt/s3_05_test.sh`（B1＋w4＋w5）。
+
 ### LOG-305：LLM-op 附录臂跑完（裁决 105／108／109，`dea8c20`）——两套前端各 1 条 validation episode（`train-08800`，430 帧），账本 25.34 美元，回退率 ≤0.93%、格式可靠，回放逐字节一致；节点 F1 instance 0.696、SAM2 0.434；这条 episode 没有可判的身份、检索、残留与恢复事件；LLM 的 RETRACT 约 96%～98% 是错的（2026-10-06 06:30 ～ 10-07 11:13 悉尼）
 
 - 白话：LLM-op 回答“零训练的大模型直接看同一张封存特征表做记忆修订够不够”。输入是与其他臂逐字节相同的封存特征表（转成表格文本）和两段登记指令，模型是 DeepSeek `deepseek-flash`（价格页 2026-10-06 写明即 V4.1-Flash），默认 thinking；输出是与其他臂同一个 node audit 的闭环指标、全部调用存档与一份导出。它只进附录，不进主表、不进 test、不训练、不选参；每套前端只有 1 条 episode，所以下面每个数都是描述，不是统计结论。
