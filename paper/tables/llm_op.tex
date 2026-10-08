@@ -2,30 +2,20 @@
 
 \begin{tabular}{lcccc}
 \toprule
-Arm & F1 & F1$_{\mathrm{IoU}}$ & FRR$\downarrow$ & Cont.$\downarrow$ \\
+ & \multicolumn{2}{c}{Simulator instance masks} & \multicolumn{2}{c}{SAM 2.1 masks} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}
+Arm & F1 & FRR$\downarrow$ & F1 & FRR$\downarrow$ \\
 \midrule
-\multicolumn{5}{l}{\emph{Simulator instance masks}: 430 frames (p24), 9.2 fragments per frame (p43)} \\
-\textbf{LLM-op} & 0.696 & 0.376 & 0.976 & 0.490 \\
-VSMT-lean & 0.884{\tiny\,(0.858$\pm$.057; p73)} & 0.513{\tiny\,(0.485$\pm$.079; p69)} & n/d{\tiny\,(0.284$\pm$.356)} & 0.303{\tiny\,(0.302$\pm$.084; p43)} \\
-AssocOnly & 0.901{\tiny\,(0.853$\pm$.056; p83)} & 0.519{\tiny\,(0.481$\pm$.078; p69)} & -- & 0.308{\tiny\,(0.310$\pm$.082; p43)} \\
-NoVersion & 0.884{\tiny\,(0.858$\pm$.056; p73)} & 0.513{\tiny\,(0.485$\pm$.079; p69)} & n/d{\tiny\,(0.198$\pm$.304)} & 0.303{\tiny\,(0.301$\pm$.084; p45)} \\
-HeuristicLabel & 0.667{\tiny\,(0.649$\pm$.054; p66)} & 0.444{\tiny\,(0.408$\pm$.064; p78)} & 1.000{\tiny\,(0.939$\pm$.106; p85)} & 0.330{\tiny\,(0.303$\pm$.082; p50)} \\
-HandCost & 0.664{\tiny\,(0.635$\pm$.059; p76)} & 0.442{\tiny\,(0.403$\pm$.066; p80)} & 1.000{\tiny\,(0.915$\pm$.175; p87)} & 0.346{\tiny\,(0.311$\pm$.085; p52)} \\
-TAF & 0.657{\tiny\,(0.677$\pm$.057; p36)} & 0.451{\tiny\,(0.431$\pm$.060; p73)} & -- & 0.369{\tiny\,(0.314$\pm$.075; p80)} \\
-ELU-P & 0.641{\tiny\,(0.679$\pm$.057; p20)} & 0.436{\tiny\,(0.426$\pm$.063; p66)} & 1.000{\tiny\,(0.971$\pm$.049; p90)} & 0.386{\tiny\,(0.311$\pm$.081; p92)} \\
-RAC & 0.664{\tiny\,(0.657$\pm$.057; p62)} & 0.456{\tiny\,(0.420$\pm$.064; p80)} & 1.000{\tiny\,(0.896$\pm$.223; p88)} & 0.344{\tiny\,(0.300$\pm$.076; p71)} \\
-LOW & 0.762{\tiny\,(0.772$\pm$.054; p41)} & 0.480{\tiny\,(0.455$\pm$.067; p73)} & -- & 0.433{\tiny\,(0.360$\pm$.079; p90)} \\
-\midrule
-\multicolumn{5}{l}{\emph{SAM 2.1 masks}: 430 frames (p24), 10.6 fragments per frame (p64)} \\
-\textbf{LLM-op} & 0.434 & 0.209 & 0.982 & 0.532 \\
-VSMT-lean & 0.535{\tiny\,(0.528$\pm$.062; p57)} & 0.278{\tiny\,(0.247$\pm$.043; p73)} & 0.943{\tiny\,(0.659$\pm$.256; p96)} & 0.509{\tiny\,(0.444$\pm$.088; p83)} \\
-AssocOnly & 0.522{\tiny\,(0.519$\pm$.060; p52)} & 0.279{\tiny\,(0.249$\pm$.043; p76)} & -- & 0.491{\tiny\,(0.447$\pm$.085; p69)} \\
-NoVersion & 0.529{\tiny\,(0.530$\pm$.062; p55)} & 0.277{\tiny\,(0.247$\pm$.043; p73)} & 0.893{\tiny\,(0.666$\pm$.267; p91)} & 0.507{\tiny\,(0.444$\pm$.090; p83)} \\
-HeuristicLabel & 0.391{\tiny\,(0.408$\pm$.050; p29)} & 0.228{\tiny\,(0.220$\pm$.040; p64)} & 0.985{\tiny\,(0.965$\pm$.056; p46)} & 0.454{\tiny\,(0.377$\pm$.089; p85)} \\
-HandCost & 0.461{\tiny\,(0.442$\pm$.055; p69)} & 0.254{\tiny\,(0.231$\pm$.043; p78)} & 0.987{\tiny\,(0.964$\pm$.044; p78)} & 0.467{\tiny\,(0.394$\pm$.095; p83)} \\
-TAF & 0.454{\tiny\,(0.455$\pm$.051; p52)} & 0.268{\tiny\,(0.241$\pm$.041; p83)} & -- & 0.450{\tiny\,(0.384$\pm$.084; p85)} \\
-ELU-P & 0.426{\tiny\,(0.435$\pm$.049; p34)} & 0.224{\tiny\,(0.230$\pm$.041; p43)} & 0.994{\tiny\,(0.986$\pm$.020; p64)} & 0.460{\tiny\,(0.398$\pm$.087; p76)} \\
-RAC & 0.428{\tiny\,(0.417$\pm$.049; p73)} & 0.236{\tiny\,(0.227$\pm$.043; p62)} & 0.991{\tiny\,(0.968$\pm$.066; p61)} & 0.440{\tiny\,(0.388$\pm$.081; p78)} \\
-LOW & 0.426{\tiny\,(0.505$\pm$.056; p8)} & 0.281{\tiny\,(0.250$\pm$.043; p73)} & -- & 0.566{\tiny\,(0.503$\pm$.080; p87)} \\
+\textbf{LLM-op} & 0.696 & 0.976 & 0.434 & 0.982 \\
+\addlinespace[1.5pt]
+VSMT-lean & 0.884{\tiny\,(p73)} & n/d & 0.535{\tiny\,(p57)} & 0.943 \\
+AssocOnly & 0.901{\tiny\,(p83)} & -- & 0.522{\tiny\,(p52)} & -- \\
+NoVersion & 0.884{\tiny\,(p73)} & n/d & 0.529{\tiny\,(p55)} & 0.893 \\
+HeuristicLabel & 0.667{\tiny\,(p66)} & 1.000 & 0.391{\tiny\,(p29)} & 0.985 \\
+HandCost & 0.664{\tiny\,(p76)} & 1.000 & 0.461{\tiny\,(p69)} & 0.987 \\
+TAF & 0.657{\tiny\,(p36)} & -- & 0.454{\tiny\,(p52)} & -- \\
+ELU-P & 0.641{\tiny\,(p20)} & 1.000 & 0.426{\tiny\,(p34)} & 0.994 \\
+RAC & 0.664{\tiny\,(p62)} & 1.000 & 0.428{\tiny\,(p73)} & 0.991 \\
+LOW & 0.762{\tiny\,(p41)} & -- & 0.426{\tiny\,(p8)} & -- \\
 \bottomrule
 \end{tabular}
