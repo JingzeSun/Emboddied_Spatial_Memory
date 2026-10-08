@@ -5988,7 +5988,7 @@ D1～D3 只调用冻结的 `lean_s3_05`／`lean_teacher` 函数；D4、D6、D8 �
   - 在有 TeX Live 的环境编译并按页数压缩。
   - E1 与图 1。
 
-### LOG-311：S3-05R 第一批发布——T0（结果与权重）、T1（validation 与 test 的评估输入）上传 Hugging Face 并逐文件核对通过，两个仓库现为公开（2026-10-08 12:14 ～ 18:10 CST）
+### LOG-312：S3-05R 第一批发布——T0（结果与权重）、T1（validation 与 test 的评估输入）上传 Hugging Face 并逐文件核对通过，两个仓库现为公开（2026-10-08 12:14 ～ 18:10 CST）
 
 - 白话：别人不用重算，就能下到论文用的权重、全部导出和评估输入，并逐字节核对。输入是 B1 上的 S3 产物，输出是两个 HF 仓库与本仓库 `results/vsmt_lean_hf_release_T0_2d179b9.json`、`..._T1_2d179b9.json` 两份清单（每项 sha256、字节数、恢复路径、目录树摘要与远端 revision）。例如 T1 里每条 test episode 的树摘要都与 S3-02 test 封印相等才上传。它不改任何结果，也不是新实验。
 - 代码：分支 `hf-release`（`87fbd2d` 发布项与确定性 tar、`31efc4d` 上传驱动、`f2af61c` 下载恢复、`2d179b9` 一条命令与文档），本地 23 项测试通过、B1 上同样 23 项通过；用户 2026-10-08「测试成功不用我审查直接等 S3-07 跑完就在 B1 上开始上传，先传 T0 和 T1」。B1 上用单独的 `hf-venv`（huggingface_hub 2.1.1，可见系统包）、经 `/etc/network_turbo`，令牌由用户在 B1 `hf auth login`，执行者未经手。
