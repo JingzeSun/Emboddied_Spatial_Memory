@@ -1,0 +1,36 @@
+{
+ "stage": "vsmt.lean.s3_07.driver.v1",
+ "tag": "aa94373",
+ "written_utc": "2026-10-08T04:14:53Z",
+ "receipt_sha256": "4fd08d4fc6d00c0063fc210a1ad4e8e8cbf0382b1d93d0e0e8331487b32910e0",
+ "exports": {
+  "vsmt_lean_s3_07_check_aa94373.json": {
+   "sha256": "fca90d4ade8503937b1c58e5fd8a2b4d006213b4b26595eb82770569de0b0aca",
+   "bytes": 1546
+  },
+  "vsmt_lean_s3_07_e3_aa94373.json": {
+   "sha256": "1cb7f737517013e6d69ff29d647513bb7b496d79e0304e98d1d6935ef54f975a",
+   "bytes": 75012
+  },
+  "vsmt_lean_s3_07_handover_aa94373.json": {
+   "sha256": "2af1ffc773aa65d4c672e9aed2c60af291d92617c4a00e69e160b04bc9304485",
+   "bytes": 51219
+  },
+  "vsmt_lean_s3_07_inputs_aa94373.json": {
+   "sha256": "38797cd45147da7b29978d3867957743e836d61299a8136df533f1083c5d1a7f",
+   "bytes": 49862
+  },
+  "vsmt_lean_s3_07_jobs_aa94373.json": {
+   "sha256": "bf15021de87751d7092fa9ee9dce52d88426a988f6bb3eb144006602bfe124ff",
+   "bytes": 94
+  },
+  "vsmt_lean_s3_07_merged_instance_aa94373.json": {
+   "sha256": "5f5d82eff55b5d22da87a7cbd0a1f8f13d4389a65bdc09244d7f79f49d3095dc",
+   "bytes": 7652874
+  },
+  "vsmt_lean_s3_07_statistics_aa94373.json": {
+   "sha256": "b4132d0a3096f873e1ac0ec743a698caf3e57d1bd542fb948362ed1e8056a6be",
+   "bytes": 86895
+  }
+ }
+}
