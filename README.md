@@ -275,6 +275,21 @@ python ops/vsmt/hf_fetch.py --repo Jsun0632/vsmt-lean-s3-eval --repo-type datase
   - 公开的只有我们算出的指标导出（`results/vsmt_lean_s3_07_*_aa94373.json`）。
 - 4 个 HF 仓库目前是临时卡片（`license: other`，上游条款审核中）。按裁决 114 换成正式许可与上游声明（含 Apache-2.0 全文），之后论文与本节再写死 revision。
 
+**论文所用的 HF revision（2026-10-08 写入）。** 白话：论文引用的是逐文件核对过的那一次提交，下载时用 `--revision` 指定它，拿到的文件与仓库里已提交的发布清单逐一对得上。这些 revision 之后的提交只改卡片（`README.md`），没有改任何数据文件。
+
+| 层 | HF 仓库 | 论文引用的 revision | 核对依据 |
+|---|---|---|---|
+| T0 结果与权重 | `Jsun0632/vsmt-lean`（model） | `0b2ce7f8bb5de862fd500f10b23e55ba4eebf372` | `results/vsmt_lean_hf_release_T0_2d179b9.json` 的 `verify`：699 项，`pass` |
+| T1 评估输入 | `Jsun0632/vsmt-lean-s3-eval`（dataset） | `1bb81d27554d3795439172c418dc1416bff0c56e` | `results/vsmt_lean_hf_release_T1_2d179b9.json` 的 `verify`：582 项，`pass` |
+| T2 训练与审计记录 | `Jsun0632/vsmt-lean-s3-records`（dataset） | 上传中；核对通过后由发布会话补上 | 待 `vsmt_lean_hf_release_T2_<提交>.json` |
+| T3 训练输入 | `Jsun0632/vsmt-lean-s3-train`（dataset） | 上传中；核对通过后由发布会话补上 | 待 `vsmt_lean_hf_release_T3_<提交>.json` |
+
+例如只取 validation 的实例分割 cache：
+
+```bash
+python ops/vsmt/hf_fetch.py --repo Jsun0632/vsmt-lean-s3-eval --repo-type dataset --revision 1bb81d27554d3795439172c418dc1416bff0c56e --select validation/instance_cache/ --dest /root/autodl-tmp
+```
+
 ## 怎样跑 LLM-op（附录臂，裁决 105）
 
 白话：LLM-op 回答审稿人必问的“零训练的大模型直接做记忆修订够不够”。输入是与其他臂逐字节相同的封存特征表（转成带表头的表格文本）和两段登记的指令，模型是 DeepSeek `deepseek-flash`（2026-10-04 实际为 V4.1-Flash）默认推理模式；输出是两套前端各 1 条 validation episode（裁决 108；原为 15 条）的闭环指标（与其他臂同一个 node audit、同一套指标）、全部调用存档与一份导出。每帧问两次：先关联（每个色块选一个召回实体或 BIRTH），求解后再判存在（每个可判定实体 RETRACT 或 NOOP）。它不训练、不选参、不进主表、不读 test；它独立于 S3-03 的作业池，可以在另一台机器上和 S3-03 同时跑。
