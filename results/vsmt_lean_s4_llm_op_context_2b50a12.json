@@ -1,0 +1,902 @@
+{
+ "stage": "vsmt.lean.s4.llm_op_context.v1",
+ "authorization": "user 2026-10-08 \u300c\u63a8\u9001 e422b4d\u3001d9889a6\u30013aba063\uff1b\u7b2c 2\uff5e5 \u9879\u5168\u6309\u63a8\u8350\u300d, item 3 (a): read-only export on B1",
+ "code_commit": "2b50a12e21d728d5303a50d3d3067198639bd7d7",
+ "role": "descriptive context for the LLM-op appendix (n = 1 per front end); validation only, no test, no audit rerun",
+ "rule": "per arm the S3-04 frozen configuration; learned arms averaged over five seeds per episode; mean and sample SD over the validation episodes where the metric is defined (false-retract rate is undefined where an arm made no judged retraction); percentile = 100 x (share below + half the share equal)",
+ "inputs_sha256": {
+  "/root/autodl-tmp/vsmt_caches/s3-02-instance-3f6ef1d/validation/procthor10k-0.1.2-train-00269/receipt.json": "5b58f02ca8ae004c4760d1017930da6705e7217c986ce03279f3d54407ed34bd",
+  "/root/autodl-tmp/vsmt_caches/s3-02-instance-3f6ef1d/validation/procthor10k-0.1.2-train-00359/receipt.json": "54ec4aba3a55dc75789547f5d584ea7b41d614c22f8ab918d00d892df0cc1812",
+  "/root/autodl-tmp/vsmt_caches/s3-02-instance-3f6ef1d/validation/procthor10k-0.1.2-train-00405/receipt.json": "088c423099ade07239f9cd94d70caca841b452c4c9f81847b530292de836dbaa",
+  "/root/autodl-tmp/vsmt_caches/s3-02-instance-3f6ef1d/validation/procthor10k-0.1.2-train-00974/receipt.json": "7000e68d5639669d8ec0ac3ca9d603f835445aba1c2bd8ade44d6c51dd6bedd3",
+  "/root/autodl-tmp/vsmt_caches/s3-02-instance-3f6ef1d/validation/procthor10k-0.1.2-train-01079/receipt.json": "f444e37284f0ee91cb041f493128b7bc059db33bcaecb9b7caa4a8312626d7fa",
+  "/root/autodl-tmp/vsmt_caches/s3-02-instance-3f6ef1d/validation/procthor10k-0.1.2-train-01541/receipt.json": "187c37a76c0029ec1ded43a24dc2e38ad940d08e581367374306f6bfdc493e24",
+  "/root/autodl-tmp/vsmt_caches/s3-02-instance-3f6ef1d/validation/procthor10k-0.1.2-train-01784/receipt.json": "88c9598b9bc82fc09bc9cf5f9f39a59f736a08a9fdd21b70a3fb1fc579670496",
+  "/root/autodl-tmp/vsmt_caches/s3-02-instance-3f6ef1d/validation/procthor10k-0.1.2-train-01857/receipt.json": "427ecb0556edee7c172c189d8e143ff03d8051bb290b544ed3a21fe6bca3dd68",
+  "/root/autodl-tmp/vsmt_caches/s3-02-instance-3f6ef1d/validation/procthor10k-0.1.2-train-01923/receipt.json": "0f9f818a106a0609b190de834d8041b41df207866d8c57770d12371ad03cee09",
+  "/root/autodl-tmp/vsmt_caches/s3-02-instance-3f6ef1d/validation/procthor10k-0.1.2-train-02047/receipt.json": "d0ae7d85beb27a3d12faddac7c6cc2fd34578d881f2188ee33ea37d5467760ad",
+  "/root/autodl-tmp/vsmt_caches/s3-02-instance-3f6ef1d/validation/procthor10k-0.1.2-train-02126/receipt.json": "f69b7d7ddf08622b4974ed502a0233155352c41c91b5206cde2215faf108e68e",
+  "/root/autodl-tmp/vsmt_caches/s3-02-instance-3f6ef1d/validation/procthor10k-0.1.2-train-02257/receipt.json": "9878214d6a61c9d5dde493cd8ce0f9a7b362a4287c8a805e4d47451b8a9434b9",
+  "/root/autodl-tmp/vsmt_caches/s3-02-instance-3f6ef1d/validation/procthor10k-0.1.2-train-02318/receipt.json": "5c58bbb1745551a62bfcb4607e68a8c7579ab949b87803864ac52acac517b6c9",
+  "/root/autodl-tmp/vsmt_caches/s3-02-instance-3f6ef1d/validation/procthor10k-0.1.2-train-02334/receipt.json": "b81a504a91a8ef79b8b720b9013940c20da16ca33dfb7c8a588a57683ced6c91",
+  "/root/autodl-tmp/vsmt_caches/s3-02-instance-3f6ef1d/validation/procthor10k-0.1.2-train-02381/receipt.json": "5adc1aa9a93d9685db5d7078e596d07771990289e5a3b1a767512c99edce8714",
+  "/root/autodl-tmp/vsmt_caches/s3-02-instance-3f6ef1d/validation/procthor10k-0.1.2-train-02522/receipt.json": "2d5737812956d97565e78e08e174c161327c30a840642e921ec5b89a031f60a3",
+  "/root/autodl-tmp/vsmt_caches/s3-02-instance-3f6ef1d/validation/procthor10k-0.1.2-train-03137/receipt.json": "2af4c17586aa7e8f11cafea33ebc0ebcb9b48461151084bd0023f947a6afd92e",
+  "/root/autodl-tmp/vsmt_caches/s3-02-instance-3f6ef1d/validation/procthor10k-0.1.2-train-03949/receipt.json": "ca1b8e0e7095264a45abd8cc3a5e5195d6b2d88fd9ef857365ce40f988af9764",
+  "/root/autodl-tmp/vsmt_caches/s3-02-instance-3f6ef1d/validation/procthor10k-0.1.2-train-04188/receipt.json": "edde13ad5f7043070db5907d9d60ddf697f05630436d390bc1fc07455d4c2c33",
+  "/root/autodl-tmp/vsmt_caches/s3-02-instance-3f6ef1d/validation/procthor10k-0.1.2-train-04283/receipt.json": "900c41688f68437be663ad0e6ee10d1bfe5c1ee5e82df45b4e1f7d813a0af5c2",
+  "/root/autodl-tmp/vsmt_caches/s3-02-instance-3f6ef1d/validation/procthor10k-0.1.2-train-04409/receipt.json": "5939d0a13dd40c7542c9282ebca2b8a30dd2f02bc5a561e52a8a38db2076bd7b",
+  "/root/autodl-tmp/vsmt_caches/s3-02-instance-3f6ef1d/validation/procthor10k-0.1.2-train-04497/receipt.json": "1c4de88d02a7de32205b63276a371a0e86cd9b60bf9531f5522f5b9d66c06425",
+  "/root/autodl-tmp/vsmt_caches/s3-02-instance-3f6ef1d/validation/procthor10k-0.1.2-train-04625/receipt.json": "46c7c246affddbe068b9ec0c0c0470a2265d37e6732b30dd52c20380a1c892de",
+  "/root/autodl-tmp/vsmt_caches/s3-02-instance-3f6ef1d/validation/procthor10k-0.1.2-train-05042/receipt.json": "886fd54da35c75206bb20f8471b8a3ae2990fc9591be7e20d66ab6915f7da3d2",
+  "/root/autodl-tmp/vsmt_caches/s3-02-instance-3f6ef1d/validation/procthor10k-0.1.2-train-05667/receipt.json": "30f6d06e6444973962c3b1010917074405066b140dea21c8308ea566e5e586d6",
+  "/root/autodl-tmp/vsmt_caches/s3-02-instance-3f6ef1d/validation/procthor10k-0.1.2-train-05751/receipt.json": "aec3660070ecb9e085f721eba2858e847ac17083b473d2fdd1e4fee7aa5aa1fe",
+  "/root/autodl-tmp/vsmt_caches/s3-02-instance-3f6ef1d/validation/procthor10k-0.1.2-train-06101/receipt.json": "d75df96f3fcd2134a92555311297d0d41fa3e5931cd9def8259e6fff34660293",
+  "/root/autodl-tmp/vsmt_caches/s3-02-instance-3f6ef1d/validation/procthor10k-0.1.2-train-06177/receipt.json": "027d43095cf2b3cabde328159816e0fc9513232f0165bcf939a22f535d8e9178",
+  "/root/autodl-tmp/vsmt_caches/s3-02-instance-3f6ef1d/validation/procthor10k-0.1.2-train-06303/receipt.json": "ca21793a993dd96cc53ffcb05ba9c1d2f113753e5ef47d9ee4856acb92d9e646",
+  "/root/autodl-tmp/vsmt_caches/s3-02-instance-3f6ef1d/validation/procthor10k-0.1.2-train-06317/receipt.json": "ae0a8453e873609df663e20c83c86f9455ca16c58bf44fd535099e2f48eb9afc",
+  "/root/autodl-tmp/vsmt_caches/s3-02-instance-3f6ef1d/validation/procthor10k-0.1.2-train-06796/receipt.json": "535248614156da4ca2487042a0d857df5d6ea277016274e89485da3a43a03856",
+  "/root/autodl-tmp/vsmt_caches/s3-02-instance-3f6ef1d/validation/procthor10k-0.1.2-train-06894/receipt.json": "29ba8b5f1c30da4cbc9096d3b96869ee14564bd788777820300d9c07af94f1d8",
+  "/root/autodl-tmp/vsmt_caches/s3-02-instance-3f6ef1d/validation/procthor10k-0.1.2-train-07277/receipt.json": "b56d5de5735ae9e1285d38d427f9740531e00a429e31bc36ca5c8a27c91a4989",
+  "/root/autodl-tmp/vsmt_caches/s3-02-instance-3f6ef1d/validation/procthor10k-0.1.2-train-07336/receipt.json": "19cc607fd967f28b75705da62e2cabdd47ea10e175c0286398348fd4204fb5d4",
+  "/root/autodl-tmp/vsmt_caches/s3-02-instance-3f6ef1d/validation/procthor10k-0.1.2-train-07464/receipt.json": "cd886d46026f7715fc05b3dfd87289698b17259fc10d98ad67700239fda90a4d",
+  "/root/autodl-tmp/vsmt_caches/s3-02-instance-3f6ef1d/validation/procthor10k-0.1.2-train-07621/receipt.json": "2a46629acd0a087d99bcda1803ab9be63d7a912b43db2170fec8b122898d629b",
+  "/root/autodl-tmp/vsmt_caches/s3-02-instance-3f6ef1d/validation/procthor10k-0.1.2-train-07686/receipt.json": "8fd11378e8a9b6402056e6a45a81769dd5b30a2e5213caf494abf76f85446842",
+  "/root/autodl-tmp/vsmt_caches/s3-02-instance-3f6ef1d/validation/procthor10k-0.1.2-train-07918/receipt.json": "d3d2d04c34dcbcec462f1ffa892ed977803ba0626d599acdb405fc51db39aba0",
+  "/root/autodl-tmp/vsmt_caches/s3-02-instance-3f6ef1d/validation/procthor10k-0.1.2-train-08029/receipt.json": "fef93e6bbe2216939690d9cbc905e5ba4e22312c7867a225826fea7823c67d1e",
+  "/root/autodl-tmp/vsmt_caches/s3-02-instance-3f6ef1d/validation/procthor10k-0.1.2-train-08194/receipt.json": "d4b206e57ab2389a2a704c17a03aeb0213640ec0618062e440a687f5e3006dce",
+  "/root/autodl-tmp/vsmt_caches/s3-02-instance-3f6ef1d/validation/procthor10k-0.1.2-train-08800/receipt.json": "f6c2077573163e2d303ce02e6ef9c426c9a90ef71926c93a59c92fd7952b498a",
+  "/root/autodl-tmp/vsmt_caches/s3-02-instance-3f6ef1d/validation/procthor10k-0.1.2-train-09834/receipt.json": "26235aa88b05187311609f64ac02161b4098e34601a2384fee6f95535c3c0fbc",
+  "/root/autodl-tmp/vsmt_caches/s3-02-instance-3f6ef1d/validation/procthor10k-0.1.2-train-09920/receipt.json": "963d5fda361e35677e33193b29d46dd3218628728ee9fcc06f9906791ed2ea82",
+  "/root/autodl-tmp/vsmt_caches/s3-02-sam2-3f6ef1d/validation/procthor10k-0.1.2-train-00269/receipt.json": "f83e481a7098fdc34d5c05b4c8b8a5f84f9292dff6ed5f1916ddbde70091952e",
+  "/root/autodl-tmp/vsmt_caches/s3-02-sam2-3f6ef1d/validation/procthor10k-0.1.2-train-00359/receipt.json": "2e1a3bf2779d9deb6690a5820cfc57a7f4d9e31e4fcc93adf5a10186dea38427",
+  "/root/autodl-tmp/vsmt_caches/s3-02-sam2-3f6ef1d/validation/procthor10k-0.1.2-train-00405/receipt.json": "145f470def542b30cee7526a57f571e8f7048bb84ccada6b47049291412f75df",
+  "/root/autodl-tmp/vsmt_caches/s3-02-sam2-3f6ef1d/validation/procthor10k-0.1.2-train-00974/receipt.json": "68d2c8f97db1be4e8802c66718b7c08d9e9985a7d3e5af34d006bcfe6fd2d99d",
+  "/root/autodl-tmp/vsmt_caches/s3-02-sam2-3f6ef1d/validation/procthor10k-0.1.2-train-01079/receipt.json": "b46cab727be15b4559371aa4859bae7508ff981edd4408a0e779a6dcb1683c48",
+  "/root/autodl-tmp/vsmt_caches/s3-02-sam2-3f6ef1d/validation/procthor10k-0.1.2-train-01541/receipt.json": "835f248941ab3c05c61c86a6ce62aff57f9752d6ea608b08dffdb2e9ccf73c28",
+  "/root/autodl-tmp/vsmt_caches/s3-02-sam2-3f6ef1d/validation/procthor10k-0.1.2-train-01784/receipt.json": "842fdae04c6e33d7b9ace18bdc920b858ddcc40272d3d923317f3910abb544ff",
+  "/root/autodl-tmp/vsmt_caches/s3-02-sam2-3f6ef1d/validation/procthor10k-0.1.2-train-01857/receipt.json": "e6e5ea55e39890965d1e10eba58b9f61500df55487dedac704b356e155e088a2",
+  "/root/autodl-tmp/vsmt_caches/s3-02-sam2-3f6ef1d/validation/procthor10k-0.1.2-train-01923/receipt.json": "c0b0871e7393950def8893673f3f775f3a458947588e9330ca87a46fc4edb10f",
+  "/root/autodl-tmp/vsmt_caches/s3-02-sam2-3f6ef1d/validation/procthor10k-0.1.2-train-02047/receipt.json": "6b51eaee74dd773c0f9b94291f7eb1d01b19dbe086460a06ed9973886ef1fb67",
+  "/root/autodl-tmp/vsmt_caches/s3-02-sam2-3f6ef1d/validation/procthor10k-0.1.2-train-02126/receipt.json": "882d847b565da315e60d1b73f7644096f4eee6fbd667c84c5a96b116fd10181e",
+  "/root/autodl-tmp/vsmt_caches/s3-02-sam2-3f6ef1d/validation/procthor10k-0.1.2-train-02257/receipt.json": "5d0f2e2082ec4d22ed1109dc9819a731ee1aa0d5367d5de27cebfad13656238b",
+  "/root/autodl-tmp/vsmt_caches/s3-02-sam2-3f6ef1d/validation/procthor10k-0.1.2-train-02318/receipt.json": "8c1090895486fda59da9e9c1ceb9749c249bd9f3c34852a85ed1de4ec5cdf440",
+  "/root/autodl-tmp/vsmt_caches/s3-02-sam2-3f6ef1d/validation/procthor10k-0.1.2-train-02334/receipt.json": "52f5b1c4c5ec1d00c0d6ecf48a5d15a4e01a7aec3dc4539a25ad76eb8d5b509e",
+  "/root/autodl-tmp/vsmt_caches/s3-02-sam2-3f6ef1d/validation/procthor10k-0.1.2-train-02381/receipt.json": "293ef222101ef8a7ef584b12767432cdf4897fb3c42bd8547a2be674147b0158",
+  "/root/autodl-tmp/vsmt_caches/s3-02-sam2-3f6ef1d/validation/procthor10k-0.1.2-train-02522/receipt.json": "c7159be3dd51a8c2bc74a36fd26554fb9cb0aa21c8c3556184194c696e57211e",
+  "/root/autodl-tmp/vsmt_caches/s3-02-sam2-3f6ef1d/validation/procthor10k-0.1.2-train-03137/receipt.json": "ca025a83a2de12e580f5cb97a34998a9056adcee398783ce62e31ff348106d0f",
+  "/root/autodl-tmp/vsmt_caches/s3-02-sam2-3f6ef1d/validation/procthor10k-0.1.2-train-03949/receipt.json": "b047488837e738ad16ee98aa7dcdd33540f8b046de46b16acde3398efd663382",
+  "/root/autodl-tmp/vsmt_caches/s3-02-sam2-3f6ef1d/validation/procthor10k-0.1.2-train-04188/receipt.json": "78eb5b2551ba63e31ce85e5ab2cdf9f26af3db3a54d198976c9f469fafe05a07",
+  "/root/autodl-tmp/vsmt_caches/s3-02-sam2-3f6ef1d/validation/procthor10k-0.1.2-train-04283/receipt.json": "82c077100f22ad2d9710d335595c4a969f2a9f1800cb98d45a9b644e4ca83ecb",
+  "/root/autodl-tmp/vsmt_caches/s3-02-sam2-3f6ef1d/validation/procthor10k-0.1.2-train-04409/receipt.json": "823f7e0a14a1ee86174ab9fed51bee2e7a3788f78169264895b59b911779220f",
+  "/root/autodl-tmp/vsmt_caches/s3-02-sam2-3f6ef1d/validation/procthor10k-0.1.2-train-04497/receipt.json": "77398f91d2eb49cd9275e40372002ba66ed763dffbaef967776e80ec79499fae",
+  "/root/autodl-tmp/vsmt_caches/s3-02-sam2-3f6ef1d/validation/procthor10k-0.1.2-train-04625/receipt.json": "bf6ca2c4a7b704741f8de43970947099555b0abd68bb39b1e7123733424b2a3f",
+  "/root/autodl-tmp/vsmt_caches/s3-02-sam2-3f6ef1d/validation/procthor10k-0.1.2-train-05042/receipt.json": "ed2c025d13462c6d2cc6b7a2a51f489c7f35b5cefd9d781d947417d791566414",
+  "/root/autodl-tmp/vsmt_caches/s3-02-sam2-3f6ef1d/validation/procthor10k-0.1.2-train-05667/receipt.json": "75b4def13b2f65cab95e673de0f0c8248a2d269bebb3132d105813a2a9f38987",
+  "/root/autodl-tmp/vsmt_caches/s3-02-sam2-3f6ef1d/validation/procthor10k-0.1.2-train-05751/receipt.json": "430420c7cdf4bc3a23f6dddf259004363a2ec5975b9ca2ea44540af42b5041a0",
+  "/root/autodl-tmp/vsmt_caches/s3-02-sam2-3f6ef1d/validation/procthor10k-0.1.2-train-06101/receipt.json": "c83f3013b59f1eee38e88f5c2b60d9f5deb810d362fb51c69dbbb892b4b66b3a",
+  "/root/autodl-tmp/vsmt_caches/s3-02-sam2-3f6ef1d/validation/procthor10k-0.1.2-train-06177/receipt.json": "929661474187a67cba856149c894f8d03ad7476b684df27b287eae3544e69364",
+  "/root/autodl-tmp/vsmt_caches/s3-02-sam2-3f6ef1d/validation/procthor10k-0.1.2-train-06303/receipt.json": "44089259d1cee0a42ede9dd627f20f7f00dd11fe6cd924901357af767e82a2fe",
+  "/root/autodl-tmp/vsmt_caches/s3-02-sam2-3f6ef1d/validation/procthor10k-0.1.2-train-06317/receipt.json": "87e99cb8cf1c6ab530e768f0ef561a46470be7ea72849a4719792c2e6fe493d9",
+  "/root/autodl-tmp/vsmt_caches/s3-02-sam2-3f6ef1d/validation/procthor10k-0.1.2-train-06796/receipt.json": "52a61d41be29f4b961c550ef9310c7647702a64ab85575388f681bdc632c947c",
+  "/root/autodl-tmp/vsmt_caches/s3-02-sam2-3f6ef1d/validation/procthor10k-0.1.2-train-06894/receipt.json": "389e1e969f8dcda08226b028883a7a595cdd6c63a85df27a5466992ace7098ff",
+  "/root/autodl-tmp/vsmt_caches/s3-02-sam2-3f6ef1d/validation/procthor10k-0.1.2-train-07277/receipt.json": "8cecb385dcf8c8465ec5997d60a438fd40c5a4091246c813b53ed411b796d2e2",
+  "/root/autodl-tmp/vsmt_caches/s3-02-sam2-3f6ef1d/validation/procthor10k-0.1.2-train-07336/receipt.json": "2a9e3775f9d1d4a8cd6da0edd74f41dba8254f1b67a8dc299c5dd1b5ea5ef082",
+  "/root/autodl-tmp/vsmt_caches/s3-02-sam2-3f6ef1d/validation/procthor10k-0.1.2-train-07464/receipt.json": "b7a5a267e50abc2ac329d2d464c080aceb73c9f10fdbc216d08ffe427f2619f3",
+  "/root/autodl-tmp/vsmt_caches/s3-02-sam2-3f6ef1d/validation/procthor10k-0.1.2-train-07621/receipt.json": "15292cdd75c85eee6b8c352b24009898ebffc5b5958bfb73d5cd9497d8ffcb0a",
+  "/root/autodl-tmp/vsmt_caches/s3-02-sam2-3f6ef1d/validation/procthor10k-0.1.2-train-07686/receipt.json": "be4e66dd42ae4eb0c0632fad778ec65f2f855beeb1b56886a7d9397fc82ba5cb",
+  "/root/autodl-tmp/vsmt_caches/s3-02-sam2-3f6ef1d/validation/procthor10k-0.1.2-train-07918/receipt.json": "2461d78d96b0a9f615284dfcb9b2bdb4eeff2a20464ada077445b12bad812c73",
+  "/root/autodl-tmp/vsmt_caches/s3-02-sam2-3f6ef1d/validation/procthor10k-0.1.2-train-08029/receipt.json": "cfc40dc9a99fde7ee574a2bd787c4e1474c9f3d5b0352eb5f72c9508aa696f8b",
+  "/root/autodl-tmp/vsmt_caches/s3-02-sam2-3f6ef1d/validation/procthor10k-0.1.2-train-08194/receipt.json": "bb971bd9794137ff16c8be94feed521bb1f112ad89a4f39f34dcfca8f9b7cd08",
+  "/root/autodl-tmp/vsmt_caches/s3-02-sam2-3f6ef1d/validation/procthor10k-0.1.2-train-08800/receipt.json": "4ae831e9b9ce9ccf6a28f6f10cef8fb8ea184c3e2d1735e119a9dbd761554c3b",
+  "/root/autodl-tmp/vsmt_caches/s3-02-sam2-3f6ef1d/validation/procthor10k-0.1.2-train-09834/receipt.json": "f9443f7318e81fb43473c5a894dc9191c33abea95fd4f02225b2a5e3c54d0513",
+  "/root/autodl-tmp/vsmt_caches/s3-02-sam2-3f6ef1d/validation/procthor10k-0.1.2-train-09920/receipt.json": "dcd257f0f9e0769e04bd34a84101c1eafacb170336f0cdbdb973e95550d49425",
+  "/root/autodl-tmp/vsmt_private/s3-03-run/instance/merged/AssocOnly-c00-s19.json": "33aa13d57fd2cac24a8d36b08a0a19de669fa41e3379f222ecc137ea0e72dd02",
+  "/root/autodl-tmp/vsmt_private/s3-03-run/instance/merged/AssocOnly-c00-s31.json": "56a0a329f52c346ef68fadd4ecd64b5b717e3227ef5970d3d20ddd72ad81c929",
+  "/root/autodl-tmp/vsmt_private/s3-03-run/instance/merged/AssocOnly-c00-s43.json": "4c974e1382d2f7981581a1af61bfa2d65c6f0125e9a5c45d15af47799d64ad50",
+  "/root/autodl-tmp/vsmt_private/s3-03-run/instance/merged/AssocOnly-c00-s59.json": "c69e2858fd44f865cddfecfc44cd24bdf573d86ece7137f93689c38185f06d3c",
+  "/root/autodl-tmp/vsmt_private/s3-03-run/instance/merged/AssocOnly-c00-s7.json": "cc243ff78d44e76c47898ef74b84262b320826bd3baf808f003865536a879599",
+  "/root/autodl-tmp/vsmt_private/s3-03-run/instance/merged/ELU-P-c10.json": "e8a5a98fcfa5800a4b4c02b0232122da704d0bc7e53d7d403f51df8ec04ce41a",
+  "/root/autodl-tmp/vsmt_private/s3-03-run/instance/merged/HandCost-c07.json": "75b53d8460e26406ca7219e5af2da3cb28eafd7fd9dc74e921fbe1e4f184f2c4",
+  "/root/autodl-tmp/vsmt_private/s3-03-run/instance/merged/HeuristicLabel-c01-s19.json": "e4ecd7ffdb31718d4bcca8db40b81ded226ba8188200abb39ee48e008af3e4f2",
+  "/root/autodl-tmp/vsmt_private/s3-03-run/instance/merged/HeuristicLabel-c01-s31.json": "8a7debe32c386ba62284baa7595a68687c94f3bbb3db0ccc6dbb63c508f0e877",
+  "/root/autodl-tmp/vsmt_private/s3-03-run/instance/merged/HeuristicLabel-c01-s43.json": "41a751d798be2d66d113abaa74b5f3c906e18ef7822b1b53ad17590bb3509efc",
+  "/root/autodl-tmp/vsmt_private/s3-03-run/instance/merged/HeuristicLabel-c01-s59.json": "c2437f340efb2a46e299ce6e8f1f3fb6dae4dacab08061be6ac9f4233b463e36",
+  "/root/autodl-tmp/vsmt_private/s3-03-run/instance/merged/HeuristicLabel-c01-s7.json": "5d1847a686c999a497184ef932b19af50349896fe058a45a81718c134249b2e7",
+  "/root/autodl-tmp/vsmt_private/s3-03-run/instance/merged/LOW-c02.json": "7249eb25f764d47c9522158d735ca2c7507b9e467ec300ef9b7cce14181de2dd",
+  "/root/autodl-tmp/vsmt_private/s3-03-run/instance/merged/NoVersion-c09-s19.json": "b75bdbe0501267da96e7e2d6da090e080674d9490e23a229c651d031b5eb4fef",
+  "/root/autodl-tmp/vsmt_private/s3-03-run/instance/merged/NoVersion-c09-s31.json": "3f2b21e13e0e1d552bf2c0ce25b4687819a6d915957162154e1c0aa53ea90635",
+  "/root/autodl-tmp/vsmt_private/s3-03-run/instance/merged/NoVersion-c09-s43.json": "275f33cfb5012f1fc8f613fb4ae296046877eac54bba4f5465d864bfba704135",
+  "/root/autodl-tmp/vsmt_private/s3-03-run/instance/merged/NoVersion-c09-s59.json": "ba6f4a3fc4af4d070579234a7c26bcb77912a729d50303401bd404aacb439dc9",
+  "/root/autodl-tmp/vsmt_private/s3-03-run/instance/merged/NoVersion-c09-s7.json": "fbd3b8aa04e0a3731cb4b92d52875c1adba94bddc646cb9a14616b395e99885b",
+  "/root/autodl-tmp/vsmt_private/s3-03-run/instance/merged/RAC-c06.json": "83755c2eaefd09c07711c8546428c71ff5d919442a317787f43c46c28c6cd451",
+  "/root/autodl-tmp/vsmt_private/s3-03-run/instance/merged/TAF-c02.json": "a6cd9ebcbffaf737bd1fde9b9bff5901fcdc420a8905ca803ed66d46517d4764",
+  "/root/autodl-tmp/vsmt_private/s3-03-run/instance/merged/VSMT-lean-c08-s19.json": "0b5aebb6bf175d49b9a35839a83455bcbe98ec4144d168ebe0f8f5c655f62067",
+  "/root/autodl-tmp/vsmt_private/s3-03-run/instance/merged/VSMT-lean-c08-s31.json": "f219ec7c9b3acf839f4273ab32908f74f8df7f664a81c37522ab7ca3bb903044",
+  "/root/autodl-tmp/vsmt_private/s3-03-run/instance/merged/VSMT-lean-c08-s43.json": "449f34712a5ed08e2151b0a8ad8685a5e52cf110ece0400e08c82c11a8f4b88f",
+  "/root/autodl-tmp/vsmt_private/s3-03-run/instance/merged/VSMT-lean-c08-s59.json": "409e9c32a1cf12672abd168892974ef597aafd1bd7c6044887aa972cf787b9e7",
+  "/root/autodl-tmp/vsmt_private/s3-03-run/instance/merged/VSMT-lean-c08-s7.json": "c8d9f26f64c8a46ced7e458c9da53b24730fe51dcde7c33c59cae9a490d28d3a",
+  "/root/autodl-tmp/vsmt_private/s3-03-run/sam2/merged/AssocOnly-c00-s19.json": "63eb1113738401a7ef746a4ca4677ba475468818770ead14e739f5f67ebb8872",
+  "/root/autodl-tmp/vsmt_private/s3-03-run/sam2/merged/AssocOnly-c00-s31.json": "8141e6394ab93b44c9ffd598fbe981fa0c5b9f2c580de8538899a921a4c19224",
+  "/root/autodl-tmp/vsmt_private/s3-03-run/sam2/merged/AssocOnly-c00-s43.json": "89c18ea2e918c39083790eede98a06fdf3f958eae9520cb09a063724e590376b",
+  "/root/autodl-tmp/vsmt_private/s3-03-run/sam2/merged/AssocOnly-c00-s59.json": "8afa9de136f303c3d53a44816dc854cb1deed52646ec3062ce628d45c036fd69",
+  "/root/autodl-tmp/vsmt_private/s3-03-run/sam2/merged/AssocOnly-c00-s7.json": "1e429213f880e013e5760001ad389ce5f5404f32dea42a94354d4ea733a46aa4",
+  "/root/autodl-tmp/vsmt_private/s3-03-run/sam2/merged/ELU-P-c10.json": "8fea6aa21f8fd3ec102089ae4dfbe3cd53e80e283fb1791a94dd43a0659b7ae0",
+  "/root/autodl-tmp/vsmt_private/s3-03-run/sam2/merged/HandCost-c02.json": "0f737313ca7efc2ff6bb398f99d86cd4b2c6df611901ff75733e99765242dc32",
+  "/root/autodl-tmp/vsmt_private/s3-03-run/sam2/merged/HeuristicLabel-c05-s19.json": "5af6222dfe7e80588371219020a0264d7c93558466c913d3d48de93c3dd3ae2a",
+  "/root/autodl-tmp/vsmt_private/s3-03-run/sam2/merged/HeuristicLabel-c05-s31.json": "6b3dc28eb42ab4491f5d91ea81323c4f3c6f01b3d4829869000af6127bba5f2b",
+  "/root/autodl-tmp/vsmt_private/s3-03-run/sam2/merged/HeuristicLabel-c05-s43.json": "46c469f90871ac4d48f7ea898037bcc7fe138a86c8a02543d6fe7c7a7a0c4205",
+  "/root/autodl-tmp/vsmt_private/s3-03-run/sam2/merged/HeuristicLabel-c05-s59.json": "9c03d00eca92bd7f78adef61d5f2e15c5362477962f8b6e9686241e53d43246e",
+  "/root/autodl-tmp/vsmt_private/s3-03-run/sam2/merged/HeuristicLabel-c05-s7.json": "d77d694b596587c65907529ad9e4bea65ae155e622e85b708770d3c7cadcdf0c",
+  "/root/autodl-tmp/vsmt_private/s3-03-run/sam2/merged/LOW-c03.json": "714174405f2e33756bf0d04876a131a2c8a7eeec7cc4210530874187c902a032",
+  "/root/autodl-tmp/vsmt_private/s3-03-run/sam2/merged/NoVersion-c02-s19.json": "39cb84ee495b2d3fa3228266777fb3e7edc3877e8a86b6708504360fdd32df45",
+  "/root/autodl-tmp/vsmt_private/s3-03-run/sam2/merged/NoVersion-c02-s31.json": "c0f3b61935b1ab2f89004b8ebf6db42d6de64a9028c2f35de70275f857daaac3",
+  "/root/autodl-tmp/vsmt_private/s3-03-run/sam2/merged/NoVersion-c02-s43.json": "afaa2d8bb5680de809fbf401695154d6d5dc63a654d6999eceea24c30afcb47c",
+  "/root/autodl-tmp/vsmt_private/s3-03-run/sam2/merged/NoVersion-c02-s59.json": "30d92eacf6dfca235895dc85e88c60c53d3016f879b2f09cd531e24caa5e6203",
+  "/root/autodl-tmp/vsmt_private/s3-03-run/sam2/merged/NoVersion-c02-s7.json": "48348ff620c4aab9d218edc8b1b5d9f607dfb2137771f67a923c7eaaaa63abcc",
+  "/root/autodl-tmp/vsmt_private/s3-03-run/sam2/merged/RAC-c06.json": "5613a64efb0ae61a2f4c633a6d82f005dd462ca7dc677d5b9fc70ffd797b310a",
+  "/root/autodl-tmp/vsmt_private/s3-03-run/sam2/merged/TAF-c03.json": "c2762020a4774c24d8b5a89e95e0e8c55f770d0097f323b881664cfe817ec702",
+  "/root/autodl-tmp/vsmt_private/s3-03-run/sam2/merged/VSMT-lean-c02-s19.json": "d8bac4e128d729a152886153a4d795abb75c1a6e6357ee440a52ce813d6a7479",
+  "/root/autodl-tmp/vsmt_private/s3-03-run/sam2/merged/VSMT-lean-c02-s31.json": "63a9ba2f01aa41d0c1dea7444d606c61267929a3e8ac9da90e6b59a176af85b8",
+  "/root/autodl-tmp/vsmt_private/s3-03-run/sam2/merged/VSMT-lean-c02-s43.json": "fb4f1ff3e35093dd66e545694abebd01e8fb0f2efeef83a3eb23c548e9844c3d",
+  "/root/autodl-tmp/vsmt_private/s3-03-run/sam2/merged/VSMT-lean-c02-s59.json": "b56e93f655d82e889d6ae252e3681ee0ca92cc18be2b9e51c345aa82dbd1b010",
+  "/root/autodl-tmp/vsmt_private/s3-03-run/sam2/merged/VSMT-lean-c02-s7.json": "c807418283ec66a80c603c8fa9fd2f99cfe7f199e3a9350c121a4d6c2a7a880d",
+  "results/vsmt_lean_llm_op_dea8c20.json": "f68cedf650b65bf8447974ce7a4c1610085bd4a927bdb4223f81b0dd47bf18af",
+  "results/vsmt_lean_s3_03_readings_instance_10f7013.json": "c4dd39180ceb0d56c5086b64a8e6c3dec18968c2b028a2eae53b3387f58e3ab1",
+  "results/vsmt_lean_s3_03_readings_sam2_10f7013.json": "67f14dab2b363511eea2e6117c53a02292a55e9b465865b961f5e55ffba6bbde",
+  "results/vsmt_lean_s3_04_freeze_dea8c20.json": "363266e401472436f91da9f97af8207be8615adfce6cbde4f7bfa6079364060b"
+ },
+ "problems": [],
+ "fronts": {
+  "instance": {
+   "episode_id": "procthor10k-0.1.2-train-08800",
+   "validation_episodes": 43,
+   "episode": {
+    "frames": 430,
+    "frames_percentile": 24.41860465116279,
+    "fragments_per_frame": 9.21860465116279,
+    "fragments_per_frame_percentile": 43.02325581395349,
+    "vsmt_lean_entities_in_memory_at_end": 70.8,
+    "vsmt_lean_entities_in_memory_at_end_percentile": 36.04651162790697
+   },
+   "llm_op": {
+    "node_f1": 0.6963149645019516,
+    "node_f1_iou": 0.37557242523895873,
+    "false_retract_rate": 0.9761904761904762,
+    "contamination_auc": 0.48973278891098687
+   },
+   "arms": {
+    "VSMT-lean": {
+     "config_index": 8,
+     "config": {
+      "tau_r": 0.8
+     },
+     "runs": [
+      "VSMT-lean-c08-s7.json",
+      "VSMT-lean-c08-s19.json",
+      "VSMT-lean-c08-s31.json",
+      "VSMT-lean-c08-s43.json",
+      "VSMT-lean-c08-s59.json"
+     ],
+     "node_f1": {
+      "episode_value": 0.8839274776373817,
+      "validation_mean": 0.8577308665345905,
+      "validation_sd": 0.05687870393496457,
+      "episodes_defined": 43,
+      "episode_percentile": 73.25581395348837
+     },
+     "node_f1_iou": {
+      "episode_value": 0.5130609118333369,
+      "validation_mean": 0.48520924742092675,
+      "validation_sd": 0.07927018395385108,
+      "episodes_defined": 43,
+      "episode_percentile": 68.6046511627907
+     },
+     "false_retract_rate": {
+      "episode_value": null,
+      "validation_mean": 0.2838751352813853,
+      "validation_sd": 0.3561880717426675,
+      "episodes_defined": 32,
+      "episode_percentile": null
+     },
+     "contamination_auc": {
+      "episode_value": 0.3025070823142263,
+      "validation_mean": 0.30175582017781466,
+      "validation_sd": 0.08447373003099488,
+      "episodes_defined": 43,
+      "episode_percentile": 43.02325581395349
+     }
+    },
+    "AssocOnly": {
+     "config_index": 0,
+     "config": {},
+     "runs": [
+      "AssocOnly-c00-s7.json",
+      "AssocOnly-c00-s19.json",
+      "AssocOnly-c00-s31.json",
+      "AssocOnly-c00-s43.json",
+      "AssocOnly-c00-s59.json"
+     ],
+     "node_f1": {
+      "episode_value": 0.9005399832199441,
+      "validation_mean": 0.8531763075505983,
+      "validation_sd": 0.05569124520077708,
+      "episodes_defined": 43,
+      "episode_percentile": 82.55813953488372
+     },
+     "node_f1_iou": {
+      "episode_value": 0.5187511264164537,
+      "validation_mean": 0.48128031612533256,
+      "validation_sd": 0.07764053977088592,
+      "episodes_defined": 43,
+      "episode_percentile": 68.6046511627907
+     },
+     "false_retract_rate": {
+      "episode_value": null,
+      "validation_mean": null,
+      "validation_sd": null,
+      "episodes_defined": 0,
+      "episode_percentile": null
+     },
+     "contamination_auc": {
+      "episode_value": 0.3076737792572709,
+      "validation_mean": 0.3097852518196827,
+      "validation_sd": 0.08185764226161182,
+      "episodes_defined": 43,
+      "episode_percentile": 43.02325581395349
+     }
+    },
+    "NoVersion": {
+     "config_index": 9,
+     "config": {
+      "tau_r": 0.9
+     },
+     "runs": [
+      "NoVersion-c09-s7.json",
+      "NoVersion-c09-s19.json",
+      "NoVersion-c09-s31.json",
+      "NoVersion-c09-s43.json",
+      "NoVersion-c09-s59.json"
+     ],
+     "node_f1": {
+      "episode_value": 0.8839274776373817,
+      "validation_mean": 0.858176742554893,
+      "validation_sd": 0.05623792147782163,
+      "episodes_defined": 43,
+      "episode_percentile": 73.25581395348837
+     },
+     "node_f1_iou": {
+      "episode_value": 0.5130609118333369,
+      "validation_mean": 0.4851494385991403,
+      "validation_sd": 0.07914049875317264,
+      "episodes_defined": 43,
+      "episode_percentile": 68.6046511627907
+     },
+     "false_retract_rate": {
+      "episode_value": null,
+      "validation_mean": 0.1981765935214211,
+      "validation_sd": 0.303526027273705,
+      "episodes_defined": 29,
+      "episode_percentile": null
+     },
+     "contamination_auc": {
+      "episode_value": 0.3025070823142263,
+      "validation_mean": 0.301383382377888,
+      "validation_sd": 0.08415591779201219,
+      "episodes_defined": 43,
+      "episode_percentile": 45.348837209302324
+     }
+    },
+    "HeuristicLabel": {
+     "config_index": 1,
+     "config": {
+      "tau_r": 0.2
+     },
+     "runs": [
+      "HeuristicLabel-c01-s7.json",
+      "HeuristicLabel-c01-s19.json",
+      "HeuristicLabel-c01-s31.json",
+      "HeuristicLabel-c01-s43.json",
+      "HeuristicLabel-c01-s59.json"
+     ],
+     "node_f1": {
+      "episode_value": 0.6669607462203263,
+      "validation_mean": 0.6485688446318525,
+      "validation_sd": 0.05355907422092235,
+      "episodes_defined": 43,
+      "episode_percentile": 66.27906976744185
+     },
+     "node_f1_iou": {
+      "episode_value": 0.4435966911387593,
+      "validation_mean": 0.4076904495052264,
+      "validation_sd": 0.0636134542363909,
+      "episodes_defined": 43,
+      "episode_percentile": 77.90697674418605
+     },
+     "false_retract_rate": {
+      "episode_value": 1.0,
+      "validation_mean": 0.9389332633025987,
+      "validation_sd": 0.10582981488774756,
+      "episodes_defined": 43,
+      "episode_percentile": 84.88372093023256
+     },
+     "contamination_auc": {
+      "episode_value": 0.33019227126837786,
+      "validation_mean": 0.3028108145514821,
+      "validation_sd": 0.08153717707894576,
+      "episodes_defined": 43,
+      "episode_percentile": 50.0
+     }
+    },
+    "HandCost": {
+     "config_index": 7,
+     "config": {
+      "theta_b": 0.7,
+      "rho_h": 0.9
+     },
+     "runs": [
+      "HandCost-c07.json"
+     ],
+     "node_f1": {
+      "episode_value": 0.6636853153235376,
+      "validation_mean": 0.6348868671425492,
+      "validation_sd": 0.059230906077701796,
+      "episodes_defined": 43,
+      "episode_percentile": 75.5813953488372
+     },
+     "node_f1_iou": {
+      "episode_value": 0.44186364880898055,
+      "validation_mean": 0.40283745312505065,
+      "validation_sd": 0.06562659870299203,
+      "episodes_defined": 43,
+      "episode_percentile": 80.23255813953489
+     },
+     "false_retract_rate": {
+      "episode_value": 1.0,
+      "validation_mean": 0.9149062033233484,
+      "validation_sd": 0.17465851059962006,
+      "episodes_defined": 42,
+      "episode_percentile": 86.9047619047619
+     },
+     "contamination_auc": {
+      "episode_value": 0.3463963420177675,
+      "validation_mean": 0.31137834142459336,
+      "validation_sd": 0.08521372823573084,
+      "episodes_defined": 43,
+      "episode_percentile": 52.325581395348834
+     }
+    },
+    "TAF": {
+     "config_index": 2,
+     "config": {
+      "theta_a": 0.6,
+      "d_a": 1.0
+     },
+     "runs": [
+      "TAF-c02.json"
+     ],
+     "node_f1": {
+      "episode_value": 0.6567164179104477,
+      "validation_mean": 0.6766318501006406,
+      "validation_sd": 0.057386558001997594,
+      "episodes_defined": 43,
+      "episode_percentile": 36.04651162790697
+     },
+     "node_f1_iou": {
+      "episode_value": 0.4514696456368465,
+      "validation_mean": 0.4314575290690314,
+      "validation_sd": 0.059900587593597794,
+      "episodes_defined": 43,
+      "episode_percentile": 73.25581395348837
+     },
+     "false_retract_rate": {
+      "episode_value": null,
+      "validation_mean": null,
+      "validation_sd": null,
+      "episodes_defined": 0,
+      "episode_percentile": null
+     },
+     "contamination_auc": {
+      "episode_value": 0.36876248978137416,
+      "validation_mean": 0.3143514337583232,
+      "validation_sd": 0.07485516920285287,
+      "episodes_defined": 43,
+      "episode_percentile": 80.23255813953489
+     }
+    },
+    "ELU-P": {
+     "config_index": 10,
+     "config": {
+      "theta_a": 0.7,
+      "d_a": 1.0,
+      "free_space_weight": 2.0,
+      "retract_threshold": 0.0
+     },
+     "runs": [
+      "ELU-P-c10.json"
+     ],
+     "node_f1": {
+      "episode_value": 0.6408154831599974,
+      "validation_mean": 0.678785309750042,
+      "validation_sd": 0.056930683226945944,
+      "episodes_defined": 43,
+      "episode_percentile": 19.767441860465116
+     },
+     "node_f1_iou": {
+      "episode_value": 0.4357049383566361,
+      "validation_mean": 0.4257751293918723,
+      "validation_sd": 0.06277102749693629,
+      "episodes_defined": 43,
+      "episode_percentile": 66.27906976744185
+     },
+     "false_retract_rate": {
+      "episode_value": 1.0,
+      "validation_mean": 0.9711261116508623,
+      "validation_sd": 0.04874609012503324,
+      "episodes_defined": 43,
+      "episode_percentile": 89.53488372093024
+     },
+     "contamination_auc": {
+      "episode_value": 0.3862581800509588,
+      "validation_mean": 0.3107813281830216,
+      "validation_sd": 0.08056674305269616,
+      "episodes_defined": 43,
+      "episode_percentile": 91.86046511627907
+     }
+    },
+    "RAC": {
+     "config_index": 6,
+     "config": {
+      "theta_a": 0.7,
+      "d_a": 1.0,
+      "rho_rac": 0.7,
+      "n_rac": 2
+     },
+     "runs": [
+      "RAC-c06.json"
+     ],
+     "node_f1": {
+      "episode_value": 0.6636229877098839,
+      "validation_mean": 0.6568462817049703,
+      "validation_sd": 0.05749841856880236,
+      "episodes_defined": 43,
+      "episode_percentile": 61.627906976744185
+     },
+     "node_f1_iou": {
+      "episode_value": 0.45633546823610877,
+      "validation_mean": 0.41964872274073767,
+      "validation_sd": 0.06370750062094936,
+      "episodes_defined": 43,
+      "episode_percentile": 80.23255813953489
+     },
+     "false_retract_rate": {
+      "episode_value": 1.0,
+      "validation_mean": 0.8964007948008805,
+      "validation_sd": 0.22296693515351038,
+      "episodes_defined": 42,
+      "episode_percentile": 88.0952380952381
+     },
+     "contamination_auc": {
+      "episode_value": 0.344117965024488,
+      "validation_mean": 0.29982709410620706,
+      "validation_sd": 0.07594487038298951,
+      "episodes_defined": 43,
+      "episode_percentile": 70.93023255813954
+     }
+    },
+    "LOW": {
+     "config_index": 2,
+     "config": {
+      "d_low": 0.5
+     },
+     "runs": [
+      "LOW-c02.json"
+     ],
+     "node_f1": {
+      "episode_value": 0.7620081554837685,
+      "validation_mean": 0.7724455710289498,
+      "validation_sd": 0.05353017717382132,
+      "episodes_defined": 43,
+      "episode_percentile": 40.69767441860465
+     },
+     "node_f1_iou": {
+      "episode_value": 0.48016734629031405,
+      "validation_mean": 0.4554800704792413,
+      "validation_sd": 0.06748785774808229,
+      "episodes_defined": 43,
+      "episode_percentile": 73.25581395348837
+     },
+     "false_retract_rate": {
+      "episode_value": null,
+      "validation_mean": null,
+      "validation_sd": null,
+      "episodes_defined": 0,
+      "episode_percentile": null
+     },
+     "contamination_auc": {
+      "episode_value": 0.43306803504163316,
+      "validation_mean": 0.35973006458489676,
+      "validation_sd": 0.07912044030625268,
+      "episodes_defined": 43,
+      "episode_percentile": 89.53488372093024
+     }
+    }
+   }
+  },
+  "sam2": {
+   "episode_id": "procthor10k-0.1.2-train-08800",
+   "validation_episodes": 43,
+   "episode": {
+    "frames": 430,
+    "frames_percentile": 24.41860465116279,
+    "fragments_per_frame": 10.57906976744186,
+    "fragments_per_frame_percentile": 63.95348837209303,
+    "vsmt_lean_entities_in_memory_at_end": 121.0,
+    "vsmt_lean_entities_in_memory_at_end_percentile": 36.04651162790697
+   },
+   "llm_op": {
+    "node_f1": 0.43376333947627826,
+    "node_f1_iou": 0.209145844940642,
+    "false_retract_rate": 0.9823321554770318,
+    "contamination_auc": 0.5315212294991393
+   },
+   "arms": {
+    "VSMT-lean": {
+     "config_index": 2,
+     "config": {
+      "tau_r": 0.25
+     },
+     "runs": [
+      "VSMT-lean-c02-s7.json",
+      "VSMT-lean-c02-s19.json",
+      "VSMT-lean-c02-s31.json",
+      "VSMT-lean-c02-s43.json",
+      "VSMT-lean-c02-s59.json"
+     ],
+     "node_f1": {
+      "episode_value": 0.5347943443245295,
+      "validation_mean": 0.527778638291965,
+      "validation_sd": 0.061950358163584414,
+      "episodes_defined": 43,
+      "episode_percentile": 56.97674418604651
+     },
+     "node_f1_iou": {
+      "episode_value": 0.2778247058890451,
+      "validation_mean": 0.24691906415784487,
+      "validation_sd": 0.043320844010325085,
+      "episodes_defined": 43,
+      "episode_percentile": 73.25581395348837
+     },
+     "false_retract_rate": {
+      "episode_value": 0.9428571428571428,
+      "validation_mean": 0.6594687382592842,
+      "validation_sd": 0.2564854493012905,
+      "episodes_defined": 37,
+      "episode_percentile": 95.94594594594595
+     },
+     "contamination_auc": {
+      "episode_value": 0.5088525812128056,
+      "validation_mean": 0.4444145137313742,
+      "validation_sd": 0.08819334359858301,
+      "episodes_defined": 43,
+      "episode_percentile": 82.55813953488372
+     }
+    },
+    "AssocOnly": {
+     "config_index": 0,
+     "config": {},
+     "runs": [
+      "AssocOnly-c00-s7.json",
+      "AssocOnly-c00-s19.json",
+      "AssocOnly-c00-s31.json",
+      "AssocOnly-c00-s43.json",
+      "AssocOnly-c00-s59.json"
+     ],
+     "node_f1": {
+      "episode_value": 0.5216370846055417,
+      "validation_mean": 0.5189985567015599,
+      "validation_sd": 0.06041887399182105,
+      "episodes_defined": 43,
+      "episode_percentile": 52.325581395348834
+     },
+     "node_f1_iou": {
+      "episode_value": 0.27879149363108324,
+      "validation_mean": 0.2485206704036199,
+      "validation_sd": 0.04305017799965028,
+      "episodes_defined": 43,
+      "episode_percentile": 75.5813953488372
+     },
+     "false_retract_rate": {
+      "episode_value": null,
+      "validation_mean": null,
+      "validation_sd": null,
+      "episodes_defined": 0,
+      "episode_percentile": null
+     },
+     "contamination_auc": {
+      "episode_value": 0.49145535005052166,
+      "validation_mean": 0.44674982726250795,
+      "validation_sd": 0.08516999949235844,
+      "episodes_defined": 43,
+      "episode_percentile": 68.6046511627907
+     }
+    },
+    "NoVersion": {
+     "config_index": 2,
+     "config": {
+      "tau_r": 0.25
+     },
+     "runs": [
+      "NoVersion-c02-s7.json",
+      "NoVersion-c02-s19.json",
+      "NoVersion-c02-s31.json",
+      "NoVersion-c02-s43.json",
+      "NoVersion-c02-s59.json"
+     ],
+     "node_f1": {
+      "episode_value": 0.5287805713686139,
+      "validation_mean": 0.5303735142271574,
+      "validation_sd": 0.061798286471279364,
+      "episodes_defined": 43,
+      "episode_percentile": 54.651162790697676
+     },
+     "node_f1_iou": {
+      "episode_value": 0.2769676529951991,
+      "validation_mean": 0.24686726376521204,
+      "validation_sd": 0.04294524363172064,
+      "episodes_defined": 43,
+      "episode_percentile": 73.25581395348837
+     },
+     "false_retract_rate": {
+      "episode_value": 0.8933333333333333,
+      "validation_mean": 0.6657487535969936,
+      "validation_sd": 0.26660999761920584,
+      "episodes_defined": 37,
+      "episode_percentile": 90.54054054054055
+     },
+     "contamination_auc": {
+      "episode_value": 0.5070095574326876,
+      "validation_mean": 0.4440389511227578,
+      "validation_sd": 0.08977064923140994,
+      "episodes_defined": 43,
+      "episode_percentile": 82.55813953488372
+     }
+    },
+    "HeuristicLabel": {
+     "config_index": 5,
+     "config": {
+      "tau_r": 0.5
+     },
+     "runs": [
+      "HeuristicLabel-c05-s7.json",
+      "HeuristicLabel-c05-s19.json",
+      "HeuristicLabel-c05-s31.json",
+      "HeuristicLabel-c05-s43.json",
+      "HeuristicLabel-c05-s59.json"
+     ],
+     "node_f1": {
+      "episode_value": 0.3906628882817992,
+      "validation_mean": 0.40809433465075495,
+      "validation_sd": 0.05036428831918437,
+      "episodes_defined": 43,
+      "episode_percentile": 29.069767441860463
+     },
+     "node_f1_iou": {
+      "episode_value": 0.22818889089699704,
+      "validation_mean": 0.21971251411193352,
+      "validation_sd": 0.040016121666716926,
+      "episodes_defined": 43,
+      "episode_percentile": 63.95348837209303
+     },
+     "false_retract_rate": {
+      "episode_value": 0.9851598205207397,
+      "validation_mean": 0.965009612451776,
+      "validation_sd": 0.05643829420015802,
+      "episodes_defined": 42,
+      "episode_percentile": 46.42857142857143
+     },
+     "contamination_auc": {
+      "episode_value": 0.45376050997921025,
+      "validation_mean": 0.3769024229110554,
+      "validation_sd": 0.0888118928634429,
+      "episodes_defined": 43,
+      "episode_percentile": 84.88372093023256
+     }
+    },
+    "HandCost": {
+     "config_index": 2,
+     "config": {
+      "theta_b": 0.6,
+      "rho_h": 0.8
+     },
+     "runs": [
+      "HandCost-c02.json"
+     ],
+     "node_f1": {
+      "episode_value": 0.46128533093060153,
+      "validation_mean": 0.44235252348282167,
+      "validation_sd": 0.05519071628234003,
+      "episodes_defined": 43,
+      "episode_percentile": 68.6046511627907
+     },
+     "node_f1_iou": {
+      "episode_value": 0.2538930131432041,
+      "validation_mean": 0.23141224585767356,
+      "validation_sd": 0.0434618414089344,
+      "episodes_defined": 43,
+      "episode_percentile": 77.90697674418605
+     },
+     "false_retract_rate": {
+      "episode_value": 0.9868421052631579,
+      "validation_mean": 0.9636198306020927,
+      "validation_sd": 0.043744609524769745,
+      "episodes_defined": 43,
+      "episode_percentile": 77.90697674418605
+     },
+     "contamination_auc": {
+      "episode_value": 0.46651094928589093,
+      "validation_mean": 0.39378298740308576,
+      "validation_sd": 0.09538691525813142,
+      "episodes_defined": 43,
+      "episode_percentile": 82.55813953488372
+     }
+    },
+    "TAF": {
+     "config_index": 3,
+     "config": {
+      "theta_a": 0.6,
+      "d_a": 2.0
+     },
+     "runs": [
+      "TAF-c03.json"
+     ],
+     "node_f1": {
+      "episode_value": 0.4544246516305129,
+      "validation_mean": 0.45526123407175845,
+      "validation_sd": 0.05128770091426891,
+      "episodes_defined": 43,
+      "episode_percentile": 52.325581395348834
+     },
+     "node_f1_iou": {
+      "episode_value": 0.2676339606378394,
+      "validation_mean": 0.2413728650516254,
+      "validation_sd": 0.04141171082007721,
+      "episodes_defined": 43,
+      "episode_percentile": 82.55813953488372
+     },
+     "false_retract_rate": {
+      "episode_value": null,
+      "validation_mean": null,
+      "validation_sd": null,
+      "episodes_defined": 0,
+      "episode_percentile": null
+     },
+     "contamination_auc": {
+      "episode_value": 0.44988276828245416,
+      "validation_mean": 0.3841004030323992,
+      "validation_sd": 0.08362516409600793,
+      "episodes_defined": 43,
+      "episode_percentile": 84.88372093023256
+     }
+    },
+    "ELU-P": {
+     "config_index": 10,
+     "config": {
+      "theta_a": 0.7,
+      "d_a": 1.0,
+      "free_space_weight": 2.0,
+      "retract_threshold": 0.0
+     },
+     "runs": [
+      "ELU-P-c10.json"
+     ],
+     "node_f1": {
+      "episode_value": 0.4261248875536772,
+      "validation_mean": 0.43538999453148935,
+      "validation_sd": 0.04856551177086452,
+      "episodes_defined": 43,
+      "episode_percentile": 33.72093023255814
+     },
+     "node_f1_iou": {
+      "episode_value": 0.22384031773511887,
+      "validation_mean": 0.23045179713576935,
+      "validation_sd": 0.04142380148365441,
+      "episodes_defined": 43,
+      "episode_percentile": 43.02325581395349
+     },
+     "false_retract_rate": {
+      "episode_value": 0.9942528735632183,
+      "validation_mean": 0.9859742300949209,
+      "validation_sd": 0.019656859554864188,
+      "episodes_defined": 43,
+      "episode_percentile": 63.95348837209303
+     },
+     "contamination_auc": {
+      "episode_value": 0.4603365845052524,
+      "validation_mean": 0.39771566139013076,
+      "validation_sd": 0.08679116547182571,
+      "episodes_defined": 43,
+      "episode_percentile": 75.5813953488372
+     }
+    },
+    "RAC": {
+     "config_index": 6,
+     "config": {
+      "theta_a": 0.7,
+      "d_a": 1.0,
+      "rho_rac": 0.7,
+      "n_rac": 2
+     },
+     "runs": [
+      "RAC-c06.json"
+     ],
+     "node_f1": {
+      "episode_value": 0.42818228432252275,
+      "validation_mean": 0.4172429454929747,
+      "validation_sd": 0.04944413625105004,
+      "episodes_defined": 43,
+      "episode_percentile": 73.25581395348837
+     },
+     "node_f1_iou": {
+      "episode_value": 0.23615562107422128,
+      "validation_mean": 0.22693645419007777,
+      "validation_sd": 0.04279691732665026,
+      "episodes_defined": 43,
+      "episode_percentile": 61.627906976744185
+     },
+     "false_retract_rate": {
+      "episode_value": 0.990990990990991,
+      "validation_mean": 0.9681749382719579,
+      "validation_sd": 0.06579902154537054,
+      "episodes_defined": 42,
+      "episode_percentile": 60.714285714285715
+     },
+     "contamination_auc": {
+      "episode_value": 0.44020223761460403,
+      "validation_mean": 0.3877593821659173,
+      "validation_sd": 0.08077718581530338,
+      "episodes_defined": 43,
+      "episode_percentile": 77.90697674418605
+     }
+    },
+    "LOW": {
+     "config_index": 3,
+     "config": {
+      "d_low": 1.0
+     },
+     "runs": [
+      "LOW-c03.json"
+     ],
+     "node_f1": {
+      "episode_value": 0.4255420652147986,
+      "validation_mean": 0.5052611514649537,
+      "validation_sd": 0.055657798176364896,
+      "episodes_defined": 43,
+      "episode_percentile": 8.13953488372093
+     },
+     "node_f1_iou": {
+      "episode_value": 0.2812298738162822,
+      "validation_mean": 0.250311526070963,
+      "validation_sd": 0.04261461782530158,
+      "episodes_defined": 43,
+      "episode_percentile": 73.25581395348837
+     },
+     "false_retract_rate": {
+      "episode_value": null,
+      "validation_mean": null,
+      "validation_sd": null,
+      "episodes_defined": 0,
+      "episode_percentile": null
+     },
+     "contamination_auc": {
+      "episode_value": 0.5664237515154926,
+      "validation_mean": 0.5025985452894961,
+      "validation_sd": 0.07950331487210503,
+      "episodes_defined": 43,
+      "episode_percentile": 87.20930232558139
+     }
+    }
+   }
+  }
+ }
+}
