@@ -277,6 +277,36 @@ bash ops/vsmt/llm_op.sh export                       # results/vsmt_lean_llm_op_
 
 **怎样核对复现**：托管 API 的回答不能逐字节重现，所以复现靠存档：`replay-check` 只读存档、一次 API 都不调，同一代码在同一台机器上轨迹摘要与指标须与正式运行逐字节相同；它要在 `export` 之前跑（export 往 `results/` 写文件后 checkout 不再干净，回放的审计会拒绝）。论文写“DeepSeek V4.1-Flash（API，访问日期）”，模型名以每次回答返回的为准；账本只覆盖这个运行根里的存档，实际账单以 DeepSeek 控制台为准（节假日的非峰时价账本不计，只会高估）。
 
+## 论文结果与复现索引（S3-06，裁决 113-5）
+
+白话：这一节回答“论文里每一个数从哪个文件来、用哪条命令、在哪个提交上算出来”。输入是 `results/` 里已提交的各阶段导出，输出是下面这张“表／图 → 文件与字段 → 命令与提交”的索引，以及同一张索引的机器可读版本 `results/vsmt_lean_s3_06_paper_index_<tag>.json`（每个文件都重算 sha256，并与列出它的阶段 manifest 比对）。例如审稿人想核主表某一格，就按索引找到 `vsmt_lean_s3_05_statistics_8d58475.json` 的 `fronts.instance.main_table`，再用下面的复算命令从合并审计重算一遍。它不新增实验，也不替代上面各阶段的“怎样复现”。主张的写法见 METHOD 第二节“S3-05 之后的主张范围”。
+
+| 论文位置 | 内容 | 结果文件（`results/`）与字段 | 命令与提交 |
+|---|---|---|---|
+| 表 1／表 2 | 主表（实例分割／SAM 2.1）：9 个臂 × 节点 F1 两列、残留率、假撤回率两列、身份连续率、检索成功率、恢复延迟（附未恢复数）、污染 AUC，逐列有效 house 数 | `vsmt_lean_s3_05_statistics_8d58475.json` → `fronts.<前端>.main_table`、`exclusion_lists`；事件与分母计数在 `vsmt_lean_s3_06_reanalysis_<tag>.json` → `d4_counts`：与主表均值同一批 house 的在 `per_arm_kept_houses`，全部可用 episode 的绝对数（例如未恢复物体数，多数落在被排除的 house 上）在 `per_arm_all_houses` | S3-05（运行 `8d58475`，冻结 `dea8c20`，回执 `4fd08d4f…`）；复算见下 |
+| 表 3 | 主门固定顺序三步与原主门（只报告） | `fixed_sequence`、`fronts.<前端>.primary_gate`、`fronts.<前端>.original_gate` | S3-05 |
+| 表 4 | NoVersion、HandCost、HeuristicLabel、AssocOnly 对 VSMT-lean，逐指标的差值、双侧 90% 区间、单侧下界与 82-1（描述性） | `fronts.<前端>.comparisons`；AssocOnly 的全部指标在 `d2_assoc_only`，双侧区间在 `d3_intervals` | S3-05 ＋ 复算 |
+| 表 5 | TAF、ELU-P、RAC、LOW 对 VSMT-lean 的逐指标取舍（描述性） | `fronts.<前端>.comparisons`、`d3_intervals` | 同上 |
+| 表 6 | 三分解（每个臂按自己的决策数算占比，不跨臂排名） | `fronts.<前端>.decomposition_totals`、`d6_decomposition` | 同上 |
+| 表 7 | 规模与成本（每帧运行时间只作量级） | `fronts.<前端>.size_and_cost_episode_means`、`d7_size_and_cost` | 同上 |
+| 表 8 | 外部验证（3RScan validation，实例分割列；代理真值，不进主门） | 空位：等 S3-07 会话的导出 `vsmt_lean_s3_07_*` | `bash ops/vsmt/s3_07_external.sh audit`（分支 `s3-07-impl`） |
+| 图 2／图 3 | 残留率与节点 F1 的取舍；主门两项的逐 house 配对差 | 主表；`d5_per_house` | 画图脚本 planned |
+| 附录 | 选参与网格端点；选参曲线与训练回执（逐 epoch 分项损失）；数据清单与失败原因；功效与零效应校准；LLM-op（n＝1） | `vsmt_lean_s3_04_selection_{instance,sam2}_dea8c20.json`；`vsmt_lean_s3_03_{readings,trainings}_{instance,sam2}_10f7013.json`；`vsmt_lean_s3_02_*_3f6ef1d.json`；`vsmt_lean_s3_01_planning_6c57903.json`；`vsmt_lean_llm_op_dea8c20.json` | 见上面各阶段的“怎样复现”与 LLM-op 一节 |
+
+**怎样复算（L0：只用已提交的 `results/`，纯 CPU，不读 test 根，不连服务器）**：在一个 `src/`、`ops/`、`configs/` 与输入文件都没有未提交改动、输入都受 git 跟踪、`src/` 与 `configs/` 与冻结提交 `dea8c20` 相同的提交上，于仓库根目录运行
+
+```bash
+python ops/vsmt/s3_06_reanalysis.py run --workers 8
+```
+
+脚本先用冻结的 `lean_s3_05` 函数从两份合并审计逐值复现 `vsmt_lean_s3_05_statistics_8d58475.json`（`receipt_sha256`、`written_utc` 除外），不相等就以退出码 3 停下、只写差异所在的字段；相等才继续算 D2～D8，写出 `results/vsmt_lean_s3_06_reanalysis_<tag>.json` 与 `results/vsmt_lean_s3_06_paper_index_<tag>.json`（tag 是运行时的提交）。同一提交的输出已存在时拒绝覆盖，确要重写须加 `--replace`。退出码：0 完成；2 拒绝（代码或输入有未提交改动、输入不受 git 跟踪、输入缺失或与 manifest 不符、`src/` 或 `configs/` 与冻结提交不同、输出已存在）；3 复算不等；4 已写出、但某项一致性核对报了问题；1 意外错误（有 traceback）。D2～D8 都是看过 test 之后算的描述性读数，不作门、不做多重比较校正；D3、D5 的数是“优势”（正数对 VSMT-lean 有利，越低越好的指标已翻转符号）。本机 CPU 不稳，若运行崩溃或复算不等，改在无卡服务器上用同一命令重跑，不在本机反复重试。
+
+| 输入（只读） | 输出 |
+|---|---|
+| `vsmt_lean_s3_05_*_8d58475.json`（七个，按 S3-05 manifest 逐个核对 sha256，读统计、输入与两份合并审计）、`vsmt_lean_s3_04_{freeze,manifest}_dea8c20.json`（回执按 S3-04 manifest 核对） | D1 复算核对、D2 VSMT-lean 对 AssocOnly 的全部指标、D3 双侧 90% 区间、D4 事件与分母计数、D5 逐 house 配对差、D6 三分解占比、D7 规模与成本、D8 一致性核对；论文索引 |
+
+复现层级（与裁决 110 的 Hugging Face 四层对应）：L0 只用 `results/` 重算表 1～7 与图 2～3 用到的统计（上面这条命令；附录各表直接取各阶段已提交的导出，表 8 等 S3-07）；L1 用 test／validation 的原始 episode、几何、两套 cache 与权重重跑审计（HF T1；复现入口与读取记录的写法在 S3-05R 另定）；L2 用训练记录重训（HF T2）；L3 从 ProcTHOR-10K 起全部重跑（HF T3）。确定性边界：同一提交与同一 `TRAIN_THREADS` 的权重逐位相同（裁决 96，只在 Intel AVX-512＋MKL 上验证）；审计是确定的（S3-04 探针逐位一致）；生成器结构可复现、字节不保证（LOG-303）；SAM 2.1 cache 预期确定但未逐字节验证；LLM-op 靠调用存档回放逐字节一致。
+
 ## 实现与证据
 
 | 目录 | 职责 |
