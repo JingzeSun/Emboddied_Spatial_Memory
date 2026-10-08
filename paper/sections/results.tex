@@ -35,7 +35,7 @@ This front end segments almost perfectly, so the result concerns memory updates 
 With SAM~2.1 segmentation the reduction in stale entities holds (0.235 to 0.055; lower bound 0.135), but identity continuity does not improve (0.063 vs.\ 0.082; difference $-0.020$, lower bound $-0.049$, one of five seeds favourable); under the pre-registered fixed testing order the claim does not extend to both segmenters.
 This is not because VSMT-lean more often lacked a carrier before the move (35.0 of 132 events against 37.0 for \arm{AssocOnly}, seed means), and among events with a carrier it did not re-attach more objects either (conditional column, 35 houses: $-0.027$, 90\% interval $-0.080$ to $+0.021$).
 The difference is zero in 39 of 56 houses, favourable in 6 and unfavourable in 11; the runs record no per-event causes, so whether the failure arises in recall, association or retraction is not known.
-Identity continuity stays low in absolute terms: even with instance masks about four in five relocated objects are not re-attached to their pre-move identity.
+Identity continuity stays low: even with instance masks about four in five relocated objects are not re-attached.
 
 \textbf{Node F1} differs from the association-only ablation by $+0.003$ (90\% interval $-0.003$ to $+0.008$) with instance masks and by $+0.009$ ($+0.005$ to $+0.012$) with SAM~2.1; we report these as differences only, because no margin for an acceptable loss in node F1 was registered.
 VSMT-lean's large node-F1 lead over the rule-based arms is present in \arm{AssocOnly} as well; it comes with the learned association trained on instance-truth labels, not with the lifecycle operations.
@@ -46,13 +46,13 @@ VSMT-lean recovers many more of the changed objects that became observable (296 
 
 \subsection{Reversibility: retraction versus deletion}
 Replacing retraction by physical deletion with the same cost heads (\arm{NoVersion}, which selected $\tau_r=0.9$ versus 0.8 with instance masks and the same 0.25 with SAM~2.1) gives a slightly higher node F1 (by 0.001 and 0.003; the intervals of VSMT-lean's advantage, $-0.0016$ to $-0.0002$ and $-0.005$ to $-0.001$, both exclude zero) and a lower Missing residual rate (0.102 vs.\ 0.115; 0.029 vs.\ 0.055), but drops identity continuity to 0.006 (instance) and 0.014 (SAM~2.1), below even \arm{AssocOnly}'s 0.104 and 0.082; with SAM~2.1 \arm{NoVersion} has the highest node F1 (0.540) and lowest MRR (0.029) of all nine arms.
-On ProcTHOR, re-attachment depends on keeping the versions of retracted entities, at a small cost in stale entities, which were fewer for \arm{NoVersion} in all five seeds on both front ends (descriptive ablation, not corrected for multiplicity). This is consistent with identities being kept mainly by retracting and then reactivating the same identity (Fig.~\ref{fig:overview}), while fewer stale entities come from retraction itself; the runs do not record the path per event.
+On ProcTHOR, re-attachment depends on keeping the versions of retracted entities, at a small cost in stale entities, which were fewer for \arm{NoVersion} in all five seeds on both front ends (descriptive ablation, not corrected for multiplicity). This is consistent with identities being kept mainly by retracting, then reactivating (Fig.~\ref{fig:overview}), and fewer stale entities coming from retraction itself; the path per event is not recorded.
 
 \subsection{Source of supervision and learned costs}
 \label{sec:costs}
 With the same network and recipe, hindsight labels from instance ground truth give better values than labels copied from \arm{ELU-P}'s decisions (\arm{HeuristicLabel}) on every metric with instance masks; with SAM~2.1 they give better node F1, MRR and false-retract rates, but not identity continuity ($-0.044$), retrieval ($-0.023$) or contamination ($-0.065$, \arm{HeuristicLabel} better; Fig.~\ref{fig:comparisons}).
 Against hand-written costs in the same solver and vocabulary (\arm{HandCost}), learned costs mainly buy more accurate nodes ($+0.240$ and $+0.094$ F1) and far fewer false retractions; MRR is not separated ($-0.009$ and $+0.012$, intervals including zero).
-With SAM~2.1 \arm{HandCost} re-attaches and retrieves more relocated objects than VSMT-lean (identity continuity 0.207 vs.\ 0.063; retrieval 0.246 vs.\ 0.162), with node F1 0.443 and false-retract rate 0.960; its association uses only the descriptor cosine, while the learned head also sees distances and box overlap, and whether this helps far-moved objects re-attach is an untested hypothesis.
+With SAM~2.1 \arm{HandCost} re-attaches and retrieves more relocated objects than VSMT-lean (identity continuity 0.207 vs.\ 0.063; retrieval 0.246 vs.\ 0.162), with node F1 0.443 and false-retract rate 0.960; its association uses only the descriptor cosine, while the learned head also sees distances and box overlap; whether this matters for far-moved objects is untested.
 Because \arm{AssocOnly}'s association is trained with the same instance-truth labels, the gain over \arm{AssocOnly} is not evidence for hindsight supervision as such; the source of supervision is what \arm{HeuristicLabel} varies, and there the two front ends disagree.
 
 \subsection{Rule-based arms: trade-offs, not dominance}
@@ -71,19 +71,6 @@ VSMT-lean's in-scope false-retract rate (0.192 with instance masks, 0.564 with S
 Retrieval is higher than for \arm{TAF} and \arm{LOW}, but its advantage over \arm{ELU-P}, \arm{RAC} and \arm{HandCost} is not established (with SAM~2.1 it is below \arm{HandCost}).
 Contamination AUC is lower than for every rule arm with instance masks, but with SAM~2.1 VSMT-lean, \arm{NoVersion} and \arm{AssocOnly} (0.462--0.466) are above \arm{TAF}, \arm{ELU-P}, \arm{RAC}, \arm{HandCost} and \arm{HeuristicLabel} (0.397--0.419) and below \arm{LOW} only (0.517); the cause was not investigated.
 
-\subsection{Where the errors are, and memory size}
-In VSMT-lean's ledger, 1.1\% of decisions are recall misses, 6.8\% teacher errors and 7.9\% amortization errors with instance masks, and 1.5\%, 12.7\% and 14.5\% (plus 10.0\% duplicates) with SAM~2.1, where ambiguous labels about double, suggesting that part of the difficulty lies in the labels. Shares are not ranked across arms, which make different decisions, and the ledger does not attribute the gate results to error classes.
-VSMT-lean keeps fewer active entities per episode than \arm{AssocOnly} (66.5 vs.\ 105.1; 89.7 vs.\ 152.3 with SAM~2.1) but more lifecycle versions, opened by anything but a plain \op{BIND} (507 vs.\ 124; 904 vs.\ 281).
-
-\subsection{External check on 3RScan}
-\label{sec:external}
-3RScan~\cite{rio2019} contains real RGB-D scans of indoor scenes rescanned at different times, with annotated object changes; pairing a reference scan with a rescan gives 108 usable episodes in 46 validation scenes (no frames between the scans; poses from offline reconstruction).
-With instance masks rendered from the annotated meshes (proxy truth, from human annotation) and every configuration frozen, VSMT-lean has a higher node F1 than the association-only ablation ($+0.039$, 90\% interval $+0.022$ to $+0.056$) and leaves fewer stale entities, fewer false retractions and fewer lost identities than the rule-based arms; its advantages over the association-only ablation in Missing residual rate ($+0.026$, $-0.031$ to $+0.081$) and identity continuity ($+0.100$, $-0.004$ to $+0.221$; 11 scenes) are not established, and its contamination AUC is higher than that of every non-learned arm (Fig.~\ref{fig:comparisons}c).
-Against \arm{NoVersion}, identity continuity is again higher ($+0.087$, $+0.010$ to $+0.204$), but \arm{NoVersion} keeps far more identities here (0.351) than on ProcTHOR, and the other differences, MRR included, have intervals that include zero.
-Counter to ProcTHOR, \arm{LOW} has the highest node F1 (0.591; VSMT-lean $-0.009$, $-0.035$ to $+0.017$), \arm{AssocOnly}'s MRR is low (0.137 against 0.642 on ProcTHOR) and the rule arms' are high (0.46--0.69); the causes were not investigated.
-The SAM~2.1 column could not be computed with the frozen front end (3 of 110 episodes usable).
-This check does not show that the primary result reproduces on real data, nor how a learned segmenter or a real robot would fare.
-
 \begin{table}[t]
 \centering
 \caption{LLM-op and the Other Arms on One Validation Episode}
@@ -94,8 +81,21 @@ This check does not show that the primary result reproduces on real data, nor ho
 \input{tables/llm_op}
 
 \smallskip
-\parbox{\columnwidth}{\scriptsize Validation, one episode per front end, descriptive, no significance test; outside the test comparison, and no claim depends on it. LLM-op: DeepSeek-V4.1-Flash (API, accessed 2026-10-06) reads the sealed feature tables as text and picks a candidate or \op{BIRTH} per fragment, then \op{RETRACT} or \op{NOOP} per unmatched entity that should be visible. With about 16k (instance) and 37k (SAM~2.1) reasoning tokens per frame this 430-frame episode cost 19.26\,USD for both front ends, so one episode per front end (fixed before any call by a registered draw) was run instead of the registered 15; it has no identity, retrieval, residual or recovery events. (p$n$): percentile among the arm's 43 validation episodes (node F1 here is not unusual for most arms); n/d: undefined for some seed; --: never retracts.}
+\parbox{\columnwidth}{\scriptsize Validation, one episode per front end, descriptive, no significance test; outside the test comparison; no claim depends on it. LLM-op: DeepSeek-V4.1-Flash (API, accessed 2026-10-06) reads the sealed feature tables as text and picks a candidate or \op{BIRTH} per fragment, then \op{RETRACT} or \op{NOOP} per unmatched entity that should be visible. With about 16k (instance) and 37k (SAM~2.1) reasoning tokens per frame this 430-frame episode cost 19.26\,USD for both front ends, so one episode per front end (fixed before any call by a registered draw) was run instead of the registered 15; it has no identity, retrieval, residual or recovery events. (p$n$): percentile among the arm's 43 validation episodes (node F1 here is not unusual for most arms); n/d: undefined for some seed; --: never retracts.}
 \end{table}
+
+\subsection{Where the errors are, and memory size}
+In VSMT-lean's ledger, 1.1\% of decisions are recall misses, 6.8\% teacher errors and 7.9\% amortization errors with instance masks, and 1.5\%, 12.7\% and 14.5\% (plus 10.0\% duplicates) with SAM~2.1, where ambiguous labels about double, suggesting that part of the difficulty lies in the labels. Shares are not compared across arms, and the ledger does not attribute the gate results to error classes.
+VSMT-lean keeps fewer active entities per episode than \arm{AssocOnly} (66.5 vs.\ 105.1; 89.7 vs.\ 152.3 with SAM~2.1) but more lifecycle versions, opened by anything but a plain \op{BIND} (507 vs.\ 124; 904 vs.\ 281).
+
+\subsection{External check on 3RScan}
+\label{sec:external}
+3RScan~\cite{rio2019} contains real RGB-D scans of indoor scenes rescanned at different times, with annotated object changes; pairing a reference scan with a rescan gives 108 usable episodes in 46 validation scenes (no frames between the scans; poses from offline reconstruction).
+With instance masks rendered from the annotated meshes (proxy truth, from human annotation) and every configuration frozen, VSMT-lean has a higher node F1 than the association-only ablation ($+0.039$, 90\% interval $+0.022$ to $+0.056$) and leaves fewer stale entities, fewer false retractions and fewer lost identities than the rule-based arms; its advantages over the association-only ablation in Missing residual rate ($+0.026$, $-0.031$ to $+0.081$) and identity continuity ($+0.100$, $-0.004$ to $+0.221$; 11 scenes) are not established, and its contamination AUC is higher than that of every non-learned arm (Fig.~\ref{fig:comparisons}c).
+Against \arm{NoVersion}, identity continuity is again higher ($+0.087$, $+0.010$ to $+0.204$), but \arm{NoVersion} keeps far more identities here (0.351) than on ProcTHOR, and the other differences, MRR included, have intervals that include zero.
+Counter to ProcTHOR, \arm{LOW} has the highest node F1 (0.591; VSMT-lean $-0.009$, $-0.035$ to $+0.017$), \arm{AssocOnly}'s MRR is low (0.137 against 0.642 on ProcTHOR) and the rule arms' are high (0.46--0.69); the causes were not investigated.
+The SAM~2.1 column could not be computed with the frozen front end (3 of 110 episodes usable).
+This check does not show that the primary result reproduces on real data or with a learned segmenter.
 
 \textbf{Zero-training LLM operator.}
 A frozen LLM that picks the same operations from the same sealed feature tables without training (LLM-op, Table~\ref{tab:llm_op}) reached node F1 0.696 and 0.434 on its one validation episode per front end and retracted almost only objects that were still in place (false-retract rate 0.976 and 0.982), as did the retracting rule arms and the \arm{HandCost} and \arm{HeuristicLabel} ablations on that episode (0.985--1.000; VSMT-lean 0.943 and \arm{NoVersion} 0.893 with SAM~2.1); this single case does not show that LLM operators are generally worse than our method.

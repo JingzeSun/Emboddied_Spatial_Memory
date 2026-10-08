@@ -53,8 +53,6 @@ The association target is the entity carrying the fragment's object, or \op{BIRT
 Recall sets and association and birth features are sealed (digest A) before any ground-truth file is opened, assignments and existence features after the solve (digest B), and ground truth opens only against a record of both digests: the teacher can label sealed rows and columns but never create, remove or reorder candidates.
 The seal keeps labels from shaping what the method sees, so the training data contain only what the method could compute itself, and a candidate it failed to recall stays a counted miss.
 Every decision thus falls into exactly one class of a \emph{ledger}: \emph{recall miss} (the correct entity was not a candidate, so no choice could be right), \emph{teacher error} (the label itself is ambiguous), \emph{amortization error} (a clear label and the right candidate, but the heads chose otherwise), correct, unlabelled, or duplicate (a second fragment of an object already labelled in the frame, which no method can satisfy since an entity takes one fragment per frame).
-The ledger shows where errors arise; it does not by itself make a method better.
-
 \subsection{Compared arms}
 \label{sec:arms}
 
