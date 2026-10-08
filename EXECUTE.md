@@ -4,6 +4,8 @@
 
 ## 当前看板
 
+**2026-10-08 补记：S4 编译通过、LLM-op 附表补齐（LOG-311）**——E1 在 B1 只读导出（0 个问题）：LLM-op 那条 episode 在长度、色块密度与多数臂的节点 F1 上不反常，规则臂在这条上同样几乎全错撤；METHOD 追加两处更正；MiKTeX 编译 0 处溢出、12 页，正文与参考文献超 RA-L 上限约 2 页。
+
 **2026-10-08 补记：S4 论文英文稿 v0 已写出（LOG-310）**——`paper/`，RA-L 格式、未编译；主张按裁决 113 的措辞，表与图由脚本从已提交导出生成，参考文献逐条核实，独立复核的必改与应改已改；缺图 1、LLM-op 附表（E1）、作者与发布链接。
 
 **2026-10-08 补记：S3-07 外部验证读数已入库并接入论文索引（LOG-309）**——3RScan validation 实例分割列 46 个场景（代理真值、冻结配置、只描述）：对规则臂方向与 ProcTHOR 大体相同；对 AssocOnly 节点 F1 与污染 AUC 占优，残留率与身份连续率优势未确立；SAM 2.1 列不可算。主张表 V-07 由“未验证”改为“有描述性读数”。
@@ -5987,3 +5989,40 @@ D1～D3 只调用冻结的 `lean_s3_05`／`lean_teacher` 函数；D4、D6、D8 �
   - 提交与推送（问用户）。
   - 在有 TeX Live 的环境编译并按页数压缩。
   - E1 与图 1。
+
+### LOG-311：S4 落实用户「第 2～5 项全按推荐」——LLM-op 附录的对比读数（E1）在 B1 只读导出，这条 episode 对多数臂不反常、规则臂在这条上同样几乎全错撤；METHOD 追加两处更正；本机装 MiKTeX，稿件编译通过（0 处溢出，12 页，正文与参考文献约 10 页，超 RA-L 6＋2 页约 2 页）（2026-10-08 悉尼）
+
+- 类型：**只读导出＋文档更正＋编译**。用户 2026-10-08「推送 e422b4d、d9889a6、3aba063；第 2～5 项全按推荐」。三个提交已推到 origin 的 main 与 s1-02a-runner（ls-remote 均为 `3aba063`）。没有跑任何审计或训练，没有读 test，没有改 `src/`、`configs/` 与已有的 `results/`。
+- 白话：这一条做了三件事。一是给 LLM-op 附录补上“这条 episode 是不是特意挑的难题”的证据：把其他八个臂在同一条 validation episode 上的值，与各自在全部 validation 上的分布放在一起。二是把 LOG-310 查出的 METHOD 两处与代码、导出不一致的数追加更正。三是在本机装好 LaTeX，真正编出 PDF，看版面和页数。例如 TAF 在这条上的节点 F1 排在它自己 validation 分布的第 36 百分位，说明这条对 TAF 不算反常。它不是新的检验，也不改变任何主张。
+- **第 2 项：METHOD 更正**（`bb7e57f`，只追加，原句不改）：
+  - 第三节状态机后追加：`n_dormant` 冻结为连续 3 次错失（`lean_memory.DORMANCY_MISSED_OPPORTUNITY_LIMIT`，D-224-S1 裁决 67，与 `dea8c20` 相同）；`AssocOnly` 没有 dormant 状态。
+  - 第十一节末追加：零效应校准按种子标准差读。两级加 82-1 为 1.6%～5.8%；只按 house 在标准差 0 时是 3.8%～5.7%，0.10 时是 17%～33%。
+  - DATA 的“至多 10 件”留给正在改 DATA.md 的那个会话：它的改动还没提交，本条没碰。
+- **第 3 项：E1 只读导出**：
+  - 代码：`2b50a12` 新增 `ops/vsmt/s4_llm_op_context.py` 与 7 项测试。本机与 B1 上都通过。
+  - 送达：用 git bundle（`3aba063..2b50a12`）送到 B1，没有推送。B1 先从 origin 取到 `3aba063`。
+  - 运行目录：干净的 detached worktree `/root/autodl-tmp/vsmt_worktrees/s4-e1-2b50a12`。
+  - 命令：`nice -n 10 /root/miniconda3/bin/python3.12 ops/vsmt/s4_llm_op_context.py --run-root /root/autodl-tmp/vsmt_private/s3-03-run --cache-root instance=/root/autodl-tmp/vsmt_caches/s3-02-instance-3f6ef1d --cache-root sam2=/root/autodl-tmp/vsmt_caches/s3-02-sam2-3f6ef1d`。日志在 `vsmt_outputs/run_logs/s4-e1-2b50a12.log`。
+  - 结果：退出码 0，0 个问题。
+  - 用单进程，是因为全部输入只有 50 个合并审计（每个约 120 KB）加 86 份 cache 回执，几秒钟就读完，没有可并行的重任务。
+  - B1 上 HF 上传进程已不在（`hf_release.py` 不在进程表里，说明已结束）；本条没有碰它。
+  - 输入：S3-03 运行根里九个臂按 S3-04 冻结配置的合并 validation 审计（学习臂 5 个种子），以及 validation cache 回执（帧数、色块数）。
+  - 一致性核对：节点 F1、节点 F1（IoU）与污染 AUC 在 43 条上的均值，与已提交的 `vsmt_lean_s3_03_readings_*_10f7013.json` 相等（容差 1e-12），臂名、色块来源与 episode 清单都对得上。
+  - 导出 `results/vsmt_lean_s4_llm_op_context_2b50a12.json`：sha256 `a782888e…`，45,933 字节，B1 与本机相同，提交为 `4a37899`。
+- **E1 读数**（`train-08800`，validation 43 条；括号内是该臂在全部 validation 上的百分位，学习臂先取种子均值）：
+  - 这条 episode 本身：430 帧，第 24 百分位；每帧色块实例分割 9.2、SAM 2.1 10.6，分别为第 43、64 百分位。
+  - 节点 F1：实例分割上其他八个臂在第 20～83 百分位（ELU-P 20，AssocOnly 83）；SAM 2.1 上在第 29～73 百分位，只有 LOW 是第 8。LLM-op 0.696／0.434。
+  - 假撤回率：规则臂、HandCost 与 HeuristicLabel 在这条上为 0.985～1.000（两套前端）。VSMT-lean 在 SAM 2.1 上 0.943（第 96 百分位）；实例分割上有种子在这条没有可判撤回，所以不可算。LLM-op 0.976／0.982。
+  - 污染 AUC：规则臂在这条上偏高，实例分割第 71～92 百分位，SAM 2.1 第 76～87 百分位。
+- **能说明**（描述性，n＝1）：这条 episode 在长度、色块密度与多数臂的节点 F1 上不反常，没有证据显示它是对 LLM-op 特别不利的挑选。LLM-op 撤回几乎全错，但在这条上规则臂也一样，附录照写。
+- **不能说明**：LLM 方法整体好坏；这条 episode 能代表 validation（n＝1）；任何显著性。
+- **第 4 项：编译**：
+  - 安装：winget 在用户目录装好 MiKTeX，宏包按需自动安装。
+  - 新增 `paper/tools/build.sh`（pdflatex、bibtex、两遍 pdflatex，输出到不进版本库的 `paper/build/`）。
+  - 首次编译：11 页，4 处溢出（外部验证表最后一行、附录的长文件名与两张附表）。修正：外部验证表的优势与区间分两行；长文件名改用 `\path` 并允许在下划线处断行；两张附表收窄列距。现在 0 处溢出。
+  - 加入 LLM-op 附表后共 12 页：正文到第 9 页，参考文献在第 10 页，后面是附录。按 RA-L 6＋2 页（含参考文献），正文还要压约 2 页，附录投稿时移到补充材料。
+  - 其他表与图重跑都逐字节不变。
+- **第 5 项：标题**：保留 “Pre-Registered”；正文定义为项目内部登记，并披露修订经过（LOG-310）。投稿时仓库提交历史要能公开查验，否则改用备选标题。
+- 下一步：
+  - 推送 `bb7e57f`、`2b50a12`、`4a37899` 与本条及附录、编译相关的提交（问用户）。
+  - 压页方案（需用户定）、图 1、作者与发布链接。
