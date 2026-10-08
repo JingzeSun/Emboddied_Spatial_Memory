@@ -243,6 +243,24 @@ bash ops/vsmt/s3_05_test.sh status
 
 **工作机（107-3）**：解封之后才可能复制 test——`remote_hosts.py setup --run-root $AUTODL/vsmt_private/s3-05-run --kinds test`（B1→w4；w4 准入后可用 `--relay-from w4 --relay-key <w4 上能登录 w1 的密钥>` 接力到 w1，密钥放到 w4 上须用户同意），代码 worktree 同步到冻结提交；`admit --kinds test --reference-run-root $AUTODL/vsmt_private/s3-03-run`：在工作机上按封印逐文件核对 test（结果记进读取记录），并在冻结提交上重跑 S3-03 的 validation 审计逐位比对（不读 test）。作业池每 30 秒读 `<运行根>/hosts/`。
 
+## 怎样发布与下载 S3 产物（S3-05R，裁决 110）
+
+白话：S3 的产物分四层发到 Hugging Face，每层可单独下载：T0 结果与权重（`Jsun0632/vsmt-lean`，模型仓库）、T1 评估输入（validation 与 test 的原始 episode、几何、两套 cache，`Jsun0632/vsmt-lean-s3-eval`）、T2 训练与审计记录（S3-03、S3-05 运行根，`Jsun0632/vsmt-lean-s3-records`）、T3 训练输入（train 的同四类，`Jsun0632/vsmt-lean-s3-train`）。每条 episode 目录是一个确定性 tar（成员按路径排序、时间 0、属主 0/0、权限 644/755），清单 `MANIFEST.json` 记每一项的 sha256、字节数、恢复路径和目录树摘要（与 S3-02 test 封印同一算法）；上传前 test 每条对封印、cache 每条对 S3-02 导出，不一致就不上传。下载的人解包后重算树摘要即可逐字节核对；恢复路径与 B1 相同（`/root/autodl-tmp` 下），仓库脚本不用改路径。它不改任何结果，也不是新实验。
+
+发布（B1，先 `hf auth login`；脚本自己 `source /etc/network_turbo`；中断后同一命令续传）：
+
+```bash
+setsid nohup bash ops/vsmt/hf_release.sh T0 T1 > /root/autodl-tmp/vsmt_outputs/run_logs/hf-release.log 2>&1 < /dev/null &
+```
+
+每层依次：发布测试 → `plan` → `run`（打包、核对、按批上传，默认每批 20 GiB）→ `verify`（远端大小与 sha256 对清单，清单与仓库 revision 导出为 `vsmt_lean_hf_release_<层>_<提交>.json`）。先以 private 发布；逐文件核对并核实 ProcTHOR-10K、AI2-THOR 渲染图的再分发许可后才转 public。
+
+下载并恢复（任一机器）：
+
+```bash
+python ops/vsmt/hf_fetch.py --repo Jsun0632/vsmt-lean-s3-eval --repo-type dataset --revision <论文写明的提交> --select validation/instance_cache/ --dest /root/autodl-tmp
+```
+
 ## 怎样跑 LLM-op（附录臂，裁决 105）
 
 白话：LLM-op 回答审稿人必问的“零训练的大模型直接做记忆修订够不够”。输入是与其他臂逐字节相同的封存特征表（转成带表头的表格文本）和两段登记的指令，模型是 DeepSeek `deepseek-flash`（2026-10-04 实际为 V4.1-Flash）默认推理模式；输出是两套前端各 1 条 validation episode（裁决 108；原为 15 条）的闭环指标（与其他臂同一个 node audit、同一套指标）、全部调用存档与一份导出。每帧问两次：先关联（每个色块选一个召回实体或 BIRTH），求解后再判存在（每个可判定实体 RETRACT 或 NOOP）。它不训练、不选参、不进主表、不读 test；它独立于 S3-03 的作业池，可以在另一台机器上和 S3-03 同时跑。
