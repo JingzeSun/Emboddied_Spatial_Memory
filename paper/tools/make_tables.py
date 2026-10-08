@@ -2,7 +2,7 @@
 """S4: the paper's tables, generated from the committed results so that no table number is copied by hand.
 
 白话：论文里的每张表都由这个脚本从 ``results/`` 里已提交的导出排出——S3-05 统计（主表、主门、对各对照的比较与种子稳定性）、
-S3-06 复算（双侧 90% 区间、事件计数、三分解占比、规模）、S3-07 外部验证（3RScan 实例分割列）、S3-04 冻结回执（每臂唯一配置）——写成 ``paper/tables/*.tex``。
+S3-06 复算（双侧 90% 区间、事件计数、三分解占比、规模）、S3-07 外部验证（3RScan 实例分割列）、S3-04 冻结回执（每臂唯一配置）、S4 E1 导出（LLM-op 那条 episode 上各臂的值）——写成 ``paper/tables/*.tex``。
 输入只有这些 JSON；输出是 LaTeX 表格片段。例如主表 VSMT-lean 的节点 F1 取自
 ``vsmt_lean_s3_05_statistics_8d58475.json`` 的 ``fronts.instance.main_table.node_prf1.VSMT-lean``。它不计算任何新的统计量，
 只排版；区间、优势与计数都是导出里已有的数（三分解只把已导出的占比乘 100）。
@@ -23,6 +23,7 @@ STATISTICS = "vsmt_lean_s3_05_statistics_8d58475.json"
 REANALYSIS = "vsmt_lean_s3_06_reanalysis_cd3ee83.json"
 EXTERNAL = "vsmt_lean_s3_07_statistics_aa94373.json"
 FREEZE = "vsmt_lean_s3_04_freeze_dea8c20.json"
+LLM_OP_CONTEXT = "vsmt_lean_s4_llm_op_context_2b50a12.json"
 
 ARMS = ("VSMT-lean", "AssocOnly", "NoVersion", "HeuristicLabel", "HandCost", "TAF", "ELU-P", "RAC", "LOW")
 ABLATIONS = ("AssocOnly", "NoVersion", "HeuristicLabel", "HandCost")
@@ -193,12 +194,51 @@ def external_table(external: Mapping[str, Any]) -> str:
         lines.append(name + " & " + " & ".join(mean_cell(table[key].get(arm), decimals) for key, _, decimals in METRICS) + r" \\")
     lines.append(r"\emph{Scenes kept} & " + " & ".join(str(lists[key]["effective_scenes"]) for key, _, _ in METRICS) + r" \\")
     lines.append(r"\midrule")
-    cells = []
+    advantages, intervals = [], []
     for key, _, decimals in METRICS:
         entry = comparisons[key].get("AssocOnly", {})
-        cells.append("--" if entry.get("not_applicable") or "interval_90" not in entry else
-                     advantage_cell(entry["mean_advantage"], entry["interval_90"], entry.get("stable_82_1"), decimals))
-    lines.append(r"\emph{Adv.\ vs.\ AssocOnly} & " + " & ".join(cells) + r" \\")
+        if entry.get("not_applicable") or "interval_90" not in entry:
+            advantages.append("--")
+            intervals.append("")
+            continue
+        advantages.append(signed(entry["mean_advantage"], decimals) + (r"$^{\ast}$" if entry.get("stable_82_1") else ""))
+        low, high = entry["interval_90"]
+        intervals.append(r"{\tiny[" + f"{signed(low, decimals)}, {signed(high, decimals)}" + "]}")
+    lines.append(r"\emph{Adv.\ vs.\ AssocOnly} & " + " & ".join(advantages) + r" \\")
+    lines.append(r"\emph{\quad 90\% interval} & " + " & ".join(intervals) + r" \\")
+    lines += [r"\bottomrule", r"\end{tabular}"]
+    return "\n".join(lines) + "\n"
+
+
+def llm_op_cell(entry: Mapping[str, Any]) -> str:
+    """An arm's value on the LLM-op episode, then its validation mean and SD and this episode's percentile (E1)."""
+
+    value = entry["episode_value"]
+    if entry["episodes_defined"] == 0:
+        return "--"
+    head = "n/d" if value is None else number(value)
+    tail = number(entry["validation_mean"]) + r"$\pm$" + short(entry["validation_sd"], 3)
+    if entry["episode_percentile"] is not None:
+        tail += f"; p{entry['episode_percentile']:.0f}"
+    return head + r"{\tiny\,(" + tail + ")}"
+
+
+def llm_op_table(context: Mapping[str, Any]) -> str:
+    """Supplementary table: LLM-op and every other arm on the one LLM-op validation episode (E1, descriptive, n = 1)."""
+
+    keys = (("node_f1", "F1"), ("node_f1_iou", r"F1$_{\mathrm{IoU}}$"), ("false_retract_rate", r"FRR$\downarrow$"),
+            ("contamination_auc", r"Cont.$\downarrow$"))
+    lines = [HEADER.format(LLM_OP_CONTEXT), r"\begin{tabular}{l" + "c" * len(keys) + "}", r"\toprule",
+             "Arm & " + " & ".join(header for _, header in keys) + r" \\"]
+    for front, title in FRONTS:
+        block = context["fronts"][front]
+        episode = block["episode"]
+        lines += [r"\midrule", rf"\multicolumn{{{len(keys) + 1}}}{{l}}{{\emph{{{title}}}: {episode['frames']} frames "
+                  rf"(p{episode['frames_percentile']:.0f}), {episode['fragments_per_frame']:.1f} fragments per frame "
+                  rf"(p{episode['fragments_per_frame_percentile']:.0f})}} \\"]
+        lines.append(r"\textbf{LLM-op} & " + " & ".join(number(block["llm_op"][key]) for key, _ in keys) + r" \\")
+        for arm in ARMS:
+            lines.append(arm + " & " + " & ".join(llm_op_cell(block["arms"][arm][key]) for key, _ in keys) + r" \\")
     lines += [r"\bottomrule", r"\end{tabular}"]
     return "\n".join(lines) + "\n"
 
@@ -269,7 +309,7 @@ def main() -> int:
               "ablations.tex": comparison_table(stats, reanalysis, ABLATIONS),
               "rule_arms.tex": comparison_table(stats, reanalysis, RULE_ARMS), "external.tex": external_table(external),
               "decomposition.tex": decomposition_table(reanalysis), "size.tex": size_table(reanalysis),
-              "selection.tex": selection_table(load(FREEZE))}
+              "selection.tex": selection_table(load(FREEZE)), "llm_op.tex": llm_op_table(load(LLM_OP_CONTEXT))}
     for name, text in tables.items():
         with open(OUT / name, "w", encoding="utf-8", newline="\n") as handle:
             handle.write(text)
