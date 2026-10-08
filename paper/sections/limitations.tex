@@ -1,10 +1,7 @@
 \section{Limitations}
 \label{sec:limitations}
 
-The primary hypothesis holds only with simulator instance masks, which expose no identity but are close to perfect; with SAM~2.1 only the stale-entity reduction holds.
-Identity continuity stays low (about one relocated object in five re-attached even with instance masks), and with SAM~2.1 more than half of the in-scope entities VSMT-lean retracts belong to objects still in place; whether they are later reactivated, and how many are redundant part entities, is not separated in our exports.
-The rule-based arms are our adapters of published mechanisms, not the original systems, and several selected configurations lie at the end of their registered grids (Appendix~\ref{app:selection}), which we did not widen after the test.
-The target of inference is a training procedure with five seeds; the two-level bound has no coverage guarantee and was calibrated only by a null simulation.
-The primary hypothesis was revised, the fixed order designed and identity continuity redefined after development and confirmation readings, though before validation and test; comparisons outside the fixed-order test are descriptive, uncorrected for multiplicity, and partly computed after the test.
-The test is simulated; the 3RScan check is descriptive, covers only the instance column and uses proxy truth, a window without frames and offline poses; no real-robot experiment was run.
-We do not revise places, relations or topology, and do not learn splitting or merging.
+The primary hypothesis holds, for this training procedure, only with simulator instance masks, which reveal no identity but are close to perfect; with SAM~2.1 only the stale-entity reduction holds, and more than half of the in-scope entities VSMT-lean retracts belong to objects still in place.
+Poses are the simulator's, changes happen only between containers, the test has 139 moved objects, and IdC scores only the first observation after a move; the 3RScan check uses proxy truth, no frames between scans and offline poses, and no real-robot experiment was run.
+The rule-based arms are our re-implementations, several selections lie at the end of their grids, \arm{AssocOnly} has no parameter to select, and the two-level bound for five seeds was calibrated only by a null simulation.
+The hypothesis was revised, and the fixed order and the identity-continuity definition were designed, after development and confirmation readings, though before validation and test; comparisons outside the fixed-order test are descriptive and partly computed after the test.

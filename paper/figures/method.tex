@@ -1,56 +1,47 @@
-% Fig. 1 (method schematic), TikZ; included by sections/method.tex. Drawn by hand from docs/METHOD.md sections 3-8; no data.
-% (a) one frame: frozen front end -> sealed recall and features -> joint assignment -> existence decisions -> executor.
-% (b) one relocated object under VSMT-lean, NoVersion and AssocOnly.
+% Fig. 2 (one frame of VSMT-lean), TikZ; included by sections/method.tex. Drawn by hand from docs/METHOD.md sections
+% 3-8; no data. Frozen front end -> recall and sealed features -> joint assignment -> existence decisions -> executor;
+% the teacher (training only) labels the sealed rows and columns; bottom right: the entity states (the map is the set
+% of active and dormant entities; a retracted entity is out of the map but stays recallable). The cup example of
+% Fig. 1 is not repeated here.
 \begin{tikzpicture}[
   font=\scriptsize, >={Stealth[length=3.5pt]},
-  box/.style={draw, rounded corners=1.5pt, align=center, inner sep=1.8pt, fill=white, minimum height=11mm},
-  learned/.style={draw=orange!70!black, fill=orange!12, rounded corners=1.5pt, align=center, inner sep=1.8pt, minimum height=5mm},
-  private/.style={draw=blue!55!black, fill=blue!6, dashed, rounded corners=1.5pt, align=center, inner sep=1.8pt, minimum height=5mm},
-  seal/.style={fill=black!75, text=white, rounded corners=1pt, inner sep=1pt, font=\tiny\bfseries},
-  ent/.style={draw, circle, inner sep=0.4pt, minimum size=9pt, font=\tiny},
-  lab/.style={font=\tiny, align=center, inner sep=0.8pt},
-  tag/.style={font=\bfseries\scriptsize, anchor=north west, inner sep=0pt},
+  box/.style={draw, rounded corners=1.5pt, align=center, inner sep=2pt, fill=white, minimum height=12mm},
+  learned/.style={draw=orange!70!black, fill=orange!12, rounded corners=1.5pt, align=center, inner sep=2pt, minimum height=6mm},
+  private/.style={draw=blue!55!black, fill=blue!6, dashed, rounded corners=1.5pt, align=center, inner sep=2pt, minimum height=6mm},
+  seal/.style={fill=black!75, text=white, rounded corners=1pt, inner sep=1.2pt, font=\fontsize{6}{6.6}\selectfont\bfseries},
+  lab/.style={font=\fontsize{6}{6.6}\selectfont, align=center, inner sep=0.8pt},
+  st/.style={draw, rounded corners=1pt, font=\scriptsize, inner sep=1.1pt, minimum height=3.6mm, fill=white},
 ]
-% ---------------- (a) one frame ----------------
-\node[tag] at (-2mm, 13mm) {(a)};
-\node[box, fill=gray!10, text width=17mm] (fe) at (8.5mm, 0) {Frozen front end:\\masks, DINOv2,\\RGB-D, pose};
-\node[box, text width=17mm] (rec) at (31mm, 0) {Recall + features\\(local top-5\\$\cup$ global top-3)};
-\node[box, text width=24mm] (asg) at (59mm, 0) {Joint assignment:\\fragments $\times$ (entities\\$+$ \op{BIRTH} columns)\\$\to$ \op{BIND} / \op{REACT.} / \op{BIRTH}};
-\node[box, text width=21mm] (ex) at (89mm, 0) {Existence of\\unmatched, should-\\be-visible entities\\$\to$ \op{RETRACT} / \op{NOOP}};
-\node[box, text width=18mm] (exe) at (115mm, 0) {Executor on a\\clone of $M_{t-1}$;\\atomic, versions\\never deleted};
+\node[box, fill=gray!10, text width=28mm] (fe) at (15mm, 0)
+  {\textbf{Frozen front end}\\RGB-D frame $\to$ anonymous fragments with descriptors, 3D geometry; free space};
+\node[box, text width=26mm] (rec) at (51mm, 0)
+  {\textbf{Recall}\\for each fragment: 5 most similar entities within 3\,m $\cup$ 3 most similar anywhere};
+\node[box, text width=32mm] (asg) at (91mm, 0)
+  {\textbf{Joint assignment}\\fragments $\times$ (recalled entities + one \op{BIRTH} column each), one minimum-cost solve $\to$ \op{BIND} / \op{REACTIVATE} / \op{BIRTH}};
+\node[box, text width=27mm] (ex) at (131.5mm, 0)
+  {\textbf{Existence decision}\\each unmatched entity that should be visible $\to$ \op{RETRACT} or \op{NOOP}};
+\node[box, text width=25mm] (exe) at (166.5mm, 0)
+  {\textbf{Executor}\\applies the whole program to a copy of $M_{t-1}$; all or nothing; history kept};
 \draw[->] (fe) -- (rec);
-\draw[->] (rec) -- node[seal, above=0.8mm] {A} (asg);
-\draw[->] (asg) -- node[seal, above=0.8mm] {B} (ex);
+\draw[->] (rec) -- node[seal, above=1mm] {seal A} (asg);
+\draw[->] (asg) -- node[seal, above=1mm] {seal B} (ex);
 \draw[->] (ex) -- (exe);
-\draw[->] (exe.north) -- ++(0, 3mm) -| node[lab, pos=0.25, above] {$M_t$ becomes $M_{t-1}$ of the next frame} (rec.north);
-\node[learned, text width=46mm] (heads) at (74mm, -12.5mm) {Learned cost heads $a(f,e)$, $b(f)$, $r(e)$: 54,787 parameters};
+\draw[->] (exe.north) -- ++(0, 2.5mm) -| node[lab, pos=0.25, above] {$M_t$, the memory of the next frame} (rec.north);
+\node[learned, text width=54mm] (heads) at (107mm, -13.6mm)
+  {\textbf{The only learned part:} cost heads $a(f,e)$ (association), $b(f)$ (birth), $r(e)$ (existence); 54,787 parameters};
 \draw[->, orange!70!black] (heads.north -| asg) -- (asg.south);
 \draw[->, orange!70!black] (heads.north -| ex) -- (ex.south);
-\node[private, text width=37mm] (teach) at (20mm, -12.5mm) {Training only: private instance truth\\labels the sealed rows and columns};
+\node[private, text width=50mm] (teach) at (37mm, -13.6mm)
+  {\textbf{Training and evaluation only:} the teacher reads private instance truth and labels only the sealed rows and columns};
 \draw[->, dashed, blue!55!black] (teach) -- (heads);
-
-% ---------------- (b) one relocated object ----------------
-\begin{scope}[xshift=148mm, yshift=4mm]
-  \node[tag] at (-24mm, 9mm) {(b)};
-  \node[lab] at (0mm, 6mm) {before};
-  \node[lab] at (20mm, 6mm) {old place\\seen empty};
-  \node[lab] at (40mm, 6mm) {cup seen\\elsewhere};
-  \foreach \row/\name in {0/VSMT-lean, 1/NoVersion, 2/AssocOnly}
-    \node[anchor=east] at (-3.5mm, -\row*7.5mm) {\name};
-  \node[ent, fill=orange!25] (v1) at (0mm, 0) {$e_7$};
-  \node[ent, fill=gray!25] (v2) at (20mm, 0) {$e_7$};
-  \node[ent, fill=orange!25] (v3) at (40mm, 0) {$e_7$};
-  \draw[->] (v1) -- node[lab, above] {\op{RETRACT}} node[lab, below] {closes version} (v2);
-  \draw[->] (v2) -- node[lab, above] {\op{REACTIVATE}} node[lab, below] {same identity} (v3);
-  \node[ent, fill=orange!25] (n1) at (0mm, -7.5mm) {$e_7$};
-  \node[lab] (n2) at (20mm, -7.5mm) {deleted};
-  \node[ent, fill=red!15] (n3) at (40mm, -7.5mm) {$e_{12}$};
-  \draw[->] (n1) -- node[lab, above] {\op{RETRACT}} (n2);
-  \draw[->] (n2) -- node[lab, above] {\op{BIRTH}} node[lab, below] {new identity} (n3);
-  \node[ent, fill=orange!25] (a1) at (0mm, -15mm) {$e_7$};
-  \node[ent, fill=red!15] (a2) at (20mm, -15mm) {$e_7$};
-  \node[ent, fill=red!15] (a3) at (40mm, -15mm) {$e_{12}$};
-  \draw[->] (a1) -- node[lab, above] {kept} node[lab, below] {stale} (a2);
-  \draw[->] (a2) -- node[lab, above] {\op{BIRTH}} node[lab, below] {new identity} (a3);
-\end{scope}
+% entity states
+\draw[black!45, dashed, rounded corners=1.5pt] (138.5mm, -7.9mm) rectangle (161.5mm, -20.4mm);
+\node[font=\fontsize{6}{6.6}\selectfont, text=black!60, anchor=north east, inner sep=0.6pt] at (161.2mm, -8.2mm) {map};
+\node[st] (sA) at (150mm, -11.1mm) {active};
+\node[st] (sD) at (150mm, -17.3mm) {dormant};
+\draw[->] ([xshift=-1.6mm]sA.south) -- node[lab, left=0.4mm] {3 misses} ([xshift=-1.6mm]sD.north);
+\draw[->] ([xshift=1.6mm]sD.north) -- node[lab, right=0.4mm] {match} ([xshift=1.6mm]sA.south);
+\node[st, fill=black!7, dashed] (sR) at (173.5mm, -14.15mm) {retracted};
+\draw[->] (161.5mm, -12.1mm) -- node[lab, above] {\op{RETRACT}} (sR.north west);
+\draw[->, dashed] (sR.south west) -- node[lab, below=0.6mm] {\op{REACTIVATE}} (161.5mm, -16.2mm);
 \end{tikzpicture}

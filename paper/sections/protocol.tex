@@ -3,53 +3,50 @@
 
 \subsection{Data}
 \label{sec:data}
-Episodes are generated in houses of the ProcTHOR-10K training partition~\cite{procthor2022} rendered by AI2-THOR 5.0.0~\cite{ai2thor2017} at $224\times224$ pixels with a $90^\circ$ field of view, depth and instance segmentation.
-Houses are ordered by a registered hash and assigned, in this order, 100 to test, 50 to validation and 400 to a training block, one episode per house; the split is by house, and a house that fails generation is recorded and not replaced. The first 50 houses of the training block served for method development and the next 50 for a confirmation run; both were used before the protocol was frozen and are excluded from the final training set, which is the remaining 300 positions. The heads train on the first 240 of these positions and score checkpoints on the last 60; a house that failed generation is simply absent.
-Each episode follows a coverage route: a first sweep views every eligible container, a transition takes the robot to a region from which the containers to be changed cannot be seen, and a second sweep revisits them (at most 4,000 actions).
-During the last 30 frames of the transition, up to six interventions are executed while every involved container is outside the view: an object is removed, moved to another container, or added from the house's own pool.
-To prevent the shortcut ``a revisited container has changed'', the second sweep also revisits as many unchanged control containers as changed ones, and an episode makes the same transition without any change with probability 0.2. Controls are drawn first from containers that were hidden during the window; when there are too few, from containers that were visible, which are weaker controls (130 of the 332 test controls).
-Of the 300 training, 50 validation and 100 test houses, 252, 43 and 87 succeeded (in test: no feasible unobservable window in 10 houses, a failed intervention in 2, a failed frame write in 1).
-The 87 test episodes contain 101,317 frames, 139 executed moves and 22 episodes without change.
-The SAM~2.1 cache exists for 85 of them; two exceed the limit of 64 fragments per frame.
-
-\subsection{Selection}
-Each arm has at most 12 registered configurations and chooses one on validation, per front end, by node F1.
-The six arms that can retract (VSMT-lean, \arm{NoVersion}, \arm{HeuristicLabel}, \arm{HandCost}, \arm{ELU-P}, \arm{RAC}) choose only among configurations whose validation Missing residual rate is below that of \arm{AssocOnly} on the same front end.
-This keeps selection from favouring configurations that retract too little.
-All six arms satisfied this constraint; the selected configurations are listed in Appendix~\ref{app:selection}.
-Learned arms are judged by the mean over five seeds.
-VSMT-lean selected $\tau_r=0.8$ with instance masks and $\tau_r=0.25$ with SAM~2.1 masks.
+ProcTHOR-10K~\cite{procthor2022} is a set of procedurally generated houses for the AI2-THOR simulator~\cite{ai2thor2017}, which renders RGB-D images, camera poses and per-object instance segmentation; we render $224\times224$ frames with a $90^\circ$ field of view.
+Houses are ordered by a \emph{registered} hash (registered: fixed in the project's configuration files before use) and assigned 100 to test, 50 to validation and 400 to a training block, one episode per house; a house that fails generation is recorded, not replaced.
+The first 100 houses of the training block served method development and a confirmation run before the protocol was frozen; the heads train on the next 240 and score checkpoints on the last 60.
+In an episode the robot sweeps the house, viewing every eligible \emph{container} (furniture that holds objects), moves to where the containers to be changed cannot be seen, and revisits them.
+During the last 30 frames of that transition, the \emph{unobserved window}, up to six changes are made out of view: an object is removed, moved to another container, or added from objects available in the same house.
+Against the shortcut ``a revisited container has changed'', as many unchanged control containers are revisited (130 of the 332 test controls had been visible during the window, making them weaker), and an episode is drawn without any change with probability 0.2.
+Of 300 training, 50 validation and 100 test houses, 252, 43 and 87 were generated (13 test houses failed, 10 for lack of a feasible window).
+The 87 test episodes contain 101,317 frames and 359 changed objects, 139 of them moved; 22 have no change. SAM~2.1 outputs exist for 85, since two episodes exceed 64 fragments per frame.
 
 \subsection{Metrics}
 \label{sec:metrics}
-\textbf{Node P/R/F1.} Per frame, entities in memory (active or dormant) are matched to present objects observable at least once (walls, floors, doors, windows and ceilings excluded), maximising matches and then weight; a pair matches only if the entity's majority identity is the object and its centroid lies within 0.5\,m of the object's centroid or inside its box enlarged by 0.25\,m.
-This centroid rule is primary because entity boxes come from one frame's depth surface while ground-truth boxes enclose the whole object; Dyn-THOR's IoU~0.3 rule~\cite{dsg2026} is a secondary column (F1$_\mathrm{IoU}$) with the same matcher.
-\textbf{Missing residual rate (MRR):} share of removed or moved objects, whose original place had become observable, that still have an active or dormant entity of their identity there.
-\textbf{False-retract rate (FRR):} share of retracted entities whose object is still in place by the node rule (FRR$_\mathrm{in}$: in-scope objects only; undefined for arms that never retract).
-\textbf{Identity continuity (IdC):} the same events for every arm---each moved object at its first fragment after the window---kept if that fragment is assigned (\op{BIND} or \op{REACTIVATE}) to an entity that carried the object at the window's last frame; an arm without a prior carrier cannot keep the event. A conditional diagnostic column counts only events with a prior carrier (arm-specific denominators).
-\textbf{Retrieval success (Retr.):} on the same events, the evaluator queries the memory committed at the event frame with the mean descriptor of the object's fragments up to the window's last frame; it succeeds if the most similar active or dormant entity matches the object at its new place by the node rule. The query uses private labels and is not a robot task.
-\textbf{Recovery latency (Lat.):} for every changed object (removed, moved or added), frames from when the change first becomes observable until the memory is correct (no entity of the object left at its old place, one at its new place), over recovered objects only; unrecovered objects are counted separately.
-\textbf{Contamination AUC (Cont.):} normalised area under the per-frame ratio of stale entities plus wrongly absent objects to entities in memory plus wrongly absent objects, judging staleness by centroid distance only.
-We also report memory size; per-frame runtime was measured under uncontrolled load and is not compared.
+Unless stated otherwise, metrics inspect the map (active and dormant entities); each answers one question.
+\textbf{Node P/R/F1} (\emph{is every present object in memory once, at the right place?}): per frame, entities are matched one to one to the present objects observed at least once (\emph{in scope}: walls, floors, doors, windows and ceilings excluded), maximising the number of matches, then preferring closer pairs; a pair matches if the entity carries the object and its centroid lies within 0.5\,m of the object's centroid or inside its box enlarged by 0.25\,m.
+This centroid rule is primary because an entity's box comes from one frame's depth surface while the true box encloses the whole object; Dyn-THOR's 3D IoU~$\geq 0.3$ rule~\cite{dsg2026} gives a secondary column (F1$_\mathrm{IoU}$), whose values on our data cannot be set against those in~\cite{dsg2026}.
+\textbf{MRR} (\emph{does a removed or moved object leave a stale entity behind?}): at the end of the episode, among removed or moved objects whose old place has been observable since the change, the share that still have an entity carrying them there (277 objects in 62 houses with instance masks).
+\textbf{FRR} (\emph{how many retractions were wrong?}): among retracted entities whose identity is clear, the share whose object is still in place by the node rule; FRR$_\mathrm{in}$ counts in-scope objects only; undefined for arms that never retract.
+\textbf{IdC} (\emph{does a moved object keep its identity?}): the same events for every arm, each moved object at its first fragment after the move (139 events in 58 houses with instance masks, 132 in 56 with SAM~2.1); kept if that fragment is assigned (\op{BIND} or \op{REACTIVATE}) to an entity that carried the object at the end of the window, so an arm without such a carrier cannot keep it; IdC asks whether the object is recognised at first sight, and later attachment is not counted. A diagnostic \emph{conditional} column counts only events with a carrier (denominators differ between arms).
+\textbf{Retrieval success} (Retr., \emph{would a search with the object's old appearance find it at its new place?}): on the same events, the map is queried with the mean descriptor of the object's earlier fragments; success if the most similar entity matches the object at its new place.
+\textbf{Recovery latency} (Lat.): frames from when a change becomes observable until the memory is right about the object (no entity carrying it at an old place, one at a new place), over recovered objects; unrecovered ones are counted.
+\textbf{Contamination AUC} (Cont.): the normalised area under the per-frame share of stale entities and \emph{wrongly absent} objects (present, with no entity within 0.5\,m), a time curve, not a ROC curve; staleness is judged by centroid distance only.
+We also report memory size; runtime was measured under uncontrolled load and is not compared.
+
+\subsection{Selection}
+Each arm has at most 12 registered configurations (e.g.\ VSMT-lean's threshold $\tau_r$, \arm{TAF}'s similarity threshold and distance gate) and chooses one per front end on validation by node F1 (learned arms: mean over seeds), so the primary metrics are never the selection objective.
+The six arms that can retract choose only among configurations whose validation MRR is below \arm{AssocOnly}'s, so that selection cannot favour retracting too little; all six satisfied this (VSMT-lean: 0.176 against 0.727 with instance masks), and VSMT-lean selected $\tau_r=0.8$ with instance masks and $0.25$ with SAM~2.1 (\arm{NoVersion}: 0.9 and 0.25).
+\arm{ELU-P} and \arm{RAC} selected the end of their grids in three parameters on both front ends, \arm{TAF} and \arm{HandCost} in one or two, and \arm{NoVersion} in one with instance masks; the grids were not widened after the test, although a wider grid might lower \arm{ELU-P}'s MRR further.
 
 \subsection{Statistics and the primary hypothesis}
 \label{sec:stats}
 The unit is the house.
-For every metric and front end there is one exclusion list: a house is excluded for all arms and all tests if the metric is undefined for any main-table run (for example, no moved object was revisited); the number of houses kept is reported.
-The target of inference is the training procedure---fixed training data, recipe and selection---not one trained model.
-Lower bounds use two-level resampling: each of 10,000 bootstrap draws (seed 20261002) samples seeds and houses with replacement, and the two arms are paired by seed.
-A comparison \emph{holds} only if the one-sided 95\% lower bound of the seed-averaged advantage is above zero \emph{and} a seed-stability condition holds: all five seeds present, at least four paired differences favourable, and their mean larger than their standard deviation.
-With five seeds the two-level bound has no theoretical coverage guarantee; in a null simulation on development data at seed standard deviations from 0 to 0.10, the rule falsely passed 1.6--5.8\% of the time, while a bound that resamples houses only, without the seed condition, reached 17--33\% at a seed standard deviation of 0.10.
+For every metric and front end, one exclusion list removes, for all arms and comparisons, every house where the metric is undefined for any main-table arm (e.g., no moved object was revisited), except arms for which it is undefined by construction (FRR for arms that never retract); the houses kept are reported.
+The target of inference is the training procedure (fixed training data, recipe and selection), not one trained model, so uncertainty comes from the houses tested and the seeds trained: a two-level bootstrap resamples, in each of 10,000 draws, the five seeds and the houses with replacement, pairing the two arms by seed (a deterministic arm has the same run for every seed).
+A comparison \emph{holds} if the one-sided 95\% lower bound of the seed-averaged advantage (the lower end of the two-sided 90\% interval) is above zero and a \emph{seed-stability} condition holds: all five seeds present, at least four of five paired differences favourable, and their mean larger than their standard deviation.
+With five seeds the bound has no coverage guarantee; in a simulation that resampled development and confirmation houses with no true difference and seed noise of standard deviation 0 to 0.10, this rule passed falsely 1.6--5.8\% of the time against a nominal 5\%, whereas resampling houses only reached 17--33\% across the simulated settings at 0.10.
 
-The primary hypothesis is that VSMT-lean improves on \arm{AssocOnly} in both MRR and IdC.
-It is tested in a fixed order: (1) instance masks, both metrics together; (2) only if (1) holds, SAM~2.1 MRR; (3) only if (2) holds, SAM~2.1 IdC.
-Node F1 has no registered non-inferiority margin, so we report its difference and interval only.
-All other comparisons are reported with their difference and two-sided 90\% interval, without a gate or a correction for multiplicity.
+The primary hypothesis is that VSMT-lean improves on \arm{AssocOnly} in both MRR and IdC, tested in a fixed order, each step only if the previous one holds: (1) instance masks, both metrics; (2) SAM~2.1, MRR; (3) SAM~2.1, IdC.
+Because selection already keeps the retracting arms' validation MRR below \arm{AssocOnly}'s, a lower test MRR mainly checks that this carries over to unseen houses; IdC is used by no selection rule.
+No margin was registered below which a loss in node F1 would count as acceptable, so for node F1 we report the difference and interval only.
+All other comparisons are descriptive (difference and two-sided 90\% interval, no gate, no correction for multiplicity).
 
 \textbf{Disclosure.}
-The original gate required VSMT-lean to beat the strongest rule-based arm on each of the two metrics (chosen per metric: \arm{ELU-P} for MRR and \arm{TAF} for IdC on test).
-It was not met on development and confirmation data, and the primary hypothesis was revised to the comparison with \arm{AssocOnly}---the counterfactual for the lifecycle vocabulary---after those readings and before any validation or test data were read.
-The fixed order was designed after reading development results with SAM~2.1 masks, and identity continuity was redefined over common events at the same time; both were frozen before validation and test.
-We report the original gate, computed with the same lists and rules (Table~\ref{tab:gate}).
-Comparisons of VSMT-lean with \arm{AssocOnly} on metrics other than the two gate metrics and the two-sided intervals were computed after the test from the committed outputs with the frozen statistics code; event counts, per-house differences and consistency checks come from new read-only summaries of the same outputs. All of these are descriptive.
-Test data were read once, under a frozen receipt; nothing was changed after the read.
+A registered pass/fail rule for a claim is a \emph{gate}.
+The original gate required VSMT-lean to beat the strongest rule-based arm on each metric, chosen per metric on the test data itself, which makes it conservative (\arm{ELU-P} for MRR, \arm{TAF} for IdC).
+It was not met on development and confirmation data, and the primary hypothesis was revised to the comparison with \arm{AssocOnly}, the counterfactual for the lifecycle vocabulary, after those readings and before any validation or test data were read.
+The fixed order was designed after reading development results with SAM~2.1 masks, and identity continuity was then redefined over the same events for every arm (previously only events with a carrier counted, now the conditional column); both were frozen before validation and test.
+We report the original gate with the same lists and rules (Fig.~\ref{fig:gate}).
+Comparisons with \arm{AssocOnly} on metrics other than MRR, IdC and node F1, the other two-sided intervals, event counts and per-house differences were computed after the test from the saved outputs; test data were read once, and nothing was changed after the read.

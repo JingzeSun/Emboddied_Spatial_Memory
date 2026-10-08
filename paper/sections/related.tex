@@ -1,13 +1,10 @@
 \section{Related Work}
 \label{sec:related}
 
-\textbf{Object-level and change-aware maps.}
 Fusion++ keeps object volumes with an existence probability~\cite{fusionpp2018}; 3D scene graphs layer objects, places and rooms~\cite{dsg3d2020,hydra2022}; ConceptGraphs fuses 2D masks into 3D objects by thresholded similarity~\cite{conceptgraphs2024}.
 For changing scenes, persistence filters model how long features and objects survive or re-emerge~\cite{rosen2016persistence,perpetua2025}, volumetric methods detect object-level changes~\cite{pocd2022,panopticmultitsdf2022}, and Khronos estimates a spatio-temporal scene history~\cite{khronos2024}.
-Closest to our setting, DSG removes objects by render-and-compare and introduces Dyn-THOR with node P/R/F1 at 3D IoU 0.3 and the Missing residual rate~\cite{dsg2026}; DynamicGSG updates a Gaussian scene graph by rendering~\cite{dynamicgsg2025}.
-DSG and DynamicGSG update with hand-set rules and remove objects from the map; persistence models and spatio-temporal maps keep information about objects that disappear and re-emerge, through probabilistic models or optimisation rather than costs learned from labels.
-We keep Dyn-THOR's metrics where possible and reimplement the core mechanisms as adapters on one shared front end (Section~\ref{sec:arms}); the adapters are not reproductions of these systems.
-
-\textbf{Learned memory operations.}
-LLM memory systems choose add, update and delete operations with a frozen language model~\cite{mem0_2025}; we report a zero-training LLM operator on our sealed feature tables only in the appendix.
-We train on the model's own memory trajectories in the manner of DAgger~\cite{dagger2011} and, as in work that pairs frozen pre-trained features with a small learned module~\cite{dinowm2025}, freeze the front end (DINOv2~\cite{dinov2_2024}, depth geometry, masks), so that differences between arms come from the memory logic alone.
+Closest to our setting, DSG removes objects by render-and-compare and introduces the Dyn-THOR benchmark with node precision, recall and F1 at 3D IoU 0.3 and the Missing residual rate~\cite{dsg2026}; DynamicGSG updates a Gaussian scene graph by rendering~\cite{dynamicgsg2025}.
+DSG and DynamicGSG remove objects from the map with hand-set rules; persistence models and spatio-temporal maps keep information about objects that disappear and re-emerge, through probabilistic models or optimisation rather than costs learned from labels.
+We keep Dyn-THOR's metrics where possible and re-implement the core mechanisms as arms on one shared front end, not as reproductions of the original systems.
+LLM memory systems choose add, update and delete operations with a frozen language model~\cite{mem0_2025}.
+Our heads train on the memory states they produce, as in DAgger~\cite{dagger2011}, over frozen pre-trained features, as in~\cite{dinowm2025}, so that differences between arms come from the memory logic alone.

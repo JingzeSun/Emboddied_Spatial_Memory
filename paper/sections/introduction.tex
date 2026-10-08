@@ -1,31 +1,33 @@
 \section{Introduction}
 \label{sec:intro}
 
+\begin{figure}[t]
+\centering
+\input{figures/overview}
+\caption{The problem on one cup, moved from the table to the shelf while the robot is away. Circles are \emph{entities}, the memory's records of believed objects. A memory that can only bind and birth (\arm{AssocOnly}) typically keeps a stale entity and gives the cup a new identity (it keeps the identity only by binding the cup's new fragment to its old, still active entity); one that deletes (\arm{NoVersion}) loses the identity; VSMT-lean retracts the entity, closing its version without deleting it, and can reactivate it on the shelf. The Missing residual rate (MRR) counts removed or moved objects with an entity left at their old place after it was seen empty; identity continuity (IdC) counts moved objects whose first new observation is attached to the entity that carried them before. Illustration, not data.}
+\label{fig:overview}
+\end{figure}
+
 \IEEEPARstart{O}{bject-level} maps let a robot answer where things are without re-exploring~\cite{fusionpp2018,conceptgraphs2024,hydra2022}.
-In a home, objects are taken away, moved and added while the robot is elsewhere, and every remembered object it then fails to see poses the same question: is it occluded, missed by the detector, removed, or moved?
-A map that keeps everything leaves \emph{stale entities} where the object no longer is, which the Missing residual rate of Dyn-THOR measures~\cite{dsg2026}; a map that deletes aggressively removes objects that were only hidden, and an object whose entity was deleted comes back with a new identity when it reappears elsewhere.
-Most systems decide these cases with hand-set rules---threshold fusion~\cite{conceptgraphs2024}, existence probabilities or persistence filters~\cite{fusionpp2018,rosen2016persistence,perpetua2025}, or render-and-compare~\cite{dsg2026,dynamicgsg2025}.
+In a home, objects are taken away, moved and added while the robot is elsewhere, and every remembered object it then fails to see poses the same question: is it hidden, missed by the detector, removed, or moved (Fig.~\ref{fig:overview})?
+A memory that keeps everything leaves \emph{stale entities}, records of objects at places they have left, which the Missing residual rate of the Dyn-THOR benchmark measures~\cite{dsg2026}; one that deletes aggressively removes objects that were only hidden, and a deleted object comes back under a new identity when it reappears elsewhere.
+Most systems decide these cases with hand-set rules: threshold fusion~\cite{conceptgraphs2024}, existence probabilities or persistence filters~\cite{fusionpp2018,rosen2016persistence,perpetua2025}, or rendering the map and comparing it with the current view~\cite{dsg2026,dynamicgsg2025}.
 We ask a narrower question than ``which system is best'': does a \emph{learned, reversible} lifecycle vocabulary reduce stale entities and keep identities, compared with the same learned association without that vocabulary, when everything else is held fixed?
 
-We study VSMT-lean, a lean form of versioned structural memory transactions.
-Each frame, a joint assignment over anonymous mask fragments, recalled entities and one birth column per fragment decides \op{BIND}, \op{BIRTH} and \op{REACTIVATE}, and an existence head decides \op{RETRACT} or \op{NOOP} for unmatched entities that should be visible.
-A deterministic executor never deletes history: \op{RETRACT} closes an entity's version and \op{REACTIVATE} opens a new version of the same identity.
-With a frozen front end, the memory learns only three small cost heads (54,787 parameters), trained with hindsight labels from private simulator instance truth on rows and columns sealed before any private file is opened.
+We study VSMT-lean, the entity-lifecycle core of versioned structural memory transactions (the full design also revises places and relations, which we leave out).
+The input is a stream of RGB-D frames with the simulator's camera poses, so there is no localization error; a frozen perception front end turns each frame into anonymous mask \emph{fragments}, image segments with geometry and an appearance descriptor but no object identity.
+Every frame, one joint assignment decides for every fragment whether it is new evidence for an existing entity (\op{BIND}), a returning entity (\op{REACTIVATE}) or a new object (\op{BIRTH}); an existence head decides, for every entity that should be visible but was not matched, whether to keep it (\op{NOOP}) or \op{RETRACT} it.
+A retracted entity leaves the map, but its closed version is kept, so the same identity can be reactivated later.
+In the memory, only three small cost heads (54,787 parameters) are learned, from \emph{hindsight} labels: after the decision, and only in training and evaluation, the simulator's instance ground truth at that frame states which choice would have been right.
 
-The evaluation rests on one counterfactual, \arm{AssocOnly}: the same association head and solver, retrained with the same recipe, with only \op{BIND} and \op{BIRTH}.
-The primary hypothesis (lower Missing residual rate and higher identity continuity than \arm{AssocOnly}), its fixed testing order over two front ends (simulator instance masks, then SAM~2.1~\cite{sam2_2025}), one exclusion list per metric and a two-level resampling test with a seed-stability condition were recorded in frozen contracts before validation or test data were read, and the test was run once.
+The test rests on one counterfactual, \arm{AssocOnly}: the same association head and solver, retrained with the same recipe, with only \op{BIND} and \op{BIRTH}; without an existence step it never retracts, reactivates or marks an entity dormant.
+It removes the learned lifecycle as a whole, not the learning, whose role \arm{HandCost} probes.
+The primary hypothesis (a lower Missing residual rate, MRR, and a higher identity continuity, IdC, than \arm{AssocOnly}; Fig.~\ref{fig:overview}), its testing order over two front ends (simulator instance masks, then the learned segmenter SAM~2.1~\cite{sam2_2025}) and the statistics were frozen in versioned configuration files before validation or test data were read, and the test was run once.
 We call this pre-registration; it is internal to the project, the hypothesis was revised after development and confirmation readings, and Section~\ref{sec:stats} discloses that history.
-All nine arms---VSMT-lean, four ablations and four rule-based adapters of threshold association, persistence filtering, render-and-compare and last-observation overwriting---read byte-identical front-end caches and share recall, deduplication, executor and evaluator.
-
-The result is mixed.
-With simulator instance masks, which segment almost perfectly, both parts of the primary hypothesis hold for the training procedure (fixed training data, recipe and selection; five seeds).
-With SAM~2.1 masks only the reduction in stale entities holds; identity continuity does not improve, so the claim does not extend across both segmenters.
-No method leads on every metric: with instance masks the persistence-filter adapter \arm{ELU-P} leaves fewer stale entities than VSMT-lean (0.075 vs.\ 0.115), while 92.4\% of the in-scope entities it retracts belong to objects that are still in place.
-
+All nine compared methods (\emph{arms}, Table~\ref{tab:arms}) read byte-identical front-end outputs and share recall, deduplication, executor and evaluator.
 Our contributions are:
 \begin{enumerate}
-\item A versioned, reversible lifecycle revision with learned costs, tested against an association-only counterfactual trained with the same recipe: with near-ideal instance masks the training procedure (five seeds) leaves fewer stale entities and re-attaches more relocated objects; with SAM~2.1 masks only the first part holds. A descriptive deletion ablation indicates that re-attachment depends on keeping the versions of retracted entities.
-\item An auditable training and evaluation protocol: candidates and features sealed before the teacher, a ledger splitting every decision into recall miss, teacher error and amortization error, and a pre-registered test with a single read of the test split.
-\item A same-front-end, same-protocol, metric-by-metric comparison with adapters of association, persistence and render-and-compare mechanisms on two front ends, with a descriptive check on 3RScan rescans~\cite{rio2019}.
+\item A versioned, reversible lifecycle revision with learned costs, tested against an association-only counterfactual trained with the same recipe: with near-ideal instance masks the training procedure (five seeds) leaves fewer stale entities and re-attaches more relocated objects; with SAM~2.1 masks only the first part holds. A descriptive deletion ablation indicates that, on ProcTHOR, re-attachment depends on keeping the versions of retracted entities.
+\item An auditable training and evaluation protocol: candidates sealed before labels are read, a ledger assigning every decision to exactly one class that separates three sources of error, and a pre-registered test with a single test read.
+\item A same-front-end, metric-by-metric comparison with re-implemented association, persistence and render-and-compare mechanisms on two front ends, with a descriptive check on real rescans~\cite{rio2019}.
 \end{enumerate}
-Code, frozen configurations, every exported result and an index from each table to its source are released at \url{https://github.com/JingzeSun/VSMT}; episodes, feature caches, run records and weights are at \url{https://huggingface.co/Jsun0632}.

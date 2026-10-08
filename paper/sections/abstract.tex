@@ -3,14 +3,14 @@
 % Ruling 113-1 also requires, next to the instance-mask claim: near-ideal segmentation, and that the inference target is
 % the training procedure (five seeds). Forbidden in title and abstract: robust, across segmenters, outperform(s), state of the art.
 \begin{abstract}
-A robot revisiting a changed home must decide, for each remembered object it cannot confirm, whether it is occluded, missed, removed or moved, and must restore a moved object's identity when it reappears.
-We study VSMT-lean, an object-level memory updated by versioned transactions over five atoms (keep, bind, birth, retract, reactivate); a retraction closes a version instead of deleting it, so a later reactivation can restore the identity.
-Small cost heads over a frozen RGB-D front end learn from hindsight instance-truth labels, which are read only after candidates and features are sealed.
-The primary hypothesis, testing order and analysis plan were frozen before validation or test data were read; the test ran once on ProcTHOR houses (87 with instance masks, 85 with SAM~2.1 masks).
-With simulator instance masks, which segment almost perfectly, the training procedure (five seeds) leaves fewer stale entities and keeps more identities than the same-recipe association-only ablation: the Missing residual rate falls from 0.642 to 0.115 and identity continuity rises from 0.104 to 0.211 (two-level one-sided 95\% lower bounds 0.467 and 0.049).
-With SAM~2.1 masks stale entities also fall (0.235 to 0.055), but identity continuity does not improve (0.063 vs.\ 0.082).
-Node F1 differs from the ablation by $+0.003$ and $+0.009$; no non-inferiority margin was registered.
-No method leads on every metric: with instance masks a rule-based persistence filter leaves fewer stale entities (0.075 vs.\ 0.115), while 92.4\% of the in-scope entities it retracts belong to objects still in place.
+A robot revisiting a changed home must tell whether a remembered object it cannot see is hidden, missed, removed or moved, and must re-identify moved objects.
+We study VSMT-lean, an object-level memory that applies five operations per frame (keep/NOOP, bind, birth, retract, reactivate) as one transaction; a retraction closes an entity's version, so a reactivation can restore its identity.
+Three small cost heads over a frozen RGB-D front end learn from the simulator's instance ground truth, read only after each frame's candidates are fixed.
+The primary hypothesis (revised after development and confirmation readings), testing order and analysis were registered internally before validation or test data were read; the test ran once on 87 ProcTHOR houses.
+With simulator instance masks, which segment almost perfectly, the training procedure (five seeds) leaves fewer stale entities and keeps more identities than the same-recipe ablation that can only bind and birth: the Missing residual rate falls from 0.642 to 0.115 and identity continuity rises from 0.104 to 0.211 (one-sided 95\% lower bounds of the gains 0.467 and 0.049).
+With SAM~2.1 masks stale entities also fall (0.235 to 0.055), but identity continuity does not improve (0.063 vs.\ 0.082), and more than half of VSMT-lean's in-scope retractions (house structure such as walls excluded) concern objects still in place.
+Node F1 (is each present object in memory once, at the right place?) differs from the ablation by $+0.003$ and $+0.009$, reported as differences only.
+No method leads on every metric: with instance masks a rule-based persistence filter leaves fewer stale entities (0.075 vs.\ 0.115), while per house on average 92.4\% of its in-scope retractions concern objects still in place.
 In a descriptive ablation, deleting instead of retracting leaves slightly fewer stale entities but drops identity continuity to near zero.
 \end{abstract}
 
