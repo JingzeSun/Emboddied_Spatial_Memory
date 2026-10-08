@@ -1,0 +1,1145 @@
+{
+ "stage": "vsmt.lean.s3_07.driver.v1",
+ "written_utc": "2026-10-08T01:27:35Z",
+ "code_commit": "aa94373f8a2ed165ba034abca8b25ccd838a30dd",
+ "fronts": [
+  "instance"
+ ],
+ "receipt": {
+  "path": "/root/autodl-tmp/vsmt_worktrees/s3-07-aa94373/results/vsmt_lean_s3_04_freeze_dea8c20.json",
+  "receipt_sha256": "4fd08d4fc6d00c0063fc210a1ad4e8e8cbf0382b1d93d0e0e8331487b32910e0"
+ },
+ "receipt_sha256": "4fd08d4fc6d00c0063fc210a1ad4e8e8cbf0382b1d93d0e0e8331487b32910e0",
+ "s3_03_run_root": "/root/autodl-tmp/vsmt_private/s3-03-run",
+ "split_key": "validation",
+ "split_meaning": "3RScan validation (external data, ruling 111); not the ProcTHOR validation split",
+ "roots": {
+  "raw": {
+   "validation": "/root/autodl-tmp/vsmt_outputs/s3-07-4e7a206"
+  },
+  "geometry": {
+   "validation": "/root/autodl-tmp/vsmt_private/s3-07-geometry-4e7a206"
+  },
+  "cache": {
+   "instance": {
+    "validation": "/root/autodl-tmp/vsmt_caches/s3-07-d12707f/instance"
+   }
+  }
+ },
+ "reid": {
+  "instance": {
+   "file": "/root/autodl-tmp/vsmt_private/lean-s1-04-diagnostics-oracle-caa50c7/reid_head_vitb14.json"
+  }
+ },
+ "episodes": {
+  "instance": {
+   "validation": [
+    {
+     "episode_id": "3rscan-095821f7-e2c2-2de1-9568-b9ce59920e29-095821f9-e2c2-2de1-9707-8f735cd1c148",
+     "frames": 564,
+     "episode_seal_sha256": "39edf797165ff1696429c629aaf1c9697c55947a6ceeceb4462a29b6fd0c3b7c"
+    },
+    {
+     "episode_id": "3rscan-095821f7-e2c2-2de1-9568-b9ce59920e29-095821fb-e2c2-2de1-94df-20f2cb423bcb",
+     "frames": 463,
+     "episode_seal_sha256": "7e1dea075a4301cf1c950fd7759692c4c0a2ad38055520019a040c824e9279bc"
+    },
+    {
+     "episode_id": "3rscan-095821f7-e2c2-2de1-9568-b9ce59920e29-2e369567-e133-204c-909a-c5da44bb58df",
+     "frames": 377,
+     "episode_seal_sha256": "a11b78b1ba668372956f03eb74519811358f468313d283ca100f5bb690a3a4fe"
+    },
+    {
+     "episode_id": "3rscan-0988ea72-eb32-2e61-8344-99e2283c2728-9766cbe5-6321-2e2f-8040-4e5b7a5d8ba1",
+     "frames": 1369,
+     "episode_seal_sha256": "45df8e80c9a1dfb891c822c20ae56687f0d792d0341fcdbb600d569b75bc0d7d"
+    },
+    {
+     "episode_id": "3rscan-0988ea72-eb32-2e61-8344-99e2283c2728-9766cbf7-6321-2e2f-81e1-2b46533c64dd",
+     "frames": 1706,
+     "episode_seal_sha256": "91f0e90d42e9b99e7e3453d6ea2f17af9c1931dc806db9ea3b5e8211795e3f68"
+    },
+    {
+     "episode_id": "3rscan-0cac7540-8d6f-2d13-8eee-36ba2a428e3f-0cac7532-8d6f-2d13-8cea-1e70d5ae4856",
+     "frames": 404,
+     "episode_seal_sha256": "173c70284d3bd7b25b2e209afb39342e271cdb039dbbf98c52c50dd55ff449fa"
+    },
+    {
+     "episode_id": "3rscan-0cac7540-8d6f-2d13-8eee-36ba2a428e3f-0cac7534-8d6f-2d13-8de7-8a915ed90050",
+     "frames": 436,
+     "episode_seal_sha256": "3f9c7395fc2925af270c0b5abf18199d3609a3129e6ec9fcf3b33b51be7bfde5"
+    },
+    {
+     "episode_id": "3rscan-0cac7584-8d6f-2d13-8df8-c05e4307b418-0cac7582-8d6f-2d13-8d4b-e4041cb166c4",
+     "frames": 278,
+     "episode_seal_sha256": "a4b585d79e543f08873c5aa2660eda96a3792e4a62bda24b3976c2da0b0be9c7"
+    },
+    {
+     "episode_id": "3rscan-0cac75dc-8d6f-2d13-8d08-9c497bd6acdc-0cac75de-8d6f-2d13-8e1a-b574569c3885",
+     "frames": 278,
+     "episode_seal_sha256": "603a195a8e8c0ee32ab4e5cacaad93cb555b8fcf489012302464ad2953d556ce"
+    },
+    {
+     "episode_id": "3rscan-0cac7676-8d6f-2d13-8f3a-d7bf7f03e721-7272e17c-a01b-20f6-8b2f-e659331ae41a",
+     "frames": 363,
+     "episode_seal_sha256": "40f0d86f5871ef862d6f3084f7ff33ce63c076c48a4781e6a58bb5b3475cef0d"
+    },
+    {
+     "episode_id": "3rscan-10b17940-3938-2467-8a7a-958300ba83d3-5630cfe7-12bf-2860-8710-52729dc36cc6",
+     "frames": 236,
+     "episode_seal_sha256": "65ff0016272679ecaea200ccb1aa27a642158f6e3f62288abf99439dffa007d1"
+    },
+    {
+     "episode_id": "3rscan-10b17940-3938-2467-8a7a-958300ba83d3-6e67e55f-1209-2cd0-8194-8c6278434c80",
+     "frames": 158,
+     "episode_seal_sha256": "d1d31988cc53373088d9d9353052095b32610cad0ac861dbc6ec275617f6a265"
+    },
+    {
+     "episode_id": "3rscan-10b17940-3938-2467-8a7a-958300ba83d3-c2d9933d-1947-2fbf-81fa-c8a7f9625eea",
+     "frames": 256,
+     "episode_seal_sha256": "3b69c7c5ab331c319a0a095a02821afd2a0f096f4979e4bdbd5d97235caac6b7"
+    },
+    {
+     "episode_id": "3rscan-10b17940-3938-2467-8a7a-958300ba83d3-c2d9933f-1947-2fbf-807f-c44bc1aed269",
+     "frames": 323,
+     "episode_seal_sha256": "16335bbaa8f82d1daa5492749bccf457b1871a1b6340966d88ac48d31a22fb5a"
+    },
+    {
+     "episode_id": "3rscan-10b17940-3938-2467-8a7a-958300ba83d3-c2d99341-1947-2fbf-817a-5aa9b44f724f",
+     "frames": 275,
+     "episode_seal_sha256": "2e1492b9e2bd1726df15039ec3b9351b0036670f89a597b87b99ca5a054d5a1b"
+    },
+    {
+     "episode_id": "3rscan-10b17940-3938-2467-8a7a-958300ba83d3-c2d99343-1947-2fbf-808f-92dbb7d47aa5",
+     "frames": 235,
+     "episode_seal_sha256": "70c79e1f7e76d64650a06d4d636db6820cfaaa64d2ffeaf62682eb055ad7eef7"
+    },
+    {
+     "episode_id": "3rscan-10b17940-3938-2467-8a7a-958300ba83d3-c2d99345-1947-2fbf-818d-90ea82acef29",
+     "frames": 268,
+     "episode_seal_sha256": "5ee0bedd5506c73814b844b6bcec39ce3334b0997a9cc2dece621b7e20bac270"
+    },
+    {
+     "episode_id": "3rscan-10b17940-3938-2467-8a7a-958300ba83d3-c2d99347-1947-2fbf-834b-f95790c125dd",
+     "frames": 171,
+     "episode_seal_sha256": "a20b0d5b2c829ea1626138ab81e185ed10884ee7093a0248136c8b3e4fbf0db3"
+    },
+    {
+     "episode_id": "3rscan-10b17940-3938-2467-8a7a-958300ba83d3-c2d99349-1947-2fbf-837e-a0bd5e027c52",
+     "frames": 219,
+     "episode_seal_sha256": "6af329135ed36b8e2a8e516d074b716b06e8212162c1700f08887bd9b0d88e6f"
+    },
+    {
+     "episode_id": "3rscan-137a8158-1db5-2cc0-8003-31c12610471e-10b1792a-3938-2467-8b4e-a93da27a0985",
+     "frames": 981,
+     "episode_seal_sha256": "e99bd12e69404b209b50db18066abb75e88eb7cc0f39166b9b301fad17dc5e10"
+    },
+    {
+     "episode_id": "3rscan-137a8158-1db5-2cc0-8003-31c12610471e-5630cfd3-12bf-2860-8749-9dacb499fb14",
+     "frames": 919,
+     "episode_seal_sha256": "a54f879801ab12a727a56615c85723de29a13ca8054d025410b54dc9f9239b44"
+    },
+    {
+     "episode_id": "3rscan-137a8158-1db5-2cc0-8003-31c12610471e-6e67e550-1209-2cd0-8294-7cc2564cf82c",
+     "frames": 908,
+     "episode_seal_sha256": "31e6bcd2ff9fb32957ceb6aea1feb757b4c461c2a7cc1d6a233e826b8abc277c"
+    },
+    {
+     "episode_id": "3rscan-137a8158-1db5-2cc0-8003-31c12610471e-c92fb5b7-f771-2064-87a9-31c819832405",
+     "frames": 1046,
+     "episode_seal_sha256": "8d327ee7ad7a1b79bc8b709879d25eae2e8e5733760224d23acb1be085976be3"
+    },
+    {
+     "episode_id": "3rscan-137a8158-1db5-2cc0-8003-31c12610471e-d04eb40f-1d53-27ea-8a41-47892bde7017",
+     "frames": 897,
+     "episode_seal_sha256": "00bccdfb4d15021ac98c23c4f1a39e685ee9871245f481729b35dcdef43975f0"
+    },
+    {
+     "episode_id": "3rscan-137a8158-1db5-2cc0-8003-31c12610471e-f2c76fe5-2239-29d0-8593-1a2555125595",
+     "frames": 1071,
+     "episode_seal_sha256": "78cab15cdc18fc8566a4fe18f398a520225471d892e621040d9c247ee7fb816d"
+    },
+    {
+     "episode_id": "3rscan-137a8158-1db5-2cc0-8003-31c12610471e-f2c76fe7-2239-29d0-84f5-144c30fd7451",
+     "frames": 1006,
+     "episode_seal_sha256": "5d461065e63f664b1f41c9c00f3cb9696ceae2471214e3a85456a4acaa027297"
+    },
+    {
+     "episode_id": "3rscan-137a8158-1db5-2cc0-8003-31c12610471e-f2c76fe9-2239-29d0-87ec-f2c7ced812c1",
+     "frames": 942,
+     "episode_seal_sha256": "3446ac2052e41c4c505ab6a05e569ec571661b76b249b82016cec1881edfb75c"
+    },
+    {
+     "episode_id": "3rscan-137a8158-1db5-2cc0-8003-31c12610471e-f2c76feb-2239-29d0-8418-72b6051fc144",
+     "frames": 944,
+     "episode_seal_sha256": "544277bb91a1777ba97cad9e23f518428712d3c8d577d7a9ca3e0a5c1f474ab6"
+    },
+    {
+     "episode_id": "3rscan-137a8158-1db5-2cc0-8003-31c12610471e-f2c76fed-2239-29d0-8598-9ed42cec9dc5",
+     "frames": 817,
+     "episode_seal_sha256": "fa1452518dabbe245f8e6458bd60133fab30456a4b8dc1cddfd459a95f03e24a"
+    },
+    {
+     "episode_id": "3rscan-137a8158-1db5-2cc0-8003-31c12610471e-f2c76ff1-2239-29d0-87f5-8a0346584384",
+     "frames": 879,
+     "episode_seal_sha256": "efdc2501eaf1c8f6d0ed8bb19db4c480afae33f5fb47abff4e8e0e13f8def5dc"
+    },
+    {
+     "episode_id": "3rscan-1d234022-e280-2b1a-8cec-e9787bb0d7b2-1d234024-e280-2b1a-8c28-2743fefed020",
+     "frames": 226,
+     "episode_seal_sha256": "9a1d878ea48bc6a98660a4ea9b3353772f008ddb5734d2d032364cd445a3313c"
+    },
+    {
+     "episode_id": "3rscan-1d234022-e280-2b1a-8cec-e9787bb0d7b2-1d234026-e280-2b1a-8fe1-713e28269f4d",
+     "frames": 281,
+     "episode_seal_sha256": "ff09722736ba31561e8a3f8f3cea7b06b8294941b1532648417920abc2bc1be5"
+    },
+    {
+     "episode_id": "3rscan-20c993b7-698f-29c5-847d-c8cb8a685f5a-20c993b3-698f-29c5-859c-dca8ddecf220",
+     "frames": 116,
+     "episode_seal_sha256": "1c62347e29c6ac6bd0c71bcb3ad9fa8bd7ad4c48e26fd113c4812932a3c84d2e"
+    },
+    {
+     "episode_id": "3rscan-280d8ebb-6cc6-2788-9153-98959a2da801-10b17957-3938-2467-88a5-9e9254930dad",
+     "frames": 732,
+     "episode_seal_sha256": "4451a4b3d57d7be217be3dade9a9323990bad19442694358a61fb8a804424253"
+    },
+    {
+     "episode_id": "3rscan-280d8ebb-6cc6-2788-9153-98959a2da801-1d2f850c-d757-207c-8fba-60b90a7d4691",
+     "frames": 827,
+     "episode_seal_sha256": "d2a502cd57c466aa4308f76e98a9dd0b4515815a1b218e8fbd973a3a50e6241d"
+    },
+    {
+     "episode_id": "3rscan-280d8ebb-6cc6-2788-9153-98959a2da801-4731976c-f9f7-2a1a-95cc-31c4d1751d0b",
+     "frames": 917,
+     "episode_seal_sha256": "5e0dc5a8f33cabb14d8e400cd7c8846a6474521c1cfe56d2e77163a7b858c5ae"
+    },
+    {
+     "episode_id": "3rscan-280d8ebb-6cc6-2788-9153-98959a2da801-ea318260-0a4c-2749-9389-4c16c782c4b1",
+     "frames": 750,
+     "episode_seal_sha256": "d7873c9ac6a4ae6f0e81e79a1da384eec5535016efd19cb0447de2a45b221c5a"
+    },
+    {
+     "episode_id": "3rscan-321c8680-a5a8-2a84-85c2-816a26d59516-321c867e-a5a8-2a84-851a-818df115be05",
+     "frames": 377,
+     "episode_seal_sha256": "36aadf36cdf05b3f5121aedcb091d8c17cfedb1d3bbe8d3c48c2e9319165147a"
+    },
+    {
+     "episode_id": "3rscan-38770ca1-86d7-27b8-8619-ab66f67d9adf-38770ca3-86d7-27b8-85a7-7d840ffdec6a",
+     "frames": 1893,
+     "episode_seal_sha256": "461769aed7a0160de4b1f9632b81d3bcd67f2829cc54a2f35f5a68f6e4263758"
+    },
+    {
+     "episode_id": "3rscan-38770ca1-86d7-27b8-8619-ab66f67d9adf-38770ca5-86d7-27b8-871c-57fdbfe87905",
+     "frames": 2125,
+     "episode_seal_sha256": "b82f880735259501ffbd5e9981cdb9d89550bc3afe4e614953f5416f9abb6e00"
+    },
+    {
+     "episode_id": "3rscan-4138582f-a238-2435-8332-6902542c2823-5341b7a5-8a66-2cdd-8751-70b98263cb8d",
+     "frames": 510,
+     "episode_seal_sha256": "42e39649b35ad71173657d4b3f9791aecdf535a65973fff4c469a71d091ca5b7"
+    },
+    {
+     "episode_id": "3rscan-4138582f-a238-2435-8332-6902542c2823-8eabc445-5af7-2f32-85ae-90deb8eb1b0b",
+     "frames": 641,
+     "episode_seal_sha256": "f760e674e09266e2807d98ce58a9e410a59d3827820b205ae0708ec00d71cf98"
+    },
+    {
+     "episode_id": "3rscan-422885b3-192d-25fc-84c9-9b80eea1752d-422885c5-192d-25fc-85e6-12a3d65c8e7b",
+     "frames": 219,
+     "episode_seal_sha256": "c999cddf1ee25486dc0343ec84e0f142ff65360b542c845bf30bd4f1c111bbed"
+    },
+    {
+     "episode_id": "3rscan-4238490c-60a7-271e-9f38-3c651e3b3912-10b17963-3938-2467-8a48-0d4af350ce92",
+     "frames": 300,
+     "episode_seal_sha256": "ad32eec3eb79b8c8e622a4a8051d67c328183834c93b4cfbbc663929e8eb4218"
+    },
+    {
+     "episode_id": "3rscan-4238490c-60a7-271e-9f38-3c651e3b3912-42384908-60a7-271e-9c46-01e562c8974c",
+     "frames": 382,
+     "episode_seal_sha256": "14aa89e4bce025e79150ad1ce3cf626b10c54fb048673fde1a296e12f4860d4e"
+    },
+    {
+     "episode_id": "3rscan-4238490c-60a7-271e-9f38-3c651e3b3912-4238490a-60a7-271e-9c04-3846221dc354",
+     "frames": 270,
+     "episode_seal_sha256": "3da3f13824c0d629061a5e592afd26a033eb300832593dee9acce9e716d26696"
+    },
+    {
+     "episode_id": "3rscan-43b8cae1-6678-2e38-9865-c19c07c25015-43b8cadf-6678-2e38-9920-064144c99406",
+     "frames": 532,
+     "episode_seal_sha256": "7e6c66b54b916c872c1793aa396dcd10b88575a37fe7da6671c1dfd0adb1e140"
+    },
+    {
+     "episode_id": "3rscan-43b8cae1-6678-2e38-9865-c19c07c25015-43b8cae3-6678-2e38-9b67-5905de29f6d7",
+     "frames": 538,
+     "episode_seal_sha256": "c022655ca24ce66709d0a86127dd97e28a9c89687e55544208c2318fb4e76337"
+    },
+    {
+     "episode_id": "3rscan-4a9a43d2-7736-2874-874d-d0fad0570e19-4a9a43d4-7736-2874-87a6-0c3089281af8",
+     "frames": 2130,
+     "episode_seal_sha256": "c1773f0e1d47308ec7feea2d0a529ae9af15dfdfadb10c69f6df938c14530f65"
+    },
+    {
+     "episode_id": "3rscan-4d3d82b0-8cf4-2e04-80a8-c955ea964c2f-4d3d82ae-8cf4-2e04-80de-20f96c814d9c",
+     "frames": 530,
+     "episode_seal_sha256": "0b296d1b998ed9c017fd21d90f5b5bc19521445dfc8ce7a08bb3affb1b3543ed"
+    },
+    {
+     "episode_id": "3rscan-4fbad31e-465b-2a5d-84b7-c0ddea978db4-4fbad32f-465b-2a5d-8408-146ab1d72808",
+     "frames": 1532,
+     "episode_seal_sha256": "318a8a975aa4f5e2cc82c0f555307eff7aed9896ab88072518c4176a08276b93"
+    },
+    {
+     "episode_id": "3rscan-4fbad31e-465b-2a5d-84b7-c0ddea978db4-4fbad331-465b-2a5d-8488-852fcda9513c",
+     "frames": 1336,
+     "episode_seal_sha256": "e848ab8143a5325920ba2cf9453cb24b667fdb99817e793531e88ae6ee264a4b"
+    },
+    {
+     "episode_id": "3rscan-4fbad31e-465b-2a5d-84b7-c0ddea978db4-9af05c68-5794-2e19-8c5a-979f448da545",
+     "frames": 1489,
+     "episode_seal_sha256": "c77613fcb3ff9b686207b0e7e7db251fc8c5e7c43ff73f31d2f84034811eba5b"
+    },
+    {
+     "episode_id": "3rscan-5341b79f-8a66-2cdd-84d5-6dba6525dd75-7272e16c-a01b-20f6-8961-a0927b4a7629",
+     "frames": 274,
+     "episode_seal_sha256": "2a06f19ad346a4481f083fd9d49f38790bbc453527adf81d1d90616e22b137c8"
+    },
+    {
+     "episode_id": "3rscan-5341b7e3-8a66-2cdd-8709-66a2159f0017-4138585b-a238-2435-810b-9728fc989b2f",
+     "frames": 629,
+     "episode_seal_sha256": "daf2202e2a880d5745d5ff2fdeba54912ce6ba8c6c8ca2654e8cbc5dd3bc859d"
+    },
+    {
+     "episode_id": "3rscan-5630cfcf-12bf-2860-8784-83d28a611a83-10b1792e-3938-2467-8bb3-172148ae5a67",
+     "frames": 405,
+     "episode_seal_sha256": "69bf30a536f95f4c6f518e3d1c7d2cb59ab22b7c7a97ca003edd5c59f7d27253"
+    },
+    {
+     "episode_id": "3rscan-5630cfcf-12bf-2860-8784-83d28a611a83-10b17944-3938-2467-8bac-5552375e4467",
+     "frames": 381,
+     "episode_seal_sha256": "9cb72d1677a0de4a2c60ff24383ca9f1fa9261c1bb076485da1ee4106d15b0a3"
+    },
+    {
+     "episode_id": "3rscan-5630cfcf-12bf-2860-8784-83d28a611a83-5630cfd1-12bf-2860-86b2-e7a96bc32c19",
+     "frames": 358,
+     "episode_seal_sha256": "7ca2ff0a31077f7717cbdc218b25174062a658e2e2d78d70ac5fc69b2a201bdc"
+    },
+    {
+     "episode_id": "3rscan-5630cfcf-12bf-2860-8784-83d28a611a83-bf9a3d9e-45a5-2e80-83c6-4e427c5586a2",
+     "frames": 448,
+     "episode_seal_sha256": "e3b77c9cc2dbc67279a20568ef70a64fa690decd07af5e9681faee4187e68bf5"
+    },
+    {
+     "episode_id": "3rscan-6bde6081-9162-246f-8c4e-ffaf709d17b1-6bde607b-9162-246f-8e65-76e3ef265504",
+     "frames": 263,
+     "episode_seal_sha256": "d0c91bcc280994d6233cfc6641656c9cbe440e64e8ad145c1aba7de07d243139"
+    },
+    {
+     "episode_id": "3rscan-6bde6081-9162-246f-8c4e-ffaf709d17b1-6bde607d-9162-246f-8f84-98cf7ac2374c",
+     "frames": 273,
+     "episode_seal_sha256": "588feec33c4456b0c61578998bd6d1be1cc7718dca96d7708e40c689a13d27e0"
+    },
+    {
+     "episode_id": "3rscan-6bde6081-9162-246f-8c4e-ffaf709d17b1-6bde6083-9162-246f-8c9c-e170212059b2",
+     "frames": 224,
+     "episode_seal_sha256": "4af9cb2aba12a964553bcc559138b1d66685298f5b01e4c71cd016f8af9f2f09"
+    },
+    {
+     "episode_id": "3rscan-6bde60cb-9162-246f-8cf5-d04f7426e56f-6bde60cd-9162-246f-8fad-fca80b4d6ad8",
+     "frames": 128,
+     "episode_seal_sha256": "57ff2b0326de0b92c33551c28bd07bd1e215fd22eac95280fcfcee706e01e492"
+    },
+    {
+     "episode_id": "3rscan-6bde60cb-9162-246f-8cf5-d04f7426e56f-6bde60cf-9162-246f-8f98-6355d75494c2",
+     "frames": 214,
+     "episode_seal_sha256": "46e96d844f3106be5f2052cedad527acb625e77860762ed8b2666ad4d1792886"
+    },
+    {
+     "episode_id": "3rscan-742e8f15-be0a-294e-9ebb-6c72dbcb9662-68bae75f-3567-2f7c-829d-7422117729f3",
+     "frames": 387,
+     "episode_seal_sha256": "d18ce8c04dc4f171f3b9bd77cede825efc6e98d0b679643e8b15d833a32817b9"
+    },
+    {
+     "episode_id": "3rscan-742e8f15-be0a-294e-9ebb-6c72dbcb9662-742e8f17-be0a-294e-9dd3-52492d308e2b",
+     "frames": 451,
+     "episode_seal_sha256": "b0be1318713203791ec1bcb42d65017407a5cab3b31a9124d17e7dc3913c3ac5"
+    },
+    {
+     "episode_id": "3rscan-742e8f15-be0a-294e-9ebb-6c72dbcb9662-742e8f19-be0a-294e-9eb6-50dc474b110e",
+     "frames": 408,
+     "episode_seal_sha256": "a11cc8d9e6de37da4b5e680211f20ac1598a8445c22bb31df70137571f92da34"
+    },
+    {
+     "episode_id": "3rscan-75c25975-9ca2-2844-9769-84677f46d4cf-8eabc455-5af7-2f32-8606-a0bdbe6c537d",
+     "frames": 201,
+     "episode_seal_sha256": "68ca6079265bd0d4e3031561b112b1ce5ad3040c8244625281371de5bac74816"
+    },
+    {
+     "episode_id": "3rscan-7747a50c-9431-24e8-877d-e60c3a341cc2-7747a4ec-9431-24e8-848f-897279a1e9fe",
+     "frames": 917,
+     "episode_seal_sha256": "2e3591ee27427c6db6dc6f5a20615a27e47db6ff9639f2aac8c8086ef50e5016"
+    },
+    {
+     "episode_id": "3rscan-7747a50c-9431-24e8-877d-e60c3a341cc2-7747a510-9431-24e8-8705-907ee78be2a2",
+     "frames": 1146,
+     "episode_seal_sha256": "d012e349328b6bd9445fe30900dc31bcd1a7aa7168102f7bb8d00a435ec303d9"
+    },
+    {
+     "episode_id": "3rscan-8e0f1c28-9e28-2339-8584-ff06ff93c341-20c993bd-698f-29c5-8494-5556ba7d3fe9",
+     "frames": 140,
+     "episode_seal_sha256": "4b28cec54473e7bd84cd3d24a9e9b67a6bb92bfecb4bb35cf77802398f76ab1a"
+    },
+    {
+     "episode_id": "3rscan-8e0f1c28-9e28-2339-8584-ff06ff93c341-20c993bf-698f-29c5-8549-a69fd169c1e1",
+     "frames": 146,
+     "episode_seal_sha256": "5e74a1581ac18fa60a552c7e147a6c2f01f993fb2385a178651462ae0c031633"
+    },
+    {
+     "episode_id": "3rscan-8eabc45f-5af7-2f32-8528-640861d2a135-41385849-a238-2435-81d0-ceb0eba4541a",
+     "frames": 811,
+     "episode_seal_sha256": "f67464e4d370993fcefe327a2b1a743cf89461733b4364b658916d1a698a6153"
+    },
+    {
+     "episode_id": "3rscan-8eabc45f-5af7-2f32-8528-640861d2a135-5341b7b3-8a66-2cdd-856d-9d70e194568b",
+     "frames": 452,
+     "episode_seal_sha256": "979ff716c532e7e05ebb728d44bc170d62228543f0c2c6591d1cd89d90e83c5f"
+    },
+    {
+     "episode_id": "3rscan-8eabc45f-5af7-2f32-8528-640861d2a135-75c25989-9ca2-2844-97b4-31b81f7554b8",
+     "frames": 389,
+     "episode_seal_sha256": "d2271e067a93ab252abd13549b073d9608f51547af4b02854aacdae321cfcf34"
+    },
+    {
+     "episode_id": "3rscan-8eabc45f-5af7-2f32-8528-640861d2a135-8eabc461-5af7-2f32-8663-ce5a10fd97b3",
+     "frames": 409,
+     "episode_seal_sha256": "5646d537eb8912dfc180e0b34da241c6df8c3728a65302c725abed4a7e0c1aeb"
+    },
+    {
+     "episode_id": "3rscan-a0905fd9-66f7-2272-9dfb-0483fdcc54c7-a0905fdb-66f7-2272-9fc5-7c0008d5e87b",
+     "frames": 584,
+     "episode_seal_sha256": "3c6f10b91b045d230d0b7871ecfaeb7013088983e000e30856790ec844b4f9c6"
+    },
+    {
+     "episode_id": "3rscan-a0905fd9-66f7-2272-9dfb-0483fdcc54c7-a0905fdd-66f7-2272-9cdb-89360888ea67",
+     "frames": 563,
+     "episode_seal_sha256": "9d421de1d6b489f63425ca2c7379eddbb5aadf653643a6080c6de19ba3bd6a4f"
+    },
+    {
+     "episode_id": "3rscan-ab835fae-54c6-29a1-995e-b06cfc555786-ab835faa-54c6-29a1-9b55-1a5217fcba19",
+     "frames": 518,
+     "episode_seal_sha256": "6a16d64b37732406a4bfb5344890c170e6494ca9fe37c7fb20d50382547d1be1"
+    },
+    {
+     "episode_id": "3rscan-ab835fae-54c6-29a1-995e-b06cfc555786-d7dc987e-a34a-2794-85c8-f75389b27532",
+     "frames": 515,
+     "episode_seal_sha256": "6510f7ae2db89746113153a3bfe2408e70382bf57e408357e9b2d7869f264704"
+    },
+    {
+     "episode_id": "3rscan-b05fdd8a-fca0-2d4f-8ac5-f6ae697787f5-0cac75e8-8d6f-2d13-8fc4-acdbf00437c8",
+     "frames": 319,
+     "episode_seal_sha256": "4607d3b1d322cce81d2dbe60094ccd675a07dd87a3144eb2e69a30b8d5a4f453"
+    },
+    {
+     "episode_id": "3rscan-b05fdd8a-fca0-2d4f-8ac5-f6ae697787f5-0cac75ea-8d6f-2d13-8e50-c5faf0159e32",
+     "frames": 346,
+     "episode_seal_sha256": "0d5ba8544d855a55c23ccfe2a6b133d4a5bbd5cf98922ee705936c95dbe22cf9"
+    },
+    {
+     "episode_id": "3rscan-b05fdd8a-fca0-2d4f-8ac5-f6ae697787f5-c7895f63-339c-2d13-81a3-0b07b1eb23b4",
+     "frames": 308,
+     "episode_seal_sha256": "2503a90efd3f5be7b66c9bba8779fa8adcdb650966ece0d8b1a76bdac66ad269"
+    },
+    {
+     "episode_id": "3rscan-b05fdd96-fca0-2d4f-88c3-d9dfda85c00e-0cac7619-8d6f-2d13-8f36-ac562ec9a4de",
+     "frames": 166,
+     "episode_seal_sha256": "07166decca6c68bb4a0763b032ff3087ebc993661a9f9c5517282a0a2f241685"
+    },
+    {
+     "episode_id": "3rscan-b05fdd96-fca0-2d4f-88c3-d9dfda85c00e-0cac761b-8d6f-2d13-8f16-23a7d73c54fe",
+     "frames": 171,
+     "episode_seal_sha256": "b42f31f4dd665b1d52dad5b0728694abc41b80a9d50c659f1a2c0ff817fe88b1"
+    },
+    {
+     "episode_id": "3rscan-b1f23308-d255-2761-94da-981d962c6bf8-77361fd4-d054-2a22-88c4-b5b404f904ca",
+     "frames": 231,
+     "episode_seal_sha256": "e05167f6686ba2c176ca23bc3429d2693842eed8c71d5c305f09bc32f6709342"
+    },
+    {
+     "episode_id": "3rscan-ba6fdaaa-a4c1-2dca-8163-a52b18bf6b64-ba6fdaac-a4c1-2dca-8380-f16765679fd7",
+     "frames": 651,
+     "episode_seal_sha256": "ac547c2344876cc688be8458508371f05d9ccb458dd8f0e348206676b4e4e513"
+    },
+    {
+     "episode_id": "3rscan-bcb0fe06-4f39-2c70-9c24-a8dd7496c2f8-bcb0fe04-4f39-2c70-9f03-d0eec592de24",
+     "frames": 135,
+     "episode_seal_sha256": "d224ed3d0b09112a8053d2867207f5a5794e867adc0e182d29b3171bfbe1e4f6"
+    },
+    {
+     "episode_id": "3rscan-bf9a3da2-45a5-2e80-8219-1f0a216399fe-10b1794e-3938-2467-89a7-ebc89e84cf88",
+     "frames": 316,
+     "episode_seal_sha256": "8698cb2b089f9cfb859e0f5dfb3df16fe74bd7e1e4505f1e5c5c444ad03d9bc0"
+    },
+    {
+     "episode_id": "3rscan-bf9a3da2-45a5-2e80-8219-1f0a216399fe-cdcaf5bd-ddd8-2ed6-97c3-489e105e4dde",
+     "frames": 370,
+     "episode_seal_sha256": "c1dc4451d93abceac4b3e82f2e4eebd2a8eb63ea0a25bbf41874c686eb08bfb7"
+    },
+    {
+     "episode_id": "3rscan-bf9a3de9-45a5-2e80-8022-277108d67404-bf9a3dd9-45a5-2e80-817c-f918e193231b",
+     "frames": 241,
+     "episode_seal_sha256": "25da10bae4d57361b1c7a571b461ef88791c08ddd72f90f7fe20b9510c73c051"
+    },
+    {
+     "episode_id": "3rscan-bf9a3de9-45a5-2e80-8022-277108d67404-bf9a3ddd-45a5-2e80-80bc-647365c7ca08",
+     "frames": 183,
+     "episode_seal_sha256": "9ee48c5fda840ca95c28808343fe2773d6a53f047a19dfb9fb4d805c8343ab81"
+    },
+    {
+     "episode_id": "3rscan-bf9a3de9-45a5-2e80-8022-277108d67404-bf9a3ddf-45a5-2e80-8007-8e9e7f323e52",
+     "frames": 230,
+     "episode_seal_sha256": "03499f1a23474c180e9c90212da1ad0c7848e678d4ba1c0abc0fad5a137c58a6"
+    },
+    {
+     "episode_id": "3rscan-c7895f27-339c-2d13-836b-c12dca280261-c7895f29-339c-2d13-83e9-90dbe61fa8be",
+     "frames": 305,
+     "episode_seal_sha256": "babcc6b775e08f96678fe537732d87495ad96e6e4617afa991c93bf36dac138d"
+    },
+    {
+     "episode_id": "3rscan-c7895f27-339c-2d13-836b-c12dca280261-c7895f2b-339c-2d13-8248-b0507e050314",
+     "frames": 251,
+     "episode_seal_sha256": "7f87d26a2f86d839a11536eb624043366b4899ec59d3a2a16e741befe2492ccc"
+    },
+    {
+     "episode_id": "3rscan-c7895f7c-339c-2d13-819f-3bb0b26c91f6-c7895f78-339c-2d13-82bb-cc990cbbc90f",
+     "frames": 324,
+     "episode_seal_sha256": "c603188845c4b3fcb27892c3c431d76e0be8e2b433cf33c1b1e4abc65732dd7b"
+    },
+    {
+     "episode_id": "3rscan-c7895f7c-339c-2d13-819f-3bb0b26c91f6-c7895f7a-339c-2d13-82ac-09ef1c9001ba",
+     "frames": 328,
+     "episode_seal_sha256": "9167a1e37994f0b2b243439f6360d6d6b133235f6b57cb3c64d3c5dfa974572a"
+    },
+    {
+     "episode_id": "3rscan-c92fb5b5-f771-2064-8570-dbe16cb33764-10b1793e-3938-2467-8b92-f56541e7ef9e",
+     "frames": 387,
+     "episode_seal_sha256": "3d543e72ecc10b867fc2c98d389b428f355c4fa319bc083a5521e875d9ef5373"
+    },
+    {
+     "episode_id": "3rscan-c92fb5b5-f771-2064-8570-dbe16cb33764-5630cfde-12bf-2860-8563-d68bdd98fab0",
+     "frames": 424,
+     "episode_seal_sha256": "27d1344795f881fdc6276a1f78005968950ecb63f2a98fa9eb05abba87b01ac0"
+    },
+    {
+     "episode_id": "3rscan-d7d40d4e-7a5d-2b36-97e7-34324c52ac42-d7d40d4c-7a5d-2b36-95c1-5f6c9147caf0",
+     "frames": 258,
+     "episode_seal_sha256": "6ad44fbd021c8aca5362569e5e75eeb16deaf03ecdd4b5ff58319ff461704d80"
+    },
+    {
+     "episode_id": "3rscan-d7d40d4e-7a5d-2b36-97e7-34324c52ac42-d7d40d50-7a5d-2b36-9446-7d636174329f",
+     "frames": 215,
+     "episode_seal_sha256": "e821cfe23029369fd7fe4f9e7254c872926139e9ca73c60243ec7d8d4e019f95"
+    },
+    {
+     "episode_id": "3rscan-ddc73797-765b-241a-9e2c-097c5989baf6-0cac75b7-8d6f-2d13-8cb2-0b4e06913140",
+     "frames": 632,
+     "episode_seal_sha256": "f33484c620d2ee78fdfecf88db8e7002a1e2891f61cbc77f859402df709f8dd2"
+    },
+    {
+     "episode_id": "3rscan-ddc73797-765b-241a-9e2c-097c5989baf6-2451c048-fae8-24f6-9043-f1604dbada2c",
+     "frames": 475,
+     "episode_seal_sha256": "7c2197eec287cea83f61d47cf268868db754c791ea16a577b724f7a3cb4bca37"
+    },
+    {
+     "episode_id": "3rscan-ddc73797-765b-241a-9e2c-097c5989baf6-c7895f07-339c-2d13-8176-7418b6e8d7ce",
+     "frames": 610,
+     "episode_seal_sha256": "d7aed14ae009a04d983c661d98a238831c1a8c565e625f3dba9e32d3c9e3c53b"
+    },
+    {
+     "episode_id": "3rscan-ddc73797-765b-241a-9e2c-097c5989baf6-ddc73799-765b-241a-9c30-f75dcb7627d4",
+     "frames": 414,
+     "episode_seal_sha256": "ba90b7b2e472be5bd53670048fe6a816aade1b9428faa85f5970211d85c12611"
+    },
+    {
+     "episode_id": "3rscan-ddc73797-765b-241a-9e2c-097c5989baf6-ddc7379b-765b-241a-9f45-c37e41608726",
+     "frames": 472,
+     "episode_seal_sha256": "1c720397abcf57feaa44745c88b3e503471f97bd4ccbc613e081308e7e85bdb9"
+    },
+    {
+     "episode_id": "3rscan-e61b0e04-bada-2f31-82d6-72831a602ba7-e61b0e02-bada-2f31-82d0-80fc5c70bd6f",
+     "frames": 1174,
+     "episode_seal_sha256": "c5f5595ea91dbece436d0b26e96a241fcd7e322bc6c81be6db5282fdd3ba646a"
+    },
+    {
+     "episode_id": "3rscan-fcf66d7b-622d-291c-86b8-7db96aebcee3-787ed58c-9d98-2c97-83b9-b48a609ace15",
+     "frames": 280,
+     "episode_seal_sha256": "48b0be32e630607fcd4c1ddc5a251c36f8bf73e73994274bc6d2bebf86389fa7"
+    }
+   ]
+  }
+ },
+ "counts": {
+  "instance": {
+   "usable": 108,
+   "cache_data_failures": 2
+  }
+ },
+ "cache_data_failures": {
+  "instance": [
+   {
+    "episode_id": "3rscan-0988ea72-eb32-2e61-8344-99e2283c2728-9766cbf5-6321-2e2f-8131-78c4e204635d",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-1d233fe8-e280-2b1a-8fac-c3646a1cd64a-1d233fe6-e280-2b1a-8caf-eb0d13a59ad6",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   }
+  ],
+  "sam2": [
+   {
+    "episode_id": "3rscan-095821f7-e2c2-2de1-9568-b9ce59920e29-2e369567-e133-204c-909a-c5da44bb58df",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-0988ea72-eb32-2e61-8344-99e2283c2728-9766cbe5-6321-2e2f-8040-4e5b7a5d8ba1",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-0988ea72-eb32-2e61-8344-99e2283c2728-9766cbf5-6321-2e2f-8131-78c4e204635d",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-0988ea72-eb32-2e61-8344-99e2283c2728-9766cbf7-6321-2e2f-81e1-2b46533c64dd",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-0cac7540-8d6f-2d13-8eee-36ba2a428e3f-0cac7532-8d6f-2d13-8cea-1e70d5ae4856",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-0cac7540-8d6f-2d13-8eee-36ba2a428e3f-0cac7534-8d6f-2d13-8de7-8a915ed90050",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-0cac7584-8d6f-2d13-8df8-c05e4307b418-0cac7582-8d6f-2d13-8d4b-e4041cb166c4",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-0cac75dc-8d6f-2d13-8d08-9c497bd6acdc-0cac75de-8d6f-2d13-8e1a-b574569c3885",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-0cac7676-8d6f-2d13-8f3a-d7bf7f03e721-7272e17c-a01b-20f6-8b2f-e659331ae41a",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-10b17940-3938-2467-8a7a-958300ba83d3-5630cfe7-12bf-2860-8710-52729dc36cc6",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-10b17940-3938-2467-8a7a-958300ba83d3-6e67e55f-1209-2cd0-8194-8c6278434c80",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-10b17940-3938-2467-8a7a-958300ba83d3-c2d9933d-1947-2fbf-81fa-c8a7f9625eea",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-10b17940-3938-2467-8a7a-958300ba83d3-c2d9933f-1947-2fbf-807f-c44bc1aed269",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-10b17940-3938-2467-8a7a-958300ba83d3-c2d99341-1947-2fbf-817a-5aa9b44f724f",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-10b17940-3938-2467-8a7a-958300ba83d3-c2d99343-1947-2fbf-808f-92dbb7d47aa5",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-10b17940-3938-2467-8a7a-958300ba83d3-c2d99345-1947-2fbf-818d-90ea82acef29",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-10b17940-3938-2467-8a7a-958300ba83d3-c2d99347-1947-2fbf-834b-f95790c125dd",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-10b17940-3938-2467-8a7a-958300ba83d3-c2d99349-1947-2fbf-837e-a0bd5e027c52",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-137a8158-1db5-2cc0-8003-31c12610471e-10b1792a-3938-2467-8b4e-a93da27a0985",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-137a8158-1db5-2cc0-8003-31c12610471e-5630cfd3-12bf-2860-8749-9dacb499fb14",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-137a8158-1db5-2cc0-8003-31c12610471e-6e67e550-1209-2cd0-8294-7cc2564cf82c",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-137a8158-1db5-2cc0-8003-31c12610471e-c92fb5b7-f771-2064-87a9-31c819832405",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-137a8158-1db5-2cc0-8003-31c12610471e-d04eb40f-1d53-27ea-8a41-47892bde7017",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-137a8158-1db5-2cc0-8003-31c12610471e-f2c76fe5-2239-29d0-8593-1a2555125595",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-137a8158-1db5-2cc0-8003-31c12610471e-f2c76fe7-2239-29d0-84f5-144c30fd7451",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-137a8158-1db5-2cc0-8003-31c12610471e-f2c76fe9-2239-29d0-87ec-f2c7ced812c1",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-137a8158-1db5-2cc0-8003-31c12610471e-f2c76feb-2239-29d0-8418-72b6051fc144",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-137a8158-1db5-2cc0-8003-31c12610471e-f2c76fed-2239-29d0-8598-9ed42cec9dc5",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-137a8158-1db5-2cc0-8003-31c12610471e-f2c76ff1-2239-29d0-87f5-8a0346584384",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-1d233fe8-e280-2b1a-8fac-c3646a1cd64a-1d233fe6-e280-2b1a-8caf-eb0d13a59ad6",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-1d234022-e280-2b1a-8cec-e9787bb0d7b2-1d234024-e280-2b1a-8c28-2743fefed020",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-1d234022-e280-2b1a-8cec-e9787bb0d7b2-1d234026-e280-2b1a-8fe1-713e28269f4d",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-20c993b7-698f-29c5-847d-c8cb8a685f5a-20c993b3-698f-29c5-859c-dca8ddecf220",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-280d8ebb-6cc6-2788-9153-98959a2da801-10b17957-3938-2467-88a5-9e9254930dad",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-280d8ebb-6cc6-2788-9153-98959a2da801-1d2f850c-d757-207c-8fba-60b90a7d4691",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-280d8ebb-6cc6-2788-9153-98959a2da801-4731976c-f9f7-2a1a-95cc-31c4d1751d0b",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-280d8ebb-6cc6-2788-9153-98959a2da801-ea318260-0a4c-2749-9389-4c16c782c4b1",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-321c8680-a5a8-2a84-85c2-816a26d59516-321c867e-a5a8-2a84-851a-818df115be05",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-38770ca1-86d7-27b8-8619-ab66f67d9adf-38770ca3-86d7-27b8-85a7-7d840ffdec6a",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-38770ca1-86d7-27b8-8619-ab66f67d9adf-38770ca5-86d7-27b8-871c-57fdbfe87905",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-4138582f-a238-2435-8332-6902542c2823-5341b7a5-8a66-2cdd-8751-70b98263cb8d",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-4138582f-a238-2435-8332-6902542c2823-8eabc445-5af7-2f32-85ae-90deb8eb1b0b",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-422885b3-192d-25fc-84c9-9b80eea1752d-422885c5-192d-25fc-85e6-12a3d65c8e7b",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-4238490c-60a7-271e-9f38-3c651e3b3912-10b17963-3938-2467-8a48-0d4af350ce92",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-4238490c-60a7-271e-9f38-3c651e3b3912-42384908-60a7-271e-9c46-01e562c8974c",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-4238490c-60a7-271e-9f38-3c651e3b3912-4238490a-60a7-271e-9c04-3846221dc354",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-43b8cae1-6678-2e38-9865-c19c07c25015-43b8cadf-6678-2e38-9920-064144c99406",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-43b8cae1-6678-2e38-9865-c19c07c25015-43b8cae3-6678-2e38-9b67-5905de29f6d7",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-4a9a43d2-7736-2874-874d-d0fad0570e19-4a9a43d4-7736-2874-87a6-0c3089281af8",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-4d3d82b0-8cf4-2e04-80a8-c955ea964c2f-4d3d82ae-8cf4-2e04-80de-20f96c814d9c",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-4fbad31e-465b-2a5d-84b7-c0ddea978db4-4fbad32f-465b-2a5d-8408-146ab1d72808",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-4fbad31e-465b-2a5d-84b7-c0ddea978db4-4fbad331-465b-2a5d-8488-852fcda9513c",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-4fbad31e-465b-2a5d-84b7-c0ddea978db4-9af05c68-5794-2e19-8c5a-979f448da545",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-5341b79f-8a66-2cdd-84d5-6dba6525dd75-7272e16c-a01b-20f6-8961-a0927b4a7629",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-5341b7e3-8a66-2cdd-8709-66a2159f0017-4138585b-a238-2435-810b-9728fc989b2f",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-5630cfcf-12bf-2860-8784-83d28a611a83-10b1792e-3938-2467-8bb3-172148ae5a67",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-5630cfcf-12bf-2860-8784-83d28a611a83-10b17944-3938-2467-8bac-5552375e4467",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-5630cfcf-12bf-2860-8784-83d28a611a83-5630cfd1-12bf-2860-86b2-e7a96bc32c19",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-5630cfcf-12bf-2860-8784-83d28a611a83-bf9a3d9e-45a5-2e80-83c6-4e427c5586a2",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-6bde6081-9162-246f-8c4e-ffaf709d17b1-6bde607b-9162-246f-8e65-76e3ef265504",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-6bde6081-9162-246f-8c4e-ffaf709d17b1-6bde607d-9162-246f-8f84-98cf7ac2374c",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-6bde6081-9162-246f-8c4e-ffaf709d17b1-6bde6083-9162-246f-8c9c-e170212059b2",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-6bde60cb-9162-246f-8cf5-d04f7426e56f-6bde60cd-9162-246f-8fad-fca80b4d6ad8",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-6bde60cb-9162-246f-8cf5-d04f7426e56f-6bde60cf-9162-246f-8f98-6355d75494c2",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-742e8f15-be0a-294e-9ebb-6c72dbcb9662-68bae75f-3567-2f7c-829d-7422117729f3",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-742e8f15-be0a-294e-9ebb-6c72dbcb9662-742e8f17-be0a-294e-9dd3-52492d308e2b",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-742e8f15-be0a-294e-9ebb-6c72dbcb9662-742e8f19-be0a-294e-9eb6-50dc474b110e",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-75c25975-9ca2-2844-9769-84677f46d4cf-8eabc455-5af7-2f32-8606-a0bdbe6c537d",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-7747a50c-9431-24e8-877d-e60c3a341cc2-7747a4ec-9431-24e8-848f-897279a1e9fe",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-7747a50c-9431-24e8-877d-e60c3a341cc2-7747a510-9431-24e8-8705-907ee78be2a2",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-8e0f1c28-9e28-2339-8584-ff06ff93c341-20c993bd-698f-29c5-8494-5556ba7d3fe9",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-8e0f1c28-9e28-2339-8584-ff06ff93c341-20c993bf-698f-29c5-8549-a69fd169c1e1",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-8eabc45f-5af7-2f32-8528-640861d2a135-41385849-a238-2435-81d0-ceb0eba4541a",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-8eabc45f-5af7-2f32-8528-640861d2a135-5341b7b3-8a66-2cdd-856d-9d70e194568b",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-8eabc45f-5af7-2f32-8528-640861d2a135-75c25989-9ca2-2844-97b4-31b81f7554b8",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-8eabc45f-5af7-2f32-8528-640861d2a135-8eabc461-5af7-2f32-8663-ce5a10fd97b3",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-a0905fd9-66f7-2272-9dfb-0483fdcc54c7-a0905fdb-66f7-2272-9fc5-7c0008d5e87b",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-a0905fd9-66f7-2272-9dfb-0483fdcc54c7-a0905fdd-66f7-2272-9cdb-89360888ea67",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-ab835fae-54c6-29a1-995e-b06cfc555786-ab835faa-54c6-29a1-9b55-1a5217fcba19",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-ab835fae-54c6-29a1-995e-b06cfc555786-d7dc987e-a34a-2794-85c8-f75389b27532",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-b05fdd8a-fca0-2d4f-8ac5-f6ae697787f5-0cac75e8-8d6f-2d13-8fc4-acdbf00437c8",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-b05fdd8a-fca0-2d4f-8ac5-f6ae697787f5-0cac75ea-8d6f-2d13-8e50-c5faf0159e32",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-b05fdd8a-fca0-2d4f-8ac5-f6ae697787f5-c7895f63-339c-2d13-81a3-0b07b1eb23b4",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-b05fdd96-fca0-2d4f-88c3-d9dfda85c00e-0cac7619-8d6f-2d13-8f36-ac562ec9a4de",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-b05fdd96-fca0-2d4f-88c3-d9dfda85c00e-0cac761b-8d6f-2d13-8f16-23a7d73c54fe",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-b1f23308-d255-2761-94da-981d962c6bf8-77361fd4-d054-2a22-88c4-b5b404f904ca",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-ba6fdaaa-a4c1-2dca-8163-a52b18bf6b64-ba6fdaac-a4c1-2dca-8380-f16765679fd7",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-bcb0fe06-4f39-2c70-9c24-a8dd7496c2f8-bcb0fe04-4f39-2c70-9f03-d0eec592de24",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-bf9a3da2-45a5-2e80-8219-1f0a216399fe-10b1794e-3938-2467-89a7-ebc89e84cf88",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-bf9a3da2-45a5-2e80-8219-1f0a216399fe-cdcaf5bd-ddd8-2ed6-97c3-489e105e4dde",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-bf9a3de9-45a5-2e80-8022-277108d67404-bf9a3dd9-45a5-2e80-817c-f918e193231b",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-bf9a3de9-45a5-2e80-8022-277108d67404-bf9a3ddd-45a5-2e80-80bc-647365c7ca08",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-bf9a3de9-45a5-2e80-8022-277108d67404-bf9a3ddf-45a5-2e80-8007-8e9e7f323e52",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-c7895f27-339c-2d13-836b-c12dca280261-c7895f29-339c-2d13-83e9-90dbe61fa8be",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-c7895f27-339c-2d13-836b-c12dca280261-c7895f2b-339c-2d13-8248-b0507e050314",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-c7895f7c-339c-2d13-819f-3bb0b26c91f6-c7895f78-339c-2d13-82bb-cc990cbbc90f",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-c7895f7c-339c-2d13-819f-3bb0b26c91f6-c7895f7a-339c-2d13-82ac-09ef1c9001ba",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-c92fb5b5-f771-2064-8570-dbe16cb33764-10b1793e-3938-2467-8b92-f56541e7ef9e",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-c92fb5b5-f771-2064-8570-dbe16cb33764-5630cfde-12bf-2860-8563-d68bdd98fab0",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-d7d40d4e-7a5d-2b36-97e7-34324c52ac42-d7d40d50-7a5d-2b36-9446-7d636174329f",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-ddc73797-765b-241a-9e2c-097c5989baf6-0cac75b7-8d6f-2d13-8cb2-0b4e06913140",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-ddc73797-765b-241a-9e2c-097c5989baf6-2451c048-fae8-24f6-9043-f1604dbada2c",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-ddc73797-765b-241a-9e2c-097c5989baf6-c7895f07-339c-2d13-8176-7418b6e8d7ce",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-ddc73797-765b-241a-9e2c-097c5989baf6-ddc73799-765b-241a-9c30-f75dcb7627d4",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-ddc73797-765b-241a-9e2c-097c5989baf6-ddc7379b-765b-241a-9f45-c37e41608726",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-e61b0e04-bada-2f31-82d6-72831a602ba7-e61b0e02-bada-2f31-82d0-80fc5c70bd6f",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   },
+   {
+    "episode_id": "3rscan-fcf66d7b-622d-291c-86b8-7db96aebcee3-787ed58c-9d98-2c97-83b9-b48a609ace15",
+    "reason": "fragment_depth_support_insufficient",
+    "detail": "insufficient_valid_depth_support"
+   }
+  ]
+ },
+ "reader_check_failed": [],
+ "fronts_not_run": {
+  "sam2": {
+   "usable_episodes": 3,
+   "cache_data_failures": 107,
+   "rule": "ruling 111 amendment 3"
+  }
+ }
+}

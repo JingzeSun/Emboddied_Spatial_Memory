@@ -1,0 +1,44 @@
+{
+ "stage": "vsmt.lean.s3_07.driver.v1",
+ "step": "check",
+ "code_commit": "aa94373f8a2ed165ba034abca8b25ccd838a30dd",
+ "written_utc": "2026-10-08T01:26:15Z",
+ "role": "audit",
+ "converter_commits": [],
+ "registration_of_this_commit_if_it_converts": [
+  "converter_commit_not_registered:episode_code_commit_not_registered:aa94373f8a2ed165ba034abca8b25ccd838a30dd"
+ ],
+ "receipt": {
+  "path": "/root/autodl-tmp/vsmt_worktrees/s3-07-aa94373/results/vsmt_lean_s3_04_freeze_dea8c20.json",
+  "receipt_sha256": "4fd08d4fc6d00c0063fc210a1ad4e8e8cbf0382b1d93d0e0e8331487b32910e0",
+  "freeze_commit": "dea8c20f58144882752f2bc3936b87fd6568ef45",
+  "committed_as": "results/vsmt_lean_s3_04_freeze_dea8c20.json"
+ },
+ "code_differences_from_the_freeze": [
+  "added:configs/vsmt/lean_s3_07_3rscan_v1.json",
+  "added:ops/vsmt/s3_07_convert.py",
+  "added:ops/vsmt/s3_07_external.sh",
+  "added:ops/vsmt/s3_07_manifest.py",
+  "added:ops/vsmt/s3_07_render.py",
+  "added:src/vsmt/lean_s3_07.py",
+  "added:src/vsmt/lean_s3_07_3rscan.py",
+  "added:src/vsmt/lean_s3_07_episode.py",
+  "added:src/vsmt/lean_s3_07_render.py",
+  "changed:configs/vsmt/lean_s1_03_frontend_cache_v1.json",
+  "changed:ops/vsmt/lean_s1_03_cache.py"
+ ],
+ "allowed": {
+  "prefixes": [
+   "src/vsmt/lean_s3_07",
+   "ops/vsmt/s3_07_",
+   "configs/vsmt/lean_s3_07_"
+  ],
+  "files": [
+   "configs/vsmt/lean_s1_03_frontend_cache_v1.json",
+   "ops/vsmt/lean_s1_03_cache.py"
+  ]
+ },
+ "contract_sha256": "b6049536a47b571e4e038ad0719802943a4b59dec6c5d4b09f006a0c10571341",
+ "problems": [],
+ "pass": true
+}
