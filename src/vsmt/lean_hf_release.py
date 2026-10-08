@@ -63,6 +63,16 @@ def excluded(name: str) -> bool:
     return name in EXCLUDED_NAMES or name.endswith(EXCLUDED_SUFFIXES)
 
 
+#: ruling 114-3: nothing from 3RScan is ever released -- the S3-07 data roots are named s3-07-<commit> (episodes, geometry,
+#: caches, run root) and the converter's inputs carry '3rscan'; the S3-07 metric JSONs (vsmt_lean_s3_07_*.json) stay allowed.
+THREE_RSCAN_MARKERS = ("s3-07-", "3rscan")
+
+
+def three_rscan_source(path: Path) -> bool:
+    return any(part.lower().startswith(THREE_RSCAN_MARKERS[0]) or THREE_RSCAN_MARKERS[1] in part.lower()
+               for part in Path(path).parts)
+
+
 # --------------------------------------------------------------------------
 # deterministic tar
 # --------------------------------------------------------------------------
@@ -172,6 +182,7 @@ class Item:
 
 def items_of(group: Group) -> list[Item]:
     root = Path(group.root)
+    _require(not three_rscan_source(root), f"three_rscan_not_released:{root}")
     _require(root.is_dir(), f"group_root_missing:{root}")
     _require(group.mode in ("children", "files"), f"unknown_mode:{group.mode}")
     out: list[Item] = []
@@ -181,11 +192,14 @@ def items_of(group: Group) -> list[Item]:
                 continue
             _require(not path.is_symlink(), f"symlink_not_released:{path}")
             if path.is_dir():
+                _require(not three_rscan_source(Path(path.name)), f"three_rscan_not_released:{path}")
                 out.append(Item(group, "tar", path, f"{group.prefix}/{path.name}.tar", f"{group.restore_to}/{path.name}", path.name))
             elif path.is_file():
                 out.append(Item(group, "file", path, f"{group.prefix}/_root/{path.name}", f"{group.restore_to}/{path.name}", path.name))
     else:
         for path in _members(root):
+            if path.is_dir() and three_rscan_source(path.relative_to(root)):
+                raise ReleaseError(f"three_rscan_not_released:{path}")
             if path.is_file():
                 relative = path.relative_to(root).as_posix()
                 out.append(Item(group, "file", path, f"{group.prefix}/{relative}", f"{group.restore_to}/{relative}", relative))

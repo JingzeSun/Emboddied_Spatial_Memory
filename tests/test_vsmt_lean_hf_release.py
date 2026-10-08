@@ -144,6 +144,41 @@ class ItemsAndChecksTest(unittest.TestCase):
         self.assertEqual({g.repo_type for g in tiers["T0"]}, {"model"})
 
 
+class ThreeRScanGuardTest(unittest.TestCase):
+    """Ruling 114-3: nothing from 3RScan is released; the S3-07 metric JSONs stay allowed."""
+
+    def setUp(self):
+        self.base = Path(tempfile.mkdtemp())
+
+    def test_s3_07_data_roots_are_refused(self):
+        for name in ("s3-07-4e7a206", "s3-07-run-4e7a206", "S3-07-geometry-x", "scans_3RScan"):
+            root = self.base / name
+            episode(root, "ep-1")
+            group = hf.Group("u/x", "dataset", "x", str(root), "x", "children")
+            with self.assertRaisesRegex(hf.ReleaseError, "three_rscan_not_released"):
+                hf.items_of(group)
+
+    def test_an_s3_07_child_directory_is_refused(self):
+        root = self.base / "caches"
+        episode(root, "s3-07-d12707f")
+        with self.assertRaisesRegex(hf.ReleaseError, "three_rscan_not_released"):
+            hf.items_of(hf.Group("u/x", "dataset", "x", str(root), "x", "children"))
+        with self.assertRaisesRegex(hf.ReleaseError, "three_rscan_not_released"):
+            hf.items_of(hf.Group("u/x", "model", "x", str(root), "x", "files"))
+
+    def test_the_s3_07_metric_exports_are_allowed(self):
+        exports = self.base / "exports"
+        write(exports / "vsmt_lean_s3_07_statistics_aa94373.json", "{}")
+        write(exports / "vsmt_lean_s3_05_statistics_8d58475.json", "{}")
+        names = [i.name for i in hf.items_of(hf.Group("u/m", "model", "exports", str(exports), "e", "files"))]
+        self.assertEqual(names, ["vsmt_lean_s3_05_statistics_8d58475.json", "vsmt_lean_s3_07_statistics_aa94373.json"])
+
+    def test_the_real_tiers_hold_no_3rscan_root(self):
+        for groups in hf.tiers("/root/autodl-tmp").values():
+            for group in groups:
+                self.assertFalse(hf.three_rscan_source(Path(group.root)), group.root)
+
+
 class BatchesAndManifestTest(unittest.TestCase):
     def test_batches_respect_the_limit(self):
         self.assertEqual(hf.batches([("a", 4), ("b", 4), ("c", 4), ("d", 20), ("e", 1)], 10), [["a", "b"], ["c"], ["d"], ["e"]])
