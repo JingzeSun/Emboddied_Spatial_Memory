@@ -5987,3 +5987,13 @@ D1～D3 只调用冻结的 `lean_s3_05`／`lean_teacher` 函数；D4、D6、D8 �
   - 提交与推送（问用户）。
   - 在有 TeX Live 的环境编译并按页数压缩。
   - E1 与图 1。
+
+### LOG-311：S3-05R 第一批发布——T0（结果与权重）、T1（validation 与 test 的评估输入）上传 Hugging Face 并逐文件核对通过，两个仓库现为公开（2026-10-08 12:14 ～ 18:10 CST）
+
+- 白话：别人不用重算，就能下到论文用的权重、全部导出和评估输入，并逐字节核对。输入是 B1 上的 S3 产物，输出是两个 HF 仓库与本仓库 `results/vsmt_lean_hf_release_T0_2d179b9.json`、`..._T1_2d179b9.json` 两份清单（每项 sha256、字节数、恢复路径、目录树摘要与远端 revision）。例如 T1 里每条 test episode 的树摘要都与 S3-02 test 封印相等才上传。它不改任何结果，也不是新实验。
+- 代码：分支 `hf-release`（`87fbd2d` 发布项与确定性 tar、`31efc4d` 上传驱动、`f2af61c` 下载恢复、`2d179b9` 一条命令与文档），本地 23 项测试通过、B1 上同样 23 项通过；用户 2026-10-08「测试成功不用我审查直接等 S3-07 跑完就在 B1 上开始上传，先传 T0 和 T1」。B1 上用单独的 `hf-venv`（huggingface_hub 2.1.1，可见系统包）、经 `/etc/network_turbo`，令牌由用户在 B1 `hf auth login`，执行者未经手。
+- 结果：
+  - T0 `Jsun0632/vsmt-lean`（model）：699 项、0.48 GiB（两套前端第 1 轮权重按臂打包、`vsmt_outputs/exports` 全部导出含 S3-07、S3-04 冻结目录、ReID 头），清单 `e0a5889d…`，verify 通过，revision `0b2ce7f8bb5de862fd500f10b23e55ba4eebf372`。
+  - T1 `Jsun0632/vsmt-lean-s3-eval`（dataset）：582 项、98.51 GiB（validation 与 test 的 raw／几何／instance cache／sam2 cache，每条 episode 一个 tar，外加各根的顶层文件），清单 `982a8c26…`，上传前 test 全部条目对 S3-02 封印、validation cache 对 S3-02 导出核对无差异，verify 通过，revision `1bb81d27554d3795439172c418dc1416bff0c56e`。
+- 过程中的故障（工程，均未改结果）：xet 存储两次报 “xorb not found” 中断（13:04、13:50），续传；改用非 xet（LFS）后单文件约 1.5～3 MB/s 太慢，换回 xet 并改每批 5 GiB、加自动续传循环 `vsmt_private/hf_retry.sh`；16:28 起 HF 拒绝提交 “Private storage limit reached for user Jsun0632”（免费账号私有存储上限），停下待用户——用户把两个仓库转为公开后续完。T0 因每次续传时 exports 里多了上一份 T0 清单而由 698 项变 699 项，以最终 revision 为准。
+- 限制与待办：两个仓库已公开，但裁决 110 要求的“公开前核对 ProcTHOR-10K 与 AI2-THOR 渲染图再分发许可”尚未做（用户决定先公开）；T2（S3-03、S3-05 运行根，约 30 GB）、T3（train 输入，约 195 GB）未传；公开仓库不占私有额度。
