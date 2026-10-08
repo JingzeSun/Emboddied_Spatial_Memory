@@ -261,6 +261,20 @@ setsid nohup bash ops/vsmt/hf_release.sh T0 T1 > /root/autodl-tmp/vsmt_outputs/r
 python ops/vsmt/hf_fetch.py --repo Jsun0632/vsmt-lean-s3-eval --repo-type dataset --revision <论文写明的提交> --select validation/instance_cache/ --dest /root/autodl-tmp
 ```
 
+**许可与署名（裁决 114，2026-10-08 批准；细节与出处见 DECISIONS“D-224-S3-05R”）。** 白话：这一段说明发到 HF 的东西按什么许可用、要署哪些名。
+
+- T1 与将来 T2、T3 的 RGB-D 帧、位姿、私有真值、几何表与两套 cache：
+  - 帧由 AI2-THOR 5.0.0（© 2021 Allen Institute for AI，Apache-2.0）在 ProcTHOR-10K 0.1.2（Apache-2.0）的 house 中渲染，物体经我们的干预脚本改动过；
+  - 特征由 DINOv2 ViT-B/14 与 SAM 2.1 Hiera Small（均为 Apache-2.0）算出；
+  - 我们自己的贡献按 CC-BY-4.0 提供，上游材料仍按 Apache-2.0；
+  - 使用时请引用 ProcTHOR、AI2-THOR、DINOv2、SAM 2 与本文。
+- T0 的权重：按 Apache-2.0 提供（裁决 114-2）；`exports/` 下的结果 JSON 按 CC-BY-4.0。
+- 3RScan：
+  - 本仓库与 HF 都**不再分发任何 3RScan 数据**（扫描、由标注网格渲染的实例图、真值与特征）。3RScan 的使用条款只许非商业研究，也不允许转发。
+  - 复现 S3-07 需要先向 TUM 申请 3RScan 访问，再用分支 `s3-07-impl` 上的 `ops/vsmt/s3_07_*.py` 重建（该分支尚未并入 main）。
+  - 公开的只有我们算出的指标导出（`results/vsmt_lean_s3_07_*_aa94373.json`）。
+- 4 个 HF 仓库目前是临时卡片（`license: other`，上游条款审核中）。按裁决 114 换成正式许可与上游声明（含 Apache-2.0 全文），之后论文与本节再写死 revision。
+
 ## 怎样跑 LLM-op（附录臂，裁决 105）
 
 白话：LLM-op 回答审稿人必问的“零训练的大模型直接做记忆修订够不够”。输入是与其他臂逐字节相同的封存特征表（转成带表头的表格文本）和两段登记的指令，模型是 DeepSeek `deepseek-flash`（2026-10-04 实际为 V4.1-Flash）默认推理模式；输出是两套前端各 1 条 validation episode（裁决 108；原为 15 条）的闭环指标（与其他臂同一个 node audit、同一套指标）、全部调用存档与一份导出。每帧问两次：先关联（每个色块选一个召回实体或 BIRTH），求解后再判存在（每个可判定实体 RETRACT 或 NOOP）。它不训练、不选参、不进主表、不读 test；它独立于 S3-03 的作业池，可以在另一台机器上和 S3-03 同时跑。
