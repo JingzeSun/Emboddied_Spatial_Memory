@@ -1,6 +1,35 @@
 % Appendices. In the RA-L submission these move to the supplementary material (page limit); kept here so that every
 % generated table is compiled and checked together with the main text.
 
+\section{Comparison intervals and per-house differences}
+\label{app:intervals}
+Tables~\ref{tab:ablations} and~\ref{tab:rules} give, for every metric and front end, the advantage of VSMT-lean over each ablation and rule-based adapter with its two-level 90\% interval; Fig.~\ref{fig:per_house} shows the per-house differences behind the two gate metrics.
+
+\begin{table*}[t]
+\centering
+\caption{VSMT-lean against the four ablations: seed-averaged advantage (positive favours VSMT-lean; sign flipped where lower is better) with the two-level 90\% interval. $^{\ast}$: seed-stability condition holds (this does not imply that the interval excludes zero). Descriptive; not corrected for multiplicity. Comparisons with \arm{AssocOnly} beyond MRR and IdC were computed after the test.}
+\label{tab:ablations}
+\scriptsize
+\setlength{\tabcolsep}{4pt}
+\input{tables/ablations}
+\end{table*}
+
+\begin{table*}[t]
+\centering
+\caption{VSMT-lean against the rule-based adapters, as in Table~\ref{tab:ablations}.}
+\label{tab:rules}
+\scriptsize
+\setlength{\tabcolsep}{4pt}
+\input{tables/rule_arms}
+\end{table*}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/per_house}
+\caption{Per-house advantage of VSMT-lean over \arm{AssocOnly} on the two gate metrics (house mean over five seeds; positive favours VSMT-lean, sign flipped for MRR), sorted. Descriptive; computed after the test from the committed outputs.}
+\label{fig:per_house}
+\end{figure}
+
 \section{Selected configurations}
 \label{app:selection}
 \begin{table}[h]
@@ -38,14 +67,14 @@ We asked whether a frozen LLM, given the same sealed feature tables as text, can
 The model was DeepSeek-V4.1-Flash (API alias \texttt{deepseek-flash}, accessed 2026-10-06, thinking enabled, other parameters at the provider's defaults).
 Each frame takes up to two calls: one table of recalled pairs and birth options, answered by one choice per fragment and turned into costs for the same solver; then, after the solve, one table of judgeable entities, answered by \op{RETRACT} or \op{NOOP} for each (skipped in frames without judgeable entities).
 The instructions contain only the task, the column definitions and a synthetic format example.
-A frame took about 16k reasoning tokens with instance masks and 37k with SAM~2.1 masks; this episode cost 19.26 USD on both front ends (plus a 6.08 USD pilot on 200 frames of a training episode), and the originally registered list of 15 episodes per front end was estimated at about 250 USD off-peak to 500 USD at peak, the longest episode alone taking several days. We therefore ran one validation episode per front end, fixed before any call by a registered draw (ascending SHA-256 of a salt and the episode identifier; the original list of 15 candidates was written before the run and is kept in the repository).
+A frame took about 16k reasoning tokens with instance masks and 37k with SAM~2.1 masks; this episode cost 19.26 USD in total over both front ends (plus a 6.08 USD pilot on 200 frames of a training episode), and the originally registered list of 15 episodes per front end was estimated at about 250 USD off-peak to 500 USD at peak, the longest episode alone taking several days. We therefore ran one validation episode per front end, fixed before any call by a registered draw (ascending SHA-256 of a salt and the episode identifier; the original list of 15 candidates was written before the run and is kept in the repository).
 The episode (430 frames) has no identity, retrieval, residual or recovery events, so only node metrics are compared.
 Invalid answers fell back to a default for at most 0.93\% of calls.
 On this episode the operator reached node F1 0.696 with instance masks and 0.434 with SAM~2.1 masks (F1$_\mathrm{IoU}$ 0.376 and 0.209), and almost all of its retractions were wrong (false-retract rate 0.976 and 0.982).
 Table~\ref{tab:llm_op} places these values next to every other arm on the same episode, each with its own validation mean and the percentile of this episode in its validation distribution.
 The episode is not unusually long or crowded: 430 frames (24th percentile of the 43 validation episodes) and 9.2 and 10.6 fragments per frame (43rd and 64th percentile).
 The other arms' node F1 on it lies between the 20th and 83rd percentile of their own validation distributions with instance masks, and between the 29th and 73rd with SAM~2.1 masks except \arm{LOW} (8th).
-The retracting rule arms and the \arm{HandCost} and \arm{HeuristicLabel} ablations also retracted almost only objects that were still in place on this episode (false-retract rate 0.985--1.000 on both front ends); VSMT-lean's was 0.943 with SAM~2.1 masks (96th percentile of its validation distribution) and is undefined with instance masks because at least one seed made no judged retraction there.
+The retracting rule arms and the \arm{HandCost} and \arm{HeuristicLabel} ablations also retracted almost only objects that were still in place on this episode (false-retract rate 0.985--1.000 on both front ends); VSMT-lean's was 0.943 and \arm{NoVersion}'s 0.893 with SAM~2.1 masks (96th and 91st percentile of their validation distributions); both are undefined with instance masks because at least one seed made no judged retraction there.
 \begin{table*}[t]
 \centering
 \caption{The LLM-op validation episode: LLM-op and every other arm with its frozen configuration. Cells: value on this episode (validation mean $\pm$ SD over the 43 validation episodes where the metric is defined; percentile of this episode). n/d: undefined on this episode for at least one seed; --: the arm never retracts. Descriptive, $n=1$ per front end.}

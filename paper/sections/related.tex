@@ -1,20 +1,13 @@
 \section{Related Work}
 \label{sec:related}
 
-\textbf{Object-level and scene-graph maps.}
-Fusion++ maintains object-level TSDF volumes with an existence probability per object~\cite{fusionpp2018}.
-3D scene graphs organise objects, places and rooms in layers~\cite{dsg3d2020,hydra2022}, and open-vocabulary systems such as ConceptGraphs associate 2D masks into 3D objects by thresholded geometric and semantic similarity~\cite{conceptgraphs2024}.
-These systems mainly target static scenes; apart from existence probabilities as in Fusion++, a stale object is usually fused with new evidence or kept.
-
-\textbf{Change-aware and long-term mapping.}
-Persistence filters model the survival time of features in semi-static environments~\cite{rosen2016persistence}, and Perpetua extends this to emergence and persistence of objects~\cite{perpetua2025}.
-Volumetric approaches detect object-level changes and update submaps~\cite{pocd2022,panopticmultitsdf2022}, and Khronos estimates the spatio-temporal history of a scene~\cite{khronos2024}.
-Closest to our setting, DSG builds dynamic scene graphs in changing indoor environments with render-and-compare removal and introduces Dyn-THOR, with node precision, recall and F1 at 3D IoU 0.3 and the Missing residual rate~\cite{dsg2026}; DynamicGSG updates a Gaussian scene graph by rendering~\cite{dynamicgsg2025}.
-DSG and DynamicGSG update with hand-set rules, and their removal takes the object out of the map; persistence models~\cite{rosen2016persistence,perpetua2025} and spatio-temporal maps~\cite{khronos2024} keep information about objects that disappear and re-emerge, through probabilistic models or optimisation rather than costs learned from labels.
-We keep the metric definitions of Dyn-THOR where possible, implement their core mechanisms as adapters on our shared front end (Section~\ref{sec:arms}), and ask a different question: whether learned, reversible lifecycle operations add value over learned association alone.
-Our adapters are independent implementations of published mechanisms, not reproductions of these systems.
+\textbf{Object-level and change-aware maps.}
+Fusion++ keeps object volumes with an existence probability~\cite{fusionpp2018}; 3D scene graphs layer objects, places and rooms~\cite{dsg3d2020,hydra2022}; ConceptGraphs fuses 2D masks into 3D objects by thresholded similarity~\cite{conceptgraphs2024}.
+For changing scenes, persistence filters model how long features and objects survive or re-emerge~\cite{rosen2016persistence,perpetua2025}, volumetric methods detect object-level changes~\cite{pocd2022,panopticmultitsdf2022}, and Khronos estimates a spatio-temporal scene history~\cite{khronos2024}.
+Closest to our setting, DSG removes objects by render-and-compare and introduces Dyn-THOR with node P/R/F1 at 3D IoU 0.3 and the Missing residual rate~\cite{dsg2026}; DynamicGSG updates a Gaussian scene graph by rendering~\cite{dynamicgsg2025}.
+DSG and DynamicGSG update with hand-set rules and remove objects from the map; persistence models and spatio-temporal maps keep information about objects that disappear and re-emerge, through probabilistic models or optimisation rather than costs learned from labels.
+We keep Dyn-THOR's metrics where possible and reimplement the core mechanisms as adapters on one shared front end (Section~\ref{sec:arms}); the adapters are not reproductions of these systems.
 
 \textbf{Learned memory operations.}
-LLM memory systems choose operations such as add, update and delete with a frozen language model~\cite{mem0_2025}; we report a zero-training LLM operator on the same sealed feature tables only in the appendix.
-Training on the model's own memory trajectories follows the data-aggregation idea of DAgger~\cite{dagger2011}.
-As in work that pairs frozen pre-trained features with a small learned module~\cite{dinowm2025}, the front end (DINOv2 descriptors~\cite{dinov2_2024}, depth geometry and masks) is frozen, so differences between arms come from the memory logic alone.
+LLM memory systems choose add, update and delete operations with a frozen language model~\cite{mem0_2025}; we report a zero-training LLM operator on our sealed feature tables only in the appendix.
+We train on the model's own memory trajectories in the manner of DAgger~\cite{dagger2011} and, as in work that pairs frozen pre-trained features with a small learned module~\cite{dinowm2025}, freeze the front end (DINOv2~\cite{dinov2_2024}, depth geometry, masks), so that differences between arms come from the memory logic alone.

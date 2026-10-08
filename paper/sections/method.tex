@@ -3,78 +3,58 @@
 
 \todo{Fig.~1: schematic of one frame---frozen front end, sealed recall and features, joint assignment with birth columns, existence decisions, executor on a clone of $M_{t-1}$, version chain with RETRACT and REACTIVATE.}
 
-\subsection{Problem}
-At frame $t$ the memory receives public observations $O_t$ from a frozen front end---anonymous mask fragments with descriptors and 3D geometry, free-space and visibility evidence from depth, and the causal pose---together with its own previous memory $M_{t-1}$.
-It outputs a frame program $\Pi_t$ and the next memory $M_t=\mathrm{exec}(M_{t-1},\Pi_t)$.
-No simulator object identity, ground-truth mask, intervention log or future observation is an input.
-The executor is fixed and deterministic; what is learned is how $\Pi_t$ is chosen.
-
-\subsection{Memory and the five atoms}
-The memory is a set of entity records, the only node type.
-A record holds an anonymous identity, a state in $\{\text{active},\text{dormant},\text{retracted}\}$, a chain of versions (each with predecessor, opening and closing frame and the transaction that closed it), a running mean and a best-view copy of the descriptor, the centroid and axis-aligned box of the surface seen in the most recent frame, observation and missed-opportunity counts, and the evidence list $(\text{frame},\text{fragment})$.
-\begin{itemize}
-\item \op{NOOP}: an entity that should be visible but is unmatched is kept; its missed-opportunity count increases.
-\item \op{BIND}: a fragment is attached to an active entity, updating descriptor and geometry.
-\item \op{BIRTH}: an unassigned fragment creates a new entity.
-\item \op{RETRACT}: an unmatched, should-be-visible entity whose existence head fires has its current version closed and becomes retracted; evidence and history are kept.
-\item \op{REACTIVATE}: a fragment assigned to a dormant or retracted entity opens a new version of the same identity at the new place.
-\end{itemize}
+\subsection{Problem, memory and the five atoms}
+At frame $t$ the memory receives public observations $O_t$ from a frozen front end---anonymous mask fragments with descriptors and 3D geometry, free-space and visibility evidence from depth, and the causal pose---and its own previous memory $M_{t-1}$; it outputs a frame program $\Pi_t$ and $M_t=\mathrm{exec}(M_{t-1},\Pi_t)$.
+No simulator object identity, ground-truth mask, intervention log or future observation is an input; the executor is fixed, and what is learned is how $\Pi_t$ is chosen.
+The memory is a set of entity records holding an anonymous identity, a state in $\{\text{active},\text{dormant},\text{retracted}\}$, a version chain (predecessor, opening and closing frame, closing transaction), a running-mean and a best-view descriptor, the centroid and box of the surface seen in the most recent frame, observation and missed-opportunity counts, and the evidence list.
+\op{NOOP} keeps an unmatched, should-be-visible entity and increments its missed-opportunity count; \op{BIND} attaches a fragment to an active entity; \op{BIRTH} creates an entity from an unassigned fragment; \op{RETRACT} closes the current version of an unmatched, should-be-visible entity whose existence head fires, keeping its evidence and history; \op{REACTIVATE} opens a new version of a dormant or retracted entity at the new place, with the same identity.
 A replacement is the composite \op{RETRACT}+\op{BIRTH}.
-A shared deterministic rule moves an active entity to dormant after three consecutive missed opportunities and back on any match (\arm{AssocOnly} has no dormant state); dormant means ``not seen for a while, no evidence of absence'', retracted means ``evidence that it is no longer there''.
-A shared deterministic deduplication runs every 10 frames over active and dormant entities (descriptor cosine $\geq 0.6$, centroid distance $\leq 0.5$\,m and box IoU $\geq 0.05$) and folds one record into the other, keeping all evidence.
-The executor applies the whole program on a clone of $M_{t-1}$, checks every atom's precondition and rolls back the frame if any atom fails; history is never physically deleted.
+A shared rule moves an active entity to dormant (``not seen for a while, no evidence of absence'') after three consecutive missed opportunities and back on any match (\arm{AssocOnly} has no dormant state); retracted means ``evidence that it is no longer there''.
+A shared deduplication runs every 10 frames over active and dormant entities (cosine $\geq 0.6$, centroid distance $\leq 0.5$\,m, box IoU $\geq 0.05$) and folds one record into the other, keeping all evidence.
+The executor applies the whole program on a clone of $M_{t-1}$, checks every precondition and rolls the frame back if any atom fails; history is never physically deleted.
 
 \subsection{Frozen front end}
-Fragments come from one of two mask sources: the simulator's per-frame instance segmentation, of which only anonymous boolean masks are exposed, or SAM~2.1 (Hiera Small checkpoint, automatic mask generation)~\cite{sam2_2025,sam21release}.
-In both cases fragments must cover at least 196 pixels and a frame may have at most 64 of them.
-Each fragment carries the mean DINOv2 ViT-B/14 patch token inside its mask~\cite{dinov2_2024}, passed through a 128-dimensional projection that was trained once on 30 development houses, disjoint from all houses used for training, selection and test, and then frozen, one projection per mask source; and its back-projected 3D points, centroid and box.
-Whether an entity should be visible, and how much of its last seen surface is now seen through, is computed per arm from the public depth image and $M_{t-1}$ by a shared function.
-Instance masks remove segmentation error that is unrelated to memory; they expose no identity, so whether two fragments are the same object is still inferred from appearance and position.
-SAM~2.1 masks test whether conclusions hold with a learned segmenter.
+Fragments come from the simulator's per-frame instance segmentation, of which only anonymous boolean masks are exposed, or from SAM~2.1 (Hiera Small, automatic mask generation)~\cite{sam2_2025,sam21release}; each covers at least 196 pixels, at most 64 per frame.
+A fragment carries the mean DINOv2 ViT-B/14 patch token in its mask~\cite{dinov2_2024}, passed through a frozen 128-dimensional projection trained once per mask source on 30 development houses disjoint from all training, selection and test houses, and its back-projected points, centroid and box.
+Whether an entity should be visible, and how much of its last seen surface is now seen through, is computed per arm from the public depth and $M_{t-1}$ by a shared function.
+Instance masks remove segmentation error unrelated to memory but expose no identity; SAM~2.1 masks test whether conclusions hold with a learned segmenter.
 
 \subsection{Recall and frame-level joint assignment}
-For each fragment $f$, recall takes the union of a local channel (top $k{=}5$ entities by descriptor cosine within 3\,m) and a global channel (top $k'{=}3$ by cosine, any distance, any state).
-Candidate eligibility does not depend on the entity state, so \arm{AssocOnly}, which has no dormant or retracted entities, receives the same far-away candidates.
-The cost matrix has one row per fragment and one column per recalled entity plus one \op{BIRTH} column per fragment:
+For each fragment $f$, recall unites a local channel (top $k{=}5$ entities by cosine within 3\,m) and a global channel (top $k'{=}3$, any distance, any state); eligibility does not depend on the entity state, so \arm{AssocOnly} receives the same far-away candidates as VSMT-lean.
+The cost matrix has a row per fragment and a column per recalled entity plus one \op{BIRTH} column per fragment,
 \begin{equation}
 C[f,e]=-a(f,e),\qquad C[f,\mathrm{birth}_f]=-b(f),
 \label{eq:cost}
 \end{equation}
-where $a$ and $b$ are the association and birth logits, and unrecalled pairs receive a forbidding cost computed from the matrix.
-A minimum-cost rectangular assignment~\cite{kuhn1955}, canonicalised to the lexicographically smallest optimum, is compiled into atoms: a fragment assigned to an active entity is \op{BIND}, to a dormant or retracted entity \op{REACTIVATE}, to its own birth column \op{BIRTH}.
-In words, the assignment decides in one step who is whom, who is new and who is back; the learned heads only supply the costs.
-Then, for every active or dormant entity that should be visible and was not assigned, the existence head decides between \op{RETRACT} and \op{NOOP}.
+with association and birth logits $a$, $b$ and a forbidding cost for unrecalled pairs.
+A minimum-cost rectangular assignment~\cite{kuhn1955}, canonicalised to the lexicographically smallest optimum, is compiled into \op{BIND} (active entity), \op{REACTIVATE} (dormant or retracted entity) or \op{BIRTH}: it decides in one step who is whom, who is new and who is back, and the learned heads only supply the costs.
+For every unassigned, should-be-visible active or dormant entity, the existence head then decides \op{RETRACT} or \op{NOOP}.
 
 \subsection{Learned cost heads}
-Three heads score the decisions: association $a(f,e)$ from 14 features (cosines to the mean and best-view descriptor, centroid distance, box IoU, size ratio, time since last seen, missed-opportunity count, state, cosine rank and margin, mutual best match, support-height difference); existence $r(e)$ from 17 features (visible fraction, free-space coverage of the last seen surface, viewing distance and angle, missed-opportunity and observation counts, time since last seen, the best cosine to any current fragment and whether that fragment is still unassigned, state, and five history counters: two run lengths of consecutive see-through frames at coverage $\geq 0.70$ and $\geq 0.85$, matches since birth, judgeable frames and accumulated free-space coverage); and birth $b(f)$ from 4 features.
-Each head encodes its fields (log-transform of counts and standardisation with statistics of the training houses) and applies a two-layer, 128-wide GELU MLP; the three heads have 54,787 parameters (\arm{AssocOnly}: 35,842).
-The loss is a softmax cross-entropy over $[\text{recalled columns},\mathrm{birth}_f]$ for every labelled fragment plus a binary cross-entropy for existence in which absent rows are weighted by $w$, the ratio of present to absent rows in the training records; an entity is retracted when $\sigma(r(e)-\ln w)\geq\tau_r$.
-The existence head therefore says how likely it is that an unmatched entity is no longer where the memory keeps it, corrected for how rare that case is in training.
-Training uses AdamW (weight decay $10^{-4}$, one frame per batch, 20 epochs, learning rate cosine-decayed from $10^{-3}$ to $10^{-5}$, gradient clipping at 1.0) and five seeds.
-Because the memory a head sees depends on its own earlier decisions, we train in two rounds~\cite{dagger2011}: round~0 on records produced by the persistence-filter arm \arm{ELU-P}, round~1 on those records plus records produced by the round-0 heads themselves. Checkpoints are scored on held-out training houses, never on the validation split: round~0 takes the epoch with the lowest total held-out loss; in round~1, used for all results, the association and birth heads take the epoch with the lowest held-out association loss and the existence head the epoch with the lowest held-out existence loss.
+The association head $a(f,e)$ reads 14 features (descriptor cosines, centroid distance, box IoU, size ratio, time since last seen, missed opportunities, state, cosine rank and margin, mutual best match, support-height difference); the existence head $r(e)$ reads 17 (visible fraction, free-space coverage of the last seen surface, viewing distance and angle, counts, time since last seen, best cosine to a current fragment and whether it is unassigned, state, and five history counters of see-through runs at coverage $\geq 0.70$ and $\geq 0.85$, matches since birth, judgeable frames and accumulated coverage); the birth head $b(f)$ reads 4.
+Each head standardises its fields with training-house statistics (counts log-transformed) and applies a two-layer, 128-wide GELU MLP: 54,787 parameters in all (\arm{AssocOnly}: 35,842).
+The loss is a softmax cross-entropy over $[\text{recalled columns},\mathrm{birth}_f]$ per labelled fragment plus a binary cross-entropy for existence with absent rows weighted by $w$, the present-to-absent ratio in the training records; the corrected score $\sigma(r(e)-\ln w)$ estimates how likely the entity is no longer where the memory keeps it, adjusted for how rare that case is in training, and the entity is retracted when the score reaches $\tau_r$.
+Training uses AdamW (weight decay $10^{-4}$, one frame per batch, 20 epochs, learning rate cosine-decayed from $10^{-3}$ to $10^{-5}$, gradient clipping 1.0) and five seeds, in two rounds because the memory a head sees depends on its own decisions~\cite{dagger2011}: round~0 on records of the persistence-filter arm \arm{ELU-P}, round~1 adding records of the round-0 heads.
+Checkpoints are scored on held-out training houses, never on validation: round~0 by total loss; in round~1, used for all results, the association and birth heads by association loss and the existence head by existence loss.
 
 \subsection{Hindsight teacher and the candidate-before-teacher seal}
 \label{sec:teacher}
-Labels come from the simulator's private instance truth at time $t$, not from future observations.
-A fragment's dominant object is read from the instance map; an entity's identity is the strict majority of the objects in its evidence (no majority means ambiguous).
-The association target is the entity carrying the fragment's object, or \op{BIRTH} if none exists; the existence label marks an entity absent when its object has left the scene or the entity is no longer at its object by the evaluator's node rule (Section~\ref{sec:metrics}).
-The teacher never creates, removes or reorders candidates.
-Recall sets and association and birth features are computed and sealed (stage A) before any private file is opened; assignments and existence features are sealed after the solve (stage B), because one existence feature depends on the assignment.
-The private files open only against a receipt that names both digests.
-Every decision then falls into exactly one class: \emph{recall miss} (the correct entity was not recalled), \emph{teacher error} (the label is ambiguous), \emph{amortization error} (the label is clear, the candidate present, and the student still chose differently), correct, unlabelled, or duplicate (a second fragment of an object already labelled in the same frame, which no student could satisfy because an entity receives at most one fragment per frame).
-The ledger tells where an error arises; it does not by itself make a method better.
+Labels come from private instance truth at time $t$, not from future observations.
+A fragment's dominant object is read from the instance map, and an entity's identity is the strict majority of the objects in its evidence (otherwise ambiguous).
+The association target is the entity carrying the fragment's object, or \op{BIRTH} if none exists; the existence label is ``absent'' when the object has left the scene or the entity is no longer at its object by the node rule (Section~\ref{sec:metrics}).
+Recall sets and association and birth features are sealed (stage A) before any private file is opened, and assignments and existence features after the solve (stage B); private files open only against a receipt naming both digests, and the teacher never creates, removes or reorders candidates.
+Every decision falls into exactly one class: \emph{recall miss} (correct entity not recalled), \emph{teacher error} (ambiguous label), \emph{amortization error} (clear label, candidate present, different choice), correct, unlabelled, or duplicate (a second fragment of an object already labelled in the frame, which no student could satisfy since an entity takes one fragment per frame).
+The ledger shows where errors arise; it does not by itself make a method better.
 
 \subsection{Ablations and rule-based arms}
 \label{sec:arms}
-All arms share the front-end cache, recall, deduplication, executor and evaluator, and every arm with a dormant state uses the same dormancy rule; only the costs and the existence decision differ.
-\begin{itemize}
-\item \arm{AssocOnly}: the same association head and solver retrained with the same recipe on its own trajectories, with \op{BIND} and \op{BIRTH} only---no retraction, reactivation or dormancy. It is the counterfactual for the lifecycle vocabulary.
-\item \arm{NoVersion}: VSMT-lean's heads, but \op{RETRACT} deletes the entity physically, so it can no longer be recalled or reactivated.
-\item \arm{HeuristicLabel}: the same network and recipe trained on \arm{ELU-P}'s public decisions as labels instead of instance truth (\arm{ELU-P} fits three rates on training truth).
-\item \arm{HandCost}: VSMT-lean's solver, vocabulary and executor with hand-written costs (descriptor cosine, a constant birth cost, and the current frame's free-space coverage for existence).
-\item \arm{TAF}: threshold association and fusion in the style of ConceptGraphs~\cite{conceptgraphs2024}; never retracts.
-\item \arm{ELU-P}: \arm{TAF} association plus an existence log-odds that falls with reliable free-space coverage and rises with matches, in the style of Fusion++ and Perpetua~\cite{fusionpp2018,perpetua2025}; retracts past a threshold and reactivates on a match.
-\item \arm{RAC}: \arm{TAF} association plus render-and-compare removal in the style of DSG~\cite{dsg2026}: the entity's surface is projected into the current depth image and repeated see-through evidence retracts it.
-\item \arm{LOW}: last observation wins; the nearest entity within a distance takes the new observation, otherwise birth; never retracts.
-\end{itemize}
+All arms share the front-end cache, recall, deduplication, executor, evaluator and, where they have a dormant state, the dormancy rule; only costs and existence decisions differ.
+\arm{AssocOnly} retrains the same association head and solver with the same recipe on its own trajectories, with \op{BIND} and \op{BIRTH} only; it is the counterfactual for the lifecycle vocabulary.
+\arm{NoVersion} uses VSMT-lean's heads but deletes retracted entities, which can then no longer be recalled or reactivated.
+\arm{HeuristicLabel} trains the same network with the same recipe on \arm{ELU-P}'s public decisions instead of instance truth (\arm{ELU-P} fits three rates on training truth).
+\arm{HandCost} keeps VSMT-lean's solver, vocabulary and executor with hand-written costs: descriptor cosine, a constant birth cost, and the current frame's free-space coverage for existence.
+\arm{TAF} associates and fuses by thresholds as in ConceptGraphs~\cite{conceptgraphs2024} and never retracts.
+\arm{ELU-P} adds to \arm{TAF} an existence log-odds that falls with reliable free-space coverage and rises with matches, in the style of Fusion++ and Perpetua~\cite{fusionpp2018,perpetua2025}; it retracts past a threshold and reactivates on a match.
+\arm{RAC} adds to \arm{TAF} render-and-compare removal in the style of DSG~\cite{dsg2026}: repeated see-through evidence on the entity's projected surface retracts it.
+\arm{LOW} lets the last observation win: the nearest entity within a distance takes it, otherwise birth; it never retracts.
 These adapters reimplement published mechanisms on our interface and are not the original systems.

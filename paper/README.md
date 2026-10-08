@@ -2,7 +2,9 @@
 
 这里是 VSMT-lean 首篇论文的 LaTeX 稿。它解决“论文里每句话、每个数从哪来”的问题：主张只按 `docs/METHOD.md` 第二节“S3-05 之后的主张范围”（裁决 113）写，逐句措辞取自 `EXECUTE.md` 的 LOG-307（A2、A4）、LOG-308 与 LOG-309；表格全部由脚本从 `results/` 里已提交的导出排出，不手抄数字。输入是已提交的导出；输出是 `main.tex` 及其各节、`tables/*.tex`、`figures/*.pdf`。例如主表 VSMT-lean 的节点 F1 来自 `results/vsmt_lean_s3_05_statistics_8d58475.json` 的 `fronts.instance.main_table.node_prf1`。它不是新实验，不改任何 test 数字，也不替代 README 的“论文结果与复现索引”。
 
-状态：**草稿**。本机 MiKTeX 编译通过（0 处溢出），共 12 页：正文到第 9 页，参考文献在第 10 页，其后是附录。RA-L 上限是 6＋2 页（含参考文献），正文还要压约 2 页，附录投稿时移到补充材料。`\todo{}` 与 `\verifyref{}` 标出的地方在投稿前必须处理。
+状态：**草稿**。本机 MiKTeX 编译通过（0 处溢出）。按用户选的压页方案 (a)，正文加参考文献正好 8 页（RA-L 6＋2 页上限），附录从第 9 页起，投稿时移到补充材料；两张逐指标区间表与逐 house 图在附录 A。`\todo{}` 与 `\verifyref{}` 标出的地方在投稿前必须处理。
+
+上传 Overleaf：把 `main.tex`、`refs.bib`、`sections/`、`tables/`、`figures/*.pdf` 打成 zip，在 Overleaf 用 New Project → Upload Project 新建项目。表与图以本仓库的脚本输出为准，不在 Overleaf 里改。
 
 | 文件 | 内容 |
 |---|---|

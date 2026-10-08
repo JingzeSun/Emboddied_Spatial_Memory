@@ -2,6 +2,13 @@
 % proceedings page or Crossref (source URL in each `checked' line). An entry that could not be confirmed carries
 % note = {VERIFY ...}; paper/tools/check_draft.py lists such entries.
 
+% IEEE practice: more than six authors are shown as the first author et al. (read by \bstctlcite in main.tex)
+@IEEEtranBSTCTL{IEEEexample:BSTcontrol,
+  CTLuse_forced_etal       = "yes",
+  CTLmax_names_forced_etal = "6",
+  CTLnames_show_etal       = "1",
+}
+
 @misc{dsg2026,
   title        = {{DSG}: Dynamic {3D} Scene Graph Construction for Embodied Agents in Changing Indoor Environments},
   author       = {Liao, Ming and Ye, Chao and Fei, Jianing and Lin, Weiyang},
