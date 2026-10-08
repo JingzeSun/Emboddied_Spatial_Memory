@@ -1,0 +1,56 @@
+% Fig. 1 (method schematic), TikZ; included by sections/method.tex. Drawn by hand from docs/METHOD.md sections 3-8; no data.
+% (a) one frame: frozen front end -> sealed recall and features -> joint assignment -> existence decisions -> executor.
+% (b) one relocated object under VSMT-lean, NoVersion and AssocOnly.
+\begin{tikzpicture}[
+  font=\scriptsize, >={Stealth[length=3.5pt]},
+  box/.style={draw, rounded corners=1.5pt, align=center, inner sep=1.8pt, fill=white, minimum height=11mm},
+  learned/.style={draw=orange!70!black, fill=orange!12, rounded corners=1.5pt, align=center, inner sep=1.8pt, minimum height=5mm},
+  private/.style={draw=blue!55!black, fill=blue!6, dashed, rounded corners=1.5pt, align=center, inner sep=1.8pt, minimum height=5mm},
+  seal/.style={fill=black!75, text=white, rounded corners=1pt, inner sep=1pt, font=\tiny\bfseries},
+  ent/.style={draw, circle, inner sep=0.4pt, minimum size=9pt, font=\tiny},
+  lab/.style={font=\tiny, align=center, inner sep=0.8pt},
+  tag/.style={font=\bfseries\scriptsize, anchor=north west, inner sep=0pt},
+]
+% ---------------- (a) one frame ----------------
+\node[tag] at (-2mm, 13mm) {(a)};
+\node[box, fill=gray!10, text width=17mm] (fe) at (8.5mm, 0) {Frozen front end:\\masks, DINOv2,\\RGB-D, pose};
+\node[box, text width=17mm] (rec) at (31mm, 0) {Recall + features\\(local top-5\\$\cup$ global top-3)};
+\node[box, text width=24mm] (asg) at (59mm, 0) {Joint assignment:\\fragments $\times$ (entities\\$+$ \op{BIRTH} columns)\\$\to$ \op{BIND} / \op{REACT.} / \op{BIRTH}};
+\node[box, text width=21mm] (ex) at (89mm, 0) {Existence of\\unmatched, should-\\be-visible entities\\$\to$ \op{RETRACT} / \op{NOOP}};
+\node[box, text width=18mm] (exe) at (115mm, 0) {Executor on a\\clone of $M_{t-1}$;\\atomic, versions\\never deleted};
+\draw[->] (fe) -- (rec);
+\draw[->] (rec) -- node[seal, above=0.8mm] {A} (asg);
+\draw[->] (asg) -- node[seal, above=0.8mm] {B} (ex);
+\draw[->] (ex) -- (exe);
+\draw[->] (exe.north) -- ++(0, 3mm) -| node[lab, pos=0.25, above] {$M_t$ becomes $M_{t-1}$ of the next frame} (rec.north);
+\node[learned, text width=46mm] (heads) at (74mm, -12.5mm) {Learned cost heads $a(f,e)$, $b(f)$, $r(e)$: 54,787 parameters};
+\draw[->, orange!70!black] (heads.north -| asg) -- (asg.south);
+\draw[->, orange!70!black] (heads.north -| ex) -- (ex.south);
+\node[private, text width=37mm] (teach) at (20mm, -12.5mm) {Training only: private instance truth\\labels the sealed rows and columns};
+\draw[->, dashed, blue!55!black] (teach) -- (heads);
+
+% ---------------- (b) one relocated object ----------------
+\begin{scope}[xshift=148mm, yshift=4mm]
+  \node[tag] at (-24mm, 9mm) {(b)};
+  \node[lab] at (0mm, 6mm) {before};
+  \node[lab] at (20mm, 6mm) {old place\\seen empty};
+  \node[lab] at (40mm, 6mm) {cup seen\\elsewhere};
+  \foreach \row/\name in {0/VSMT-lean, 1/NoVersion, 2/AssocOnly}
+    \node[anchor=east] at (-3.5mm, -\row*7.5mm) {\name};
+  \node[ent, fill=orange!25] (v1) at (0mm, 0) {$e_7$};
+  \node[ent, fill=gray!25] (v2) at (20mm, 0) {$e_7$};
+  \node[ent, fill=orange!25] (v3) at (40mm, 0) {$e_7$};
+  \draw[->] (v1) -- node[lab, above] {\op{RETRACT}} node[lab, below] {closes version} (v2);
+  \draw[->] (v2) -- node[lab, above] {\op{REACTIVATE}} node[lab, below] {same identity} (v3);
+  \node[ent, fill=orange!25] (n1) at (0mm, -7.5mm) {$e_7$};
+  \node[lab] (n2) at (20mm, -7.5mm) {deleted};
+  \node[ent, fill=red!15] (n3) at (40mm, -7.5mm) {$e_{12}$};
+  \draw[->] (n1) -- node[lab, above] {\op{RETRACT}} (n2);
+  \draw[->] (n2) -- node[lab, above] {\op{BIRTH}} node[lab, below] {new identity} (n3);
+  \node[ent, fill=orange!25] (a1) at (0mm, -15mm) {$e_7$};
+  \node[ent, fill=red!15] (a2) at (20mm, -15mm) {$e_7$};
+  \node[ent, fill=red!15] (a3) at (40mm, -15mm) {$e_{12}$};
+  \draw[->] (a1) -- node[lab, above] {kept} node[lab, below] {stale} (a2);
+  \draw[->] (a2) -- node[lab, above] {\op{BIRTH}} node[lab, below] {new identity} (a3);
+\end{scope}
+\end{tikzpicture}

@@ -75,10 +75,9 @@ Contamination AUC is lower than for every rule arm with instance masks, but with
 VSMT-lean's secondary node column (F1$_\mathrm{IoU}$: 0.490 with instance masks, 0.257 with SAM~2.1) uses Dyn-THOR's matching and overlap rule on different data and is not comparable with numbers in~\cite{dsg2026}.
 
 \subsection{Where the errors are}
-Every decision of every run falls into exactly one ledger class (Appendix~\ref{app:ledger}).
-VSMT-lean and \arm{AssocOnly} miss the correct candidate in recall about equally often in absolute terms (19,885 and 19,242 per run with instance masks).
-With SAM~2.1 the share of ambiguous labels is about twice that with instance masks (12.7\% vs.\ 6.8\% for VSMT-lean), suggesting that part of the difficulty lies in the labels, and about 10\% of VSMT-lean's SAM~2.1 decisions are duplicate fragments.
-Arms make different decisions (\arm{AssocOnly} only association decisions; arms that keep more entities more existence decisions), so shares are not ranked across arms, and the ledger does not attribute the gate results to error classes.
+Every decision of every run falls into exactly one ledger class (Appendix~\ref{app:ledger}); VSMT-lean and \arm{AssocOnly} miss the correct candidate in recall about equally often in absolute terms (19,885 and 19,242 per run with instance masks).
+With SAM~2.1 the share of ambiguous labels about doubles (12.7\% vs.\ 6.8\% for VSMT-lean), suggesting that part of the difficulty lies in the labels; about 10\% of its SAM~2.1 decisions are duplicate fragments.
+Arms make different decisions (\arm{AssocOnly} only association decisions), so shares are not ranked across arms, and the ledger does not attribute the gate results to error classes.
 
 \subsection{External check on 3RScan}
 \label{sec:external}

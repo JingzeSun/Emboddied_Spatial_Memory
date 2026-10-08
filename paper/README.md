@@ -4,14 +4,15 @@
 
 状态：**草稿**。本机 MiKTeX 编译通过（0 处溢出）。按用户选的压页方案 (a)，正文加参考文献正好 8 页（RA-L 6＋2 页上限），附录从第 9 页起，投稿时移到补充材料；两张逐指标区间表与逐 house 图在附录 A。`\todo{}` 与 `\verifyref{}` 标出的地方在投稿前必须处理。
 
-上传 Overleaf：把 `main.tex`、`refs.bib`、`sections/`、`tables/`、`figures/*.pdf` 打成 zip，在 Overleaf 用 New Project → Upload Project 新建项目。表与图以本仓库的脚本输出为准，不在 Overleaf 里改。
+上传 Overleaf：把 `main.tex`、`refs.bib`、`sections/`、`tables/`、`figures/`（`*.pdf` 与 `method.tex`）打成 zip，在 Overleaf 用 New Project → Upload Project 新建项目。表与图以本仓库的脚本输出为准，不在 Overleaf 里改。
 
 | 文件 | 内容 |
 |---|---|
 | `main.tex` | IEEEtran journal 类，按节 `\input` |
 | `sections/*.tex` | 摘要、引言、相关工作、方法、实验协议、结果、局限、结论、附录 |
 | `tables/*.tex` | 由 `tools/make_tables.py` 生成，**不要手改** |
-| `figures/*.pdf` | 由 `tools/make_figures.py` 生成（图 1 方法示意待画） |
+| `figures/*.pdf` | 由 `tools/make_figures.py` 生成（取舍散点、逐 house 配对差） |
+| `figures/method.tex` | 图 1 方法示意，TikZ 手绘（据 `docs/METHOD.md` 第三～八节，不含数据），随正文一起编译 |
 | `tools/make_tables.py` | 从 `results/` 排表（S3-05 统计、S3-06 复算、S3-07 外部验证、S3-04 冻结回执、S4 E1 导出） |
 | `tools/make_figures.py` | 从 `results/` 画取舍散点与逐 house 配对差；`--png` 另出预览图（不提交） |
 | `tools/check_draft.py` | 不需要 LaTeX 的静态核对：`\input` 文件存在、`\ref` 都有 `\label`、`\cite` 键都在 `refs.bib`、花括号配平 |

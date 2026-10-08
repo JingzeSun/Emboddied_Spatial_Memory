@@ -1,9 +1,15 @@
 \section{Method}
 \label{sec:method}
 
-\todo{Fig.~1: schematic of one frame---frozen front end, sealed recall and features, joint assignment with birth columns, existence decisions, executor on a clone of $M_{t-1}$, version chain with RETRACT and REACTIVATE.}
+\begin{figure*}[t]
+\centering
+\resizebox{\textwidth}{!}{\input{figures/method}}
+\caption{(a) One frame. Recall sets and association and birth features are sealed before any private file is opened (A), assignments and existence features after the solve (B); the teacher labels only sealed rows and columns, in training only. Orange: the only learned part. (b) A cup moved out of view: VSMT-lean reactivates the same identity, \arm{NoVersion} and \arm{AssocOnly} create a new one, and \arm{AssocOnly} also keeps a stale entity. Illustration, not data.}
+\label{fig:method}
+\end{figure*}
 
 \subsection{Problem, memory and the five atoms}
+Fig.~\ref{fig:method} summarises one frame and the lifecycle of a moved object.
 At frame $t$ the memory receives public observations $O_t$ from a frozen front end---anonymous mask fragments with descriptors and 3D geometry, free-space and visibility evidence from depth, and the causal pose---and its own previous memory $M_{t-1}$; it outputs a frame program $\Pi_t$ and $M_t=\mathrm{exec}(M_{t-1},\Pi_t)$.
 No simulator object identity, ground-truth mask, intervention log or future observation is an input; the executor is fixed, and what is learned is how $\Pi_t$ is chosen.
 The memory is a set of entity records holding an anonymous identity, a state in $\{\text{active},\text{dormant},\text{retracted}\}$, a version chain (predecessor, opening and closing frame, closing transaction), a running-mean and a best-view descriptor, the centroid and box of the surface seen in the most recent frame, observation and missed-opportunity counts, and the evidence list.
