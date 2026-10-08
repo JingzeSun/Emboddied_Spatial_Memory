@@ -50,10 +50,10 @@ On ProcTHOR, re-attachment depends on keeping the versions of retracted entities
 
 \subsection{Source of supervision and learned costs}
 \label{sec:costs}
-With the same network and recipe, hindsight labels from private instance truth give better values than labels copied from \arm{ELU-P}'s decisions (\arm{HeuristicLabel}) on every metric with instance masks; with SAM~2.1 they give better node F1, MRR and false-retract rates, but not identity continuity ($-0.044$), retrieval ($-0.023$) or contamination ($-0.065$, \arm{HeuristicLabel} better; Fig.~\ref{fig:comparisons}).
+With the same network and recipe, hindsight labels from instance ground truth give better values than labels copied from \arm{ELU-P}'s decisions (\arm{HeuristicLabel}) on every metric with instance masks; with SAM~2.1 they give better node F1, MRR and false-retract rates, but not identity continuity ($-0.044$), retrieval ($-0.023$) or contamination ($-0.065$, \arm{HeuristicLabel} better; Fig.~\ref{fig:comparisons}).
 Against hand-written costs in the same solver and vocabulary (\arm{HandCost}), learned costs mainly buy more accurate nodes ($+0.240$ and $+0.094$ F1) and far fewer false retractions; MRR is not separated ($-0.009$ and $+0.012$, intervals including zero).
 With SAM~2.1 \arm{HandCost} re-attaches and retrieves more relocated objects than VSMT-lean (identity continuity 0.207 vs.\ 0.063; retrieval 0.246 vs.\ 0.162), with node F1 0.443 and false-retract rate 0.960; its association uses only the descriptor cosine, while the learned head also sees distances and box overlap, and whether this helps far-moved objects re-attach is an untested hypothesis.
-Because \arm{AssocOnly}'s association is trained with the same private labels, the gain over \arm{AssocOnly} is not evidence for hindsight supervision as such; the source of supervision is what \arm{HeuristicLabel} varies, and there the two front ends disagree.
+Because \arm{AssocOnly}'s association is trained with the same instance-truth labels, the gain over \arm{AssocOnly} is not evidence for hindsight supervision as such; the source of supervision is what \arm{HeuristicLabel} varies, and there the two front ends disagree.
 
 \subsection{Rule-based arms: trade-offs, not dominance}
 \label{sec:rules}

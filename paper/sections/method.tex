@@ -4,13 +4,13 @@
 \begin{figure*}[t]
 \centering
 \input{figures/method}
-\caption{One frame of VSMT-lean. Candidates and features are sealed (digests A and B, hashes of the tables) before any ground-truth file can be opened, so the teacher (training and evaluation only) can label but not change them. Right: entity states; the map is the set of active and dormant entities, and a match reactivates a dormant entity (\op{REACTIVATE}).}
+\caption{One frame of VSMT-lean. At inference the method reads only the front end's output and its own memory. Candidates and features are sealed (digests A and B, hashes of the tables) before any ground-truth file can be opened, so the offline teacher can label but not change them. Right: entity states; the map is the set of active and dormant entities, and a match reactivates a dormant entity (\op{REACTIVATE}).}
 \label{fig:method}
 \end{figure*}
 
 \subsection{Memory and the five operations}
 At frame $t$ the method receives public observations $O_t$ from the front end and its previous memory $M_{t-1}$, and outputs a frame program $\Pi_t$, a set of operations committed together: $M_t=\mathrm{exec}(M_{t-1},\Pi_t)$ (Fig.~\ref{fig:method}).
-No simulator identity, ground-truth mask, change log or future frame is ever an input; only the choice of $\Pi_t$ is learned.
+No object identity or class, change log or future frame is ever an input; only the choice of $\Pi_t$ is learned.
 Each entity record holds an anonymous identity, a state, a version chain, appearance descriptors, the centroid and box of its latest observed surface, its evidence (the fragments it absorbed) and counts, including \emph{missed opportunities} (frames in which it should have been visible but was not matched).
 The \emph{map} is the set of active and dormant entities: a \emph{dormant} entity has not been seen for a while but there is no evidence that it is gone, whereas a \emph{retracted} entity has such evidence, leaves the map, and is kept with its closed version so that it can still be recalled and reactivated.
 \op{NOOP} keeps an unmatched entity that should be visible and counts a missed opportunity; \op{BIND} attaches a fragment to an active entity; \op{BIRTH} creates an entity from an unassigned fragment; \op{RETRACT} closes the current version of an unmatched entity that should be visible; \op{REACTIVATE} opens a new version of a dormant or retracted entity at the fragment's place, with the same identity.

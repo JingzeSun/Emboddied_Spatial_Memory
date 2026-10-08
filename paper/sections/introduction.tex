@@ -18,7 +18,7 @@ We study VSMT-lean, the entity-lifecycle core of versioned structural memory tra
 The input is a stream of RGB-D frames with the simulator's camera poses, so there is no localization error; a frozen perception front end turns each frame into anonymous mask \emph{fragments}, image segments with geometry and an appearance descriptor but no object identity.
 Every frame, one joint assignment decides for every fragment whether it is new evidence for an existing entity (\op{BIND}), a returning entity (\op{REACTIVATE}) or a new object (\op{BIRTH}); an existence head decides, for every entity that should be visible but was not matched, whether to keep it (\op{NOOP}) or \op{RETRACT} it.
 A retracted entity leaves the map, but its closed version is kept, so the same identity can be reactivated later.
-In the memory, only three small cost heads (54,787 parameters) are learned, from \emph{hindsight} labels: after the decision, and only in training and evaluation, the simulator's instance ground truth at that frame states which choice would have been right.
+In the memory, only three small cost heads (54,787 parameters) are learned, from \emph{hindsight} labels: after the decision, the simulator's instance ground truth at that frame states which choice would have been right; these labels serve training and error analysis and are never an input.
 
 The test rests on one counterfactual, \arm{AssocOnly}: the same association head and solver, retrained with the same recipe, with only \op{BIND} and \op{BIRTH}; without an existence step it never retracts, reactivates or marks an entity dormant.
 It removes the learned lifecycle as a whole, not the learning, whose role \arm{HandCost} probes.

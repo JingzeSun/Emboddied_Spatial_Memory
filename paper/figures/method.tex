@@ -1,6 +1,6 @@
 % Fig. 2 (one frame of VSMT-lean), TikZ; included by sections/method.tex. Drawn by hand from docs/METHOD.md sections
 % 3-8; no data. Frozen front end -> recall and sealed features -> joint assignment -> existence decisions -> executor;
-% the teacher (training only) labels the sealed rows and columns; bottom right: the entity states (the map is the set
+% the offline teacher (never an input) labels the sealed rows and columns; bottom right: the entity states (the map is the set
 % of active and dormant entities; a retracted entity is out of the map but stays recallable). The cup example of
 % Fig. 1 is not repeated here.
 \begin{tikzpicture}[
@@ -27,21 +27,21 @@
 \draw[->] (asg) -- node[seal, above=1mm] {seal B} (ex);
 \draw[->] (ex) -- (exe);
 \draw[->] (exe.north) -- ++(0, 2.5mm) -| node[lab, pos=0.25, above] {$M_t$, the memory of the next frame} (rec.north);
-\node[learned, text width=54mm] (heads) at (107mm, -13.6mm)
+\node[learned, text width=52mm] (heads) at (106mm, -17mm)
   {\textbf{The only learned part:} cost heads $a(f,e)$ (association), $b(f)$ (birth), $r(e)$ (existence); 54,787 parameters};
 \draw[->, orange!70!black] (heads.north -| asg) -- (asg.south);
 \draw[->, orange!70!black] (heads.north -| ex) -- (ex.south);
-\node[private, text width=50mm] (teach) at (37mm, -13.6mm)
-  {\textbf{Training and evaluation only:} the teacher reads private instance truth and labels only the sealed rows and columns};
-\draw[->, dashed, blue!55!black] (teach) -- (heads);
+\node[private, text width=60mm] (teach) at (34mm, -17mm)
+  {\textbf{Offline, never an input:} the teacher reads the simulator's ground truth of frame $t$ and labels only the sealed rows and columns (training labels and the error ledger)};
+\draw[->, dashed, blue!55!black] (teach) -- node[lab, above, text=blue!55!black] {training\\labels} (heads);
 % entity states
-\draw[black!45, dashed, rounded corners=1.5pt] (138.5mm, -7.9mm) rectangle (161.5mm, -20.4mm);
-\node[font=\fontsize{6}{6.6}\selectfont, text=black!60, anchor=north east, inner sep=0.6pt] at (161.2mm, -8.2mm) {map};
-\node[st] (sA) at (150mm, -11.1mm) {active};
-\node[st] (sD) at (150mm, -17.3mm) {dormant};
+\draw[black!45, dashed, rounded corners=1.5pt] (135.8mm, -10.6mm) rectangle (154.6mm, -23.4mm);
+\node[font=\fontsize{6}{6.6}\selectfont, text=black!60, anchor=north west, inner sep=0.6pt] at (136.1mm, -10.9mm) {map};
+\node[st] (sA) at (146.6mm, -13.9mm) {active};
+\node[st] (sD) at (146.6mm, -20.1mm) {dormant};
 \draw[->] ([xshift=-1.6mm]sA.south) -- node[lab, left=0.4mm] {3 misses} ([xshift=-1.6mm]sD.north);
 \draw[->] ([xshift=1.6mm]sD.north) -- node[lab, right=0.4mm] {match} ([xshift=1.6mm]sA.south);
-\node[st, fill=black!7, dashed] (sR) at (173.5mm, -14.15mm) {retracted};
-\draw[->] (161.5mm, -12.1mm) -- node[lab, above] {\op{RETRACT}} (sR.north west);
-\draw[->, dashed] (sR.south west) -- node[lab, below=0.6mm] {\op{REACTIVATE}} (161.5mm, -16.2mm);
+\node[st, fill=black!7, dashed] (sR) at (174.8mm, -17mm) {retracted};
+\draw[->] (154.6mm, -16.2mm) -- node[lab, above] {\op{RETRACT}} ($(sR.west)+(0,0.8mm)$);
+\draw[->, dashed] ($(sR.west)+(0,-0.8mm)$) -- node[lab, below] {\op{REACTIVATE}} (154.6mm, -17.8mm);
 \end{tikzpicture}
