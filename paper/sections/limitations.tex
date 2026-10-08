@@ -1,0 +1,11 @@
+\section{Limitations}
+\label{sec:limitations}
+
+\textbf{Near-ideal segmentation.} The front end on which the primary hypothesis holds uses simulator instance masks. They expose no identity, but they are close to perfect; with SAM~2.1 only the reduction in stale entities holds, and identity continuity does not improve.
+\textbf{Low absolute identity continuity.} Even with instance masks about four in five relocated objects are not re-attached to their old identity, and retrieval succeeds for about one in four.
+\textbf{False retractions with SAM~2.1.} More than half of the in-scope entities VSMT-lean retracts with SAM~2.1 masks belong to objects that are still in place; whether they are later reactivated, and how many are redundant part entities, is not separated in our exports.
+\textbf{Adapters and grids.} The rule-based arms are our implementations of published mechanisms on a shared interface, not the original systems. Several selected configurations lie at the end of their registered grids (Appendix~\ref{app:selection}); we did not widen the grids after the test.
+\textbf{Statistics.} The target of inference is a training procedure with five seeds; the two-level bound has no coverage guarantee and was calibrated only by a null simulation. The primary hypothesis was revised, the fixed order designed and identity continuity redefined after development and confirmation readings, though before validation and test. Comparisons other than the fixed-order test are descriptive and not corrected for multiplicity, and some were computed after the test.
+\textbf{Metrics.} Retrieval success is an evaluator query built from private labels, not a robot task. Contamination AUC judges staleness by centroid distance only, unlike the node rule. Recovery latency is averaged over the objects each arm recovers. Per-frame runtime was measured under uncontrolled load and is not compared.
+\textbf{Data.} The test is simulated. The 3RScan check uses proxy truth from annotated meshes, a window without frames between scans, offline poses, and only the instance column; it is descriptive. No real-robot experiment was run.
+\textbf{Scope.} We do not revise places, relations or topology, and do not learn splitting or merging; deduplication is a shared deterministic rule.
