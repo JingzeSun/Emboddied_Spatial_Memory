@@ -526,7 +526,7 @@ S4 论文
 
 | 项 | 内容 |
 |---|---|
-| 状态 | **T0、T1 已发布并核对（2026-10-08，LOG-312）**：`Jsun0632/vsmt-lean` revision `0b2ce7f8`、`Jsun0632/vsmt-lean-s3-eval` revision `1bb81d27`，两仓库已由用户转为公开（再分发许可核对未做）；代码在分支 `hf-release`；T2、T3 未传，待用户 |
+| 状态 | **已完成（2026-10-08，LOG-312、LOG-313）**：T0～T3 全部上传、逐文件核对通过并公开（revision 见 README“论文所用的 HF revision”表），正式卡片与许可按裁决 114；B1 已关机（不释放，15 天限期） |
 | 输入 | S3-02 数据（train／validation／test 的原始 episode 公开面与私有面、几何表、两套 cache）、S3-03 运行根（训练记录、权重、审计）、S3-04 冻结回执、S3-05 统计与合并审计、B1 存档的环境清单（conda／pip） |
 | 完整动作 | 分四层、各自独立下载：T0 结果与权重（约 0.5 GB，模型仓库 `Jsun0632/vsmt-lean`）；T1 评估输入（validation 与 test 的原始 episode、几何、两套 cache，约 75 GB，`…-s3-eval`）；T2 训练记录（约 24 GB，`…-s3-records`）；T3 训练输入（train 的原始 episode、几何、两套 cache，约 195 GB，`…-s3-train`）。每条 episode 打成一个确定性 tar（文件排序、时间与属主固定）并记 sha256，解包后用已有的逐 episode 目录摘要核对（test 用封印，train／validation 用 S3-02 导出）；GitHub 打标签（如 `s3-v1`），README 写死每个 HF 仓库的 revision 哈希与两条复现路径（只用 GitHub 从 ProcTHOR-10K 起全部重跑；或从 HF 任一层切入：T0 重算统计、T0＋T1 重跑审计、T2 重训、T3 重跑 S3-03）；先以 private 上传，逐文件核对后转 public；数据许可 CC-BY-4.0（发布前核对 ProcTHOR-10K 与 AI2-THOR 渲染图的再分发许可，SAM 2.1、DINOv2 为 Apache-2.0）；从 B1 上传（出口约 11 MB/s，约 316 GB 至少 8 小时），HF 令牌由用户自己在 B1 登录，执行者不经手 |
 | 输出 | 四个 HF 仓库及其 revision、`results/` 里的发布清单（每个 tar 的 sha256 与对应的 S3 清单项）、README“从 HF 复现” |
