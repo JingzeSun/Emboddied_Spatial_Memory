@@ -289,7 +289,7 @@ bash ops/vsmt/llm_op.sh export                       # results/vsmt_lean_llm_op_
 | 表 5 | TAF、ELU-P、RAC、LOW 对 VSMT-lean 的逐指标取舍（描述性） | `fronts.<前端>.comparisons`、`d3_intervals` | 同上 |
 | 表 6 | 三分解（每个臂按自己的决策数算占比，不跨臂排名） | `fronts.<前端>.decomposition_totals`、`d6_decomposition` | 同上 |
 | 表 7 | 规模与成本（每帧运行时间只作量级） | `fronts.<前端>.size_and_cost_episode_means`、`d7_size_and_cost` | 同上 |
-| 表 8 | 外部验证（3RScan validation，实例分割列；代理真值，不进主门） | 空位：等 S3-07 会话的导出 `vsmt_lean_s3_07_*` | `bash ops/vsmt/s3_07_external.sh audit`（分支 `s3-07-impl`） |
+| 表 8 | 外部验证（3RScan validation，只有实例分割列：108 条 episode 合成 46 个场景，实例图由标注网格渲染，代理真值，冻结配置，只报告、不进主门；SAM 2.1 列按冻结前端不可算，110 条里只有 3 条可用） | `vsmt_lean_s3_07_statistics_aa94373.json` → `fronts.instance.main_table`、`comparisons`（含双侧 90% 区间）、`exclusion_lists`、`cache_data_failures`、`fronts_missing`、`not_applicable`；逐 episode 在 `vsmt_lean_s3_07_merged_instance_aa94373.json` | `FRONTS=instance bash ops/vsmt/s3_07_external.sh audit`（B1＋w4＋w5，运行 `aa94373`，冻结 `dea8c20`；代码在分支 `s3-07-impl`，尚未并入 main） |
 | 图 2／图 3 | 残留率与节点 F1 的取舍；主门两项的逐 house 配对差 | 主表；`d5_per_house` | 画图脚本 planned |
 | 附录 | 选参与网格端点；选参曲线与训练回执（逐 epoch 分项损失）；数据清单与失败原因；功效与零效应校准；LLM-op（n＝1） | `vsmt_lean_s3_04_selection_{instance,sam2}_dea8c20.json`；`vsmt_lean_s3_03_{readings,trainings}_{instance,sam2}_10f7013.json`；`vsmt_lean_s3_02_*_3f6ef1d.json`；`vsmt_lean_s3_01_planning_6c57903.json`；`vsmt_lean_llm_op_dea8c20.json` | 见上面各阶段的“怎样复现”与 LLM-op 一节 |
 
@@ -299,7 +299,7 @@ bash ops/vsmt/llm_op.sh export                       # results/vsmt_lean_llm_op_
 python ops/vsmt/s3_06_reanalysis.py run --workers 8
 ```
 
-脚本先用冻结的 `lean_s3_05` 函数从两份合并审计逐值复现 `vsmt_lean_s3_05_statistics_8d58475.json`（`receipt_sha256`、`written_utc` 除外），不相等就以退出码 3 停下、只写差异所在的字段；相等才继续算 D2～D8，写出 `results/vsmt_lean_s3_06_reanalysis_<tag>.json` 与 `results/vsmt_lean_s3_06_paper_index_<tag>.json`（tag 是运行时的提交）。同一提交的输出已存在时拒绝覆盖，确要重写须加 `--replace`。退出码：0 完成；2 拒绝（代码或输入有未提交改动、输入不受 git 跟踪、输入缺失或与 manifest 不符、`src/` 或 `configs/` 与冻结提交不同、输出已存在）；3 复算不等；4 已写出、但某项一致性核对报了问题；1 意外错误（有 traceback）。D2～D8 都是看过 test 之后算的描述性读数，不作门、不做多重比较校正；D3、D5 的数是“优势”（正数对 VSMT-lean 有利，越低越好的指标已翻转符号）。本机 CPU 不稳，若运行崩溃或复算不等，改在无卡服务器上用同一命令重跑，不在本机反复重试。
+脚本先用冻结的 `lean_s3_05` 函数从两份合并审计逐值复现 `vsmt_lean_s3_05_statistics_8d58475.json`（`receipt_sha256`、`written_utc` 除外），不相等就以退出码 3 停下、只写差异所在的字段；相等才继续算 D2～D8，写出 `results/vsmt_lean_s3_06_reanalysis_<tag>.json` 与 `results/vsmt_lean_s3_06_paper_index_<tag>.json`（tag 是运行时的提交）。只需重写索引（例如后来的阶段补了导出）时，用 `python ops/vsmt/s3_06_reanalysis.py index --reanalysis-tag <已提交复算的 tag>`：不重算任何统计，只把索引列出的每个文件重算 sha256、与阶段 manifest 比对，写 `vsmt_lean_s3_06_paper_index_<当前提交>.json`。同一提交的输出已存在时拒绝覆盖，确要重写须加 `--replace`。退出码：0 完成；2 拒绝（代码或输入有未提交改动、输入不受 git 跟踪、输入缺失或与 manifest 不符、`src/` 或 `configs/` 与冻结提交不同、输出已存在）；3 复算不等；4 已写出、但某项一致性核对报了问题；1 意外错误（有 traceback）。D2～D8 都是看过 test 之后算的描述性读数，不作门、不做多重比较校正；D3、D5 的数是“优势”（正数对 VSMT-lean 有利，越低越好的指标已翻转符号）。本机 CPU 不稳，若运行崩溃或复算不等，改在无卡服务器上用同一命令重跑，不在本机反复重试。
 
 | 输入（只读） | 输出 |
 |---|---|

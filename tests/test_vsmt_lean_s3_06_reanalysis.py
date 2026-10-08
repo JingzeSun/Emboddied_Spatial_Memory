@@ -382,6 +382,21 @@ class CommandRunTests(unittest.TestCase):
         problems = ra.load_json(self.results / "vsmt_lean_s3_06_reanalysis_abc1234.json")["problems"]
         self.assertEqual(problems, [f"sam2:d8_events_differ_across_runs:retrieval_success.events:{HOUSES[3]}"])
 
+    def test_the_index_command_rewrites_only_the_index(self):
+        self.assertEqual(self.run_command()[0], ra.EXIT_OK)  # writes the reanalysis of tag abc1234
+        output = io.StringIO()
+        with patched(ROOT=self.root, PAPER_ITEMS=self.items, STAGE_MANIFESTS=("stage_manifest.json",),
+                     code_state=lambda inputs: ("def5678" + "0" * 33, []), untracked=lambda inputs: []), \
+                contextlib.redirect_stdout(output):
+            code = ra.main(["index", "--reanalysis-tag", "abc1234", "--results", str(self.results), "--out-dir", str(self.results)])
+            again = ra.main(["index", "--reanalysis-tag", "abc1234", "--results", str(self.results), "--out-dir", str(self.results)])
+            missing = ra.main(["index", "--reanalysis-tag", "0000000", "--results", str(self.results), "--out-dir", str(self.results),
+                               "--replace"])
+        self.assertEqual((code, again, missing), (ra.EXIT_OK, ra.EXIT_REFUSED, ra.EXIT_PROBLEMS), output.getvalue())
+        index = ra.load_json(self.results / "vsmt_lean_s3_06_paper_index_def5678.json")
+        self.assertEqual((index["tag"], index["reanalysis_tag"]), ("def5678", "0000000"))  # the --replace run wrote last
+        self.assertEqual(index["problems"], ["index_file_missing:vsmt_lean_s3_06_reanalysis_0000000.json"])
+
     def test_refusals(self):
         self.untracked = ["results/vsmt_lean_s3_05_statistics_8d58475.json"]
         self.assertEqual(self.run_command()[0], ra.EXIT_REFUSED)
@@ -408,6 +423,16 @@ class CommittedExportsTests(unittest.TestCase):
     def test_the_committed_inputs_match_their_manifests(self):
         self.assertEqual(self.problems, [])
         self.assertEqual(ra.plan_controls(self.loaded["receipt"]), tuple(s5.COMPARED_ARMS) + ("AssocOnly",))
+
+    def test_every_file_the_paper_index_lists_is_committed_and_matches_its_manifest(self):
+        listed = {}
+        for name in ra.STAGE_MANIFESTS:
+            listed.update(ra.load_json(ROOT / "results" / name)["exports"])
+        for name in ra.index_inputs():
+            path = ROOT / "results" / name
+            self.assertTrue(path.exists(), name)
+            if name in listed:
+                self.assertEqual(ra.file_sha256(path), listed[name]["sha256"], name)
 
     def test_runs_map_onto_the_merged_groups_and_one_main_table_cell_reproduces(self):
         expected = {"instance": 87, "sam2": 85}

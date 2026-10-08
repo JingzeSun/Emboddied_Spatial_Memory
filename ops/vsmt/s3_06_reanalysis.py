@@ -22,6 +22,7 @@
 Usage (repository root, a commit whose src/, ops/, configs/ and the input files have no uncommitted changes, whose inputs are
 tracked by git, and whose src/ and configs/ equal the freeze commit's):
     python ops/vsmt/s3_06_reanalysis.py run [--workers N] [--out-dir results] [--replace]
+    python ops/vsmt/s3_06_reanalysis.py index --reanalysis-tag <tag>   (only the paper index, e.g. after S3-07 added its exports)
 Exit codes: 0 done; 2 refused (uncommitted or untracked code or inputs, an input that is missing or differs from its manifest,
 src/ or configs/ that differ from the freeze commit, or outputs of this commit that already exist without --replace); 3 the
 replay differs from the committed statistics (nothing but the differing fields is written); 4 written, but a consistency check
@@ -578,10 +579,16 @@ PAPER_ITEMS: tuple[dict[str, Any], ...] = (
      "files": ["vsmt_lean_s3_05_statistics_8d58475.json", "vsmt_lean_s3_06_reanalysis_{s3_06}.json"],
      "fields": ["fronts.<front>.size_and_cost_episode_means", "d7_size_and_cost"],
      "command": REANALYSIS_COMMAND, "commits": {"run": "8d58475", "reanalysis": "{s3_06}"}},
-    {"item": "table_8_external_3rscan", "status": "pending: the S3-07 session's export (instance column only, 108 episodes / "
-     "47 scenes; the SAM 2.1 column is not computable with the frozen front end, 3 of 110 usable; ruling 111 amendment 3)",
-     "content": "frozen arms on 3RScan validation, proxy truth, descriptive, no gate", "files": [], "fields": [],
-     "command": "bash ops/vsmt/s3_07_external.sh audit  (B1, worktree s3-07-aa94373; branch s3-07-impl)", "commits": {}},
+    {"item": "table_8_external_3rscan", "content": ("frozen arms on 3RScan validation, instance column only: 108 episodes "
+     "pooled into 46 scenes, masks rendered from the annotated meshes, proxy truth, descriptive, never gating; the SAM 2.1 "
+     "column is not computable with the frozen front end (3 of 110 episodes usable, ruling 111 amendment 3)"),
+     "files": ["vsmt_lean_s3_07_statistics_aa94373.json", "vsmt_lean_s3_07_merged_instance_aa94373.json",
+               "vsmt_lean_s3_07_inputs_aa94373.json", "vsmt_lean_s3_07_e3_aa94373.json"],
+     "fields": ["fronts.instance.main_table", "fronts.instance.comparisons", "fronts.instance.exclusion_lists",
+                "fronts.instance.cache_data_failures", "fronts_missing", "not_applicable"],
+     "command": ("FRONTS=instance bash ops/vsmt/s3_07_external.sh audit  (B1 + w4 + w5, worktree s3-07-aa94373; code on branch "
+                 "s3-07-impl, not merged into main)"),
+     "commits": {"run": "aa94373", "frozen": "dea8c20"}},
     {"item": "figure_2_tradeoff", "content": "Missing residual rate against node F1 per arm, both front ends, seed ranges",
      "files": ["vsmt_lean_s3_05_statistics_8d58475.json"], "fields": ["fronts.<front>.main_table"],
      "command": "plotting script (planned)", "commits": {"run": "8d58475"}},
@@ -618,7 +625,8 @@ PAPER_ITEMS: tuple[dict[str, Any], ...] = (
      "commits": {"run": "dea8c20"}},
 )
 STAGE_MANIFESTS = ("vsmt_lean_s3_02_manifest_3f6ef1d.json", "vsmt_lean_s3_03_manifest_10f7013.json",
-                   "vsmt_lean_s3_04_manifest_dea8c20.json", "vsmt_lean_s3_05_manifest_8d58475.json")
+                   "vsmt_lean_s3_04_manifest_dea8c20.json", "vsmt_lean_s3_05_manifest_8d58475.json",
+                   "vsmt_lean_s3_07_manifest_aa94373.json")
 
 
 def _shown(path: Path) -> str:
@@ -671,7 +679,7 @@ def paper_index(results: Path, tag: str, *, outputs: Path | None = None) -> tupl
                       "files": files, "status": item.get("status", "ready")})
     return {"stage": STAGE, "ruling": RULING, "tag": tag, "items": items, "manifests": list(STAGE_MANIFESTS),
             "plain_language_zh": ("论文每张表／图对应 results/ 里哪个文件、哪些字段、哪条命令与哪个提交；每个文件都重算了 sha256，"
-                                  "并与列出它的阶段 manifest 比对。外部验证（S3-07）一行等 S3-07 会话的导出。")}, problems
+                                  "并与列出它的阶段 manifest 比对。")}, problems
 
 
 # --------------------------------------------------------------------------
@@ -886,6 +894,37 @@ def command_run(args: argparse.Namespace) -> int:
     return EXIT_PROBLEMS if problems else EXIT_OK
 
 
+def command_index(args: argparse.Namespace) -> int:
+    """Only the paper index, against an already committed reanalysis (for example after a later stage adds its exports):
+    no replay and no statistics are recomputed, every listed file is hashed again and compared with its stage manifest."""
+
+    results, out_dir = Path(args.results).resolve(), Path(args.out_dir).resolve()
+    if ROOT not in results.parents:
+        print(f"refused: --results must be inside the repository ({ROOT}); the index is bound to committed files")
+        return EXIT_REFUSED
+    reanalysis = results / f"vsmt_lean_s3_06_reanalysis_{args.reanalysis_tag}.json"
+    input_names = [(results / name).relative_to(ROOT).as_posix() for name in index_inputs()]
+    input_names.append(reanalysis.relative_to(ROOT).as_posix())
+    head, dirty = code_state(input_names)
+    if dirty:
+        print(f"refused: uncommitted changes in {dirty[:10]} (the index is bound to the committed code and files)")
+        return EXIT_REFUSED
+    loose = untracked(input_names)
+    if loose:
+        print(f"refused: files that git does not track: {loose[:10]}")
+        return EXIT_REFUSED
+    tag = head[:7]
+    target = out_dir / f"vsmt_lean_s3_06_paper_index_{tag}.json"
+    if target.exists() and not args.replace:
+        print(f"refused: {target.name} already exists for this commit; pass --replace to write it again on purpose")
+        return EXIT_REFUSED
+    index, problems = paper_index(results, str(args.reanalysis_tag))  # the reanalysis is a committed file here
+    write_json(target, {**index, "tag": tag, "reanalysis_tag": str(args.reanalysis_tag), "code_commit": head,
+                        "written_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "problems": problems})
+    print(f"[s3-06] paper index {target.name} written against reanalysis {args.reanalysis_tag}; {len(problems)} problems")
+    return EXIT_PROBLEMS if problems else EXIT_OK
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="S3-06 (ruling 113): read-only reanalysis of the committed S3-05 exports")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -894,9 +933,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     run.add_argument("--out-dir", default=str(ROOT / "results"), help="where the two outputs are written")
     run.add_argument("--workers", type=int, default=0, help="worker processes (default: the CPU count)")
     run.add_argument("--replace", action="store_true", help="write again over this commit's existing outputs")
+    index = sub.add_parser("index", help="only the paper index, against a committed reanalysis")
+    index.add_argument("--reanalysis-tag", required=True, help="the tag of the committed vsmt_lean_s3_06_reanalysis_<tag>.json")
+    index.add_argument("--results", default=str(ROOT / "results"), help="the committed exports (read only)")
+    index.add_argument("--out-dir", default=str(ROOT / "results"), help="where the index is written")
+    index.add_argument("--replace", action="store_true", help="write again over this commit's existing index")
     args = parser.parse_args(argv)
     try:
-        return command_run(args)
+        return command_run(args) if args.command == "run" else command_index(args)
     except ReanalysisError as exc:
         print(f"refused: {exc}")
         return EXIT_REFUSED
