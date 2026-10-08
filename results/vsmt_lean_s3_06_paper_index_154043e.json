@@ -1,0 +1,501 @@
+{
+ "stage": "vsmt.lean.s3_06.reanalysis.v1",
+ "ruling": "113 (2026-10-08, \u300c\u63a8\u9001 41f19cc\uff1b\u5f85\u88c1 113 \u5168\u6309\u63a8\u8350\u300d), items 113-3 and 113-5",
+ "tag": "154043e",
+ "items": [
+  {
+   "item": "table_1_main_instance",
+   "content": "main table, simulator instance masks: 9 arms x node F1 (two columns), Missing residual rate, false-retract rate (two columns), identity continuity, retrieval success, recovery latency with unrecovered counts, contamination AUC; effective houses per column",
+   "fields": [
+    "fronts.instance.main_table",
+    "fronts.instance.exclusion_lists",
+    "d4_counts.instance"
+   ],
+   "command": "S3_05_GO=4fd08d4fc6d0 RECEIPT=/root/autodl-tmp/vsmt_private/s3-04-dea8c20/freeze_receipt.json bash ops/vsmt/s3_05_test.sh all  (B1, worktree s3-05-8d58475; run once, test read once -- never rerun); python ops/vsmt/s3_06_reanalysis.py run",
+   "commits": {
+    "run": "8d58475",
+    "frozen": "dea8c20"
+   },
+   "files": [
+    {
+     "file": "results/vsmt_lean_s3_05_statistics_8d58475.json",
+     "sha256": "e90764796fd1501090d18695426a97193e51b6f0630ad922ee4ce184429d3688",
+     "bytes": 288215,
+     "manifest": "vsmt_lean_s3_05_manifest_8d58475.json",
+     "matches_manifest": true
+    },
+    {
+     "file": "results/vsmt_lean_s3_06_reanalysis_cd3ee83.json",
+     "sha256": "4d536347444681e5ab7d20c0e4d5a9278c7a8e6de7dc7c40935a945171f1fbf0",
+     "bytes": 250572,
+     "manifest": null,
+     "matches_manifest": null
+    }
+   ],
+   "status": "ready"
+  },
+  {
+   "item": "table_2_main_sam2",
+   "content": "the same main table, SAM 2.1",
+   "fields": [
+    "fronts.sam2.main_table",
+    "fronts.sam2.exclusion_lists",
+    "d4_counts.sam2"
+   ],
+   "command": "S3_05_GO=4fd08d4fc6d0 RECEIPT=/root/autodl-tmp/vsmt_private/s3-04-dea8c20/freeze_receipt.json bash ops/vsmt/s3_05_test.sh all  (B1, worktree s3-05-8d58475; run once, test read once -- never rerun); python ops/vsmt/s3_06_reanalysis.py run",
+   "commits": {
+    "run": "8d58475",
+    "frozen": "dea8c20"
+   },
+   "files": [
+    {
+     "file": "results/vsmt_lean_s3_05_statistics_8d58475.json",
+     "sha256": "e90764796fd1501090d18695426a97193e51b6f0630ad922ee4ce184429d3688",
+     "bytes": 288215,
+     "manifest": "vsmt_lean_s3_05_manifest_8d58475.json",
+     "matches_manifest": true
+    },
+    {
+     "file": "results/vsmt_lean_s3_06_reanalysis_cd3ee83.json",
+     "sha256": "4d536347444681e5ab7d20c0e4d5a9278c7a8e6de7dc7c40935a945171f1fbf0",
+     "bytes": 250572,
+     "manifest": null,
+     "matches_manifest": null
+    }
+   ],
+   "status": "ready"
+  },
+  {
+   "item": "table_3_main_gate",
+   "content": "fixed-sequence main gate (three steps) and the original gate (reported only)",
+   "fields": [
+    "fixed_sequence",
+    "fronts.instance.primary_gate",
+    "fronts.sam2.primary_gate",
+    "fronts.instance.original_gate",
+    "fronts.sam2.original_gate"
+   ],
+   "command": "S3_05_GO=4fd08d4fc6d0 RECEIPT=/root/autodl-tmp/vsmt_private/s3-04-dea8c20/freeze_receipt.json bash ops/vsmt/s3_05_test.sh all  (B1, worktree s3-05-8d58475; run once, test read once -- never rerun)",
+   "commits": {
+    "run": "8d58475",
+    "frozen": "dea8c20"
+   },
+   "files": [
+    {
+     "file": "results/vsmt_lean_s3_05_statistics_8d58475.json",
+     "sha256": "e90764796fd1501090d18695426a97193e51b6f0630ad922ee4ce184429d3688",
+     "bytes": 288215,
+     "manifest": "vsmt_lean_s3_05_manifest_8d58475.json",
+     "matches_manifest": true
+    }
+   ],
+   "status": "ready"
+  },
+  {
+   "item": "table_4_ablations",
+   "content": "NoVersion, HandCost, HeuristicLabel and AssocOnly against VSMT-lean, every metric: difference, two-sided 90% interval, one-sided lower bound, 82-1 (descriptive)",
+   "fields": [
+    "fronts.<front>.comparisons",
+    "d2_assoc_only",
+    "d3_intervals"
+   ],
+   "command": "python ops/vsmt/s3_06_reanalysis.py run",
+   "commits": {
+    "run": "8d58475",
+    "reanalysis": "cd3ee83"
+   },
+   "files": [
+    {
+     "file": "results/vsmt_lean_s3_05_statistics_8d58475.json",
+     "sha256": "e90764796fd1501090d18695426a97193e51b6f0630ad922ee4ce184429d3688",
+     "bytes": 288215,
+     "manifest": "vsmt_lean_s3_05_manifest_8d58475.json",
+     "matches_manifest": true
+    },
+    {
+     "file": "results/vsmt_lean_s3_06_reanalysis_cd3ee83.json",
+     "sha256": "4d536347444681e5ab7d20c0e4d5a9278c7a8e6de7dc7c40935a945171f1fbf0",
+     "bytes": 250572,
+     "manifest": null,
+     "matches_manifest": null
+    }
+   ],
+   "status": "ready"
+  },
+  {
+   "item": "table_5_rule_arms",
+   "content": "TAF, ELU-P, RAC and LOW against VSMT-lean, metric by metric (descriptive)",
+   "fields": [
+    "fronts.<front>.comparisons",
+    "d3_intervals"
+   ],
+   "command": "python ops/vsmt/s3_06_reanalysis.py run",
+   "commits": {
+    "run": "8d58475",
+    "reanalysis": "cd3ee83"
+   },
+   "files": [
+    {
+     "file": "results/vsmt_lean_s3_05_statistics_8d58475.json",
+     "sha256": "e90764796fd1501090d18695426a97193e51b6f0630ad922ee4ce184429d3688",
+     "bytes": 288215,
+     "manifest": "vsmt_lean_s3_05_manifest_8d58475.json",
+     "matches_manifest": true
+    },
+    {
+     "file": "results/vsmt_lean_s3_06_reanalysis_cd3ee83.json",
+     "sha256": "4d536347444681e5ab7d20c0e4d5a9278c7a8e6de7dc7c40935a945171f1fbf0",
+     "bytes": 250572,
+     "manifest": null,
+     "matches_manifest": null
+    }
+   ],
+   "status": "ready"
+  },
+  {
+   "item": "table_6_decomposition",
+   "content": "three-way decomposition per arm (shares over each arm's own decisions)",
+   "fields": [
+    "fronts.<front>.decomposition_totals",
+    "d6_decomposition"
+   ],
+   "command": "python ops/vsmt/s3_06_reanalysis.py run",
+   "commits": {
+    "run": "8d58475",
+    "reanalysis": "cd3ee83"
+   },
+   "files": [
+    {
+     "file": "results/vsmt_lean_s3_05_statistics_8d58475.json",
+     "sha256": "e90764796fd1501090d18695426a97193e51b6f0630ad922ee4ce184429d3688",
+     "bytes": 288215,
+     "manifest": "vsmt_lean_s3_05_manifest_8d58475.json",
+     "matches_manifest": true
+    },
+    {
+     "file": "results/vsmt_lean_s3_06_reanalysis_cd3ee83.json",
+     "sha256": "4d536347444681e5ab7d20c0e4d5a9278c7a8e6de7dc7c40935a945171f1fbf0",
+     "bytes": 250572,
+     "manifest": null,
+     "matches_manifest": null
+    }
+   ],
+   "status": "ready"
+  },
+  {
+   "item": "table_7_size_and_cost",
+   "content": "active entities, lifecycle versions, peak memory; runtime indicative only",
+   "fields": [
+    "fronts.<front>.size_and_cost_episode_means",
+    "d7_size_and_cost"
+   ],
+   "command": "python ops/vsmt/s3_06_reanalysis.py run",
+   "commits": {
+    "run": "8d58475",
+    "reanalysis": "cd3ee83"
+   },
+   "files": [
+    {
+     "file": "results/vsmt_lean_s3_05_statistics_8d58475.json",
+     "sha256": "e90764796fd1501090d18695426a97193e51b6f0630ad922ee4ce184429d3688",
+     "bytes": 288215,
+     "manifest": "vsmt_lean_s3_05_manifest_8d58475.json",
+     "matches_manifest": true
+    },
+    {
+     "file": "results/vsmt_lean_s3_06_reanalysis_cd3ee83.json",
+     "sha256": "4d536347444681e5ab7d20c0e4d5a9278c7a8e6de7dc7c40935a945171f1fbf0",
+     "bytes": 250572,
+     "manifest": null,
+     "matches_manifest": null
+    }
+   ],
+   "status": "ready"
+  },
+  {
+   "item": "table_8_external_3rscan",
+   "content": "frozen arms on 3RScan validation, instance column only: 108 episodes pooled into 46 scenes, masks rendered from the annotated meshes, proxy truth, descriptive, never gating; the SAM 2.1 column is not computable with the frozen front end (3 of 110 episodes usable, ruling 111 amendment 3)",
+   "fields": [
+    "fronts.instance.main_table",
+    "fronts.instance.comparisons",
+    "fronts.instance.exclusion_lists",
+    "fronts.instance.cache_data_failures",
+    "fronts_missing",
+    "not_applicable"
+   ],
+   "command": "FRONTS=instance bash ops/vsmt/s3_07_external.sh audit  (B1 + w4 + w5, worktree s3-07-aa94373; code on branch s3-07-impl, not merged into main)",
+   "commits": {
+    "run": "aa94373",
+    "frozen": "dea8c20"
+   },
+   "files": [
+    {
+     "file": "results/vsmt_lean_s3_07_statistics_aa94373.json",
+     "sha256": "b4132d0a3096f873e1ac0ec743a698caf3e57d1bd542fb948362ed1e8056a6be",
+     "bytes": 86895,
+     "manifest": "vsmt_lean_s3_07_manifest_aa94373.json",
+     "matches_manifest": true
+    },
+    {
+     "file": "results/vsmt_lean_s3_07_merged_instance_aa94373.json",
+     "sha256": "5f5d82eff55b5d22da87a7cbd0a1f8f13d4389a65bdc09244d7f79f49d3095dc",
+     "bytes": 7652874,
+     "manifest": "vsmt_lean_s3_07_manifest_aa94373.json",
+     "matches_manifest": true
+    },
+    {
+     "file": "results/vsmt_lean_s3_07_inputs_aa94373.json",
+     "sha256": "38797cd45147da7b29978d3867957743e836d61299a8136df533f1083c5d1a7f",
+     "bytes": 49862,
+     "manifest": "vsmt_lean_s3_07_manifest_aa94373.json",
+     "matches_manifest": true
+    },
+    {
+     "file": "results/vsmt_lean_s3_07_e3_aa94373.json",
+     "sha256": "1cb7f737517013e6d69ff29d647513bb7b496d79e0304e98d1d6935ef54f975a",
+     "bytes": 75012,
+     "manifest": "vsmt_lean_s3_07_manifest_aa94373.json",
+     "matches_manifest": true
+    }
+   ],
+   "status": "ready"
+  },
+  {
+   "item": "figure_2_tradeoff",
+   "content": "Missing residual rate against node F1 per arm, both front ends, seed ranges",
+   "fields": [
+    "fronts.<front>.main_table"
+   ],
+   "command": "plotting script (planned)",
+   "commits": {
+    "run": "8d58475"
+   },
+   "files": [
+    {
+     "file": "results/vsmt_lean_s3_05_statistics_8d58475.json",
+     "sha256": "e90764796fd1501090d18695426a97193e51b6f0630ad922ee4ce184429d3688",
+     "bytes": 288215,
+     "manifest": "vsmt_lean_s3_05_manifest_8d58475.json",
+     "matches_manifest": true
+    }
+   ],
+   "status": "ready"
+  },
+  {
+   "item": "figure_3_per_house",
+   "content": "seed-paired house differences of the two gate metrics, both front ends",
+   "fields": [
+    "d5_per_house"
+   ],
+   "command": "python ops/vsmt/s3_06_reanalysis.py run",
+   "commits": {
+    "reanalysis": "cd3ee83"
+   },
+   "files": [
+    {
+     "file": "results/vsmt_lean_s3_06_reanalysis_cd3ee83.json",
+     "sha256": "4d536347444681e5ab7d20c0e4d5a9278c7a8e6de7dc7c40935a945171f1fbf0",
+     "bytes": 250572,
+     "manifest": null,
+     "matches_manifest": null
+    }
+   ],
+   "status": "ready"
+  },
+  {
+   "item": "appendix_selection",
+   "content": "one configuration per arm, the 102-4 constraint, grid-edge picks, validation events",
+   "fields": [
+    "selection",
+    "fronts.<front>.test_runs"
+   ],
+   "command": "bash ops/vsmt/s3_04_freeze.sh all  (B1)",
+   "commits": {
+    "frozen": "dea8c20"
+   },
+   "files": [
+    {
+     "file": "results/vsmt_lean_s3_04_selection_instance_dea8c20.json",
+     "sha256": "3ba0baa2e722aae9aa8d0a5c9d5df08508d4874d38148fa16fbc94f42d9d7582",
+     "bytes": 193830,
+     "manifest": "vsmt_lean_s3_04_manifest_dea8c20.json",
+     "matches_manifest": true
+    },
+    {
+     "file": "results/vsmt_lean_s3_04_selection_sam2_dea8c20.json",
+     "sha256": "7543adb6e74f3d189767ccbacd9fabb64b8180cb3ba663e549883792e851f817",
+     "bytes": 194306,
+     "manifest": "vsmt_lean_s3_04_manifest_dea8c20.json",
+     "matches_manifest": true
+    },
+    {
+     "file": "results/vsmt_lean_s3_04_freeze_dea8c20.json",
+     "sha256": "363266e401472436f91da9f97af8207be8615adfce6cbde4f7bfa6079364060b",
+     "bytes": 109120,
+     "manifest": "vsmt_lean_s3_04_manifest_dea8c20.json",
+     "matches_manifest": true
+    }
+   ],
+   "status": "ready"
+  },
+  {
+   "item": "appendix_selection_curves",
+   "content": "validation readings of every configuration (selection only, no claim)",
+   "fields": [
+    "readings"
+   ],
+   "command": "ADOPT_CALIBRATION_INSTANCE=<74905f4 pass root>/calibration bash ops/vsmt/s3_03_train_select.sh all  (B1)",
+   "commits": {
+    "run": "5c9ec8d",
+    "verified": "5a9fd94",
+    "tag": "10f7013"
+   },
+   "files": [
+    {
+     "file": "results/vsmt_lean_s3_03_readings_instance_10f7013.json",
+     "sha256": "c4dd39180ceb0d56c5086b64a8e6c3dec18968c2b028a2eae53b3387f58e3ab1",
+     "bytes": 154870,
+     "manifest": "vsmt_lean_s3_03_manifest_10f7013.json",
+     "matches_manifest": true
+    },
+    {
+     "file": "results/vsmt_lean_s3_03_readings_sam2_10f7013.json",
+     "sha256": "67f14dab2b363511eea2e6117c53a02292a55e9b465865b961f5e55ffba6bbde",
+     "bytes": 155382,
+     "manifest": "vsmt_lean_s3_03_manifest_10f7013.json",
+     "matches_manifest": true
+    }
+   ],
+   "status": "ready"
+  },
+  {
+   "item": "appendix_training",
+   "content": "training receipts with per-epoch association and existence loss terms",
+   "fields": [
+    "trainings"
+   ],
+   "command": "bash ops/vsmt/s3_03_train_select.sh all  (B1)",
+   "commits": {
+    "run": "5c9ec8d",
+    "verified": "5a9fd94",
+    "tag": "10f7013"
+   },
+   "files": [
+    {
+     "file": "results/vsmt_lean_s3_03_trainings_instance_10f7013.json",
+     "sha256": "91c54892ec32b1abc14f5f00c82aec5c9eddfa3786b3f58b32d08253c9c0523a",
+     "bytes": 167377,
+     "manifest": "vsmt_lean_s3_03_manifest_10f7013.json",
+     "matches_manifest": true
+    },
+    {
+     "file": "results/vsmt_lean_s3_03_trainings_sam2_10f7013.json",
+     "sha256": "827c4f245620c00a4ed42226c63d70b7116e59fdba9bd77ff6a9ac24e7dd657a",
+     "bytes": 168855,
+     "manifest": "vsmt_lean_s3_03_manifest_10f7013.json",
+     "matches_manifest": true
+    }
+   ],
+   "status": "ready"
+  },
+  {
+   "item": "appendix_data",
+   "content": "manifests, yields and failure reasons, both caches; the test seal's digest is in the S3-02 manifest (the seal file itself is not committed, LOG-303)",
+   "fields": [
+    "splits",
+    "exports"
+   ],
+   "command": "bash ops/vsmt/s3_02_data.sh all  (environment and resume: EXECUTE LOG-303)",
+   "commits": {
+    "generate": "3f6ef1d",
+    "registration": "4ad0233",
+    "after_hold": "74905f4"
+   },
+   "files": [
+    {
+     "file": "results/vsmt_lean_s3_02_manifest_3f6ef1d.json",
+     "sha256": "5d79f2da285c0f4ed174abdc67a47f90eec3929f755add4d11fedd2da1c1d292",
+     "bytes": 13846,
+     "manifest": null,
+     "matches_manifest": null
+    },
+    {
+     "file": "results/vsmt_lean_s3_02_test_summary_3f6ef1d.json",
+     "sha256": "e64d070b6555bc04f3184cf8c0b5dcec41273dff6e1b0986a1101fd88667978c",
+     "bytes": 1584,
+     "manifest": "vsmt_lean_s3_02_manifest_3f6ef1d.json",
+     "matches_manifest": true
+    },
+    {
+     "file": "results/vsmt_lean_s3_02_raw_train_3f6ef1d.json",
+     "sha256": "e555449c2bc253c3b7b0f9af8502faa608fd6d3830e1e652e6b0423917c37666",
+     "bytes": 367257,
+     "manifest": "vsmt_lean_s3_02_manifest_3f6ef1d.json",
+     "matches_manifest": true
+    },
+    {
+     "file": "results/vsmt_lean_s3_02_raw_validation_3f6ef1d.json",
+     "sha256": "994098c5026f8c3839fd5ac7d1c4513fd072bbc09696dfad4e7ffd36f9d56cc0",
+     "bytes": 62269,
+     "manifest": "vsmt_lean_s3_02_manifest_3f6ef1d.json",
+     "matches_manifest": true
+    }
+   ],
+   "status": "ready"
+  },
+  {
+   "item": "appendix_power",
+   "content": "null calibration, sensitivity table and power planning of the gate",
+   "fields": [
+    "."
+   ],
+   "command": "python ops/vsmt/s3_01_planning.py",
+   "commits": {
+    "run": "6c57903"
+   },
+   "files": [
+    {
+     "file": "results/vsmt_lean_s3_01_planning_6c57903.json",
+     "sha256": "99e987a879b93d31173f3bf2267e291169e08e2f8833a77dc55629014afd9828",
+     "bytes": 67614,
+     "manifest": null,
+     "matches_manifest": null
+    }
+   ],
+   "status": "ready"
+  },
+  {
+   "item": "appendix_llm_op",
+   "content": "LLM-op on one validation episode per front end (n = 1, descriptive)",
+   "status": "partial: the other arms' per-episode validation values on train-08800 live in the S3-03 run root on B1 and are not exported yet",
+   "fields": [
+    "."
+   ],
+   "command": "bash ops/vsmt/llm_op.sh plan ... export",
+   "commits": {
+    "run": "dea8c20"
+   },
+   "files": [
+    {
+     "file": "results/vsmt_lean_llm_op_dea8c20.json",
+     "sha256": "f68cedf650b65bf8447974ce7a4c1610085bd4a927bdb4223f81b0dd47bf18af",
+     "bytes": 30239,
+     "manifest": null,
+     "matches_manifest": null
+    }
+   ]
+  }
+ ],
+ "manifests": [
+  "vsmt_lean_s3_02_manifest_3f6ef1d.json",
+  "vsmt_lean_s3_03_manifest_10f7013.json",
+  "vsmt_lean_s3_04_manifest_dea8c20.json",
+  "vsmt_lean_s3_05_manifest_8d58475.json",
+  "vsmt_lean_s3_07_manifest_aa94373.json"
+ ],
+ "plain_language_zh": "\u8bba\u6587\u6bcf\u5f20\u8868\uff0f\u56fe\u5bf9\u5e94 results/ \u91cc\u54ea\u4e2a\u6587\u4ef6\u3001\u54ea\u4e9b\u5b57\u6bb5\u3001\u54ea\u6761\u547d\u4ee4\u4e0e\u54ea\u4e2a\u63d0\u4ea4\uff1b\u6bcf\u4e2a\u6587\u4ef6\u90fd\u91cd\u7b97\u4e86 sha256\uff0c\u5e76\u4e0e\u5217\u51fa\u5b83\u7684\u9636\u6bb5 manifest \u6bd4\u5bf9\u3002",
+ "reanalysis_tag": "cd3ee83",
+ "code_commit": "154043e68fb2571262484f9231181895bc3c67fc",
+ "written_utc": "2026-10-08T06:30:55Z",
+ "problems": []
+}
