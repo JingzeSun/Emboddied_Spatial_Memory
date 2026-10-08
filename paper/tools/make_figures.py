@@ -48,7 +48,7 @@ def seed_range(entry: Mapping[str, Any]) -> tuple[float, float] | None:
 def tradeoff_figure(stats: Mapping[str, Any]) -> plt.Figure:
     """Figure 2: Missing residual rate (x, lower is better) against node F1 (y), one panel per front end."""
 
-    figure, axes = plt.subplots(1, 2, figsize=(WIDTH_IN * 2, 2.6), constrained_layout=True)
+    figure, axes = plt.subplots(1, 2, figsize=(WIDTH_IN * 2, 2.2), constrained_layout=True)
     for axis, (front, title) in zip(axes, FRONTS):
         table = stats["fronts"][front]["main_table"]
         for arm, (colour, marker, filled) in STYLE.items():

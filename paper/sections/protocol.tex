@@ -11,7 +11,6 @@ To prevent the shortcut ``a revisited container has changed'', the second sweep 
 Of the 300 training, 50 validation and 100 test houses, 252, 43 and 87 succeeded (in test: no feasible unobservable window in 10 houses, a failed intervention in 2, a failed frame write in 1).
 The 87 test episodes contain 101,317 frames, 139 executed moves and 22 episodes without change.
 The SAM~2.1 cache exists for 85 of them; two exceed the limit of 64 fragments per frame.
-The test data were generated, sealed and not read until the single test run.
 
 \subsection{Selection}
 Each arm has at most 12 registered configurations and chooses one on validation, per front end, by node F1.
@@ -23,18 +22,15 @@ VSMT-lean selected $\tau_r=0.8$ with instance masks and $\tau_r=0.25$ with SAM~2
 
 \subsection{Metrics}
 \label{sec:metrics}
-\textbf{Node P/R/F1.} Per frame, entities still in memory (active or dormant) are matched to ground-truth objects present in the frame and observable at least once, maximising the number of matches and then the weight.
-A pair can match only if the entity's majority identity is that object and its centroid is within 0.5\,m of the object's centroid or inside the object's box enlarged by 0.25\,m.
-We use this centroid rule as the primary column because entity boxes are built from a single frame's depth surface while ground-truth boxes enclose the whole object; the IoU~0.3 rule of Dyn-THOR~\cite{dsg2026} is reported as a secondary column (F1$_\mathrm{IoU}$) with the same matcher.
-Walls, floors, doors, windows and ceilings are not objects.
-\textbf{Missing residual rate (MRR)} is the share of removed or moved objects, whose original place had become observable to the method, that still have an active or dormant entity of the same identity at the original place.
-\textbf{False-retract rate (FRR)} is the share of retracted entities whose object is still in place by the node rule; FRR$_\mathrm{in}$ counts only in-scope objects. Arms that never retract have no value.
-\textbf{Identity continuity (IdC)} uses the same events for every arm: each moved object, at its first fragment after the window; the event counts as kept if that fragment is assigned (\op{BIND} or \op{REACTIVATE}) to an entity that carried the object at the last frame of the window. An arm with no carrier before the move cannot keep the event. A conditional diagnostic column counts only events with a prior carrier, so its denominator differs between arms.
-\textbf{Retrieval success (Retr.)} uses the same events: the evaluator queries the memory committed at the event frame with the mean descriptor of the object's fragments up to the last frame of the window, and succeeds if the most similar active or dormant entity matches the object at its new place by the node rule. The query uses private labels and is not a robot task.
-\textbf{Recovery latency (Lat.)} covers every changed object (removed, moved or added): the number of frames from when the change first becomes observable until the memory is correct (no entity of the object left at its old place, and one at its new place), averaged over recovered objects only; unrecovered objects are counted separately.
-\textbf{Contamination AUC (Cont.)} is the normalised area under the per-frame ratio of stale entities plus wrongly absent objects to entities in memory plus wrongly absent objects; it judges staleness by centroid distance only.
-We also report memory size.
-Per-frame runtime was measured in a shared job pool under uncontrolled load and is not compared between arms.
+\textbf{Node P/R/F1.} Per frame, entities in memory (active or dormant) are matched to present objects observable at least once (walls, floors, doors, windows and ceilings excluded), maximising matches and then weight; a pair matches only if the entity's majority identity is the object and its centroid lies within 0.5\,m of the object's centroid or inside its box enlarged by 0.25\,m.
+This centroid rule is primary because entity boxes come from one frame's depth surface while ground-truth boxes enclose the whole object; Dyn-THOR's IoU~0.3 rule~\cite{dsg2026} is a secondary column (F1$_\mathrm{IoU}$) with the same matcher.
+\textbf{Missing residual rate (MRR):} share of removed or moved objects, whose original place had become observable, that still have an active or dormant entity of their identity there.
+\textbf{False-retract rate (FRR):} share of retracted entities whose object is still in place by the node rule (FRR$_\mathrm{in}$: in-scope objects only; undefined for arms that never retract).
+\textbf{Identity continuity (IdC):} the same events for every arm---each moved object at its first fragment after the window---kept if that fragment is assigned (\op{BIND} or \op{REACTIVATE}) to an entity that carried the object at the window's last frame; an arm without a prior carrier cannot keep the event. A conditional diagnostic column counts only events with a prior carrier (arm-specific denominators).
+\textbf{Retrieval success (Retr.):} on the same events, the evaluator queries the memory committed at the event frame with the mean descriptor of the object's fragments up to the window's last frame; it succeeds if the most similar active or dormant entity matches the object at its new place by the node rule. The query uses private labels and is not a robot task.
+\textbf{Recovery latency (Lat.):} for every changed object (removed, moved or added), frames from when the change first becomes observable until the memory is correct (no entity of the object left at its old place, one at its new place), over recovered objects only; unrecovered objects are counted separately.
+\textbf{Contamination AUC (Cont.):} normalised area under the per-frame ratio of stale entities plus wrongly absent objects to entities in memory plus wrongly absent objects, judging staleness by centroid distance only.
+We also report memory size; per-frame runtime was measured under uncontrolled load and is not compared.
 
 \subsection{Statistics and the primary hypothesis}
 \label{sec:stats}

@@ -1,8 +1,8 @@
 \section{Conclusion}
 \label{sec:conclusion}
 
-We tested whether a learned, versioned lifecycle vocabulary helps object-level memory under changes made outside the robot's view, holding the front end, recall, executor, training recipe and evaluation fixed and comparing against the same learned association without that vocabulary.
-Under a protocol frozen before validation and test, with a single test read, the answer for this training procedure (five seeds) is yes for near-ideal instance masks on both stale entities and identity continuity, and yes for stale entities only with SAM~2.1 masks.
+We tested whether a learned, versioned lifecycle vocabulary helps object-level memory under unobserved changes, against the same learned association without it and with everything else fixed.
+Under a protocol frozen before validation and test and a single test read, the answer for this training procedure (five seeds) is yes for near-ideal instance masks on both stale entities and identity continuity, and yes for stale entities only with SAM~2.1 masks.
 In a descriptive ablation, identity continuity depends on keeping the versions of retracted entities: deleting them leaves slightly fewer stale entities but loses the identities.
 Against the rule-based adapters there is no single winner: with instance masks the persistence-filter adapter leaves fewer stale entities, while most of the in-scope entities it retracts belong to objects that are still in place.
 The low absolute identity continuity, especially with a learned segmenter, is the main open problem; the released ledger, exports and index are meant to make that problem measurable.

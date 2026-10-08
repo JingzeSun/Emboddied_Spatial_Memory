@@ -6,6 +6,8 @@
 \usepackage{amsmath,amssymb}
 \usepackage{booktabs}
 \usepackage{graphicx}
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta,calc}
 \usepackage{xcolor}
 \usepackage{url}
 \makeatletter\g@addto@macro\UrlBreaks{\do\_}\makeatother % long file names may break at underscores
@@ -19,13 +21,15 @@
 \newcommand{\op}[1]{\texttt{#1}}
 
 \begin{document}
+\bstctlcite{IEEEexample:BSTcontrol}
 
 \title{Versioned Lifecycle Transactions for Object-Level Spatial Memory:\\ A Pre-Registered Evaluation Under Unobserved Changes}
 
-\author{\todo{author list and affiliations}%
-\thanks{Manuscript draft, \today.}}
+\author{Jingze Sun%
+\thanks{Manuscript draft, \today.}%
+\thanks{J.~Sun is with The University of Sydney, Sydney, NSW 2006, Australia (e-mail: jingzesun498@gmail.com).}}
 
-\markboth{IEEE Robotics and Automation Letters. Preprint Version. Draft}{VSMT-lean}
+\markboth{IEEE Robotics and Automation Letters. Preprint Version. Draft}{Sun: Versioned Lifecycle Transactions for Object-Level Spatial Memory}
 
 \maketitle
 
@@ -41,6 +45,7 @@
 \bibliographystyle{IEEEtran}
 \bibliography{refs}
 
+\clearpage % the appendix (supplementary material at submission) starts on its own page; its floats stay out of pages 1-8
 \appendices
 \input{sections/supplement}
 
