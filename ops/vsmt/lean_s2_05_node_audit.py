@@ -4,7 +4,7 @@ Written for S2-05 as a read-only node-matching audit (evidence for ruling 70; ru
 Usage:
     python ops/vsmt/lean_s2_05_node_audit.py run --cache-root <S1-03 cache root> --episode-root <S1-02 episode dir> \\
         --geometry-root <S1-04 geometry root> --episode-id <id> --arm LOW --config '{"d_low": null}' \\
-        --descriptor vitb14 --weights <reid weights> --output-root <audit root> [--frames N]
+        --descriptor reid_projection:vitb14 --weights <reid weights> --output-root <audit root> [--frames N]
     python ops/vsmt/lean_s2_05_node_audit.py merge --output-root <audit root> --arm LOW --results <results/*.json>
     python ops/vsmt/lean_s2_05_node_audit.py compare --full <audit> --metrics-only <audit> --out <report>
 

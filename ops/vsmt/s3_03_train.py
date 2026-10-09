@@ -21,7 +21,7 @@ VSMT-lean's heads. This entry runs one of these trainings:
     ``--checkpoint`` the whole training state at each epoch end in ``checkpoint/state.pt``, so that rerunning the same
     command after an interruption continues at the next epoch (bit-identical to an uninterrupted training; a checkpoint whose
     input digests differ is refused).
-Example: round 1, VSMT-lean, seed 31 reads the round-0 ELU-P records and VSMT-lean's round-1 records, trains 20 epochs and
+Example: round 1, VSMT-lean, seed 31 reads the round-0 ELU-P records and the records of VSMT-lean's round-0 heads, trains 20 epochs and
 keeps the grouped-selection heads. It selects no configuration, reads no validation or test record (every source episode must
 be in the S3 train manifest) and does not change the recipe.
 

@@ -28,8 +28,10 @@ Scope, restated so it cannot drift:
   conditions: the caller records them in ``decision_basis``, this module
   copies them into provenance and never re-derives them.
 * Every numeric policy value (dormancy count, dedup thresholds) must be
-  passed in explicitly.  There are no defaults, so an unfrozen value cannot
-  silently become an experiment constant.  The values frozen by D-224-S1
+  passed in explicitly, so an unfrozen value cannot silently become an
+  experiment constant.  The one default is ``dedup=None`` in
+  ``apply_program``, which skips the shared deduplication (used by tests);
+  the runner always passes the frozen values.  The values frozen by D-224-S1
   rulings 67, 68 and 77 are ``DORMANCY_MISSED_OPPORTUNITY_LIMIT`` and
   ``SHARED_DEDUP``; callers pass them.
 """
@@ -897,8 +899,9 @@ def apply_program(
     teacher, private or future data.
 
     ``dormancy_missed_opportunity_limit`` and every ``dedup`` value must be
-    supplied explicitly; there is no default, because an unfrozen policy value
-    must not be able to slip in as a constant.
+    supplied explicitly, because an unfrozen policy value must not be able to
+    slip in as a constant; ``dedup=None`` (the default) skips the shared
+    deduplication, and the runner always passes the frozen ``SHARED_DEDUP`` values.
     """
 
     _identifier(method_id, "method_id_invalid")

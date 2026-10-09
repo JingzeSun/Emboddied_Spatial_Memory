@@ -2,11 +2,12 @@
 
 Every arm in the first paper shares the frozen frontend, the S0-03 recall,
 the S0-03 cost matrix and solver, the S0-01 executor, the shared dedup and
-dormancy rules and the S0-04 evaluator.  An arm differs from the others in
-exactly two places: how the association and birth logits of the cost
-matrix are produced, and how the existence decision (RETRACT or NOOP) is
-made for an unassigned, should-be-visible entity.  This module holds those
-two places for the rule arms (the four controls and HandCost), the
+dormancy rules and the S0-04 evaluator.  An arm differs from the others
+only in how the association and birth logits of the cost matrix are
+produced, how the existence decision (RETRACT or NOOP) is made for an
+unassigned, should-be-visible entity, and, for the ablations, which atoms
+its vocabulary allows and what a retraction does.  This module holds the
+first two for the rule arms (the four controls and HandCost), the
 vocabulary restrictions of the four ablations, the split guard for the
 appendix arm, the admission rule for the optional arm (VSMT-lean-ctx,
 registered but not run: dropped from S3, METHOD section 10), the
