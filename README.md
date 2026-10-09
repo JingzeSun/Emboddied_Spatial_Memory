@@ -15,7 +15,7 @@ Paper source: [paper/](paper/)
 | check what my machine lacks for a reproduction level | `uv run python reproduce/check_env.py --level L0` (`L1`, `L2`, `L3`, `full`, `plugin`) |
 | re-run the evaluation from the released data | `uv run python reproduce/l1_eval.py` · [docs/REPRODUCE.md, section 1](docs/REPRODUCE.md#1-reproduction-levels-and-determinism) |
 | regenerate the data and retrain, stage by stage | [docs/REPRODUCE.md, section 11](docs/REPRODUCE.md#11-full-pipeline-from-procthor-10k) |
-| use the memory on my own RGB-D stream (robot, dataset) | [docs/PLUGIN.md](docs/PLUGIN.md) · package [`vsmt_memory/`](vsmt_memory/) |
+| use the VSMT memory on my own RGB-D stream (robot, dataset) | [Use the VSMT memory in your own system](#use-the-vsmt-memory-in-your-own-system) below · [docs/PLUGIN.md](docs/PLUGIN.md) |
 | understand the method, data and admissible claims | [docs/METHOD.md](docs/METHOD.md) · [docs/DATA.md](docs/DATA.md) |
 
 ## Overview
@@ -93,6 +93,45 @@ The full results (all arms and metrics, intervals, error ledgers, the 3RScan ext
 Table III) are in the paper and in `results/`; [docs/REPRODUCE.md](docs/REPRODUCE.md#2-paper-results-index-l0) maps
 every table and figure to its file and fields. The admissible claims are fixed in [docs/METHOD.md](docs/METHOD.md)
 (section 2, ruling 113).
+
+## Use the VSMT memory in your own system
+
+The memory of the paper is packaged as [`vsmt_memory/`](vsmt_memory/), a plug-in for any RGB-D stream: per frame it takes
+RGB, metric depth, camera intrinsics, a camera pose and instance masks, and returns the frame's operations (`BIND`,
+`BIRTH`, `RETRACT`, `REACTIVATE`, `NOOP`) and the entity table (identity, state, version). Every decision is made by the
+same frozen code that produced the results above, with the released weights.
+
+```bash
+git clone https://github.com/JingzeSun/VSMT.git && cd VSMT
+uv sync
+uv pip install huggingface_hub pillow
+```
+
+```python
+from vsmt_memory import VSMTMemory, CameraIntrinsics, CameraPose
+
+memory = VSMTMemory.from_pretrained()        # weights downloaded on first use (about 450 MB with DINOv2)
+intrinsics = CameraIntrinsics(fx=525.0, fy=525.0, cx=319.5, cy=239.5, width=640, height=480)
+
+for rgb, depth_m, world_from_camera, masks in my_stream():      # your camera, odometry and segmenter
+    pose = CameraPose.from_opencv(world_from_camera, world_up="z")  # e.g. a ROS map frame and optical camera frame
+    result = memory.step(rgb, depth_m, intrinsics, pose, masks)
+    for op in result.program:
+        print(result.tick, op.atom, op.entity_id, op.mask_index)  # which mask went to which entity, what changed
+```
+
+- **Inputs:** `rgb` as uint8 (H, W, 3); `depth_m` as metric z-depth in metres; a causal camera-to-world pose in one fixed
+  world frame; one boolean mask per segment from any segmenter (floors and walls included), or none to run SAM 2.1.
+- **Outputs:** `result.program` (each atom with its entity and input mask), `result.entities` (entity ID, `active` /
+  `dormant` / `retracted`, version, box), `memory.resolve(id)` for identities merged by deduplication, and
+  `to_user_world` to convert positions back to your frame.
+- **Run the examples:** `python -m vsmt_memory.examples.synthetic_scene` (a synthetic room in ROS conventions) and
+  `python -m vsmt_memory.examples.hf_episode` (a released ProcTHOR episode streamed frame by frame).
+- **Scope:** trained and evaluated on ProcTHOR houses only; transfer to other scenes, sensors and segmenters has not
+  been tested, and on synthetic out-of-distribution scenes the memory confused look-alike objects and missed a removal.
+
+The full guide — conventions (ROS frames, depth units, resolution), weights and seeds, behaviour, cost, verification
+against the frozen pipeline, citation — is [docs/PLUGIN.md](docs/PLUGIN.md).
 
 ## Installation
 
