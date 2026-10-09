@@ -42,3 +42,6 @@ Thumbs.db
 
 # Local scratch scripts and intermediate arrays
 tmp/
+
+# Maintainer's SSH helpers for the AutoDL servers (kept locally, not part of the release)
+ops/remote/
