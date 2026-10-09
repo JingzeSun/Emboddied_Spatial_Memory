@@ -4,15 +4,35 @@ This document gives the commands, inputs, stop conditions and outputs for every 
 committed result files back to data generation. The method is specified in [METHOD.md](METHOD.md), the data in
 [DATA.md](DATA.md); results and failures are logged in [EXECUTE.md](../EXECUTE.md).
 
+**Quick start.** The entry points in [`reproduce/`](../reproduce/) run from a clone of `main` after the installation of
+the README (`uv sync`, then `uv pip install matplotlib==3.10.8 huggingface_hub pillow`; a later `uv sync` removes the
+packages it did not install, so repeat the second command after it, or use `uv sync --inexact`). Run them with
+`uv run`, because `check_env.py` inspects the interpreter that runs it. Each creates its own clean worktree
+of the commit it needs (`paper-v1` for L0, the S3-05 run commit `8d58475` for L1) in the system's temporary directory
+with `git worktree add`, which registers it in this clone's `.git`, and removes it afterwards (`--keep-worktree` keeps
+the L0 one for inspection). Reports go to `outputs/reproduce/` (not tracked).
+
+| Goal | Command | Needs | Time (measured) |
+|---|---|---|---|
+| See what this machine lacks for a level | `uv run python reproduce/check_env.py --level L0` (or `L1`, `L2`, `L3`, `full`, `plugin`, `all`) | nothing | seconds |
+| L0: recompute every statistic and rebuild Tables II–III and Figures 3–4 | `uv run python reproduce/paper.py` | CPU; `matplotlib==3.10.8` for byte-identical figures | 2–3 min on a laptop |
+| L1: re-run the frozen audits on the S3-04 probe episodes (validation) | `uv run python reproduce/l1_eval.py --data-root <root> --front sam2 --scope probe` | T0 and T1 validation ([section 3](#3-data-and-weights-on-hugging-face-s3-05r)) | 50 audits per front end, about 1.5 min each single-threaded |
+| L1: re-run the test audits (a further read of test, [section 1](#1-reproduction-levels-and-determinism)) | `... --scope test --acknowledge-post-publication-reread` | T1 test (68 GiB) | 25 runs x 85–87 episodes per front end; the original took about 22 h on about 100 cores |
+| Retraining and the full pipeline | [section 11](#11-full-pipeline-from-procthor-10k) | Linux; GPUs for the simulator and the caches (training is CPU only); about 410 GB disk; the outside-rerun edits of section 11 | days |
+| Use the memory on another RGB-D stream | [PLUGIN.md](PLUGIN.md) | CPU | 0.4 s per frame |
+
 Conventions used below:
 
-- Code version: run every command from a checkout of the tag `paper-v1`, the state that produced the paper. On `main`,
+- Code version: run every stage command from a checkout of the tag `paper-v1`, the state that produced the paper,
+  except where a section names the commit a stage ran at (S2-06, S3-04, S3-05); the entry points in `reproduce/` run
+  from `main` and create their own worktrees. On `main`,
   comments and docstrings were later translated and the code of earlier project directions removed (the retained
   code is otherwise unchanged); the stage drivers compare the code against the digests recorded by earlier steps, and
   the L0 recomputation requires `src/` and `configs/` to equal the frozen commit `dea8c20`, which holds at the tag.
   The one exception is the S3-04 freeze check, which holds only at `dea8c20` itself (section 8).
-- Server paths assume `AUTODL=/root/autodl-tmp` and the server clone `/root/Emboddied_Spatial_Memory` (the misspelling
-  is the actual directory name; do not correct it).
+- Server paths assume `AUTODL=/root/autodl-tmp` and, on the maintainers' servers, the clone
+  `/root/Emboddied_Spatial_Memory` (the actual directory name); use your own clone path.
+- B1 is the maintainers' coordinating server of the paper's runs and w1–w6 their worker hosts.
 - Every server stage runs in a clean, detached worktree of a reviewed commit and is resumable: running `all` again
   continues from the last completed step. A step refuses to reuse its output if the code changed after it completed,
   except for the files listed for that stage.
@@ -35,6 +55,7 @@ Conventions used below:
 8. [S3-05: one-time test run](#8-s3-05-one-time-test-run-ruling-107)
 9. [LLM-op arm](#9-llm-op-arm-ruling-105)
 10. [S3-07: external check on 3RScan](#10-s3-07-external-check-on-3rscan)
+11. [Full pipeline from ProcTHOR-10K](#11-full-pipeline-from-procthor-10k)
 
 ## 1. Reproduction levels and determinism
 
@@ -45,16 +66,38 @@ Conventions used below:
 | L2 | HF T2 (training and audit records) | inspection of training; intermediate outputs |
 | L3 | HF T3 (training inputs), or ProcTHOR-10K and the code | retraining without regenerating data (T3), or the full pipeline from ProcTHOR-10K |
 
-The entry point of L1 for outside users, and how a rerun of the test audits is recorded as a further read of test,
-have not been defined yet (S3-05R). The full pipeline from ProcTHOR-10K reproduces the same episodes only with the
-private salt of ruling 37, which decides the no-change draw and is not released; with another salt the draw differs.
+**L1 and re-reading test.** `reproduce/l1_eval.py` runs the frozen audit entry with the configurations, heads and ReID
+head of the S3-04 freeze receipt and compares every audit with the paper's: `--scope probe` with the S3-04 probe audits
+in T0 (validation only), `--scope test` with the per-episode records of `results/vsmt_lean_s3_05_merged_*`. The test
+split was read once for the paper (S3-05, LOG-306). A re-run of the test audits reproduces that read with nothing left
+to choose, but it is a further read of test, so it is recorded: the entry refuses without
+`--acknowledge-post-publication-reread`, writes `REPRODUCTION_READ.json` (time, commit, receipt digest, purpose) into its
+own output directory before reading anything, never writes into the test roots (whose markers stay as released:
+opened by receipt `4fd08d4f…`), and exports only the comparison, never new statistics. A re-run by the project owner is
+also logged in EXECUTE as a reproduction read. The instance-mask ReID head (`5cea91cf…`) is not in any Hugging Face
+layer, so from the release alone only the SAM 2.1 audits can be re-run.
+
+**L3 from the released data.** The S3-03 and S3-04 drivers require the four test roots to be sealed (they check the
+markers, never the episodes); the released test roots are marked opened, because they were released after S3-05.
+Retraining with the existing drivers therefore needs data regenerated by S3-02 (section 11); a driver that retrains
+from T3 alone does not exist yet.
+
+**The private salt.** The full pipeline from ProcTHOR-10K reproduces the same episodes only with the private salt of
+ruling 37, which decides the no-change draw and is not released; with another salt the draw differs. The released
+episodes (T1, T3) carry the draw that was used.
 
 Determinism boundary:
 
 - Weights are bit-identical for the same commit and the same `TRAIN_THREADS` (ruling 96); this was verified only on
-  Intel AVX-512 with MKL. On an AMD host (w1), bit identity was obtained only with an `LD_PRELOAD` workaround
-  (EXECUTE LOG-307, section C); other CPUs may differ in the last bits.
-- Audits are deterministic (the S3-04 probes reproduce bit for bit).
+  Intel AVX-512 with MKL. On an AMD host (w1), bit identity was obtained only after an MKL setting in
+  `/etc/environment` loaded through `LD_PRELOAD` (EXECUTE LOG-304 and LOG-307 section C; the exact setting is not
+  recorded); other CPUs may differ in the last bits.
+- Audits are deterministic within one environment (the S3-04 probes reproduce bit for bit on the servers). Across
+  environments a few near-tie decisions can differ: the S3-04 probe audit of VSMT-lean (SAM 2.1, seed 7) on
+  `procthor10k-0.1.2-train-02318`, re-run on a Windows laptop (Intel 13th generation, torch 2.14.0, numpy 2.5.2) instead
+  of the server (Linux, Xeon 8352V, torch 2.8.0, numpy 2.3.2), gave identical final entity states and identical
+  values for every metric of the audit report, while the error decomposition differed in 19 of about 5,500 decisions
+  and the per-frame seal chain differed (EXECUTE LOG-316).
 - The data generator reproduces episode structure; byte identity is not guaranteed (LOG-303).
 - SAM 2.1 caches are expected to be deterministic but were not checked byte for byte.
 - LLM-op is reproduced by replaying its archived API calls, which reproduces the run byte for byte; the hosted API
@@ -63,15 +106,16 @@ Determinism boundary:
 ## 2. Paper results index (L0)
 
 Every number in the paper comes from a committed export in `results/`; tables and data figures are generated by
-scripts and are never edited by hand. A machine-readable index, `results/vsmt_lean_s3_06_paper_index_154043e.json`,
-lists each item with its file, fields, command and the SHA-256 of every file checked against the stage manifests.
+scripts and are never edited by hand. A machine-readable index, `results/vsmt_lean_s3_06_paper_index_154043e.json`
+(the current one; `…_cd3ee83.json` is the earlier index written with the reanalysis, before the S3-07 exports; a run of
+`reproduce/paper.py` writes a third one in its temporary worktree and discards it), lists each item with its file, fields, command and the SHA-256 of every file checked against the stage manifests.
 That index uses the numbering of the first draft (`table_1` … `table_8`, `appendix_*`); the mapping to the current
 paper is:
 
 | Current paper | Index items | Files (`results/`) and fields |
 |---|---|---|
 | Table I (arms) | — | none (description only) |
-| Table II (test results) | `table_1_main_instance`, `table_2_main_sam2` | `vsmt_lean_s3_05_statistics_8d58475.json` → `fronts.<front>.main_table`, `exclusion_lists`; event and denominator counts in `vsmt_lean_s3_06_reanalysis_cd3ee83.json` → `d4_counts` (`per_arm_kept_houses` for the houses behind the table means, `per_arm_all_houses` for absolute counts over all usable episodes) |
+| Table II (test results) | `table_1_main_instance`, `table_2_main_sam2` | `vsmt_lean_s3_05_statistics_8d58475.json` → `fronts.<front>.main_table` (means), `fronts.<front>.primary_gate.metrics.<metric>.lower_bound_two_level` (lower bound), `fixed_sequence.steps` (fixed-order step), `exclusion_lists`; event and denominator counts in `vsmt_lean_s3_06_reanalysis_cd3ee83.json` → `d4_counts` (`per_arm_kept_houses` for the houses behind the table means, `per_arm_all_houses` for absolute counts over all usable episodes) |
 | Fig. 3 (pre-registered test) | `table_3_main_gate` | statistics → `fixed_sequence`, `fronts.<front>.primary_gate`, `fronts.<front>.original_gate`; two-sided 90% intervals in reanalysis → `d3_intervals` |
 | Fig. 4 (comparison matrix) | `table_4_ablations`, `table_5_rule_arms`, `table_8_external_3rscan` | reanalysis → `d3_intervals` (panels a, b); `vsmt_lean_s3_07_statistics_aa94373.json` → `fronts.instance.comparisons`, `exclusion_lists` (panel c) |
 | Table III (LLM-op) | `appendix_llm_op` | `vsmt_lean_llm_op_dea8c20.json`; other arms on the same episode in `vsmt_lean_s4_llm_op_context_2b50a12.json` |
@@ -81,6 +125,19 @@ paper is:
 
 The provenance of each stage: S3-05 run `8d58475`, frozen at `dea8c20` (receipt `4fd08d4f…`); S3-06 reanalysis
 `cd3ee83`; S3-07 run `aa94373` (code on branch `s3-07-impl`); LLM-op context export `2b50a12`.
+
+**One command (L0).** `python reproduce/paper.py` (from `main`) runs the recomputation below and the two table and
+figure scripts in a temporary worktree of `paper-v1`, compares the recomputed readings D1–D8 with the committed
+`vsmt_lean_s3_06_reanalysis_cd3ee83.json` (the input list is compared on the files that run used; the tag also holds
+the later S3-07 exports) and the regenerated tables and figures with the committed files, prints the rows of Table II
+and exits with 0 only if everything is equal; its report lists the compared fields, inputs and files with their SHA-256
+(text files as written, with LF line endings as in git; a Windows checkout with `core.autocrlf` holds CRLF copies) and
+the numpy, torch and matplotlib versions. Measured on 2026-10-09 on Windows laptops: 2–3 minutes, all equal. That the
+recomputation would notice a change is covered by the tests of the reanalysis (among them
+`test_a_changed_number_stops_the_replay` and `test_an_export_that_differs_from_its_manifest_is_refused`), which run in
+seconds: `PYTHONPATH=src uv run python -m unittest discover -s tests -t tests -p test_vsmt_lean_s3_06_reanalysis.py`.
+The figure PDFs are byte-identical only with `matplotlib==3.10.8`, the version that wrote them; with another version
+the script reports them as not compared.
 
 **Recompute the statistics (L0).** CPU only; it does not read any test root or connect to a server. Run it from the
 repository root on a commit whose `src/`, `ops/`, `configs/` and inputs have no uncommitted changes, whose inputs are
@@ -150,7 +207,13 @@ Each episode directory is one deterministic tar (members sorted by path, time 0,
 as the S3-02 test seal). Before upload, every test episode was checked against the seal and every cache against the
 S3-02 exports. `hf_fetch.py` checks each downloaded file against the manifest, unpacks it, recomputes the tree digest
 and stops with exit code 3 on any mismatch (verified items are skipped on a rerun). Restore paths match the server
-layout (under `/root/autodl-tmp`), so repository scripts need no path changes.
+layout (under `/root/autodl-tmp`), so repository scripts need no path changes. `--dest` may be any directory; the
+stage drivers, however, also read absolute `/root/autodl-tmp/...` paths recorded in the exports and receipts, so a
+server reproduction should restore there or make `/root/autodl-tmp` a link to the restore directory. T2 restores whole
+S3-03 run roots, inside which T0 restores the round-1 weights; restore T2 into its own `--dest`, otherwise the second
+layer stops with `existing_target_differs`. The instance-mask ReID head (`5cea91cf…`), which the instance-mask runs of
+S3-03 to S3-05 used, is not in any layer. `python reproduce/check_env.py --level L1 --data-root <dest>` lists what is
+restored (`--deep` recomputes every digest).
 
 Download and restore (any machine), for example the validation instance cache:
 
@@ -297,8 +360,10 @@ for inspection, without rerunning or replacing episodes.
 **Outputs.** Raw episodes `$AUTODL/vsmt_outputs/s3-02-<tag>/{measure,train,validation,test}`, geometry
 `$AUTODL/vsmt_private/s3-02-geometry-<tag>/<split>`, caches `$AUTODL/vsmt_caches/s3-02-{instance,sam2}-<tag>/<split>`;
 exports `$AUTODL/vsmt_outputs/exports/vsmt_lean_s3_02_*_<tag>.json`, committed to `results/`: input check, measurement,
-generation plan, per-house reports for train and validation, geometry and cache reports, test count summary and seal,
-worker basis, ruling-36 check, registration record, SAM 2.1 trial, run manifest and verify.
+generation plan, per-house reports for train and validation, geometry and cache reports, test count summary,
+worker basis, ruling-36 check, registration record, SAM 2.1 trial, run manifest and verify. The test seal
+(`vsmt_lean_s3_02_test_seal_<tag>.json`) stays in the export directory and is released in T0 `exports/`; it is not in
+`results/`.
 
 **Benchmark before the formal run** (`ops/vsmt/s3_02_bench.sh`, one RTX 5090, reads the development set only, not a
 formal stage): in a clean detached worktree run
@@ -313,7 +378,7 @@ epoch each on CPU and GPU) → collect. Roughly 3 hours in total and about 6 GB 
 the 4 measured houses byte for byte with the same houses in train and records the result in the run manifest. Caches
 are expected to be deterministic per episode on the same GPU model (not verified byte for byte). Compare your run
 manifest with `results/vsmt_lean_s3_02_manifest_<tag>.json`; the test seal digest is in
-`results/vsmt_lean_s3_02_test_seal_<tag>.json`, and S3-05 checks it before reading test.
+`vsmt_lean_s3_02_test_seal_<tag>.json` (export directory; T0 `exports/`), and S3-05 checks it before reading test.
 
 ## 6. S3-03: training and selection readings (ruling 104)
 
@@ -448,15 +513,17 @@ interval, the decomposition, size and cost, and per-episode failures. If any fil
 was committed, `check` stops and test stays sealed. It runs once and tunes nothing.
 
 Preconditions: the S3-04 receipt has been pulled, committed to `results/` and pushed (106-5), and the project owner has
-confirmed and given the release key (the first 12 characters of the receipt digest); a detached worktree on B1 whose
+confirmed and given the release key (the first 12 hexadecimal characters of the receipt's `receipt_sha256` field); a
+detached worktree on the coordinating server (B1) whose
 `src/`, `ops/` and `configs/` equal the freeze commit and whose `results/` contains the receipt.
 The receipt fingerprints every tracked file in `src/`, `ops/` and `configs/`, so the code check holds only for the
 freeze commit `dea8c20` and the run commit `8d58475` (same code); later commits, `paper-v1` included, add files to
 `ops/` (the reanalysis and release scripts) and are reported as different.
 
 ```bash
+git -C <clone> worktree add --detach /root/autodl-tmp/vsmt_worktrees/s3-05-<commit> <commit>
 cd /root/autodl-tmp/vsmt_worktrees/s3-05-<commit>
-setsid nohup env S3_05_GO=<first 12 characters of the receipt digest> RECEIPT=/root/autodl-tmp/vsmt_private/s3-04-<freeze commit>/freeze_receipt.json bash ops/vsmt/s3_05_test.sh all > /root/autodl-tmp/vsmt_outputs/run_logs/s3-05.log 2>&1 < /dev/null &
+setsid nohup env S3_05_GO=<first 12 characters of receipt_sha256> RECEIPT=/root/autodl-tmp/vsmt_private/s3-04-<freeze commit>/freeze_receipt.json bash ops/vsmt/s3_05_test.sh all > /root/autodl-tmp/vsmt_outputs/run_logs/s3-05.log 2>&1 < /dev/null &
 bash ops/vsmt/s3_05_test.sh status
 ```
 
@@ -550,3 +617,95 @@ Results: `results/vsmt_lean_s3_07_statistics_aa94373.json` (`fronts.instance.mai
 90% intervals, `exclusion_lists`, `cache_data_failures`, `fronts_missing`, `not_applicable`); per-episode values in
 `results/vsmt_lean_s3_07_merged_instance_aa94373.json`. The SAM 2.1 column cannot be computed with the frozen front end
 (3 of 110 episodes usable).
+
+## 11. Full pipeline from ProcTHOR-10K
+
+This section lists what regenerating the paper's data, training and evaluation from ProcTHOR-10K takes. Every stage
+reuses its existing driver; nothing here is a new algorithm. Status: the drivers ran in this order for the paper, each
+at the commit named below; an outside rerun of the whole chain has not been attempted. The drivers enforce the paper's
+private inputs (the salt, the ReID-head digests, the registered generator commits), so an outside rerun must first
+make the edits listed under "Outside rerun" in its own clone. `python reproduce/check_env.py --level full
+--data-root <root>` checks the host.
+
+**Environment (the paper's runs).**
+
+- Linux; data under `/root/autodl-tmp` (`AUTODL`; the drivers honour the variable, but the generator's disk check and
+  the paths recorded in receipts use `/root/autodl-tmp` literally, so make it a link to the data disk).
+- Main interpreter (`PY`, default `/root/miniconda3/bin/python3.12`): Python 3.12.3 with torch 2.8.0+cu128 and numpy
+  2.3.2 (recorded in each run manifest, e.g. `results/vsmt_lean_s3_02_manifest_3f6ef1d.json`; `uv.lock` pins newer
+  versions, so bit identity needs these), plus hydra-core, omegaconf, iopath and the `sam2` package installed from
+  the pinned clone (hydra resolves the SAM 2.1 configuration through `pkg://sam2`).
+- Simulator interpreter (`SIM_PY`, default `$AUTODL/vsmt-envs/simulator-py39/bin/python`): Python 3.9 with ai2thor 5.0.0
+  (CloudRendering; needs Vulkan and downloads the simulator build on first use), the `procthor` package at commit
+  `53d5bd4c`, pillow and psutil.
+- GPUs: every stage that runs the simulator (S1-02 and S3-02 generation, the S1-04 and S3-02 geometry reloads) needs a
+  GPU with Vulkan for CloudRendering, and generation calls `nvidia-smi`; the caches (S1-03, S3-02) and the S1-04
+  diagnostics run on CUDA; training, selection and audits (S2, S3-03 to S3-05) are CPU only. The paper used 4 x RTX
+  5090, 100 cores and 360 GiB memory for S3-02, and a 32-core host with remote workers (`ops/vsmt/remote_hosts.py`) for
+  S3-03 and S3-05.
+- Disk: S3-02 alone projected 346.5 GB (`results/vsmt_lean_s3_02_disk_3f6ef1d.json`); with the development episodes
+  (about 13 GB), the S1 caches (about 20 GB) and the S3-03 and S3-05 run roots (about 28 GiB, the size of T2), the whole
+  chain on one disk needs about 410 GB (the paper's host had 470 GB).
+- `git`, `flock`, `nvidia-smi`; every stage runs in a clean, detached worktree (untracked files count as changes).
+
+**Assets** (pinned in `configs/vsmt/lean_s1_assets_capacity_v2.json` and the S1-03 contract; each checked by digest).
+`$ASSETS_JSON` is a flat JSON object mapping `sam2_repository`, `sam2_checkpoint`, `dinov2_repository`,
+`dinov2_vits14_checkpoint` and `dinov2_vitb14_checkpoint` to local paths; the repositories must be clean clones at the
+pinned commits.
+
+| Asset | Pin | Where the drivers look |
+|---|---|---|
+| ProcTHOR-10K 0.1.2 `train.jsonl.gz` | Git LFS repository `github.com/allenai/procthor-10k` at `d54954a8`, 52,316,238 bytes, SHA-256 `d64450ec…` | `$SOURCE` (`$AUTODL/vsmt_sources/procthor-10k-0.1.2/train.jsonl.gz`) |
+| SAM 2.1 Hiera Small | repository `2b90b9f5` (clean clone), checkpoint `https://dl.fbaipublicfiles.com/segment_anything_2/092824/sam2.1_hiera_small.pt` (`6d1aa6f3…`) | `$ASSETS_JSON`: `sam2_repository`, `sam2_checkpoint` |
+| DINOv2 | repository `7764ea0f` (clean clone); ViT-B/14 `https://dl.fbaipublicfiles.com/dinov2/dinov2_vitb14/dinov2_vitb14_pretrain.pth` (`0b8b82f8…`); ViT-S/14 pinned by digest only (`b938bf1b…`; the official `…/dinov2_vits14/dinov2_vits14_pretrain.pth` has the same size, 88,283,115 bytes) | `$ASSETS_JSON`: `dinov2_repository`, `dinov2_vits14_checkpoint`, `dinov2_vitb14_checkpoint` |
+| ReID heads | SAM 2.1 `f6fc67e5…` (released in T0 `reid/`); instance masks `5cea91cf…` (not released) | `$SAM2_REID`, `$INSTANCE_REID` |
+| Private salt of ruling 37 | SHA-256 `8f4eae85…`; not released | `$SALT_FILE` (outside the repository) |
+
+**Stages.** Run each in a clean worktree (`git worktree add --detach <path> <commit>`); "paper run" names the commit
+or output tag of the paper's run.
+
+| Stage | Command (main interpreter unless noted) | Paper run | Duration |
+|---|---|---|---|
+| S1-02 development episodes | `$SIM_PY ops/vsmt/lean_s1_02a_pilot.py --stage s1-02a --output-root <A> --source $SOURCE --private-salt-file $SALT_FILE`; then `--stage s1-02b --output-root <B> --pilot-root <A>` with the same source and salt; `ops/vsmt/lean_s1_02b_export.py --output-root <B> --out <export>` | `5f9aa71` | not recorded here |
+| S1-03 caches | `ops/vsmt/lean_s1_03_cache.py --episode-roots <A>,<B> --output-root <C> --assets-json $ASSETS_JSON --mask-source sam2 --workers N --worker-basis "<evidence>"` (again with `simulator_instance_masks`); `ops/vsmt/lean_s1_03_export.py --cache-root <C> --out <export>` | caches `154776d` (SAM 2.1), `oracle-8ebbd05` (instance) | about 20 h at 2 workers (SAM 2.1) |
+| S1-04 geometry, diagnostics, ReID heads | `$SIM_PY ops/vsmt/lean_s1_04_object_geometry.py --episode-roots <A>,<B> --source $SOURCE --output-root <G> --workers N`; `ops/vsmt/lean_s1_04_diagnostics.py --cache-root <C> --episode-roots <A>,<B> --geometry-root <G> --output-root <D> --workers N --reid` (CUDA by default) | `154776d`, `caa50c7` | not recorded here |
+| S1-05 descriptor choice | `ops/vsmt/lean_s1_05_select_descriptor.py --s1-04-report <D report> --out <file>`; its other defaults read the paper's S1-02, S1-03 and ruling-56 exports, so pass a rerun's own (the ruling-56
+estimate's script is not in the tree; its source is embedded in the export, field `script_source`) | `154776d`, `caa50c7` | seconds |
+| S2 development tables | not part of the chain: S2 informed rulings and none of its outputs is an S3 input; S2-06 ran at `c0b166e` and `dffc36d` and reads development run roots of rulings 95 and 96 that are not released, and at `paper-v1` its ELU-P refit stops (S0-05 holds the S3-03 values) | `c0b166e` | about 16–23 h |
+| S3-01 lists and planning | `ops/vsmt/s3_01_manifests.py` (rewrites `configs/vsmt/lean_s3_01_manifests.json`; reproduces it byte for byte); `ops/vsmt/s3_01_planning.py --output <file>` | `6c57903` | minutes |
+| S3-02 formal data | `bash ops/vsmt/s3_02_data.sh all` (section 5; reads `PY`, `SIM_PY`, `AUTODL`, `SOURCE`, `SALT_FILE`, `ASSETS_JSON`, `SAM2_REID`, `INSTANCE_REID`) | `3f6ef1d` | about 28 h |
+| S3-03 training and selection readings | `S3_02_TAG=<your S3-02 tag> bash ops/vsmt/s3_03_train_select.sh all` (section 6; the default tag is the paper's `3f6ef1d`; the training thread count is measured in round 0 and has no override; the paper's run chose 1, `results/vsmt_lean_s3_03_train_threads_10f7013.json`) | `10f7013`, registration `5a9fd94` | about 2.7 days on 32 cores plus remote workers |
+| S3-04 freeze | `S3_03_TAG=<your S3-03 tag> bash ops/vsmt/s3_04_freeze.sh all` (section 7; default `10f7013`) | `dea8c20` | 30–60 min |
+| S3-05 test, once | `S3_02_TAG=<tag> S3_05_GO=<first 12 hexadecimal characters of the receipt's receipt_sha256 field> RECEIPT=<freeze_receipt.json> bash ops/vsmt/s3_05_test.sh all` (section 8) | `8d58475` | about 22 h on about 100 cores |
+
+S3-06 (`ops/vsmt/s3_06_reanalysis.py`, `reproduce/paper.py`) recomputes this repository's exports only: its input tags
+are fixed and it requires `src/` and `configs/` to equal `dea8c20`. A rerun's test statistics are the `stats` step of
+its own S3-05.
+
+**Outside rerun.** The edits below, made in the rerun's own clone and committed in this order, let the chain run
+without the paper's private inputs; each changes `ops/`, `configs/`, `src/` or `tests/`, so the rerun's freeze is its
+own and this repository's `paper-v1` is not affected.
+
+1. Salt. Write a new salt (at least 32 characters) to a file outside the repository and set `S3_SALT_SHA256` in
+   `ops/vsmt/lean_s1_02a_pilot.py` to its SHA-256; S1-02 records the salt's digest, and S3-02 `generate` and `check`
+   refuse any salt other than the registered one. The no-change draw, and with it every episode, then differs from
+   the released data.
+2. Generator commit. Before S1-03, add the S1-02 generator commit to `public_pose_correction.correct_encoder_since_code_commits`
+   in `configs/vsmt/lean_s1_03_frontend_cache_v1.json` (episodes from an unlisted commit are refused by S1-03 and S1-04);
+   S3-02 stops at `hold` for the same registration of its own generator commit (section 5). The same commit updates
+   `tests/test_vsmt_lean_cross_contract.py` and `tests/test_vsmt_lean_public_pose.py`, which pin the contract (the
+   `REGISTRATION_FILES` of `ops/vsmt/s3_02_manifest.py`).
+3. ReID heads. Train both heads in S1-04, run S1-05, and commit the rerun's S1-04 reports and S1-05 receipts to
+   `results/`. Then re-pin the heads' payload digests (`sha256` inside the weights file) in
+   `src/vsmt/lean_assignment.py` (`SELECTED_REID_WEIGHTS_SHA256`, `REID_WEIGHTS_SHA256_BY_MASK_SOURCE`),
+   `configs/vsmt/lean_s0_assignment_v2.json` (rewriting `reid_adapter_head.selection_result` with its
+   `heads_by_mask_source` receipts, input reports and their digests, gains and superseded digests),
+   `configs/vsmt/lean_s2_01_runner_v1.json` and `tests/test_vsmt_lean_s2_01_entry.py`, and update the S0-03 and S2-01
+   rule digests in `FROZEN_RULE_SHA256` of `tests/test_vsmt_lean_cross_contract.py`, whose tests check the selection
+   against the committed reports. Every stage runs the full test suite first, so an incomplete re-pin stops it. Without
+   the instance-mask head, S3-02 `check` refuses.
+4. ELU-P values. After S3-03, register the refitted values in S0-05 as described in section 6.
+
+**Other limits.** Starting from the released T3 instead of S3-02 is not supported by the S3-03 driver (sealed test
+markers, [section 1](#1-reproduction-levels-and-determinism)). The drivers were written for the AutoDL hosts: worker
+hosts are configured through `ops/vsmt/remote_hosts.py` and the S3-03 pool sizes itself from cgroup limits.
