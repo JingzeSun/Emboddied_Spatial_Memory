@@ -10,6 +10,8 @@
 
 ## 当前看板
 
+**2026-10-09: reproduction entry points and memory plug-in (LOG-316)** — `reproduce/paper.py` recomputes every test statistic and rebuilds Tables II–III and Figures 3–4 in one command (2–3 min, all equal); `reproduce/l1_eval.py` re-runs frozen audits (test only with an explicit post-publication acknowledgement); `vsmt_memory/` runs the memory on any RGB-D stream (bit-identical to the frozen audit entry in one environment); README routes readers; Apache-2.0 licence. Open: salt and instance-mask ReID head (rulings).
+
 **2026-10-09: code review for readers (LOG-315)** — L0 runs again (src/ equals the freeze); tag `paper-v1` marks the state that produced the paper; METHOD Section 13 maps every paper component to code; earlier-direction code, six one-off scripts and `ops/remote/` left `main`; comments translated. Reproduce from `paper-v1`.
 
 **2026-10-08 补记：S4 编译通过、LLM-op 附表补齐（LOG-311）**——E1 在 B1 只读导出（0 个问题）：LLM-op 那条 episode 在长度、色块密度与多数臂的节点 F1 上不反常，规则臂在这条上同样几乎全错撤；METHOD 追加两处更正；MiKTeX 编译 0 处溢出、12 页，正文与参考文献超 RA-L 上限约 2 页。
@@ -6115,3 +6117,95 @@ D1～D3 只调用冻结的 `lean_s3_05`／`lean_teacher` 函数；D4、D6、D8 �
 **Fresh-reader review (after the commits above).** An independent read-only sub-agent, acting as a reader matching the paper to the code, checked 88 items of Sections III–V, Tables I–III and Figs. 1–4 by reading the function bodies: none computes something other than what the paper reports; all 110 names in METHOD Section 13 exist; `src/`, `ops/` and `paper/tools/` on `main` equal `paper-v1` apart from comments, docstrings and the two `__init__.py` files (152 files compared). It found errors in the new documentation (the import boundary overstated, `schemas/` and one retained contract misreported, the LOW/HandCost functions, node scope and evaluator bookkeeping missing from the map, the S3-04 freeze-check exception to "reproduce from `paper-v1`", incomplete `remote_hosts` commands) and four wrong docstrings (`dedup=None` skips deduplication although "no defaults" was claimed; "exactly two places" in `lean_arms`; the node audit's example descriptor; "round-1 records" in `s3_03_train`); fixed in `d6e7f17` and `74f9a01` (docstring edits checked by syntax tree). Paper wording it found inexact, recorded here and not changed: protocol IV-D says one exclusion list serves all arms and comparisons, but the descriptive comparisons with an arm outside the main table add that arm's undefined houses (`lean_s3_05.front_statistics`, `extra_excluded_for_this_control`; two cells against NoVersion, one house each; no figure or main-table number affected); III-A "history is never deleted" while a deduplication fold keeps the absorbed record only in `canonical_of` and the log (METHOD Section 3 states this); III-B "at least one point in 64" is a ratio of 1/64 over all tested surface points; III-D "standardised inputs" applies to distances, the log size ratio and counts (log1p first), while cosines, ratios and flags pass unchanged (`lean_model.FIELD_ENCODING`); IV-A "400 to a training block" (the code's block is the remaining houses, of which the first 400 are used); IV-B "wrongly absent" requires an entity of the object's own identity within 0.5 m; V-E "active entities per episode" is the per-episode mean of per-frame counts.
 
 **Not done.** `s3-07-impl` is still not merged; no code licence chosen; the long functions and modules are documented, not split; the `plain_language_zh` fields and Chinese error messages are string literals and stay as they are.
+
+### LOG-316: Reproduction entry points and the memory plug-in, checked by three simulated outside users (2026-10-09, Sydney)
+
+**Request and approval.** The user asked for an outside-usable reproduction entry (L0 for the test results, an L1
+entry, and the S1 to S3 pipeline stage by stage, with an environment check) and for the VSMT-lean memory as a module
+usable on any RGB-D stream, both checked by sub-agents acting as a reviewer, a researcher and a robotics developer;
+plan first. After the plan (rulings R1–R9) and the end of the code-review session (LOG-315), the user said
+「好了，代码审查和归档的对话已经整理完成，你可以开始你的表演了」 ("the code-review and archiving session is finished; you
+can start"), taken as approval of the recommended options for the local work; the two outward-facing items were not
+executed (decision D-224-REPRO). The user later added that the README should route readers to the reproduction and to
+the memory application, and that the plug-in check should simulate a developer arriving from the paper.
+
+**Found (verified).**
+
+1. The instance-mask ReID head (payload `5cea91cf…`, file `27bf6a10…`), used by every instance-mask run of S3-03 to
+   S3-05, is in none of the four Hugging Face layers (all four release manifests checked by path and digest). From the
+   release alone only the SAM 2.1 audits can be re-run, the plug-in offers only the SAM 2.1 weights, and S3-02 `check`
+   refuses without the head.
+2. The released test roots carry markers in state `opened` (released after S3-05); S3-03 and S3-04 `check` require
+   `sealed`, so the drivers cannot retrain from T3 alone.
+3. S1-02 and S3-02 refuse any salt but the registered one (`S3_SALT_SHA256` in `ops/vsmt/lean_s1_02a_pilot.py`;
+   `salt_is_not_the_s1_salt` in `ops/vsmt/s3_02_manifest.py`). Without the private salt of ruling 37, the pipeline from
+   ProcTHOR-10K needs edits in the reproducer's clone, not only a different draw; re-pinning the ReID heads also requires
+   the rerun's own S1-04/S1-05 evidence and two rule digests in the cross-contract tests.
+4. T2 restores whole S3-03 run roots, inside which T0 restores the round-1 weights; restoring T2 after T0 into the same
+   root stops with `existing_target_differs`.
+5. The committed figure PDFs were written by matplotlib 3.10.8; 3.11.2 writes other bytes. With 3.10.8 both figures
+   and both tables regenerate byte for byte.
+6. Cross-environment determinism. The S3-04 probe audit (VSMT-lean, SAM 2.1, seed 7, tau_r 0.25,
+   `procthor10k-0.1.2-train-02318`), re-run with the frozen entry at `paper-v1` on a Windows laptop (Intel 13th
+   generation, Python 3.12.14, torch 2.14.0, numpy 2.5.2, single-threaded), gave final entity states (50/25/1) and every
+   metric of the audit report identical to the server's (Linux, Xeon 8352V, torch 2.8.0, numpy 2.3.2); the error
+   decomposition differed (amortization error 893 vs 874, correct 3,936 vs 3,953, duplicate 702 vs 704) and so did the
+   per-frame seal chain and the final memory digest. Multi- and single-threaded runs on the laptop also gave different
+   seal chains.
+7. `results/vsmt_lean_s3_02_test_seal_3f6ef1d.json`, which REPRODUCE said was committed, exists only in T0 `exports/`.
+
+**Commits (local).**
+
+| Commit | Change |
+|---|---|
+| `7be0ea8` | `LICENSE` (Apache-2.0), CITATION.cff licence, README licence line (R7) |
+| `5ef2bc3` | `vsmt_memory/`: `VSMTMemory` over the frozen `lean_runner.run_frame`, front end (frozen admission, DINOv2 ViT-B/14 at the pinned commit and digest, frozen back-projection), conventions with the inverse conversion, weights from T0 checked against the release manifest and the freeze receipt, `resolve()` for folded IDs, a reader for released episodes, two examples, 14 tests (R4, R5) |
+| `da4ac73` | `docs/PLUGIN.md` |
+| `3cc4f3c` | `reproduce/`: `paper.py` (L0 in a worktree of `paper-v1`), `l1_eval.py` (L1 in a worktree of `8d58475`; test scope only with `--acknowledge-post-publication-reread`, recorded in `REPRODUCTION_READ.json`, test roots never written; R3), `check_env.py`, 7 tests |
+| `5ff3729` | `docs/REPRODUCE.md`: quick start, L1 and the test re-read rule, the determinism measurement, release caveats, section 11 (full pipeline and outside-rerun edits), corrections (test seal location, release key, AMD note, B1) |
+| `4d7b188` | README "Start here" routing, installation, houses behind Table II, ReID projection, unreleased inputs; AGENTS file roles |
+
+No byte of `src/`, `ops/`, `configs/` or `tests/` changed; `results/` and the paper are unchanged.
+
+**Verification.**
+
+- Plug-in on `procthor10k-0.1.2-train-02318` (SAM 2.1, seed 7, tau_r 0.25): the sealed-cache replay through the package
+  equals the frozen audit entry in the same environment bit for bit (trajectory `790c63fd…`, all 341 frames);
+  fragments rebuilt from the public RGB-D and the cache's masks equal the cache geometry bit for bit and its
+  descriptors within 6.7e-7 (395 fragments); a full stream through `step` commits the same atoms on the same
+  fragments as the cache replay in 337 of 341 frames; 0.37 s per frame on the laptop including DINOv2.
+- `reproduce/paper.py`: exit 0 in 2–3 min (D1 equal; the 18 reading fields of D2–D8 and the 22 inputs of the committed
+  run equal; two tables and two figures byte for byte with matplotlib 3.10.8).
+- `reproduce/l1_eval.py --scope probe --runs VSMT-lean:7 --episodes 1`: metrics equal to the T0 probe audit (one
+  validation audit, 77 s); `--scope test` without the acknowledgement is refused. No test data was read.
+- Tests: `vsmt_memory/tests` 14 (2 need data), `reproduce/tests` 7, the S3-06 reanalysis tests on `main`: all pass.
+- Synthetic, out-of-distribution scenes (ray-cast rooms with textured boxes, ROS conventions, 320 x 240): conventions
+  verified (fragment boxes inside the true boxes within 8 mm); the memory bound boxes that look alike to DINOv2
+  (projected cosine 0.56–0.71) to one entity across metres and did not retract a removed box. Recorded in PLUGIN.md as
+  scope, not as a result.
+
+**Simulated outside users** (sub-agents in clean worktrees of a snapshot, reading only the documentation; each re-checked
+the revised version once).
+
+- Reviewer: confirmed Table II about 4.5 min after opening the README without reading code, and recomputed the eight
+  AssocOnly/VSMT-lean means from the per-episode records to six decimals. First round: README's "all data and weights on
+  Hugging Face" contradicted the unreleased head; the ReID projection was missing among learned components; `uv run`,
+  the houses behind the means, the lower-bound field and the canonical paper index were not stated; the L0 report did
+  not list what it compared. Re-check: all fixed; then `uv sync` removing the extras, overlapping report keys, LF hashes
+  on Windows, missing package versions and the withheld salt were raised and fixed; a negative-control mode was declined
+  in favour of naming the reanalysis tests that cover it.
+- Researcher: first round, only S1-05 and S3-01 were runnable from the docs (salt refusal, incomplete pin locations,
+  unregistered S1-02 commit, missing environment versions and stage variables, wrong test-seal location, S2 and S3-06
+  scope, gaps in `check_env --level full`). Re-check: all but minor items fixed; the outside-rerun ReID step was found
+  incomplete (cross-contract evidence and rule digests), the full-chain disk need (about 410 GB) and the simulator GPU
+  need were added, and `check_env` now reads the clone's own pins and requires CUDA. Still open: the S2-06 input table
+  omits a development run root (S2 is outside the chain).
+- Robotics developer: reached PLUGIN.md 15 s after opening the README; the examples and an own ROS-convention script ran
+  on the first try with correct coordinates. First round: segment policy, version semantics, folded IDs, seed choice,
+  ROS frame and depth units, inverse conversion, mask threshold in input pixels, BibTeX; fixed by documentation and two
+  API additions. Re-check: fixed; three wording mismatches (`resolve` return value, `reset` signature, import path)
+  fixed. The developer would evaluate the memory offline but not deploy it without evidence that removal detection
+  transfers beyond ProcTHOR, which the guide states as untested.
+
+**Not done.** R2 (publishing the salt) and R5 (a) (releasing the instance-mask ReID head) await the user; `s3-07-impl` is
+still not merged.

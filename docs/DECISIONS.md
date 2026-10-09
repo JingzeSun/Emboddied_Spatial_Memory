@@ -3272,3 +3272,34 @@
     user remain in Chinese; commit messages follow the "Commit messages" rule of AGENTS.md.
 - **Effect.** No number, claim, rule, contract or code changes; the paper is unaffected. In this repository the
   workspace-level rule that documentation is mainly in Chinese no longer applies.
+
+## D-224-REPRO: Reproduction entry points and the memory plug-in (2026-10-09; append-only section)
+
+- **Request.** An outside-usable reproduction entry and a pluggable memory module for VSMT-lean, checked by sub-agents
+  acting as three kinds of outside users; plan first. After the plan with rulings R1–R9 and the end of the code-review
+  session (LOG-315) the user said 「好了，代码审查和归档的对话已经整理完成，你可以开始你的表演了」 ("the code-review and
+  archiving session is finished; you can start"), taken as approval of the recommended options for the local work; later
+  that day the user asked that the README route readers to the reproduction and memory-application files.
+- **Decisions.**
+  - R1 (L0 refused on `main`): settled by LOG-315 (the release module left `src/`; tag `paper-v1`). The new entry points
+    run from `main` and create their own worktree of `paper-v1` (L0) or of the S3-05 run commit `8d58475` (L1).
+  - R3 (L1 and re-reading test): `reproduce/l1_eval.py`; `--scope test` needs `--acknowledge-post-publication-reread`,
+    writes `REPRODUCTION_READ.json` into its own output directory before reading, never writes into the test roots and
+    exports only the comparison with the S3-05 per-episode records; a re-run by the project owner is logged in EXECUTE
+    as a reproduction read. The paper's single pre-registered read remains S3-05 (LOG-306).
+  - R4 (layout): top-level `reproduce/` and `vsmt_memory/` with their own tests, and `docs/PLUGIN.md`; no byte of
+    `src/`, `configs/`, `ops/` or `tests/` changes. The plug-in imports the `lean_*` modules and the frozen front-end
+    helpers they call (`vsmt.l1_entities`, `vsmt.l1_masks`, `cpmt.hashing`), read only.
+  - R5 (plug-in weights): default SAM 2.1 front end, VSMT-lean round 1, seed 7 (first registered seed, not a
+    recommendation), tau_r 0.25 as selected in S3-04; the other seeds and the instance-mask heads are selectable.
+  - R6 (L3 from T3): documented as not supported by the current drivers (sealed-marker check); no driver change.
+  - R7 (code licence): Apache-2.0 for code and configurations; `paper/` text and figures excluded; data and exports keep
+    the licences of ruling 114.
+  - R8 (local data): one validation episode and the T0 files it needs (about 255 MB) plus DINOv2 ViT-B/14 (346 MB),
+    outside the repository; no test data read.
+  - R9: no notebook; reproduction is script-first.
+- **Pending (outward-facing, not executed).** R2: whether to publish the private salt of ruling 37 (without it S1-02
+  and S3-02 refuse to run unless the reproducer re-pins `S3_SALT_SHA256`). R5 (a): whether to release the instance-mask
+  ReID head (`5cea91cf…`), which needs a server that still holds it; without it the instance-mask audits cannot be
+  re-run from the release.
+- **Effect.** No number, claim, rule, contract or code of record changes; the paper is unaffected.
