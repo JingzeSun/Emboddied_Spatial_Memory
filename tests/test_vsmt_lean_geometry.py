@@ -1,19 +1,25 @@
 """D-224-S1 ruling 9: the lean cores reuse pure helpers without the old line.
 
 Two things are pinned here.  First, that the copied helpers still return
-exactly what ``vsmt.graph_ops`` returns, so cutting the import moved no
-number.  Second, that no lean module imports ``vsmt.graph_ops`` or anything
-under ``cpmt`` except the pure ``cpmt.hashing``, so the archived
-unified-graph executor and ``GraphRevision`` no longer reach the current
-entry point even transitively.
+exactly what ``vsmt.graph_ops`` returned, so cutting the import moved no
+number.  ``graph_ops`` was removed from ``main`` after the tag ``paper-v1``;
+its outputs on the same random inputs were recorded there as the digests
+below (SHA-256 over ``float.hex`` of each value, one per line), and the
+degenerate cases and opaque IDs as literal values.  Second, that no lean
+module imports ``vsmt.graph_ops`` or anything under ``cpmt`` except the pure
+``cpmt.hashing``, and that importing the lean modules loads neither at run
+time, so the archived unified-graph executor and ``GraphRevision`` no longer
+reach the current entry points.
 """
 
 from __future__ import annotations
 
 import ast
+import hashlib
 import math
 from pathlib import Path
 import random
+import subprocess
 import sys
 import unittest
 
@@ -23,7 +29,28 @@ SRC_ROOT = PROJECT_ROOT / "src"
 if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
-from vsmt import graph_ops, lean_geometry  # noqa: E402
+from vsmt import lean_geometry  # noqa: E402
+
+#: ``graph_ops.cosine_similarity`` and ``graph_ops.centroid_distance`` on the inputs drawn below, at ``paper-v1``.
+GRAPH_OPS_COSINE_SHA256 = "6c52c6df5256781e0915aceca262d207991ecc651eba59773ecdbcd09fa2deb7"
+GRAPH_OPS_DISTANCE_SHA256 = "c03947ac1ac5b4e56d654de2600ef92efc5c65ecf01097cbaed5644857c23b12"
+GRAPH_OPS_DEGENERATE_COSINES = (
+    (([], []), -1.0),
+    (([1.0], []), -1.0),
+    (([0.0, 0.0], [1.0, 2.0]), -1.0),
+    (([1.0, 2.0], [1.0, 2.0]), 0.9999999999999998),
+    (([1.0, 2.0], [-1.0, -2.0]), -0.9999999999999998),
+)
+GRAPH_OPS_OPAQUE_IDS = (
+    (("chair", 3), "entity:8d80f83ad0964662"),
+    (("a", "b", "c"), "entity:fa1844c2988ad15a"),
+    ((0,), "entity:a37bbbb0764cc5bf"),
+    (("house-0001", "cup"), "entity:a9c6d657c39c1efe"),
+)
+
+
+def float_digest(values: list[float]) -> str:
+    return hashlib.sha256("\n".join(value.hex() for value in values).encode()).hexdigest()
 
 
 LEAN_MODULES = ("lean_geometry", "lean_memory", "lean_intervention",
@@ -44,31 +71,31 @@ def module_imports(name: str) -> set[str]:
 class TestCopiedHelpersAgree(unittest.TestCase):
     def test_cosine_agrees_on_random_vectors(self) -> None:
         rng = random.Random(224001)
+        values = []
         for _ in range(200):
             width = rng.randint(1, 8)
             left = [rng.uniform(-3.0, 3.0) for _ in range(width)]
             right = [rng.uniform(-3.0, 3.0) for _ in range(width)]
-            self.assertEqual(lean_geometry.cosine_similarity(left, right),
-                             graph_ops.cosine_similarity(left, right))
+            values.append(lean_geometry.cosine_similarity(left, right))
+        self.assertEqual(float_digest(values), GRAPH_OPS_COSINE_SHA256)
 
     def test_cosine_agrees_on_the_degenerate_cases(self) -> None:
-        for left, right in (([], []), ([1.0], []), ([0.0, 0.0], [1.0, 2.0]),
-                            ([1.0, 2.0], [1.0, 2.0]), ([1.0, 2.0], [-1.0, -2.0])):
-            self.assertEqual(lean_geometry.cosine_similarity(left, right),
-                             graph_ops.cosine_similarity(left, right))
+        for (left, right), expected in GRAPH_OPS_DEGENERATE_COSINES:
+            self.assertEqual(lean_geometry.cosine_similarity(left, right), expected)
 
     def test_centroid_distance_agrees_on_random_points(self) -> None:
         rng = random.Random(224002)
+        values = []
         for _ in range(200):
             left = {"centroid_m": [rng.uniform(-9.0, 9.0) for _ in range(3)]}
             right = {"centroid_m": [rng.uniform(-9.0, 9.0) for _ in range(3)]}
-            self.assertEqual(lean_geometry.centroid_distance(left, right),
-                             graph_ops.centroid_distance(left, right))
+            values.append(lean_geometry.centroid_distance(left, right))
+        self.assertEqual(float_digest(values), GRAPH_OPS_DISTANCE_SHA256)
 
     def test_opaque_id_agrees_and_stays_opaque(self) -> None:
-        for parts in (("chair", 3), ("a", "b", "c"), (0,), ("house-0001", "cup")):
+        for parts, expected in GRAPH_OPS_OPAQUE_IDS:
             copied = lean_geometry.opaque_id(*parts, prefix="entity")
-            self.assertEqual(copied, graph_ops.opaque_id(*parts, prefix="entity"))
+            self.assertEqual(copied, expected)
             self.assertTrue(copied.startswith("entity:"))
             for part in parts:
                 # Short parts can collide with hex digits by chance, so only
@@ -121,11 +148,18 @@ class TestLeanImportBoundary(unittest.TestCase):
         self.assertNotIn("vsmt.graph_ops", seen)
         self.assertIn("cpmt.hashing", seen)
 
-    def test_graph_ops_still_serves_the_archived_modules(self) -> None:
-        # The old line is kept in the tree; cutting the lean edge must not
-        # have deleted or emptied it.
-        self.assertTrue(hasattr(graph_ops, "GraphRevision"))
-        self.assertIn("cpmt.executor", module_imports("graph_ops"))
+    def test_importing_the_lean_modules_loads_no_archived_module(self) -> None:
+        # The package __init__ files no longer import the archived modules, so the
+        # boundary above also holds at run time (it did not before paper-v1).
+        code = ("import sys\n"
+                f"sys.path.insert(0, {str(SRC_ROOT)!r})\n"
+                f"for name in {LEAN_MODULES!r}:\n"
+                "    __import__('vsmt.' + name)\n"
+                "print(' '.join(sorted(m for m in sys.modules if m.split('.')[0] in ('vsmt', 'cpmt'))))\n")
+        loaded = set(subprocess.check_output([sys.executable, "-c", code], text=True).split())
+        self.assertIn("cpmt.hashing", loaded)
+        self.assertEqual({name for name in loaded if not name.startswith("vsmt.lean_")} - {"vsmt", "cpmt", "cpmt.hashing"},
+                         set())
 
 
 if __name__ == "__main__":  # pragma: no cover

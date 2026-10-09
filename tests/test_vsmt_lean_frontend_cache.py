@@ -670,13 +670,19 @@ class TestContract(unittest.TestCase):
         self.assertTrue(nms["predecessor_bytes_must_not_change"])
 
     def test_the_effective_digest_uses_d215s_own_formula(self) -> None:
-        from vsmt.d215_frontend_freeze import _derived_digests
+        # D-215's formula (vsmt.d215_frontend_freeze._derived_digests, removed from main after paper-v1) is the
+        # canonical-JSON sha256 of the generator arguments and the proposal boundary; the D-215 contract records
+        # its own result, so the formula is checked against that recorded digest.
         d215 = json.loads((PROJECT_ROOT / "configs" / "vsmt" /
-                           "vm04_d215_frontend_freeze_v1.json").read_text(encoding="utf-8"))
-        shadow = json.loads(json.dumps(d215))
-        shadow["sam2"]["automatic_mask_generator"] = self.contract["sam2_nms_supersession"]["effective_automatic_mask_generator"]
-        self.assertEqual(_derived_digests(shadow)["automatic"], fc.EFFECTIVE_AUTOMATIC_CONFIG_SHA256)
-        self.assertEqual(_derived_digests(d215)["automatic"], fc.D215_AUTOMATIC_CONFIG_SHA256)
+                           "vm04_d215_frontend_freeze_v1.json").read_text(encoding="utf-8"))["sam2"]
+
+        def automatic(generator: dict) -> str:
+            return fc.sha({"automatic_mask_generator": generator, "proposal_boundary": d215["proposal_boundary"]})
+
+        effective = self.contract["sam2_nms_supersession"]["effective_automatic_mask_generator"]
+        self.assertEqual(automatic(d215["automatic_mask_generator"]), d215["automatic_mask_and_boundary_config_sha256"])
+        self.assertEqual(automatic(d215["automatic_mask_generator"]), fc.D215_AUTOMATIC_CONFIG_SHA256)
+        self.assertEqual(automatic(effective), fc.EFFECTIVE_AUTOMATIC_CONFIG_SHA256)
         self.assertNotEqual(fc.EFFECTIVE_AUTOMATIC_CONFIG_SHA256, fc.D215_AUTOMATIC_CONFIG_SHA256)
 
     def test_a_third_superseded_argument_is_refused(self) -> None:

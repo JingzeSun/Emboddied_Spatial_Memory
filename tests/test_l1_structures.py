@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import hashlib
-import json
 import math
 from pathlib import Path
 import sys
@@ -16,34 +14,16 @@ SRC_ROOT = PROJECT_ROOT / "src"
 if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
-from cpmt.executor import ContractError, execute_transaction  # noqa: E402
-from cpmt.hashing import seal_graph  # noqa: E402
-from vsmt.contracts import validate_observation_packet  # noqa: E402
-from vsmt.graph_ops import STATE_KEY, fully_covered_by_free_space  # noqa: E402
-from vsmt.l1_entities import (  # noqa: E402
-    AI2THOR_CAMERA_AXIS_Z,
-    DINORegionConfig,
-    PublicGeometryConfig,
-    materialize_l1_entity_observation,
-)
-from vsmt.l1_masks import (  # noqa: E402
-    KEEP_SUPPORTED_BORDER_REGIONS,
-    L1MaskConfig,
-    anonymize_instance_masks,
-)
+from vsmt.l1_entities import DINORegionConfig  # noqa: E402
 from vsmt.l1_structures import (  # noqa: E402
     FreeSpaceMaterializationConfig,
     L1StructureConstructionError,
-    MaterializedRegion,
     PlaceMaterializationConfig,
     SurfaceMaterializationConfig,
     assemble_free_space_history,
-    assemble_region_records,
-    entity_regions_with_masks,
     materialize_public_free_space,
     materialize_public_visibility,
     materialize_public_places,
-    materialize_public_relations,
     materialize_public_surfaces,
 )
 
@@ -116,72 +96,7 @@ def patch_tokens() -> np.ndarray:
     return values
 
 
-def mask_digest(mask: np.ndarray) -> str:
-    return hashlib.sha256(mask.astype(np.uint8).tobytes()).hexdigest()
-
-
 class PublicStructureMaterializerTests(unittest.TestCase):
-    def test_anonymous_entity_bridge_reaches_a_valid_packet(self) -> None:
-        mask = np.zeros((224, 224), dtype=np.bool_)
-        mask[:14, :14] = True
-        anonymous = anonymize_instance_masks(
-            {"private-chair-id": mask},
-            L1MaskConfig(196, KEEP_SUPPORTED_BORDER_REGIONS),
-        )
-        entity = materialize_l1_entity_observation(
-            anonymous.regions[0], patch_tokens(),
-            np.ones((224, 224), dtype=np.float32), calibration(), {
-                "position_m": [0.0, 0.0, 0.0],
-                "quaternion_xyzw": [0.0, 0.0, 0.0, 1.0],
-            }, descriptor_config(), PublicGeometryConfig(
-                depth_convention=AI2THOR_CAMERA_AXIS_Z,
-                minimum_depth_m=0.05,
-                maximum_depth_m=20.0,
-                absolute_minimum_valid_depth_points=32,
-                minimum_valid_depth_fraction=0.25,
-            ),
-        )
-        bridged = entity_regions_with_masks([entity], anonymous.regions)
-        records, _ = assemble_region_records(bridged, [], [])
-        memory = seal_graph({
-            "schema_version": "cpmt-0.2",
-            "graph_id": "graph:entity-bridge",
-            "graph_version": "v0",
-            "parent_version": None,
-            "nodes": [],
-            "edges": [],
-            "transaction_log": [],
-        })
-        packet = {
-            "schema_version": "vsmt-observation-packet-v3",
-            "sample_id_hash": "1" * 64,
-            "decision_time_s": 0.0,
-            "rgbd_refs": {"rgb_sha256": "2" * 64, "depth_sha256": "3" * 64},
-            "camera_pose": {
-                "position_m": [0.0, 0.0, 0.0],
-                "quaternion_xyzw": [0.0, 0.0, 0.0, 1.0],
-            },
-            "robot_state": {"feature_names": [], "values": []},
-            "past_actions": [],
-            "region_observations": records,
-            "relation_observations": [],
-            "free_space_observations": [],
-            "visibility_observations": [],
-            "prior_memory_ref": {
-                "graph_version": memory["graph_version"],
-                "graph_sha256": memory["graph_hash"],
-            },
-            "public_constants": {
-                "coordinate_frame": "map",
-                "depth_unit": "metre",
-                "descriptor_model_id": "dinov2.vits14",
-                "proposal_model_id": "fixed.region.v2",
-            },
-        }
-        validate_observation_packet(packet)
-        self.assertEqual(records[0]["mask_sha256"], anonymous.regions[0].mask_sha256)
-        self.assertNotIn("private-chair-id", json.dumps(packet, sort_keys=True))
-
     def test_floor_depth_yields_surface_and_observed_place_cells(self) -> None:
         depth = np.full((224, 224), 1.575, dtype=np.float32)
         half = math.sqrt(0.5)
@@ -269,28 +184,6 @@ class PublicStructureMaterializerTests(unittest.TestCase):
         self.assertEqual(len(history), 682)
         self.assertEqual(history[0]["free_space_id"], "free:0000")
         self.assertEqual(history[-1]["free_space_id"], "free:0681")
-        node = {
-            "node_type": "entity",
-            STATE_KEY: {
-                "descriptor": [1.0],
-                "centroid_m": [0.0, 0.0, 1.0],
-                "extent_m": [0.1, 0.1, 0.1],
-                "reliability": 1.0,
-                "last_seen_s": 0.0,
-                "observation_count": 1,
-                "observation_aabb_min_m": [-0.05, -0.05, 0.95],
-                "observation_aabb_max_m": [0.05, 0.05, 1.05],
-                "support_envelope_min_m": [-0.05, -0.05, 0.95],
-                "support_envelope_max_m": [0.05, 0.05, 1.05],
-                "support_envelope_observation_count": 1,
-                "support_envelope_reliability_threshold": 0.9,
-            },
-        }
-        self.assertTrue(fully_covered_by_free_space(
-            node, history, minimum_reliability=1.0,
-            target_expansion_m=0.02,
-            support_reliability_threshold=0.9,
-        ))
         visibility = materialize_public_visibility(
             second, surface_clearance_m=free_config().surface_clearance_m,
         )
@@ -313,265 +206,3 @@ class PublicStructureMaterializerTests(unittest.TestCase):
             config=free_config(),
         )
         self.assertEqual(len(result), 336)
-
-
-class PublicRelationTests(unittest.TestCase):
-    def _region(
-        self, kind: str, centroid: tuple[float, float, float],
-        extent: tuple[float, float, float], mask: np.ndarray, *,
-        place_cell: tuple[int, int] | None = None,
-        plane: bool = False,
-    ) -> MaterializedRegion:
-        return MaterializedRegion(
-            structure_kind=kind,
-            mask_sha256=mask_digest(mask),
-            mask_bytes=np.ascontiguousarray(mask, dtype=np.uint8).tobytes(),
-            mask_first_true_index=int(np.flatnonzero(mask)[0]),
-            mask_pixel_count=int(mask.sum()),
-            height=mask.shape[0],
-            width=mask.shape[1],
-            descriptor=(1.0, 0.0),
-            centroid_m=centroid,
-            extent_m=extent,
-            reliability=0.8,
-            proposal_source_id=f"fixture.{kind}.v1",
-            plane_normal=(0.0, 1.0, 0.0) if plane else None,
-            plane_offset_m=0.0 if plane else None,
-            place_cell_xz=place_cell,
-        )
-
-    def test_relations_are_public_typed_and_contains_is_same_evidence(self) -> None:
-        entity_mask = np.zeros((4, 4), dtype=np.bool_)
-        entity_mask[0, 0] = True
-        place_mask = np.zeros((4, 4), dtype=np.bool_)
-        place_mask[1, 1] = True
-        surface_mask = np.zeros((4, 4), dtype=np.bool_)
-        surface_mask[3, 3] = True
-        entity = self._region(
-            "entity", (0.25, 0.1, 0.25), (0.1, 0.2, 0.1), entity_mask,
-        )
-        place = self._region(
-            "place", (0.25, 0.0, 0.25), (0.5, 0.0, 0.5), place_mask,
-            place_cell=(0, 0), plane=True,
-        )
-        surface = self._region(
-            "surface", (0.25, 0.0, 0.25), (1.0, 0.0, 1.0),
-            surface_mask, plane=True,
-        )
-        records, indexed = assemble_region_records([entity], [place], [surface])
-        relations = materialize_public_relations(
-            indexed, place_config=place_config(),
-            supported_by_maximum_normal_angle_degrees=10.0,
-            supported_by_minimum_gap_m=-0.02,
-            supported_by_maximum_gap_m=0.05,
-            supported_by_minimum_projected_overlap=0.25,
-            supported_by_maximum_mask_overlap_fraction=0.05,
-        )
-        self.assertEqual(
-            {item["relation"] for item in relations},
-            {"located_at", "contains", "supported_by"},
-        )
-        located = next(item for item in relations if item["relation"] == "located_at")
-        contains = next(item for item in relations if item["relation"] == "contains")
-        self.assertEqual(located["support_sha256"], contains["support_sha256"])
-        packet = {
-            "schema_version": "vsmt-observation-packet-v3",
-            "sample_id_hash": "1" * 64,
-            "decision_time_s": 1.0,
-            "rgbd_refs": {"rgb_sha256": "2" * 64, "depth_sha256": "3" * 64},
-            "camera_pose": {
-                "position_m": [0.0, 0.0, 0.0],
-                "quaternion_xyzw": [0.0, 0.0, 0.0, 1.0],
-            },
-            "robot_state": {"feature_names": [], "values": []},
-            "past_actions": [],
-            "region_observations": records,
-            "relation_observations": relations,
-            "free_space_observations": [],
-            "visibility_observations": [],
-            "prior_memory_ref": {"graph_version": "v0", "graph_sha256": "4" * 64},
-            "public_constants": {
-                "coordinate_frame": "map",
-                "depth_unit": "metre",
-                "descriptor_model_id": "dinov2.vits14",
-                "proposal_model_id": "fixed.region.v2",
-            },
-        }
-        validate_observation_packet(packet)
-
-
-class TypedRelationExecutorTests(unittest.TestCase):
-    def setUp(self) -> None:
-        self.graph = seal_graph({
-            "schema_version": "cpmt-0.2",
-            "graph_id": "graph:typed-relation",
-            "graph_version": "v0",
-            "parent_version": None,
-            "nodes": [
-                {
-                    "node_id": node_id,
-                    "node_version_id": f"{node_id}@v0",
-                    "node_type": node_type,
-                    "lifecycle": "confirmed",
-                    "valid_from": 0,
-                    "valid_to": None,
-                    "evidence_refs": [f"observation:{node_id}"],
-                    "latent_refs": [],
-                    "canonical_id": None,
-                    "predecessor_ids": [],
-                    "provenance": ["fixture:public"],
-                }
-                for node_id, node_type in (("entity-a", "entity"), ("place-a", "place"))
-            ],
-            "edges": [],
-            "transaction_log": [],
-        })
-
-    def test_relation_birth_then_relation_bind(self) -> None:
-        edge = {
-            "edge_id": "edge:located",
-            "edge_version_id": "edge:located@v0",
-            "source": "entity-a",
-            "target": "place-a",
-            "relation": "located_at",
-            "frame": "map",
-            "valid_from": 1,
-            "valid_to": None,
-            "evidence_refs": ["observation:first"],
-            "provenance": ["transaction:birth-relation"],
-        }
-        born = execute_transaction(self.graph, {
-            "schema_version": "cpmt-0.2",
-            "transaction_id": "transaction:birth-relation",
-            "intent": "EXPAND",
-            "template": "BIRTH",
-            "base_graph_version": "v0",
-            "operations": [{
-                "op_id": "birth:edge",
-                "op_type": "ADD_EDGE",
-                "arguments": {"edge": edge},
-            }],
-            "evidence_refs": ["observation:first"],
-            "protected_ids": [],
-        })
-        self.assertEqual(len(born["edges"]), 1)
-        bound = execute_transaction(born, {
-            "schema_version": "cpmt-0.2",
-            "transaction_id": "transaction:bind-relation",
-            "intent": "ASSOCIATE",
-            "template": "BIND",
-            "base_graph_version": born["graph_version"],
-            "operations": [
-                {
-                    "op_id": "bind:edge",
-                    "op_type": "ATTACH_EVIDENCE",
-                    "arguments": {
-                        "target_kind": "edge",
-                        "target_id": "edge:located",
-                        "evidence_ref": "observation:second",
-                    },
-                },
-                {
-                    "op_id": "bind:edge-provenance",
-                    "op_type": "RECORD_PROVENANCE",
-                    "arguments": {
-                        "target_kind": "edge",
-                        "target_id": "edge:located",
-                        "provenance_ref": "transaction:bind-relation",
-                    },
-                },
-            ],
-            "evidence_refs": ["observation:second"],
-            "protected_ids": [],
-        })
-        self.assertIn("observation:second", bound["edges"][0]["evidence_refs"])
-        second_edge = dict(edge)
-        second_edge.update({
-            "edge_id": "edge:located-second",
-            "edge_version_id": "edge:located-second@v0",
-            "evidence_refs": ["observation:third"],
-            "provenance": ["transaction:birth-second-relation"],
-        })
-        two_edges = execute_transaction(bound, {
-            "schema_version": "cpmt-0.2",
-            "transaction_id": "transaction:birth-second-relation",
-            "intent": "EXPAND",
-            "template": "BIRTH",
-            "base_graph_version": bound["graph_version"],
-            "operations": [{
-                "op_id": "birth:second-edge",
-                "op_type": "ADD_EDGE",
-                "arguments": {"edge": second_edge},
-            }],
-            "evidence_refs": ["observation:third"],
-            "protected_ids": [],
-        })
-        with self.assertRaisesRegex(
-            ContractError, "relation BIND must target exactly one edge identity",
-        ):
-            execute_transaction(two_edges, {
-                "schema_version": "cpmt-0.2",
-                "transaction_id": "transaction:bad-multi-edge-bind",
-                "intent": "ASSOCIATE",
-                "template": "BIND",
-                "base_graph_version": two_edges["graph_version"],
-                "operations": [
-                    {
-                        "op_id": f"bind:edge:{index}",
-                        "op_type": "ATTACH_EVIDENCE",
-                        "arguments": {
-                            "target_kind": "edge",
-                            "target_id": edge_id,
-                            "evidence_ref": "observation:fourth",
-                        },
-                    }
-                    for index, edge_id in enumerate(
-                        ("edge:located", "edge:located-second")
-                    )
-                ] + [{
-                    "op_id": "bind:multi-edge-provenance",
-                    "op_type": "RECORD_PROVENANCE",
-                    "arguments": {
-                        "target_kind": "edge",
-                        "target_id": "edge:located",
-                        "provenance_ref": "transaction:bad-multi-edge-bind",
-                    },
-                }],
-                "evidence_refs": ["observation:fourth"],
-                "protected_ids": [],
-            })
-
-    def test_relation_birth_rejects_a_node_and_edge_in_same_atom(self) -> None:
-        with self.assertRaisesRegex(ContractError, "exactly one node or edge"):
-            execute_transaction(self.graph, {
-                "schema_version": "cpmt-0.2",
-                "transaction_id": "transaction:bad-birth",
-                "intent": "EXPAND",
-                "template": "BIRTH",
-                "base_graph_version": "v0",
-                "operations": [
-                    {
-                        "op_id": "birth:node",
-                        "op_type": "CREATE_NODE",
-                        "arguments": {"node": self.graph["nodes"][0]},
-                    },
-                    {
-                        "op_id": "birth:edge",
-                        "op_type": "ADD_EDGE",
-                        "arguments": {"edge": {
-                            "edge_id": "edge:bad",
-                            "edge_version_id": "edge:bad@v0",
-                            "source": "entity-a",
-                            "target": "place-a",
-                            "relation": "located_at",
-                            "frame": "map",
-                            "valid_from": 1,
-                            "valid_to": None,
-                            "evidence_refs": ["observation:bad"],
-                            "provenance": ["transaction:bad-birth"],
-                        }},
-                    },
-                ],
-                "evidence_refs": ["observation:bad"],
-                "protected_ids": [],
-            })
