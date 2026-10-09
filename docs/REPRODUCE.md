@@ -128,7 +128,8 @@ paper is:
 | Not in the current paper | `figure_2_tradeoff`, `appendix_selection_curves`, `appendix_training` | `vsmt_lean_s3_03_{readings,trainings}_{instance,sam2}_10f7013.json` and the files above |
 
 The provenance of each stage: S3-05 run `8d58475`, frozen at `dea8c20` (receipt `4fd08d4f…`); S3-06 reanalysis
-`cd3ee83`; S3-07 run `aa94373` (code on branch `s3-07-impl`); LLM-op context export `2b50a12`.
+`cd3ee83`; S3-07 run `aa94373` (code on `main` since the merge `21e0d6e`, not in `paper-v1`); LLM-op context
+export `2b50a12`.
 
 **One command (L0).** `python reproduce/paper.py` (from `main`) runs the recomputation below and the two table and
 figure scripts in a temporary worktree of `paper-v1`, compares the recomputed readings D1–D8 with the committed
@@ -610,14 +611,39 @@ only overestimate).
 ## 10. S3-07: external check on 3RScan
 
 The external check runs the frozen arms of S3-04 on 3RScan validation (instance masks rendered from the annotated
-meshes, i.e. proxy truth; 108 episodes in 46 scenes; reported only, never part of the gate). Its code is on branch
-[`s3-07-impl`](https://github.com/JingzeSun/VSMT/tree/s3-07-impl) (`ops/vsmt/s3_07_*.py`), not yet merged into `main`.
-Reproducing it requires 3RScan access granted by TUM; no 3RScan data is redistributed. The run used commit `aa94373`
-(frozen at `dea8c20`, hosts B1, w4 and w5):
+meshes, i.e. proxy truth; 108 episodes in 46 scenes; reported only, never part of the gate; ruling 111 and its
+amendments 1 to 3). The code is on `main` since the merge `21e0d6e` (`src/vsmt/lean_s3_07*.py`, `ops/vsmt/s3_07_*`,
+contract `configs/vsmt/lean_s3_07_3rscan_v1.json`); it is not in `paper-v1`. Reproducing it requires 3RScan access
+granted by TUM (the official download script into `$AUTODL/3rscan/{meta,scans}`); no 3RScan data is redistributed. The
+run used commit `aa94373` (frozen at `dea8c20`; GPU host G2, audit hosts B1, w4 and w5).
+
+Preconditions: the S3-04 receipt is committed in `results/`; the run commit's `src/`, `ops/` and `configs/` differ from
+the freeze commit only by the S3-07 files and the two registered edits (the converter commit in the S1-03 pose policy,
+the cache generator's `3rscan-*` episode pattern); the contract's sample slots are registered and its
+`authorization.formal_conversion` bit is open.
 
 ```bash
-FRONTS=instance bash ops/vsmt/s3_07_external.sh audit
+# GPU host (an RTX 5090 as in S3-02), clean detached worktree of the run commit
+setsid nohup env RECEIPT=/root/autodl-tmp/vsmt_private/s3-04-<freeze commit>/freeze_receipt.json bash ops/vsmt/s3_07_external.sh gpu > /root/autodl-tmp/vsmt_outputs/run_logs/s3-07-gpu.log 2>&1 < /dev/null &
+# after copying the episode, geometry, cache and run roots to the audit host at the same paths
+setsid nohup env RECEIPT=<the same receipt> FRONTS=instance bash ops/vsmt/s3_07_external.sh audit > /root/autodl-tmp/vsmt_outputs/run_logs/s3-07-audit.log 2>&1 < /dev/null &
+bash ops/vsmt/s3_07_external.sh status
 ```
+
+| Phase | Step | What it does |
+|---|---|---|
+| GPU | check | E1: the code differs from the receipt only by the allowed files; the receipt is committed; the converter commit is registered; the cache generator reads `3rscan-*`; the contract is open and its sample slots registered |
+| GPU | render → convert → reader-check | `s3_07_render.py --purpose formal` and `s3_07_convert.py convert --purpose formal` (failed pairs recorded, not replaced), then every frame read back through the frozen reader |
+| GPU | cache | the S1-03 caches of both front ends (`lean_s1_03_cache.py`, 2 threads per worker); construction failures are recorded with the frozen reason codes and the episode leaves that front end's usable list |
+| GPU | e2 | the caches of the two smallest S3-02 train episodes rebuilt at this commit; their seals equal the committed S3-02 exports |
+| GPU | handoff | tree digests of every root and the usable episodes per front end (`<run root>/handover.json`) |
+| Audit | check → receive → inputs | the same check plus weights and registered ELU-P values; copied roots equal the hand-over; run inputs written (amendment 3: `FRONTS=instance` runs the instance-mask column only, the SAM 2.1 column is reported as not computable) |
+| Audit | e3 | the receipt's G4 probe audits rerun at this commit, byte for byte against S3-03; worker hosts admitted with `remote_hosts.py setup/admit --kinds audit` |
+| Audit | run → merge → stats → export | one job per test run of the receipt and episode (metrics only); a crash is rerun once; statistics pooled by scene, reported only; exports `vsmt_lean_s3_07_*_<commit>.json` |
+
+The sample check of ruling 111-8 step 4 ran with `--purpose sample` (`s3_07_render.py`, `s3_07_convert.py sample-check`
+and `convert --slots-from <report>`, `reader-check`): `results/vsmt_lean_s3_07_sample_d05f337.json`; the E2 pre-check
+on the GPU host: `results/vsmt_lean_s3_07_e2_precheck_dea8c20.json`.
 
 Results: `results/vsmt_lean_s3_07_statistics_aa94373.json` (`fronts.instance.main_table`, `comparisons` with two-sided
 90% intervals, `exclusion_lists`, `cache_data_failures`, `fronts_missing`, `not_applicable`); per-episode values in

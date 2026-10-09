@@ -244,7 +244,7 @@ This section maps the paper and this specification to the code. Modules named `l
 | Paper | Code |
 |---|---|
 | Table II; Fig. 3; Fig. 4 (a, b) | `lean_s3_05.test_statistics` on test (S3-05); `ops/vsmt/s3_06_reanalysis.py` (`d3_intervals`, `d4_counts`); `paper/tools/make_tables.py` (`main_table`), `paper/tools/make_figures.py` (`gate_figure`, `comparisons_figure`) |
-| Fig. 4 (c), Section V-F (3RScan) | branch `s3-07-impl` (`ops/vsmt/s3_07_*.py`, not merged); `main` holds only the exports `results/vsmt_lean_s3_07_*_aa94373.json` |
+| Fig. 4 (c), Section V-F (3RScan) | `src/vsmt/lean_s3_07*.py` and `ops/vsmt/s3_07_*` (merged from `s3-07-impl` at `21e0d6e`, not in `paper-v1`); exports `results/vsmt_lean_s3_07_*_aa94373.json` |
 | Table III (LLM-op) | `lean_llm_op`, `lean_controls.render_association_tables`, `parse_association_answer`, `choices_to_logits`; driver `ops/vsmt/llm_op.py`; other arms on the same episode `ops/vsmt/s4_llm_op_context.py`; table `paper/tools/make_tables.py` (`llm_op_table`) |
 | Sections V-A to V-E (per-house counts, ledger shares, memory size) | `ops/vsmt/s3_06_reanalysis.py` (`d5_per_house`, `d6_decomposition`, `d7_size_and_cost`) |
 

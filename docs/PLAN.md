@@ -8,8 +8,8 @@ Note (2026-10-09, decision D-224-DOC): this file was translated from Chinese; th
 are now in [REPRODUCE.md](REPRODUCE.md) (sections 2–9). "The user" is the project owner; clock times marked CST are
 China Standard Time (UTC+8).
 
-Status (2026-10-09): S3-01 to S3-07 and the S3-05R release are complete (LOG-301 to LOG-314; the S3-07 code is on
-branch `s3-07-impl`, not yet merged into `main`); S4, the paper, is in progress (LOG-313). The repository was reviewed
+Status (2026-10-09): S3-01 to S3-07 and the S3-05R release are complete (LOG-301 to LOG-314; the S3-07 code was
+merged into `main` at `21e0d6e`, LOG-318); S4, the paper, is in progress (LOG-313). The repository was reviewed
 for readers (LOG-315): the tag `paper-v1` marks the state that produced the paper and every reproduction step runs
 from it; on `main` the earlier-direction code was removed and comments translated. Reproduction entry points (`reproduce/`), the memory plug-in (`vsmt_memory/`, docs/PLUGIN.md) and the code licence were added (LOG-316); the instance-mask ReID head and the ruling-37 salt were released in a T0 addendum (LOG-317). Every "current execution point"
 below is dated history, superseded by later entries.

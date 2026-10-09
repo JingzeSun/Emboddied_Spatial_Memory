@@ -197,6 +197,8 @@ after the tag (syntax trees otherwise unchanged; the two package `__init__.py` f
 the code of earlier project directions (the CPMT executor, the unified graph, place layer and structure estimators,
 their contracts, tests and fixtures) and six one-off development scripts were removed; they remain at their original
 paths under the tag. The retained code behaves identically, and the `lean_*` contracts and all results are unchanged.
+The S3-07 code (3RScan check) was merged into `main` afterwards (`21e0d6e`) as it ran; it is not in `paper-v1`, and its
+comments are partly in Chinese.
 
 ## Documentation
 
@@ -227,7 +229,8 @@ later entries are in English. The Chinese versions of the other documents are pr
   reproduction step. Only re-checking the S3-04 freeze receipt needs the freeze commit `dea8c20` itself (the receipt
   fingerprints every file in `src/`, `ops/` and `configs/`, and later commits add scripts to `ops/`).
 - `main`: current work; `s1-02a-runner` mirrors `main` for the servers.
-- `s3-07-impl`: the 3RScan conversion, rendering and external-check driver (not merged into `main`).
+- `s3-07-impl`: the 3RScan conversion, rendering and external-check driver, merged into `main` on 2026-10-09
+  (`21e0d6e`); kept for its history.
 - `archive/pre-d224-unified-graph`: documents of the unified-graph and eight-atom directions, superseded by decision
   D-224.
 - `archive/cpmt-m1-20260917`, `archive/spatial-world-model-20260917`: snapshots taken before the CPMT/M1 and
