@@ -119,10 +119,11 @@ PYTHONPATH=src uv run python -m unittest discover -s tests -t tests -p "test_*.p
 ## Data and weights
 
 The data and weights behind the paper's results are on Hugging Face in four independently downloadable layers; the
-paper cites these revisions. Two inputs are not released: the ReID head of the instance-mask front end (`5cea91cf…`),
-so from the release alone only the SAM 2.1 audits can be re-run, and the private salt of ruling 37, which the data
-generator needs (neither is needed to recompute the statistics)
-([docs/REPRODUCE.md, section 1](docs/REPRODUCE.md#1-reproduction-levels-and-determinism)).
+paper cites these revisions. Two inputs were added to T0 after the paper's revision (decision D-224-REPRO): the ReID
+head of the instance-mask front end (`5cea91cf…`), needed to re-run the instance-mask audits, and the salt of ruling 37,
+which decided the no-change draw and is needed to regenerate the data; `uv run python reproduce/fetch_extras.py --dest
+<data root>` fetches and checks both (neither is needed to recompute the statistics;
+[docs/REPRODUCE.md, section 1](docs/REPRODUCE.md#1-reproduction-levels-and-determinism)).
 
 | Layer | Repository | Content | Revision |
 |---|---|---|---|
@@ -130,6 +131,7 @@ generator needs (neither is needed to recompute the statistics)
 | T1 | [`Jsun0632/vsmt-lean-s3-eval`](https://huggingface.co/datasets/Jsun0632/vsmt-lean-s3-eval) | validation and test inputs | `1bb81d27554d` |
 | T2 | [`Jsun0632/vsmt-lean-s3-records`](https://huggingface.co/datasets/Jsun0632/vsmt-lean-s3-records) | training and audit records | `1d45b57add4a` |
 | T3 | [`Jsun0632/vsmt-lean-s3-train`](https://huggingface.co/datasets/Jsun0632/vsmt-lean-s3-train) | training inputs | `d03966859294` |
+| T0 addendum | [`Jsun0632/vsmt-lean`](https://huggingface.co/Jsun0632/vsmt-lean) | instance-mask ReID head, salt of ruling 37 | `1fc9efe87f99` (after the paper) |
 
 For example, to fetch the validation instance-mask cache:
 

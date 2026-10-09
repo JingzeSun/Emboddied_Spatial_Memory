@@ -48,7 +48,7 @@ files already in a cache are used without network access:
 
 | What | Size | From |
 |---|---|---|
-| cost heads and ReID head | 100 MB | Hugging Face [`Jsun0632/vsmt-lean`](https://huggingface.co/Jsun0632/vsmt-lean), revision `0b2ce7f8bb5d` |
+| cost heads and ReID head | 100 MB | Hugging Face [`Jsun0632/vsmt-lean`](https://huggingface.co/Jsun0632/vsmt-lean), revision `0b2ce7f8bb5d` (the instance-mask ReID head: `1fc9efe87f99`, added after the paper) |
 | DINOv2 ViT-B/14 checkpoint | 346 MB | `dl.fbaipublicfiles.com`, the file the paper's front end used |
 | DINOv2 model code | 1 MB | `torch.hub` at commit `7764ea0f` of `facebookresearch/dinov2` (or pass a local clone) |
 | SAM 2.1 Hiera Small (optional) | 184 MB | `dl.fbaipublicfiles.com`; needs the `sam2` package (the paper used commit `2b90b9f5`) |
@@ -147,9 +147,10 @@ digest recorded by the freeze that preceded the test run.
 | `front_end` | Trained on | When to use | Released |
 |---|---|---|---|
 | `"sam2"` (default) | SAM 2.1 automatic masks (part-level, over-segmented) | masks from SAM or another segmenter whose masks are not exact whole objects | yes |
-| `"instance"` | the simulator's instance masks (near-perfect, whole objects) | near-perfect whole-object masks | heads yes; its ReID head (`5cea91cf…`) is not released, and `reid_head_path=` accepts only that exact file (a head retrained in S1-04 has another digest; docs/REPRODUCE.md, section 11) |
+| `"instance"` | the simulator's instance masks (near-perfect, whole objects) | near-perfect whole-object masks | yes; its ReID head (`5cea91cf…`) comes from a later T0 revision than the paper's (`1fc9efe8`) |
 
-Only `"sam2"` can be used from the release alone; the instance-mask ReID head is not published anywhere at present.
+Both are downloaded and checked automatically; `reid_head_path=` accepts only the released file of the chosen front end
+(a head retrained in S1-04 has another digest; docs/REPRODUCE.md, section 11).
 
 `seed` is one of 7, 19, 31, 43, 59. The paper reports the mean over all five, and no seed is recommended: seed 7 is the
 default because it is the first registered seed, not because it scored best, and single seeds differ (validation
@@ -207,6 +208,7 @@ On validation episode `procthor10k-0.1.2-train-02318` (SAM 2.1 front end, seed 7
 | The same replay against the S3-04 probe audit computed on the server (Linux, Xeon, torch 2.8.0, numpy 2.3.2) | final entity states identical (50 active, 25 dormant, 1 retracted) and every metric of the audit report identical; the error decomposition differs in 19 of about 5,500 decisions and the seal chain differs |
 | Fragments rebuilt from the public RGB-D and the cache's SAM 2.1 masks against the released cache | geometry bit-identical; DINOv2 descriptors within 6.7e-7 (the cache was computed on a GPU) |
 | Full stream through `step` (RGB-D path) against the sealed-cache replay | 337 of 341 frames committed the same atoms on the same fragments |
+| Instance-mask front end (seed 7, `tau_r` 0.8, ReID head of the T0 addendum): sealed-cache replay against the frozen audit entry (`reproduce/l1_eval.py`), same environment | bit-identical (341 frames); that audit's metrics and error decomposition equal the server's probe audit |
 
 ## 9. Citation and licence
 
