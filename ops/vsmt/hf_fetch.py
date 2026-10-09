@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """S3-05R: download a released tier (or part of it) from Hugging Face, check every byte, and restore the original layout.
 
-白话：从 Hugging Face 下某一层（或其中一部分，例如只要 validation 的 instance cache），每个文件先对清单核 sha256，tar 解包后
-再重算目录树摘要，与清单（也就是上传时对过封印和 S3-02 导出的那份）逐项相等才算恢复成功；恢复到的位置与 B1 上原来的相对路径
-一致（默认根目录 /root/autodl-tmp），所以仓库里的脚本不用改路径就能接着跑。例如
-  python ops/vsmt/hf_fetch.py --repo Jsun0632/vsmt-lean-s3-eval --repo-type dataset --revision <提交> --select validation/instance_cache/
-会恢复出 vsmt_caches/s3-02-instance-3f6ef1d/validation/ 下的每条 episode。已经恢复且核对一致的项会跳过；有任何不一致就停下并退出 3。
+Downloads one tier, or part of it (e.g. only the validation instance cache), checks each file's sha256 against the manifest,
+unpacks the tar and recomputes the directory-tree digest; an item is restored only if both equal the manifest (the one that
+was checked against the seal and the S3-02 exports at upload). Items are restored at their original relative paths on B1
+(default root /root/autodl-tmp), so the repository's scripts run without path changes. Example:
+  python ops/vsmt/hf_fetch.py --repo Jsun0632/vsmt-lean-s3-eval --repo-type dataset --revision <commit> --select validation/instance_cache/
+restores every episode under vsmt_caches/s3-02-instance-3f6ef1d/validation/. Items already restored and matching are
+skipped; any mismatch stops with exit 3.
 
 Usage:
   python ops/vsmt/hf_fetch.py --repo REPO --repo-type dataset|model [--revision SHA] [--select PREFIX ...] [--dest /root/autodl-tmp]

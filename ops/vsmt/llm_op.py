@@ -1,22 +1,31 @@
 #!/usr/bin/env python3
 """LLM-op driver (ruling 105): the plan on the S3-02 host; check, pilot, run, status, export and replay-check on the LLM-op host.
 
-白话：附录臂 LLM-op 的整趟流程。输入是 S3-03 检查过的 train／validation 名单与数据根（只读，test 根不碰）、登记的合同和
-DeepSeek 密钥（只在新机器的文件里）；输出是每套前端 1 条 validation episode（裁决 108；原 105-2 为 15 条）的闭环指标（与其他臂同一个 node audit、同一套
-指标）、全部调用存档、试点报告和 results/ 里的一份导出。步骤：
-  plan   （S3-02 那台机器）按裁决 105-2／108 抽 1 条 validation episode、选试点 episode（已有按旧条数写的计划时，
-         只有 --supersede 才把它改名保留为 plan.superseded.<sha12>.json 再重写，抽签顺序必须相同、正式运行不能已开始），记下各封印摘要、每帧行数（S3-03 第 0 轮
-         ELU-P 回执的均值）和要拷的路径清单 transfer.txt；
-  check  （新机器）逐条重算 cache 封印、核对原始回执、几何表和两个 ReID 头，读密钥、查 API 能否用，定并行数；
-  pilot  两套前端各在试点 episode 的前 200 帧上真调 API（只跑公开阶段，不读私有、不算指标），按每行价钱推算总费用，
-         超过 30 美元（裁决 108）就停下汇报；登记返回的模型名；
-  run    2 个作业（2 套前端 × 1 条）并行跑 node audit 的 LLM-op 正式审计；累计（含试点）30 美元不再开新作业，40 美元写 STOP
-         全部停下；中断的作业重跑时从存档回放、不重复花钱；
-  status 进度、费用、回退与模型名；stop 写 STOP（所有进程在下一次调用前停下）；
-  replay-check  每套前端按存档只回放最短的一条 episode，核对轨迹摘要与指标和正式运行逐字节相同（复现性），记进
-         replay/check.json——必须在 export 之前跑（export 往 results/ 里写文件，checkout 不再干净，回放的审计会拒绝）；
-  export 两套前端的逐 episode 指标与合并、调用统计（回退率超过 2% 标“格式不可靠”）、费用、模型名与回放核对，写进 results/。
-它不训练、不选参、不读 test；没有用户审过代码后打开的合同位，pilot 和 run 一律拒绝。
+The whole flow of the LLM-op arm (paper Table III; appendix scope of rulings 105/108). Inputs: the train / validation lists and
+data roots checked by S3-03 (read only; test roots untouched), the registered contract and the DeepSeek key (only in a file
+on the LLM-op host). Outputs: closed-loop metrics on 1 validation episode per front end (ruling 108; 105-2 had 15), from the
+same node audit and metrics as every other arm, the archive of every call, the pilot report and one export in results/.
+Steps:
+  plan   (S3-02 host) draws the validation episode by rulings 105-2/108 and picks the pilot episode (a plan written for
+         another episode count is renamed to plan.superseded.<sha12>.json and rewritten only with --supersede, with the same
+         draw order and before any run of record has started); records the seal digests, the rows per frame (mean of the
+         S3-03 round-0 ELU-P receipts) and the paths to copy, transfer.txt;
+  check  (LLM-op host) recomputes every cache seal, checks the raw receipts, geometry tables and both ReID heads, loads the
+         key, checks that the API lists the model and sets the worker count;
+  pilot  per front end, live calls over the first 200 frames of the pilot episode (public phase only; no private read, no
+         metric); projects the total cost from the per-row prices and stops to report above $30 (ruling 108); registers the
+         returned model name;
+  run    2 jobs (2 front ends x 1 episode) run the LLM-op node audits of record in parallel; at a ledger of $30 (pilot
+         included) no new job starts, at $40 STOP is written and everything stops; an interrupted job replays its archive on
+         rerun and never pays twice;
+  status progress, cost, fallbacks and model name; stop writes STOP (every process stops before its next call);
+  replay-check  per front end, replays only the shortest episode from the archive and checks that the trajectory digests
+         and metrics are byte-identical to the run of record (reproducibility), in replay/check.json; must run before export
+         (export writes to results/, the checkout is no longer clean and the replayed audit refuses);
+  export per-episode and merged metrics of both front ends, call statistics (a fallback rate above 2% is flagged "format
+         unreliable"), cost, model name and the replay check, into results/.
+It trains nothing, selects no parameter and reads no test data; pilot and run refuse unless the contract bits opened after
+the user's code review are set.
 
 Usage (normally through ops/vsmt/llm_op.sh):
   python ops/vsmt/llm_op.py plan   --run-root R --inputs /root/autodl-tmp/vsmt_private/s3-03-run/inputs.json [--allow-provisional]
@@ -494,9 +503,10 @@ def pilot_one(args: argparse.Namespace) -> int:
 def pilot_report(run_root: Path, plan_: Plan) -> dict[str, Any]:
     """Both front ends' pilots: tokens, latency, format compliance, the returned model and the projection against the cap.
 
-    The cap is checked against the worst case -- every planned call at the peak price -- plus what the pilot itself spent: with
-    30 episodes running at once most of the money goes out within a day, so the peak share is not the week's average.  A
-    call kind the pilot could not price, a fallback rate above 2% or two model names are decision points too.
+    The cap is checked against the worst case -- every planned call at the peak price -- plus what the pilot itself spent: the
+    rule was set for the 30 concurrent episodes of ruling 105-2, where most of the money goes out within a day, so the peak
+    price applies rather than the week's average (ruling 108 later reduced the run to 2 episodes).  A call kind the pilot
+    could not price, a fallback rate above 2% or two model names are decision points too.
     """
 
     fronts: dict[str, Any] = {}

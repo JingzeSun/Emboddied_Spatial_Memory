@@ -1,14 +1,20 @@
 #!/usr/bin/env python3
 """Ruling 89-2 / 89-3 reading: each side's mechanism check under the lines frozen in DECISIONS ruling 89 (revised).
 
-白话：输入是两侧检查的全部产物，输出按冻结通过线的判读，不选配置、不做显著性检验。
-  * 89-2 存在侧：① 同输入异答案为 0（训练前）；② P3 在新输入与新配方上 HandCost、RAC、ELU-P 的训练 house 分类均衡一致率 ≥0.99
-    （最后一个 epoch 与训练损失最低 epoch 都要过）；③ “teacher 关联＋新存在头”格 5 种子的 Missing 残留率均值 ≤0.05、节点 F1 均值
-    ≥0.93，范围内假撤回率另报。
-  * 89-3 关联侧：① 状态覆盖按事件（训练前）；② P3 的 TAF、LOW ≥0.99（同样两种 epoch）；③ 同一新召回下，新头的“学习关联＋teacher
-    存在”格相对旧头基线，身份连续率与全部重见接回比例按 82-1 规则确定更高（同种子配对，至少 4/5 同号且均值大于标准差），且“选了
-    新建”减少（5 种子均值）。
-例如 5 个种子的 Missing 残留率 0.02～0.06、均值 0.04，节点 F1 均值 0.94，就算 ③ 过。
+Input: every output of both sides' checks. Output: the reading under the frozen pass lines; no configuration is selected and
+no significance test is made.
+  * 89-2, existence side: (1) zero same-input-different-answer (before training); (2) P3 on the new inputs and recipe:
+    class-balanced agreement >= 0.99 on the training houses for HandCost, RAC and ELU-P (both the last epoch and the
+    lowest-training-loss epoch); (3) the "teacher association + new existence head" cell at five seeds: mean Missing
+    residual rate <= 0.05 and mean node F1 >= 0.93; the in-scope false-retract rate is reported alongside.
+  * 89-3, association side: (1) state coverage in events (before training); (2) P3 for TAF and LOW >= 0.99 (the same two
+    epochs); (3) at the same new recall, the new heads' "learned association + teacher existence" cell against the old-head
+    baseline: identity continuity and the re-attached share of all re-observations higher by the 82-1 rule (seed-paired, at
+    least 4 of 5 with the same sign and mean above the standard deviation), and fewer "chose BIRTH" (five-seed mean).
+Example: Missing residual rates 0.02-0.06 over the five seeds (mean 0.04) and mean node F1 0.94 pass check (3).
+Later changes: 89-2 check (1) is read from the independent-executor history audit (ruling89_history_audit.py), not from the
+same-input table; since ruling 93-2, P3 is reported only (--p3-report-only); the 89-4 joint closed-loop lines are read by
+`joint_check`. Development stage (S2-R) only; nothing here is reused by S2-06 or S3.
 
 Usage:
   python ops/vsmt/ruling89_checks.py --same-input <json> --coverage-events <json> --imitation rac:<json> ...

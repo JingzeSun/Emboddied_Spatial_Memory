@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
 """S3-03 driver (ruling 104): ELU-P fit, DAgger rounds 0 and 1, the 36 trainings, the validation audits and the selection readings.
 
-白话：S3-03 回答“正式实验里每个臂拿什么权重、哪些配置候选去考 validation”。输入是 S3-02 的 train／validation 数据（只读，
-test 根封存不碰）、冻结的方法与网格；输出是两套前端各自的 ELU-P 拟合量（运行内的值，登记提交在运行期间或之后另做，verify
-核对两者逐位相等）、第 0／1 轮轨迹与 HeuristicLabel 标签、36 次训练（逐 epoch 分项损失）、208 组 × 约 42 条 validation 闭环
-审计，以及给 S3-04 的选参读数。整趟由一个依赖驱动的作业池（``s3_03_jobs``）跑：每套前端的拟合趟 → 拟合 → 第 0 轮 → 门
-（HeuristicLabel 复现 G4 与 split 级 nuisance 探针）→ 第 0 轮训练 → 第 1 轮 → 第 1 轮训练 → 学习臂审计；规则臂审计（ELU-P
-等拟合）一开始就用空槽跑；审计等价探针与训练等价探针与正式作业同时跑，不过即停下。它不选配置（S3-04）、不读 test、不改方法。
+S3-03 produces each arm's weights for the formal experiment and the validation audits of every configuration candidate.
+Inputs: the S3-02 train and validation data (read only; the sealed test roots are not touched) and the frozen method and
+grids. Outputs: per front end the ELU-P fitted values (the run's own values; the registration commit is made during or after
+the run and verify checks that both are bit-identical), the round-0/1 records and HeuristicLabel's labels, 36 trainings
+(3 learned arms x (1 round-0 + 5 round-1 seeds) x 2 front ends, per-epoch loss terms), 208 configuration groups x about 42
+validation closed-loop audits, and the selection readings for S3-04. One dependency-driven job pool (``s3_03_jobs``) runs it:
+per front end the calibration pass -> fit -> round 0 -> gate (HeuristicLabel reproduces G4, split-level nuisance probe) ->
+round-0 training -> round 1 -> round-1 training -> learned-arm audits; rule-arm audits (ELU-P after its fit) fill free slots
+from the start; the audit- and training-equivalence probes run beside the formal jobs and stop the run if they differ. It
+selects no configuration (S3-04), reads no test data and changes no method.
 
 Usage (server; normally through ops/vsmt/s3_03_train_select.sh):
   python ops/vsmt/s3_03_manifest.py check --run-root R --autodl-root /root/autodl-tmp --s3-02-tag 3f6ef1d --export-dir E \\
@@ -16,7 +20,7 @@ Usage (server; normally through ops/vsmt/s3_03_train_select.sh):
   python ops/vsmt/s3_03_manifest.py export --run-root R --export-dir E --tag T
   python ops/vsmt/s3_03_manifest.py verify --run-root R --export-dir E --tag T
 The job subcommands (fit, gate-round0, train-threads, probe-audit, adopt-calibration, readings, probe-determinism, coverage,
-run-measured) are what the pool runs; README "How to reproduce S3-03" lists the whole flow.
+run-measured) are what the pool runs; docs/REPRODUCE.md section 6 lists the whole flow.
 """
 
 from __future__ import annotations

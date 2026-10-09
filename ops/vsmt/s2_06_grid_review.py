@@ -1,26 +1,36 @@
 #!/usr/bin/env python3
 """S2-06 grid review (ruling 100-2 step 2 as amended by ruling 101 (1)(a), ruling 84-2): does SAM2 need grids of its own?
 
-白话：S0-05 的各臂网格是按实例分割校准趟的分位数定的（裁决 68，裁决 73／78 复核）。换成 SAM2 前端后，同一批校准量可能
-挪位置。这个脚本读 SAM2 校准趟的合并直方图，按裁决 100-2 第 2 步事先写死的判定点逐项重算，并把实例分割校准趟
-（`results/vsmt_lean_s2_05_calibration_oracle_850c533.json`）的同一量并排列出：
-  * TAF θ_a（HandCost θ_b 网格与它相同、同一判定点）：取使“同物体余弦 ≥ c 的占比 − 异物体余弦 ≥ c 的占比”最大的 c；
-  * TAF 距离门 d_a 与 LOW 的 d_low：取同物体质心距离的中位数；
-  * RAC ρ_rac 与 HandCost ρ_h：取使“gone 行自由空间覆盖 ≥ ρ 的占比 − present 行覆盖 ≥ ρ 的占比”最大的 ρ；
-  * 应可见下限：报应可见比例的分布（单个值没有端点可括，只报告）。
-每个点先看它落在网格有限端点（最小与最大的有限值）的哪一侧：之下、之内或之上。裁决 101 (1)(a)（2026-10-01）：SAM2 的点落在
-网格之外、而且与实例分割的点不在同一侧，才判“出界”——退出码 4，驱动写停止标记、停下，等用户另提按 mask_source 分存网格的
-裁决，不边看边改；与实例分割同在网格外的同一侧，记“与实例分割同一状况”，不停，列给 S3-01 裁定（两套前端的这些网格要不要调）。
-例如实例分割的同物体距离中位数约 0.19 m、在 LOW 网格 {0.25, …, 2.0} 之下，SAM2 若也在之下就不停；SAM2 若是 2.6 m、在之上，
-就出界。原文（裁决 100-2）的绝对判定会把实例分割自己的 4 个网格也判为出界，所以改为相对判定；绝对读数仍列在报告里供阅读。
-它不改网格、不选参，也不读任何指标。
+The S0-05 arm grids were set from quantiles of the instance-segmentation calibration pass (ruling 68, reviewed by rulings
+73/78); on the SAM2 front end the same calibration quantities may shift. This script reads the merged histograms of the SAM2
+calibration pass, recomputes each decision point fixed in advance by ruling 100-2 step 2, and lists the same quantity of the
+instance-segmentation calibration pass (`results/vsmt_lean_s2_05_calibration_oracle_850c533.json`) beside it:
+  * TAF theta_a (HandCost's theta_b grid is the same, with the same decision point): the c maximising
+    share(same-object cosine >= c) - share(different-object cosine >= c);
+  * TAF distance gate d_a and LOW's d_low: the median same-object centroid distance;
+  * RAC rho_rac and HandCost rho_h: the rho maximising share(gone-row free-space coverage >= rho) - share(present-row
+    coverage >= rho);
+  * should-be-visible floor: the distribution of the should-be-visible ratio (a single value has no endpoints; reported only).
+Each point is first placed relative to the grid's finite endpoints (smallest and largest finite value): below, inside or
+above. Ruling 101 (1)(a) (2026-10-01): a SAM2 point is "out of grid" only if it lies outside the grid on a side where the
+instance-segmentation point does not; then exit 4, the driver writes a stop marker and halts for a separate ruling that
+stores grids per mask_source (no change while looking). Outside on the same side as instance segmentation is recorded as
+"same as instance segmentation", without a stop, and listed for S3-01 to rule on (whether to adjust these grids for both
+front ends). Example: the instance-segmentation same-object distance median is about 0.19 m, below the LOW grid
+{0.25, ..., 2.0}; a SAM2 median also below does not stop, one of 2.6 m (above) is out of grid. The absolute test of the
+original ruling 100-2 would also put 4 of instance segmentation's own grids out, hence the relative test; the absolute
+readings stay in the report for reference. No grid is changed, no parameter selected and no metric read. S3-03 runs the same
+script on its two S3 calibration passes as a report-only job (`grid-reading`; ruling 102-6 keeps the grids, so exit 4 does
+not stop that run).
 
-操作化（运行前写死，见代码）：
-  * 占比都是直方图箱边界上的精确占比（`Histogram.share_at_or_above`），不用箱内插值；c 取余弦箱边界 −1.00, −0.98, …，
-    ρ 取 k/64（k = 1…63，k = 0 时两类都是 100%，不构成门）；最大值并列时取最小的 c 或 ρ；
-  * 中位数是否落在 [lo, hi] 用精确占比判：share(d < lo) ≤ 0.5 ≤ share(d < hi)（lo、hi 都是 0.05 m 箱边界）；报告里另给
-    箱内插值的中位数，只供阅读；
-  * 只有两个及以上有限值的网格才有“端点”可括；ELU-P 与 RAC 的 θ_a {0.7}、d_a {无, 1.0} 是单值，只报告对应占比，不判。
+Operationalisation (fixed before the run; see the code):
+  * every share is an exact share at a histogram bin edge (`Histogram.share_at_or_above`), no within-bin interpolation;
+    c ranges over the cosine bin edges -1.00, -0.98, ..., rho over k/64 (k = 1..63; at k = 0 both classes are 100%, no
+    gate); ties take the smallest c or rho;
+  * whether the median is within [lo, hi] is decided by exact shares: share(d < lo) <= 0.5 <= share(d < hi) (lo and hi are
+    0.05 m bin edges); an interpolated median is reported for reading only;
+  * only grids with two or more finite values have endpoints; the single-value grids of ELU-P and RAC (theta_a {0.7},
+    d_a {none, 1.0}) are reported as shares, not judged.
 
 Usage:
   python ops/vsmt/s2_06_grid_review.py --calibration <S2-06 calibration_report.json> \
@@ -142,9 +152,10 @@ def judge(point_kind: str, point: Mapping[str, Any], span: tuple[float, float], 
 def verdict(sam2_side: str, instance_side: str) -> str:
     """Ruling 101 (1)(a): SAM2 needs a grid of its own only where it leaves the grid on a side instance segmentation does not.
 
-    白话：输入两套前端各自落在网格的哪一侧（below／inside／above），输出这一项的判定：SAM2 在网格之内为 inside；SAM2 在网格外、
-    实例分割在网格内或在另一侧，为 out_of_grid（停下另提裁决）；两者同在网格外的同一侧，为 same_side_as_instance_segmentation
-    （不停，列给 S3-01）。例如实例分割与 SAM2 的覆盖交叉点都在 1/64、都在 RAC 网格之下，就是后者。它不判断哪套网格更好。
+    Input: the side of the grid (below / inside / above) for each front end. Output: inside if SAM2 is inside; out_of_grid
+    (stop for a ruling) if SAM2 is outside and instance segmentation is inside or on the other side;
+    same_side_as_instance_segmentation (no stop, listed for S3-01) if both are outside on the same side. Example: both
+    coverage crossings at 1/64, below the RAC grid, give the last. It does not judge which grid is better.
     """
 
     if sam2_side == "inside":

@@ -1,13 +1,16 @@
 """Hugging Face release of the S3 products (ruling 110, PLAN S3-05R): what goes where, and how each piece is made checkable.
 
-白话：把 S3 的产物分四层（T0 结果与权重、T1 评估输入、T2 训练与审计记录、T3 训练输入）发到 Hugging Face，别人可以只下其中一层。
-每条 episode 目录打成一个确定性 tar（文件按路径排序，时间、属主、权限固定），所以同一个目录无论何时何地打包，tar 的 sha256
-都相同；清单里同时记 tar 的 sha256 和目录的树摘要（与 test 封印同一种算法），下载的人解包后重算树摘要就能逐字节核对。
-输入是 B1 上的目录和已有的封印、cache 导出；输出是一份清单（每一项：仓库里的路径、恢复到哪里、字节数、sha256、树摘要、
-与已有摘要的核对结果）。例如 test 的一条 raw episode，清单里的树摘要必须等于 S3-02 test 封印里那条的摘要。它不改任何产物，
-也不读 test 的内容做任何计算以外的事——只算字节摘要。
+The S3 products are released in four tiers that can be downloaded separately: T0 results and weights, T1 evaluation
+inputs, T2 training and audit records, T3 training inputs.  Each episode directory becomes one deterministic tar
+(members sorted by path; times, owners and modes fixed), so the same directory gives the same tar sha256 wherever and
+whenever it is packed.  The manifest records both the tar sha256 and the directory's tree digest (the algorithm of the
+test seal), so a downloader re-derives the tree digest after extraction and checks it byte for byte.  Inputs are the
+directories on the coordinator (B1) and the existing seal and cache exports; the output is a manifest whose items carry
+the path in the repository, the restore path, bytes, sha256, tree digest and the comparison with the existing digests
+(e.g. a raw test episode's tree digest must equal that episode's digest in the S3-02 test seal).  No product is
+modified, and test content is read only to compute byte digests.
 
-Pure functions only (no network); ops/vsmt/hf_release.py and ops/vsmt/hf_fetch.py do the uploading and downloading.
+No network access here; ops/vsmt/hf_release.py and ops/vsmt/hf_fetch.py do the uploading and downloading.
 """
 
 from __future__ import annotations

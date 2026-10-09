@@ -24,13 +24,11 @@ What it does, in order:
 What it is not: it trains nothing, reads no cache frame and no private file, changes no contract (the
 contract edit that records the choice is a separate reviewed commit), and never selects on training houses.
 
-白话：S1-05 回答"五个臂以后读哪一套描述子"。输入是 S1-04 已经算好的诊断报告（选择 house 上两套冻结
-描述子与两个投影的跨视角分离度中位数）和 S0-03 合同里冻结的规则（投影要比最好的冻结描述子高 0.05 才
-入选）；输出是一份冻结回执：选了谁、它的权重摘要、论文要并列报告的冻结基线、每个候选的数字，以及 S1
-三步的收口清单。例如 ViT-B/14 投影后中位分离度 0.236，冻结 ViT-B/14 是 0.143，差 0.093 ≥ 0.05，所以
-选投影、并列报告冻结 ViT-B/14。它不是重新算分离度，也不训练；它只把已冻结的规则套到已有的数字上，
-并把报告里的结论重算一遍核对。选择组只有 9 条 house 而不是 12 条（cache 只有 39 条），按合同"跳过并计
-数、不顶替"照做，回执把缺口写明。
+The descriptor it selects is read by all arms.  The S0-03 rule: a projection is selected only if its median
+separation exceeds the best frozen descriptor's by at least 0.05.  With 39 cached episodes the selection group has 9
+houses, not 12; the shortfall is recorded, never filled (ruling 59 kept it).  Outputs:
+``results/vsmt_lean_s1_05_descriptor_freeze_154776d.json`` (SAM 2.1 cache, LOG-245) and
+``..._oracle_caa50c7.json`` (instance-mask cache, ruling 73 (3)); both chose ``reid_projection:vitb14``.
 """
 
 from __future__ import annotations

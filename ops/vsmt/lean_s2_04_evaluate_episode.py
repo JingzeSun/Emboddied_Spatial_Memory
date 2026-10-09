@@ -1,5 +1,9 @@
 """S2-04: run one arm over one cached episode with the S2-01 runner and label, decompose and score it frame by frame.
 
+The per-episode entry of the S2-05 / S2-06 development passes (``lean_s2_05_development.py run-pass``) and of the
+S3-03 train-split passes (``ops/vsmt/s3_03_manifest.py``, ``S2_04_ENTRY``: calibration, ELU-P round 0, round 1).  ``lean_s2_05_node_audit.py`` and ``llm_op.py`` reuse its loaders
+(``verify_cache_episode``, ``episode_depth_reader``, ``load_private_frame``, ``gather_teacher_policy``).
+
 Usage (server, frontend env; the S2-04 and S2-01 bits must be open, every policy value frozen):
     python ops/vsmt/lean_s2_04_evaluate_episode.py \\
         --cache-root /root/autodl-tmp/vsmt_caches/lean-s1-03-<commit> \\
@@ -16,25 +20,20 @@ What it does: validates the S2-04 and S2-01 contracts and refuses while a requir
 gathers every policy value from the contract that owns it (S0-01 dormancy and dedup, S0-05
 should-be-visible minimum, S2-01 sampling resolution, S0-04 dominance share and delta_moved) and
 refuses with the list still null; checks the ReID weights against the head S0-03 pins for
-``--mask-source`` (ruling 84-1 (b)); loads the sealed cache episode, its recovered masks, the private
+``--mask-source`` (ruling 84-1 (b)); loads the sealed cache episode, its fragment masks, the private
 records and instance images, the S1-04 geometry table and the intervention log; drives
 ``lean_runner.run_episode`` (timing each frame) and hands every step to ``EpisodeTeacher``; streams
 labels, training records and nuisance rows, closes the three streams, re-reads the nuisance file
-(complete only once closed; LOG-256) and writes a receipt with the runner summary, the
-seven-metric report, the diagnostics and the nuisance probes.  Multi-episode, multi-arm
-orchestration is S2-05.
+(complete only once closed; LOG-256) and writes a receipt with the runner summary, the metric report
+(eight metrics since ruling 102-5), the diagnostics and the nuisance probes.  The public step runs first;
+the private side opens a frame's instance image and pose only behind the frame's two seal digests.  It trains
+nothing; multi-episode, multi-arm orchestration is S2-05.
 
 S3-03 options (ruling 104): ``--heuristic-labels <ELU-P configuration JSON>`` also writes HeuristicLabel's
 training records (``heuristic_training_records.jsonl.gz``, ``lean_heuristic_label``) and a ``heuristic_records``
 receipt block whose ``reproduction`` counts, on ELU-P's own trajectory at that configuration, the rows where the
 label function and ELU-P's decisions differ (ruling 104-2 G4 needs none); ``--no-training-records`` writes no
-teacher training record.
-
-白话：这个入口把 S2-01 的 runner 和 S2-04 的 teacher 接在一起跑一条 episode、一个臂。公开阶段先跑，
-每帧回执带着两段封存摘要，私有侧凭它打开这一帧的实例图与位姿打标签、记账、算指标输入；跑完写七项
-指标。它不编排多条 episode（S2-05），不训练。S3-03 起可加 ``--heuristic-labels``：同一趟顺带写一份
-HeuristicLabel 的训练记录（标签是 ELU-P 在 rollout_config 下会作的决定），在 ELU-P 自己的轨迹上还逐行
-核对标签与臂的决定一致；``--no-training-records`` 则不写 teacher 训练记录（用不上它们的趟省盘）。
+teacher training record (passes that do not use them save the disk).
 """
 
 from __future__ import annotations
@@ -98,10 +97,9 @@ def verify_cache_episode(cache_dir: Path, descriptor_asset_sha256s: dict[str, An
                          mask_source: str | None = None) -> tuple[dict[str, Any], list[Path]]:
     """The S1-04 loader's checks (every frame seal recomputed, the episode seal recomputed) without keeping the frames.
 
-    白话：和 S1-04 的加载器做同样的核对——逐帧重算封印、重算 episode 封印——但核对完就丢掉帧，只留
-    帧文件路径；处理阶段再逐帧读入。最大的开发 episode 有 3473 帧，整条读进内存要近 20 GB，流式读每个
-    worker 只占一两 GB，16 核才用得上。核对与处理读到的是同一批字节，产物不变。裁决 72：封印按它声明的
-    mask 来源重算；调用方给了 ``mask_source`` 时，另一来源的 cache 一律拒绝，实例分割与 SAM2 不会混用。
+    Only the frame paths are kept and the frames are re-read one at a time: the largest development episode (3473
+    frames) needs about 20 GB in memory, a streamed worker one or two.  Ruling 72: the seal is recomputed with the
+    mask source it declares; with ``mask_source`` given, a cache of another source is refused.
     """
 
     receipt_path = cache_dir / "receipt.json"
@@ -147,9 +145,8 @@ def recomputed_frame_digest(public: Path, record: dict[str, Any], depth_raw: Any
     """Ruling 76 (4)(a): the S1-02 public frame digest recomputed from the bytes read -- the rgb PNG pixels, the
     depth array as saved, and the record's observation index, relative pose and action summary.
 
-    白话：S1-02 生成时把 RGB 与深度的字节摘要连同三个公开字段一起算成 frame_digest。读取方以前只把记录里的摘要
-    字串转交给 runner，文件被改了也看不出来（审查者把深度整体加 0.2 m、摘要不变，照样通过）。这里按同一定义
-    重算，不符就拒。它只读公开面，不改任何数。
+    A mismatch is refused.  Before this, the stored digest string was passed on unchecked (a review shifted the depth
+    by 0.2 m with the digest unchanged, and it passed).
     """
 
     import hashlib
@@ -174,8 +171,8 @@ def public_depth_view(episode_root: Path, index: int, *, episode_commit: str, po
     """Ruling 74: one frame's public depth view -- the S1-02 public record's frame digest and intrinsics, the depth
     file it names and the causal pose read under the S1-03 pose policy; nothing of the private plane.
 
-    白话：逐点深度检验要本帧的公开深度图、内参和位姿。它们本来就在 S1-02 的公开面里（cache 只存了由深度算出
-    的体积），这里按帧号读出来，交给 runner 与 teacher；帧摘要随行，runner 核对它和 cache 帧是同一帧。
+    The per-point depth tests need the depth map, intrinsics and pose, which the cache does not store (it keeps only
+    the derived volumes).  The runner checks the carried frame digest against the cache frame.
     """
 
     import numpy as np

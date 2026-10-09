@@ -1,14 +1,18 @@
 #!/usr/bin/env python3
 """Ruling 89-2 history summaries against independent rule executors (the check the same-input table could not be).
 
-白话：LOG-288 里“同输入异答案 = 0”是先由特征行算出规则答案、再看同一行有没有两个答案——确定性函数必然为 0，即使摘要记错
-也会通过（ASTRA 复核，2026-09-30）。这里换成独立核对：让 runner 真的跑 ELU-P（rollout 配置加登记拟合量）与 RAC（ρ 0.7／0.85 ×
-n 2／3／5）这些臂，它们各自维护完整历史（ELU-P 的对数几率、RAC 的连续负证据计数，都与摘要分开实现）；每个可判定行上，比较
-  * 臂的真实决定 与 “只由该行（含 5 个历史量）算出的规则决定”；
-  * ELU-P：臂在本帧更新后的对数几率 与 初值 + 增益×匹配次数 − 衰减×(可判定帧数+1) − 权重×(累计覆盖+当帧覆盖)；
-  * RAC：臂在本帧之前的计数 与 该 ρ 的连续计数摘要。
-另外同时维护一份故意写错的影子摘要（匹配时不清零 RAC 计数、不计匹配次数），用同样的规则算决定；它必须和臂的真实决定出现
-不一致，说明这个核对确实检得出摘要错误。输入只有公开 cache 与 runner，不读私有数据、不产生训练记录。
+The "same input, different answer = 0" of LOG-288 computes the rule's answer from the feature row and then asks whether one
+row has two answers; a deterministic function always gives 0, even with a wrong summary (ASTRA review, 2026-09-30). This
+audit checks independently: the runner actually runs the arms ELU-P (rollout configuration plus the registered fitted
+values) and RAC (rho 0.7 / 0.85 x n 2 / 3 / 5), each keeping its full history (ELU-P's log-odds, RAC's consecutive
+negative-evidence count, both implemented apart from the summary); on every eligible row it compares
+  * the arm's actual decision with the rule decision computed from that row alone (including the 5 history fields);
+  * ELU-P: the arm's log-odds after this frame's update with prior + gain x matches - decay x (eligible frames + 1) -
+    weight x (cumulative + this frame's coverage);
+  * RAC: the arm's count before this frame with the consecutive-count summary for that rho.
+A deliberately wrong shadow summary (no RAC reset on a match, no match count) is kept alongside and decided by the same rule;
+it must disagree with the arm's actual decisions, which shows that the audit detects summary errors. Inputs: the public
+cache and the runner only; no private data is read and no training record is written. Development stage (S2-R) only.
 
 Usage:
   python ops/vsmt/ruling89_history_audit.py run --cache-root <c> --episode-root <e> --episode-id <id> --arm RAC --config '<json>'

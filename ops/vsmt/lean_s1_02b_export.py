@@ -1,13 +1,10 @@
-"""Export an S1-02a/S1-02b output root as a small `results/*.json` report.
+"""Export a generator output root (S1-02a, S1-02b, confirmation or one S3-02 split) as a small `results/*.json` report.
 
-白话：解决的问题是服务器上的 `outputs/` 不进 Git，本地没法读结果。输入是一个
-阶段输出根目录（含顶层回执和每个 house 的 `receipt.json`），输出是一份带
-schema 版本、代码 commit、回执摘要和逐 house 行的 JSON，放进 `results/`，可以
-提交、可以本地读。例子：46 个 house 的 S1-02b 跑完后导出成品率、失败分类、
-每个 house 的 U／F／抽样类型／执行成功类型。
-
-它不是数据导出：不含任何帧、掩码、私有实例 ID 或资产；也不重新计算任何指标，
-只是把已经写死在回执里的数字汇总搬运出来。成品率按顶层回执原样引用，不重算。
+Used by ``ops/vsmt/s3_02_data.sh`` with ``--stage-receipt s3_receipt.json`` for the S3 train and validation splits
+(the sealed test split gets ``s3_02_manifest.py test-summary`` instead).  The report holds the schema version, code
+commit, stage-receipt summary and one row per house (U, F, sampled and executed kinds, ...), so that results of the
+uncommitted ``outputs/`` can be read locally.  It copies no frame, mask, private instance ID or asset, and recomputes
+nothing: the yield is quoted from the stage receipt.
 """
 
 from __future__ import annotations

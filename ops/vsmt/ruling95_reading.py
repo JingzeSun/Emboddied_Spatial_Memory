@@ -1,19 +1,26 @@
 #!/usr/bin/env python3
 """Ruling 95 (a): the main question read directly on the development houses (report; the reading rule is fixed before the run).
 
-白话：裁决 95 把 S2-R 拉回主问题——学到的生命周期操作，能不能比同样学关联、但没有生命周期操作的 AssocOnly 更好地维护
-记忆。输入是三类节点审计的合并结果：联合 VSMT-lean（五个第 1 轮头，关联与存在都由学习头决定，登记配置 τ_r 0.5、ln w 校正、
-k′=3）、按同样关联侧改动重训的 AssocOnly（五个种子）、四个规则臂（TAF、ELU-P、RAC、LOW，开发配置，无种子）。输出：
-  * 按裁决 82-1 的预登记规则（至少 4 个种子同号，且差的均值绝对值大于 5 个差的标准差），VSMT-lean 对 AssocOnly 在六项指标上
-    的先后（直接复用 ruling82_seed_analysis 的计算）；
-  * 裁决 95 登记的归类（运行前写死）：Missing 残留率确定更好、且节点 F1 与身份连续率都不是确定更差 → “开发集上显示收益”；
-    Missing 残留率更好、但节点 F1 或身份连续率确定更差 → “取舍，不主张收益”；Missing 残留率不是确定更好 → “开发集上未显示
-    收益”（分不出不等于没有效果）；
-  * 规则臂的 house 均值，以及裁决 85-4 的读数：VSMT-lean 五种子 Missing 残留率均值是最好规则臂的几倍（≥ 2 时 85-4 要求 S3-01
-    前裁定是否改主张框架）；裁决 89-4 的四条线只作参照报告，不判通过。
-例如 Missing 残留率 5 个差是 −0.10、−0.08、−0.12、−0.05、+0.01，4 个同号、均值 −0.068 绝对值大于标准差 0.050，且节点 F1 与
-身份连续率分不出，就归“开发集上显示收益”。它不是显著性检验；39 个开发 house 里 30 个是训练 house，开发集上的读数是样本内
-读数，主张要在确认集上检验一次。
+Ruling 95 brings S2-R back to the main question: do the learned lifecycle operations maintain memory better than AssocOnly,
+which learns association the same way but has no lifecycle operations? Inputs: merged node audits of joint VSMT-lean (five
+round-1 heads; association and existence both decided by the learned heads; registered configuration tau_r 0.5, ln w
+correction, k' = 3), AssocOnly retrained with the same association-side changes (five seeds) and the four rule arms (TAF,
+ELU-P, RAC, LOW; development configurations, no seeds). Outputs:
+  * the 82-1 order of VSMT-lean against AssocOnly on six metrics under the pre-registered rule (at least 4 seeds with the
+    same sign and |mean gap| above the standard deviation of the 5 gaps), computed by ruling82_seed_analysis as is;
+  * the ruling-95 classification, fixed before the run: Missing residual rate established better and neither node F1 nor
+    identity continuity established worse -> gain shown on development; Missing residual rate better but node F1 or identity
+    continuity established worse -> trade-off, no gain claimed; Missing residual rate not established better -> no gain shown
+    on development (not distinguishable is not evidence of no effect);
+  * the rule arms' house means and the ruling-85-4 reading: VSMT-lean's five-seed mean Missing residual rate as a multiple of
+    the best rule arm's (>= 2 calls for a framing ruling before S3-01, per 85-4); the four ruling-89-4 lines are reported for
+    reference only, without pass/fail.
+Example: Missing residual gaps -0.10, -0.08, -0.12, -0.05, +0.01 have 4 of the same sign and |mean| 0.068 > sd 0.050; with
+node F1 and identity continuity not distinguishable, the class is gain shown on development. Not a significance test; 30 of
+the 39 development houses are training houses, so development readings are in-sample and a claim is checked once on the
+confirmation set.
+
+Reused outside S2-R: `read` by s2_06_reading.py (S2-06 ruling 100-3 reading, both front ends).
 
 Usage:
   python ops/vsmt/ruling95_reading.py --group VSMT-lean:7:<merged audit> ... --group AssocOnly:59:<merged audit> \

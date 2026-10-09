@@ -1,4 +1,7 @@
-"""S1-04 (D-224-S1 ruling 45): one simulator reload per episode -> the private object geometry table.
+"""D-224-S1 ruling 45: one simulator reload per episode -> the private object geometry table (S1-04 and S3-02).
+
+Written for S1-04; ``ops/vsmt/s3_02_data.sh`` runs it on every S3-02 split.  The table feeds the per-frame truth
+boxes of the teacher and the evaluator (``lean_object_geometry.EpisodeTruthTracker``).
 
 Usage (server, simulator env; the S1-04 contract's ``object_geometry_reload`` bit must be open):
     /root/autodl-tmp/vsmt-envs/simulator-py39/bin/python ops/vsmt/lean_s1_04_object_geometry.py \\
@@ -24,13 +27,8 @@ What one worker does, per succeeded S1-02 episode, and what it writes:
   5. write a receipt; a failure of any kind leaves a failure receipt with a registered reason.
 
 The table is a private-plane product: it carries simulator object ids and world coordinates and
-must never be mounted by a deployment reader.  It changes no file of the generated episodes.
-
-白话：这个入口把裁决 45 落成文件。每条 episode 把它的 house 在模拟器里重新加载一次，站到 house
-自带的起始位姿上，读一遍所有物体的初始位置、朝向和轴对齐盒，写成一份私有几何表；然后拿这份表
-去对 episode 里记录的位置做两项残差检查（没被干预的物体有没有漂移、帧 0 的私有 mask 反投影点是
-不是落在平移后的盒子里）。它不生成新 episode、不执行任何干预、不读 cache、不训练；失败的 house
-留失败回执，不补样。
+must never be mounted by a deployment reader.  It changes no file of the generated episodes, runs no
+intervention and trains nothing; a failed house keeps its failure receipt and is not replaced.
 """
 
 from __future__ import annotations
@@ -164,10 +162,10 @@ def frame0_containment(episode_root: Path, table: dict[str, Any], truth0: dict[s
                        pose_policy: dict[str, Any]) -> dict[str, Any]:
     """Share of frame-0 private-mask back-projections inside each object's translated truth box.
 
-    白话：帧 0 是干预前、原点所在的那一帧。把每个可见物体的私有 mask 用公开深度和位姿反投影成
-    点，数落在它平移后真值盒（外扩 5 cm）里的比例。比例低说明重载的盒子、原点、平移规则或公开
-    位姿有问题，不是方法的问题。只看 ≥196 像素的物体。位姿按裁决 49 的登记规则读取（旧编码器的
-    episode 翻回俯仰角符号）；2026-09-22 正是这项残差把位姿符号错误查出来的。
+    Frame 0 precedes every intervention and defines the origin.  Objects with >= CONTAINMENT_MINIMUM_PIXELS (196) are
+    back-projected with the public depth and the pose read under ruling 49; the box is grown by
+    ``lean_object_geometry.CONTAINMENT_MARGIN_M``.  A low share points at the reload, the origin, the translation rule
+    or the public pose, not at the method (this residual found the pose sign error on 2026-09-22).
     """
 
     from PIL import Image

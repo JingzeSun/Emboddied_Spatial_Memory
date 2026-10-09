@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
 """Ruling 88 (read-only): what the existence head's "gone" labels actually are, from the merged node audits.
 
-白话：存在头的正例（teacher 标为“已不在”的存在候选）里，究竟有多少是论文要检测的真实世界变化。输入是已合并的节点
-审计导出（v3 起每个存在候选按八项归档：标签状态、原因、干预类别、窗口阶段、实体按节点主列是否仍在原处、是否另有
-实体承载、本帧有无色块、学生决定），输出每个导出里 gone 标签按五类的行数与占比：窗口后真的被拿走或搬动；实体自己按
-节点主列仍在原处且没有别的承载（撤回它就删掉唯一正确的记录）；在原处但另有重复承载；不在原处但另有承载；漂移且无
-承载。例如一个沙发实体的表面质心离沙发中心 0.7 m、但落在外扩后的沙发框里，标签是 gone，节点主列却算它在原处，它落在
-第二类。它只读已提交的 results/ 导出，不改任何标签、规则或合同；五类互斥，按下面的顺序取第一个成立的。
+How many of the existence head's positives (existence candidates the teacher labels "gone") are the real-world changes the
+paper sets out to detect. Input: merged node-audit exports (from v3 on, each existence candidate is tallied by eight fields:
+label status, reason, intervention class, window phase, whether the entity is in place by the node primary column, whether
+another entity carries the object, whether a fragment exists this frame, the student's decision). Output per export: gone
+rows and shares by class -- removed or moved after the window; in place by the node primary column with no other carrier
+(retracting it deletes the only correct record); in place with a duplicate carrier; not in place with another carrier;
+drifted with no carrier. Example: a sofa entity whose surface centroid is 0.7 m from the sofa centre but inside the
+expanded sofa box is labelled gone while the node primary column counts it in place: the second class. Reads committed
+results/ exports only and changes no label, rule or contract; the classes are exclusive, the first that applies in the
+order below is taken. Cited by a comment in `lean_teacher` (the 13.3 percent world-change share); imported by no code.
 
 Usage:
   python ops/vsmt/ruling88_label_partition.py results/vsmt_lean_s2_05_node_audit_ruling86_*_378008c.json --output <json>

@@ -1,21 +1,29 @@
 #!/usr/bin/env python3
 """S3-03 training (ruling 104): one learned arm, one DAgger round, one registered seed, on streamed records.
 
-白话：S3-03 要训练三个学习臂（VSMT-lean、AssocOnly、HeuristicLabel），每臂第 0 轮一次（种子 7）、第 1 轮五个种子。这个入口训练
-其中一次：
-  * 输入：一个或多个记录来源（``<趟根>:<臂>:<标签来源>``，例如第 0 轮 ELU-P 轨迹的 teacher 记录与本臂第 1 轮记录）、臂、轮、
-    登记种子；训练 house 与选点 house 按裁决 104-1 1a 由 S3 train 清单定（前 240 训练、后 60 选点）；
-  * 配方：裁决 99-1 冻结的那一版（逐字段编码、存在损失按类别加权、学习率余弦 1e-3 → 1e-5、梯度裁剪 1.0、存在决策用减去
-    ln w 的 logit；第 1 轮的 VSMT-lean 与 HeuristicLabel 另存分组选点的权重），与开发集入口 ``ruling89_train.py
-    --revision-91 [--group-selection]`` 同一份代码；
-  * 内存：记录流式读两遍（第一遍只取算编码统计的列，第二遍逐条转张量、读完即丢），不再把全部原始记录放进内存；
-  * 输出：``weights.json``（总损失选点）、第 1 轮分组臂的 ``weights_grouped.json``、``training_receipt.json``（逐 epoch 的
-    train／validation 关联损失与存在损失、选中 epoch、类别权重、输入文件摘要、线程数、峰值内存）；``--best-so-far`` 时另在
-    ``best_so_far/`` 下按摘要写出每个 epoch 末“到目前最好”的权重与指针，供调度器推测执行（裁决 104-7）；``--checkpoint`` 时
-    每个 epoch 末把全部训练状态存进 ``checkpoint/state.pt``，被打断后同一命令重跑即从下一个 epoch 接着训（与一口气训完逐位
-    相同；输入摘要不一致就拒绝续训）。
-例如第 1 轮 VSMT-lean 种子 31：读第 0 轮 ELU-P 记录与 VSMT-lean 第 1 轮记录，训 20 个 epoch，留下分组选点的头。它不选配置、
-不读 validation 或 test 的任何记录（来源里的 episode 必须都在 S3 train 清单里），也不改配方。
+This is the paper's S3 training entry; the recipe comes from ``lean_s3_03.training_settings``. S3-03 trains three learned arms
+(VSMT-lean, AssocOnly, HeuristicLabel), each once in round 0 (seed 7) and at five seeds in round 1; NoVersion uses
+VSMT-lean's heads. This entry runs one of these trainings:
+  * inputs: one or more record sources (``<pass root>:<arm>:<label source>``, e.g. the teacher records of the round-0 ELU-P
+    pass and the arm's own round-1 records), the arm, the round and a registered seed; training and checkpoint-selection
+    houses come from the S3 train manifest by ruling 104-1 1a (``lean_s3_03.checkpoint_split``: the first 240 train, the last
+    60 select; the "validation" loss of the receipt is the loss on these 60 held-out train houses, not the validation split);
+  * recipe: the version frozen by ruling 99-1 (field-wise encoding, class-weighted existence loss, cosine learning rate
+    1e-3 -> 1e-5, gradient clipping 1.0, existence decisions on the logit minus ln w; round 1 of VSMT-lean and HeuristicLabel
+    also keeps the grouped-selection weights), the same model code as the development entry ``ruling89_train.py
+    --revision-91 [--group-selection]``;
+  * memory: records are streamed twice (first only the columns the encoding statistics need, then one record at a time to
+    tensors, dropped after use); the raw records are never all held in memory;
+  * outputs: ``weights.json`` (total-loss selection), ``weights_grouped.json`` for the grouped arms in round 1, and
+    ``training_receipt.json`` (per-epoch train and held-out association and existence losses, the chosen epoch, the class
+    weight, input digests, threads, peak memory); with ``--best-so-far`` also the best-so-far weights at each epoch end under
+    their digest in ``best_so_far/`` with a pointer, for the scheduler's speculative execution (ruling 104-7); with
+    ``--checkpoint`` the whole training state at each epoch end in ``checkpoint/state.pt``, so that rerunning the same
+    command after an interruption continues at the next epoch (bit-identical to an uninterrupted training; a checkpoint whose
+    input digests differ is refused).
+Example: round 1, VSMT-lean, seed 31 reads the round-0 ELU-P records and VSMT-lean's round-1 records, trains 20 epochs and
+keeps the grouped-selection heads. It selects no configuration, reads no validation or test record (every source episode must
+be in the S3 train manifest) and does not change the recipe.
 
 Usage:
   python ops/vsmt/s3_03_train.py train --source <pass root>:<arm>:<teacher|heuristic> [--source ...] --arm VSMT-lean --round 1

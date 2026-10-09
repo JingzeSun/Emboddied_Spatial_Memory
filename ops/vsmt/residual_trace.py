@@ -1,15 +1,19 @@
 """Where a lingering stale entity got stuck (ruling 93 revised, 2026-09-30; read-only, changes no decision).
 
-白话：Missing 残留率只告诉我们“有多少被拿走／搬走的物体在原位置还留着旧记录”，不告诉旧记录为什么没被撤回。这里逐帧跟踪
-每个这样的物体在原位置附近的“陈旧实体”（身份是该物体、质心在原位置 δ 以内，与 `lean_teacher.missing_residual_rate` 同一口径）：
-这一帧它被绑定了、进了可判定存在候选、因不应可见被排除、已撤回，还是没有存在行；进了候选时 teacher 的存在标签、学习头的
-logit（决策用的校正后值与未校正值）和决定。到 episode 结束时，对最后一帧仍残留的每个物体归一类：
-  * carrier_rebound — 物体离开后，陈旧实体又被某个色块绑定过；
-  * retracted_then_back — 曾被撤回，但最后仍有同身份实体留在原位；
-  * never_eligible — 物体离开后，陈旧实体从未进过可判定候选；
-  * eligible_teacher_never_gone — 进过候选，但 teacher 从未标 gone；
-  * eligible_gone_below_threshold — 进过候选、teacher 标过 gone，但一次都没被撤回。
-它不是新的指标，不改任何决定或标签，只为解释残留。
+An optional diagnostic of the node audit (``lean_s2_05_node_audit.py run --trace-residuals``, refused under
+``--metrics-only``); no run of record uses it.  The missing-residual rate counts removed or moved objects that still
+have a record at their old place, not why that record was never retracted.  Per frame this follows each such
+object's stale entities (same identity, centroid within delta_moved of the old place: the rule of
+``lean_teacher.missing_residual_rate``) and records their status -- bound to a fragment, existence candidate, excluded
+as not visible, retracted, or without an existence row -- and, for a candidate, the teacher's existence label, the
+learned head's logit (as decided, with the existence-prior correction, and uncorrected) and the decision.  At the end
+every object still residual in the last frame gets the first category that applies (``CATEGORY_ORDER``):
+  * carrier_rebound -- a stale entity was bound to a fragment again after the object left;
+  * retracted_then_back -- a stale entity was retracted, yet an entity of the same identity remains at the old place;
+  * never_eligible -- no stale entity ever became an existence candidate;
+  * eligible_teacher_never_gone -- a candidate, but the teacher never labelled it gone;
+  * eligible_gone_below_threshold -- a candidate labelled gone, never retracted.
+It is not a metric and changes no decision or label.
 """
 
 from __future__ import annotations

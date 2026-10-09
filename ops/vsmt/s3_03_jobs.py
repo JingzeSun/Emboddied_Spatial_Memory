@@ -1,19 +1,27 @@
 """S3-03 job pool (ruling 104-7): one dependency-driven pool instead of stages that wait for each other.
 
-白话：S3-03 的几千个作业（拟合趟、第 0／1 轮轨迹的每条 episode、36 次训练、validation 审计的每条 episode）不再按段等齐：
-每个作业写明它依赖谁、要几个核、属于哪类内存，池子每隔一两秒看一次，有空槽就从输入已齐的作业里按优先级派发——关键路径
-（拟合、轨迹、训练）先于学习臂审计，学习臂审计先于规则臂审计；同级按预计耗时从长到短；不抢占。排在前面却放不下的作业会先
-“占住”它要的核与内存，后面的作业只能用剩下的，所以关键路径不会被一波小作业饿死。每类作业的内存先按缺省值记账，跑完一个就
-按实测峰值 ×1.25 上调；每轮派发前还看 cgroup 的实时内存与数据盘剩余，越线就暂停派发。作业结束按退出码定状态：0 完成；
-登记的特殊码（训练发散记“发散”、门不过记“门未过”）；其他非零码是工程失败——训练可同输入同种子自动重跑一次（裁决 104-3），
-其余失败即停止派发新作业、等在跑的结束。续跑时已完成的作业保留（代码自那以后只改了登记文件或文档才算，否则拒绝，除非显式
-接受）；上次中断时还在跑的作业，残留输出先挪到 ``interrupted/`` 留存再重跑；训练例外：它每个 epoch 末存档，中断或崩溃后
-留在原处、从存档接着训。运行目录里放一个 ``DRAIN`` 文件，池子就不再派发任何作业，等在跑的全部结束后停下（批次之间换代码或
-升级机器用）。另可接远程 CPU 机（``remote_hosts``，用户 2026-10-04）：准入过的工作机在 ``<运行根>/hosts/`` 下各有一份
-预算与允许的作业种类，池子每 30 秒重读一次（运行中可加、可停）；本机放不下而作业允许远程（带 ``remote_pull``）时派给有空的
-工作机，由 ``remote_hosts.py remote-run`` 代跑并把结果拉回原位置；连接失败的作业放回队列，那台机暂停。输入是作业清单与机器资源，输出是每个作业的状态
-文件、日志与实测内存。例如 120 核的机器上，三个第 0 轮训练一就绪就各占 4 核先走，其余空槽由审计填满。它不决定科学口径，
-命令与依赖由 ``s3_03_manifest`` 按裁决 104 生成。
+The thousands of S3-03 jobs (calibration passes, every episode of the round-0/1 passes, 36 trainings, every episode of the
+validation audits) no longer wait for each other stage by stage. Each job states its dependencies, its cores and its memory
+class; every second or two the pool dispatches, by priority, ready jobs that fit the free slots: the critical path (fit,
+passes, trainings) before learned-arm audits, learned-arm audits before rule-arm audits; within a level the longest expected
+first; no preemption. A job at the head that does not fit yet reserves the cores and memory it needs, so later jobs only use
+what remains and a wave of small jobs cannot starve the critical path. Each memory class starts at a default reservation
+and, after a job of the class ends, uses 1.25 x the measured peak; before each round the pool also reads the live cgroup
+memory and the free data disk and pauses dispatch past either line. A finished job's state follows its exit code: 0 done;
+the registered special codes (a diverged training: "diverged"; a failed gate: "gate failed"); any other non-zero code is an
+engineering failure -- a training is rerun once with the same inputs and seed (ruling 104-3), any other failure stops new
+dispatch and waits for the running jobs. On a resume, finished jobs are kept (only if the code changed since only in the
+registration files or documents; otherwise refused unless explicitly accepted); jobs running at the interruption have their
+partial outputs moved to ``interrupted/`` and rerun, except trainings, which checkpoint at every epoch end and continue in
+place. A ``DRAIN`` file in the run root stops all dispatch; the pool ends when the running jobs end (to change code or
+upgrade the host between batches). Remote CPU hosts (``remote_hosts``, user 2026-10-04): each admitted host has a budget
+and its allowed job kinds under ``<run root>/hosts/``, re-read every 30 s (hosts can be added or paused during a run); a job
+that does not fit here and allows remote execution (``remote_pull``) goes to a free host, where ``remote_hosts.py
+remote-run`` runs it and pulls the results back to their original paths; a connection failure requeues the job and suspends
+that host. Inputs: the job list and the machine's resources. Outputs: per-job state files, logs and measured memory.
+Example: on a 120-core host the three round-0 trainings start with 4 cores each as soon as they are ready, and audits fill
+the remaining slots. It decides nothing scientific; ``s3_03_manifest`` builds the commands and dependencies under ruling
+104. ``s3_05_manifest`` reuses the pool for the S3-05 test jobs; ``llm_op`` uses ``cgroup_process_bytes``.
 """
 
 from __future__ import annotations
@@ -97,10 +105,11 @@ def measured_gib(peak_bytes: int | None, default: float) -> float:
 def choose_train_threads(per_epoch_seconds: Mapping[int, float], *, cores: int, trainings: int = 30) -> dict[str, Any]:
     """Ruling 104-3: the thread count under which the round-1 trainings are expected to finish first.
 
-    白话：输入在约 20 个训练 house 上实测的每 epoch 秒数（1～4 线程各一个）和可用核数，输出整趟固定的 TRAIN_THREADS。
-    t 线程时最多同时跑 min(30, 可用核数 // t) 个训练，30 个要排 ceil(30 / 并行数) 波，每波耗时正比于 t 线程的每 epoch 秒数；
-    取预计总时长最短的 t，并列取线程少的。例如 100 核：1 线程每 epoch 10 s、4 线程 4 s，30 个都能同时跑，选 4 线程。
-    它只是预计，不保证真实完成时间；内存由派发时的记账另管。
+    Input: the per-epoch seconds measured on about 20 training houses at 1-4 threads, and the available cores. Output: the
+    TRAIN_THREADS fixed for the run. At t threads at most min(30, cores // t) trainings run at once, so 30 trainings take
+    ceil(30 / parallel) waves, each proportional to the per-epoch seconds at t threads; the t with the shortest expected total
+    wins, ties to fewer threads. Example: 100 cores, 10 s per epoch at 1 thread and 4 s at 4: all 30 run at once, 4 threads.
+    An expectation only, not a guaranteed completion time; memory is handled by the dispatch bookkeeping.
     """
 
     _require(bool(per_epoch_seconds), "train_threads_need_measurements")

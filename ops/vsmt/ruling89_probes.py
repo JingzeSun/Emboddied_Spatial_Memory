@@ -1,18 +1,28 @@
 #!/usr/bin/env python3
-"""Ruling 89-2 / 89-3 mechanism checks on regenerated training records (read-only diagnostics).
+"""Ruling 89-2 / 89-3 mechanism checks on regenerated training records (read-only diagnostics, S2-R track).
 
-白话：裁决 89 的存在侧与关联侧各有训练前要过的检查，这里只读已封存的训练记录（公开特征加 teacher 标签），不跑模拟器：
-  * same-input（89-2 训练前）：“同输入异答案”。在训练 house 的记录上，把可判定存在行按新特征整行（浮点完全相同才算同输入）
-    分组，HandCost（ρ_h 0.8）、RAC（ρ 0.7／0.85 × n 2／3／5）、ELU-P（rollout 配置加登记拟合量）的规则决定出现“同一输入两种
-    答案”的比例必须是 0；不为 0 说明历史摘要还表达不了规则，先修摘要、不训练。
-  * imitation（89-2 ①、89-3 的 P3）：同架构的头在新输入与新配方（逐字段编码；存在目标加类别权重）上能不能学会规则臂的决定。
-    存在目标直接由新特征算出（HandCost：当帧覆盖 ≥0.8；RAC：当帧覆盖 ≥0.7 且此前连续计数加一 ≥3；ELU-P：初值 + 增益×匹配次数
-    − 衰减×(可判定帧数+1) − 权重×(累计覆盖+当帧覆盖) < 门）；关联目标 TAF、LOW 与裁决 88 相同。报三种 epoch 的读数：选择集
-    损失最低（登记的检查点规则）、最后一个 epoch、训练损失最低，通过线看后两种（选择集选点不能当作拟合能力的严格检验）。
-  * coverage-events（89-3 训练前）：状态覆盖按事件计。拼接训练集（第 0 轮 ELU-P 轨迹＋本臂第 1 轮）的训练 house 上，labelled 目标
-    的实体处于撤回态或休眠态的，按（趟、episode、实体、状态、该段起点＝tick − 没见帧数）去重计数；每类 ≥200 个事件、分布在
-    ≥15 个训练 house 才算够，否则暂停。例如同一个休眠实体被连续 5 帧的色块指向，只算一个事件。
-它们都不是方法，不产生表行；P3 的权重只作诊断。
+Reads only sealed training records (public features plus teacher labels); no simulator. Checks run before training:
+  * same-input (before 89-2): "same input, different answer". On the training houses' records, decidable existence rows are
+    grouped by their whole new feature row (bit-identical floats only); the share of groups in which the rule decision of
+    HandCost (rho_h 0.8), RAC (rho 0.7 / 0.85 x n 2 / 3 / 5) or ELU-P (rollout configuration plus the registered fitted
+    values) takes two values must be 0. Otherwise the history summary cannot express the rule yet: fix the summary first.
+  * imitation (89-2 (1), P3 of 89-3): whether a head of the same architecture learns a rule arm's decisions on the new inputs
+    and recipe (field-wise encoding, class-weighted existence target). Existence targets are computed from the new features
+    (HandCost: coverage this frame >= 0.8; RAC: coverage >= 0.7 this frame and the previous consecutive count + 1 >= 3;
+    ELU-P: prior + gain x matches - decay x (decidable frames + 1) - weight x (cumulative + this frame's coverage) < gate);
+    the association targets TAF and LOW are those of ruling 88. Three epochs are read: lowest selection loss (the registered
+    checkpoint rule), the last epoch and lowest training loss; the pass line (0.99) applies to the last two, since selection
+    on the selection set is not a strict test of fitting capacity.
+  * coverage-events (before 89-3): state coverage counted in events. On the training houses of the concatenated training set
+    (round-0 ELU-P records plus the arm's own round 1), entities of labelled targets in the retracted or dormant state are
+    counted once per (pass, episode, entity, state, segment start = tick - ticks since last seen); each state needs >= 200
+    events over >= 15 training houses, otherwise pause. Example: a dormant entity targeted by fragments in 5 consecutive
+    frames is one event.
+None of these is a method or produces a table row; P3 weights are diagnostics only.
+
+Reused outside S2-R: `coverage_events` by the S3-03 coverage reading (`s3_03_manifest.cmd_coverage`, ruling 104-2, report
+only); `load_groups` and `revision_kwargs` by ruling89_train.py (the S2-06 training entry) and by the train-device stage of
+s3_02_bench.py; tests/test_vsmt_lean_s3_03_train.py binds `revision_kwargs` to `lean_s3_03.training_settings`.
 
 Usage:
   python ops/vsmt/ruling89_probes.py same-input --source <pass root>:dagger_round_0:ELU-P --output <json>
@@ -302,7 +312,10 @@ def key_events(heads: Any, built: Sequence[tuple[dict[str, Any], dict[str, Any],
 
 
 def revision_kwargs(args: argparse.Namespace) -> dict[str, Any]:
-    """Pending ruling 91 only: the proposed schedule; absent, the ruling-89 recipe as registered."""
+    """With --revision-91: cosine rate 1e-3 -> 1e-5, clipping 1.0, ln w correction (proposed by ruling 91, frozen by 99-1).
+
+    Without the flag: the ruling-89 recipe as registered (constant rate, no clipping, uncorrected existence logit).
+    """
 
     if not getattr(args, "revision_91", False):
         return {}

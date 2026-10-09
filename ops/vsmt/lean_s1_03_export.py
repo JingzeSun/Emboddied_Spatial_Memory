@@ -1,12 +1,9 @@
-"""Export an S1-03 cache root as a small ``results/*.json`` report.
+"""Export a front-end cache root (S1-03 or one S3-02 split and mask source) as a small ``results/*.json`` report.
 
-白话：服务器上的 cache（8 GiB 的逐帧 gzip）不进 Git，本地没法读结果。这个入口把阶段回执、
-每条 episode 的回执与封印汇总成一份带 schema 版本、代码 commit、回执摘要和逐 episode 行的
-JSON，放进 ``results/``，可以提交、可以本地读。例子：43 条 episode 的 cache 跑完后导出成功
-数、失败原因、每条的帧数／色块数／每帧秒数／字节数／封印摘要，以及全量的逐帧色块数直方图。
-
-它不是数据导出：不含任何帧、描述子、mask、私有实例 ID 或资产；也不重新计算任何指标，只把已
-经写死在回执里的数字汇总搬运出来。成品率按阶段回执原样引用，不重算。
+Used by ``ops/vsmt/s3_02_data.sh`` for the instance-mask and SAM2 caches of the S3 train and validation splits.  The
+report holds the schema version, code commit, stage-receipt summary, one row per episode (frames, fragments, seconds
+per frame, bytes, seal digest) and the histogram of fragments per frame.  It copies no frame, descriptor, mask, private
+instance ID or asset, and recomputes nothing: the yield is quoted from the stage receipt.
 
 Usage (server, any Python with the standard library):
     python ops/vsmt/lean_s1_03_export.py --cache-root /root/autodl-tmp/vsmt_caches/lean-s1-03-<commit> \\

@@ -1,17 +1,23 @@
 #!/usr/bin/env python3
 """S2-06 reading (ruling 100-3, registered before the run): the SAM 2.1 development table read by the fixed rules, beside instance segmentation.
 
-白话：S2-06 问的是：S2-R 在实例分割前端上看到的模式——相对同配方 AssocOnly，Missing 残留率大幅更低、身份连续率更高、节点 F1
-小幅更低；相对规则臂多指标取舍——换成 SAM2 前端、所有可训练与可拟合的部分都按冻结规则在 SAM2 上重来以后，还在不在。输入是
-七臂节点审计的合并结果：SAM2 上的 VSMT-lean、NoVersion、AssocOnly（各 5 个种子）与 TAF、ELU-P、RAC、LOW（各一份），以及实例
-分割开发集上的同一套（VSMT-lean 分组头 7c76970、AssocOnly 与规则臂 d835cd3、本阶段补的 NoVersion）。输出按裁决 100-3 写死的读法：
-  * VSMT-lean 对 AssocOnly：82-1 逐项先后与 95-3 归类（`ruling95_reading.read` 原样复用），两套前端各一份；
-  * VSMT-lean 对 NoVersion：82-1 逐项先后，只报告、不设门（版本保留本身的作用），两套前端各一份；
-  * 规则臂：house 均值与 85-4 比值（对 Missing 残留率最低的规则臂）；
-  * 逐项并排：每个指标每个臂的五种子均值与先后，SAM2 一列、实例分割一列。
-实例分割那份 AssocOnly 读数从已提交的合并导出重算，并与已提交的判读（`results/vsmt_lean_ruling96_reading_7c76970.json`）逐项
-核对，不一致就拒绝——表里每个数都由本脚本从文件算出，不手抄。例如 SAM2 上 Missing 残留率 5/5 更低、节点 F1 分不出，就归
-“开发集上显示收益”，与实例分割的归类并排写出。它不是 test，不选参、不改方法；39 个开发 house 里 30 个是训练 house，读数是样本内的。
+S2-06 asks whether the pattern S2-R showed on the instance-segmentation front end -- against the same-recipe AssocOnly a much
+lower Missing residual rate, higher identity continuity and slightly lower node F1; against the rule arms a trade-off over
+several metrics -- persists on the SAM2 front end once every trainable and fittable part is redone on SAM2 by the frozen
+rules. Inputs: merged node audits of the seven S2-06 arms on SAM2 (VSMT-lean, NoVersion and AssocOnly at five seeds each;
+TAF, ELU-P, RAC and LOW once each) and the same set on the instance-segmentation development set (VSMT-lean grouped heads
+7c76970, AssocOnly and rule arms d835cd3, NoVersion added in this stage). Output, by the reading fixed in ruling 100-3:
+  * VSMT-lean against AssocOnly: per-metric 82-1 orders and the 95-3 classification (`ruling95_reading.read` reused as is),
+    one per front end;
+  * VSMT-lean against NoVersion: per-metric 82-1 orders, reported without a gate (the effect of keeping versions), one per
+    front end;
+  * rule arms: house means and the 85-4 ratio (against the rule arm with the lowest Missing residual rate);
+  * side by side: each arm's five-seed mean and order per metric, one column for SAM2 and one for instance segmentation.
+The instance-segmentation AssocOnly reading is recomputed from the committed merged exports and checked item by item against
+the committed reading (`results/vsmt_lean_ruling96_reading_7c76970.json`); a mismatch is refused, so every number is computed
+from files, none copied by hand. Example: Missing residual rate lower at 5 of 5 seeds on SAM2 with node F1 not
+distinguishable gives "gain shown on development", written beside the instance-segmentation class. Not a test; selects no
+parameter and changes no method; 30 of the 39 development houses are training houses, so readings are in-sample.
 
 Usage:
   python ops/vsmt/s2_06_reading.py \

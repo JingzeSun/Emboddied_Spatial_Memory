@@ -1,4 +1,9 @@
-"""S1-04: frontend diagnostics over the development cache (rulings 45/46/47).
+"""S1-04 front-end diagnostics over a development cache (rulings 45/46/47) and, with ``--reid``, the training of the
+shared ReID projection head per descriptor set: the source of the heads pinned per mask source (ruling 84-1 (b)).
+
+Also a library: ``lean_s2_01_runner.py``, ``lean_s2_04_evaluate_episode.py``, ``lean_s2_05_node_audit.py`` and
+``llm_op.py`` import its sealed-cache loader (``load_cache_episode``), the registered descriptor digests
+(``registered_descriptor_asset_sha256s``), the intervention reader and ``DiagnosticsFailure``.
 
 Usage (server, frontend env; the S1-04 contract's ``private_plane_reading``, ``diagnostics_run`` and
 ``server_run`` bits must be open, plus ``reid_adapter_head_training`` for ``--reid``):
@@ -13,9 +18,9 @@ What one worker does, per cached episode, and what it writes:
   1. read the sealed cache frames and re-derive every frame seal from the bytes it loaded
      (descriptors, boxes, mask digests, surfaces, the two volume digests, the frontend config and
      the registered descriptor asset digests), then the episode seal from the frame seals; read the
-     recovered fragment masks (``NNNN.masks.npz``, S1-03 ``--recover-masks``) and re-digest every
-     mask from its pixels against the sealed fragment digest -- a stored digest string is never
-     trusted on its own;
+     fragment masks (``NNNN.masks.npz``, written by S1-03 during generation since ruling 51, by
+     ``--recover-masks`` before) and re-digest every mask from its pixels against the sealed
+     fragment digest -- a stored digest string is never trusted on its own;
   2. open the private plane (allowed here: the cache was sealed before) and label every fragment
      by the strict-majority rule over private instance pixels; read the episode's geometry table
      and walk the truth tracker (ruling 45) to get each object's truth box per frame;
@@ -28,24 +33,19 @@ What one worker does, per cached episode, and what it writes:
      labelled fragments and undefined diagnostics, not a malformed private plane.
 
 The orchestrator freezes the ruling-47 hold-out on the cache membership -- every cache-succeeded
-episode, in S0-02 split-rank order, before any diagnostic runs -- pools separation values, merges
-the recall curves, pools the IoU rows, and with ``--reid`` trains one projection head per frozen set
-on the training houses whose diagnostics succeeded (a training house that failed is a recorded gap,
-never refilled from the selection group), scores separation *and* the recall curve on the selection
-houses only, for the frozen descriptor and its projection alike, applies the S1-05 selection rule
-and writes the weights once.  A diverged training is a registered failure: no weights are written,
-the set is excluded from the selection rule, and the run exits 1.
+episode, in S0-02 split-rank order, before any diagnostic runs (the first 30 houses train, the next 12
+select) -- pools separation values, merges the recall curves, pools the IoU rows, and with ``--reid``
+trains one projection head per frozen set on the training houses whose diagnostics succeeded (a
+training house that failed is a recorded gap, never refilled from the selection group), scores
+separation *and* the recall curve on the selection houses only, for the frozen descriptor and its
+projection alike, applies the S1-05 selection rule and writes the weights once.  A diverged training is
+a registered failure: no weights are written, the set is excluded from the selection rule, and the run
+exits 1.  No arm parameter and no paper metric is computed here.
 
 Rerun rules: an existing non-empty output root is refused without ``--resume``; with ``--resume``
 succeeded and failed episode receipts are kept (a failed episode is never redone under the same
 root), only receipt-less episodes run, an earlier stage receipt is kept under a stamped name, and
 existing ReID weights are reloaded (digest-checked) instead of retrained.
-
-白话：这个入口在开发 cache 上回答三件事：冻结描述子分不分得开同一物体的不同视角，S0-03 的召回
-规则在不同 k/k′/半径下漏多少，单视角色块盒对整物体真值盒的 IoU 有多大。它读 private（cache 已封
-印，允许）、读几何表、读回收的 mask，但读到的每一帧和每一个 mask 都按定义重算摘要再用；不选描
-述子、不定任何臂的参数、不算论文指标。加 ``--reid`` 时按 cache 成员冻结的 30/12 留出训练投影，
-只在 12 条选择 house 上量分离度和召回曲线；训练发散记失败；已有输出根不加 ``--resume`` 拒绝。
 """
 
 from __future__ import annotations
@@ -115,9 +115,8 @@ def label_frames(cache_frames: list[dict[str, Any]], masks_by_frame: list[dict[s
                  private_records: list[dict[str, Any]], label_images: list[np.ndarray]) -> list[dict[str, Any]]:
     """Diagnostic frames: every cache fragment with its strict-majority private label.
 
-    白话：把 cache 的每帧色块和回收的 mask 对上——不只比文件里存的摘要串，而是把每个 mask 的像素
-    按定义重算摘要，和封印帧里的 `mask_sha256` 逐位核对；再拿私有实例图算每个色块落在哪个物体上
-    的像素占比，严格过半才标。输出只保留诊断要的字段，两套描述子都带着。
+    Each mask is re-digested from its pixels against the sealed frame's ``mask_sha256``; a fragment is labelled with
+    the object holding a strict majority of its private instance pixels.  Both descriptor sets are kept.
     """
 
     if not (len(cache_frames) == len(masks_by_frame) == len(private_records) == len(label_images)):
@@ -228,8 +227,8 @@ def frames_from_arrays(arrays: dict[str, np.ndarray], set_name: str) -> list[dic
 def holdout_status(split: dict[str, Any], succeeded: list[str]) -> dict[str, Any]:
     """Ruling 47 membership is frozen on the cache; a diagnostics failure is a gap in its own group.
 
-    白话：30/12 的成员在跑任何诊断之前就按有 cache 的 42 条定死。某条训练 house 诊断失败，训练集
-    就少一条并如实登记，绝不把选择组的 house 挪进来顶替；反之亦然。
+    The 30 / 12 membership is fixed on the cached houses before any diagnostic runs; a failed house is recorded as a
+    gap and never replaced from the other group.
     """
 
     done = set(succeeded)

@@ -1,19 +1,26 @@
 #!/usr/bin/env python3
 """S3-05 (ruling 107, 2026-10-05: 「待裁 107 全按推荐」): the one test run -- the steps of ``ops/vsmt/s3_05_test.sh``.
 
-白话：S3-05 用 S3-04 冻结回执钉住的代码、配置与权重，把 test 读一次、跑一次。每一步写本次的运行根 ``$AUTODL/vsmt_private/s3-05-run``：
-  * ``check``：``lean_s3_04.verify_freeze`` 对照回执（代码、权重、ELU-P 登记值、test 清单）；回执已提交在 ``results/`` 且与服务器上的
-    逐字节相同（106-5）；用户放行的口令 ``S3_05_GO`` 等于回执摘要前 12 位；
-  * ``unseal``：S3-02 封印的摘要等于回执所记，``lean_test_seal.open_roots`` 逐项核对封印后把四个 test 根打开为第 1 次读取并写读取
-    记录（续跑是同一次读取）；随后才看 test 根的目录结构，定下每套前端可用的 test episode（清单 ∩ 生成成功 ∩ 几何表 ∩ 该前端 cache
-    成功），写 ``inputs.json``；
-  * ``run``：作业池（复用 S3-03 的 ``s3_03_jobs``）：每个作业是一条 test episode 上回执里的一个运行（node audit 只算指标，
-    ``--manifest-split test --test-receipt``）；崩溃同输入自动重跑一次，仍失败记为数据失败、照记、不停整趟（107-2）；准入过的工作机
-    （kinds 含 test）可以分担；运行中不打印、不导出任何指标（107-5）；
-  * ``merge``、``stats``：每个运行合并成一份；全部作业结束之后一次性按 107-4 算统计（``lean_s3_05``）；
-  * ``export``、``verify``：导出 ``vsmt_lean_s3_05_*_<tag>.json`` 与运行清单。
-输入是冻结回执、S3-03 运行根（权重）与四个 test 根；输出是两张主表、比较、固定顺序判定与逐例失败。例如回执提交之后有人改了
-``src/`` 里一个文件，check 报出 ``code_changed:...`` 并以 3 停下，test 根保持封存。它不选参、不训练，也不会第二次解封。
+S3-05 reads test once and runs it once with the code, configurations and weights pinned by the S3-04 freeze receipt. Each
+step writes this run's root ``$AUTODL/vsmt_private/s3-05-run``:
+  * ``check``: ``lean_s3_04.verify_freeze`` against the receipt (code, weights, registered ELU-P values, test list); the
+    receipt is committed in ``results/`` and canonically equal to the one on the server (106-5); the user's go key
+    ``S3_05_GO`` equals the first 12 characters of the receipt digest;
+  * ``unseal``: the S3-02 seal digest equals the receipt's; ``lean_test_seal.open_roots`` checks the seal item by item, opens
+    the four test roots as reading 1 and writes a read record (a resume is the same reading); only then is the test roots'
+    directory structure read to fix the usable test episodes per front end (manifest, generation succeeded, geometry table,
+    that front end's cache succeeded) in ``inputs.json``;
+  * ``run``: the job pool (S3-03's ``s3_03_jobs``): one job per run of the receipt on one test episode (metrics-only node
+    audit, ``--manifest-split test --test-receipt``); a crash reruns once with the same inputs, a second failure is a data
+    failure, recorded, and the run goes on (107-2); admitted hosts with kind test share the work; no metric is printed or
+    exported while running (107-5);
+  * ``merge``, ``stats``: one merged file per run; once every job has ended, all statistics at once by 107-4
+    (``lean_s3_05``);
+  * ``export``, ``verify``: ``vsmt_lean_s3_05_*_<tag>.json`` and the run manifest.
+Inputs: the freeze receipt, the S3-03 run root (weights) and the four test roots. Outputs: the two main tables, the
+comparisons, the fixed-sequence verdicts and the per-episode failures. Example: if a file in ``src/`` changed after the
+receipt commit, check reports ``code_changed:...`` and stops with exit 3; the test roots stay sealed. It selects no
+parameter, trains nothing and never unseals a second time.
 """
 
 from __future__ import annotations

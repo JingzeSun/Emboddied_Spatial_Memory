@@ -1,4 +1,9 @@
-"""S1-02a pilot: four workers, one ProcTHOR house each, end to end.
+"""D-224 ProcTHOR episode generator: the S1-02a pilot, S1-02b, the confirmation houses and the formal S3-02 data.
+
+The file name is historical (it started as the S1-02a pilot: four workers, one house each).  ``--stage`` selects the
+run: ``s1-02a`` (default, the pilot), ``s1-02b`` and ``confirmation`` (``main_s1_02b``), ``regenerate`` and
+``window-probe`` (one-off S1 runs under rulings 40 and 53), ``s3-measure`` and ``s3`` (``main_s3``, launched by
+``ops/vsmt/s3_02_data.sh``).
 
 Usage (server, simulator env):
     python ops/vsmt/lean_s1_02a_pilot.py --output-root /root/autodl-tmp/vsmt_outputs/lean-s1-02a-<commit> \
@@ -11,21 +16,22 @@ What one worker does, in order, and what it writes:
      house-authored agent pose, read GetReachablePositions;
   2. plan sweep one + the transition (lean_route), execute them, saving the
      three planes every frame; sweep one gives each object's max visible
-     pixels (private instance masks), the transition gives, for every
-     container, a public-visibility verdict per frame (S0-02 verdict source);
-  3. U = containers invisible in every transition frame (subjects sealed from
+     pixels (private instance masks), the window (the last WINDOW_FRAMES = 30
+     frames of the transition, ruling 53) gives, for every container, a
+     public-visibility verdict per frame (S0-02 verdict source);
+  3. U = containers invisible in every window frame (subjects sealed from
      the best sweep-one frame, ruling 35); enumerate the feasible triples
-     (lean_interventions), dry-run the placements, sample, draw the control
-     containers (ruling 34); execute the interventions at the transition cell
-     unless the episode is a salted null draw (ruling 37), which keeps the
-     sample and the controls and skips only the execution;
+     (lean_interventions), dry-run the placements (ruling 31), sample, draw
+     the control containers (ruling 34); execute the interventions at the
+     transition cell unless the episode is a salted null draw (ruling 37),
+     which keeps the sample and the controls and skips only the execution;
   4. sweep two visits the intervened containers and the controls, interleaved
      by the seeded RNG;
   5. write provenance (route, reachable set, interventions, verdicts) and a
      per-house receipt; a failure of any kind leaves a failure receipt with
      a registered reason and keeps the prefix.
 
-The orchestrator selects the pilot houses with lean_pilot (head of the
+The s1-02a orchestrator selects the pilot houses with lean_pilot (head of the
 frozen split's train block), runs the workers, validates the receipts with
 the S1-02a contract checkers and derives the S1-02b worker count.
 
@@ -95,8 +101,8 @@ S3_MANIFESTS = ROOT / "configs" / "vsmt" / "lean_s3_01_manifests.json"
 def confirmation_houses(block: list[str], registry: dict[str, Any]) -> list[str]:
     """The ruling-81 confirmation houses: the registered positions of the train block, checked against the frozen list.
 
-    白话：确认集的 house 名单在裁决 81 冻结（train 块第 50～99 位）。输入是按冻结划分重算的 train 块和登记文件，
-    输出同一份名单；重算结果与登记名单不是逐项相同就拒绝，不猜、不补。它不决定名单，只核对并返回。
+    Ruling 81 froze positions 50..99 of the train block; any difference between the recomputed block and the registry is
+    refused.
     """
 
     first, last = (int(v) for v in registry["positions"])
@@ -377,9 +383,9 @@ def _seal_container_subjects(ep: Episode, containers: dict[str, Any],
     """Seal one visibility subject per container from the sweep-one frame with the most container
     pixels (ruling 35); private mask, provenance only.  Returns (subjects, per-container frame record).
 
-    白话：以前用"最后一次站在视点格上的那一帧"封印，结果 972/1521 个容器在那一帧里是
-    0 像素（几个容器共用一个视点格、或后来路过了那个格子），只有 411 个能封印，U 因此
-    极小且偏向抽屉。现在取扫掠一里该容器像素最多的那一帧，≥512 像素才封印。
+    A container is sealed only with >= MIN_SUBJECT_PIXELS (512) pixels in that frame.  The earlier "last frame on the
+    viewpoint cell" rule left 972 of 1521 containers at 0 pixels (shared viewpoint cells, passing frames), so only 411
+    could be sealed and U was small and biased towards drawers.
     """
 
     subjects, frames = {}, {}
@@ -408,7 +414,7 @@ def _seal_container_subjects(ep: Episode, containers: dict[str, Any],
 
 
 def _invisible_set(ep: Episode, subjects: dict[str, dict[str, Any]], transition: tuple[int, int]) -> tuple[set[str], list[dict[str, Any]]]:
-    """Containers whose subject projects zero unoccluded samples in EVERY transition frame."""
+    """Containers whose subject projects zero unoccluded samples in EVERY frame of ``transition`` (the window since ruling 53)."""
 
     calib = intrinsics()
     invisible, verdicts = set(subjects), []
@@ -440,7 +446,8 @@ REVERT_TOLERANCE_M = 0.01
 
 def _prescreen(controller: Any, containers: dict[str, Any], tries: int = 1,
                anywhere: bool = True) -> tuple[dict[str, bool], dict[str, Any]]:
-    """Destination prescreen.  anywhere=False keeps only top-surface spawn points (ruling 31, proposed):
+    """Destination prescreen: each container's spawn points (the ruling-31 dry run then tries these points).
+    anywhere=False (``--destination-points top``, a proposal not adopted) keeps only top-surface spawn points:
     a closed drawer or an enclosed shelf is a legal spawn box but nothing placed there is observable."""
 
     ok, points = {}, {}
@@ -481,11 +488,9 @@ def _distance(a: dict[str, float] | None, b: dict[str, float] | None) -> float |
 def _revert_object(controller: Any, oid: str, orig_pos: dict[str, float], orig_rot: dict[str, float]) -> dict[str, Any]:
     """Put a dry-run object back and verify it is there; never leave an unregistered change behind.
 
-    白话：试放之后必须把物体放回原位。`TeleportObject` 报告成功并不等于物体真的回去了——
-    4bff1a8 的数据里有报告成功却停在 0.05 m 到 10.9 m 外的（鸡蛋摔碎、被碰撞体弹开），其中
-    三条还被记成成功的 episode。窗口内任何没有登记的位移都是污染：teacher 会在扫掠二看到
-    一个"没人动过却换了地方"的物体。现在逐次核对真实位置，先普通放回、不行再运动学放回，
-    仍然超过 1 cm 就让整条 episode 失败（S0-02 的 revert_failure_fails_the_house）。
+    A plain TeleportObject is tried first, then a kinematic one; a drift above REVERT_TOLERANCE_M (1 cm) after both fails
+    the episode (S0-02 ``revert_failure_fails_the_house``).  An unregistered displacement inside the window would show
+    the teacher an object that moved without an intervention (LOG-239: the 4bff1a8 run).
     """
 
     log: list[dict[str, Any]] = []
@@ -507,6 +512,8 @@ def _revert_object(controller: Any, oid: str, orig_pos: dict[str, float], orig_r
     return {"ok": False, "drift_m": log[-1]["drift_m"], "attempts": log}
 
 
+# _place and _place_verified have no caller: placement and the visibility peek run through _dry_run_pairs and
+# _apply_interventions since ruling 31 was adopted (2026-09-20).  Kept unchanged.
 def _place(controller: Any, action: str, candidates: list[Any], **kw: Any) -> tuple[Any, int]:
     """Try the candidate points in order; return the first success and how many were tried."""
 
@@ -521,11 +528,9 @@ def _place(controller: Any, action: str, candidates: list[Any], **kw: Any) -> tu
 def _place_verified(controller: Any, action: str, candidates: list[Any], *, object_id: str,
                     viewpoint: dict[str, Any], min_px: int, **kw: Any) -> tuple[Any, int, int]:
     """Like _place, but a point only counts if the object is then visible (>= min_px) from the
-    container's sweep-two viewpoint, checked by an off-route private render (ruling 31, proposed).
+    container's sweep-two viewpoint, checked by an off-route private render (the ruling-31 proposal).
 
-    白话：放下之后先"偷看"一眼——把 agent 瞬移到该容器的重访视点渲染一帧，看私有实例
-    分割里这个物体有没有 ≥196 像素，再瞬移回原位。偷看的帧不进 public，也不计入观察序
-    列；它只保证被添加/移动的物体在扫掠二确实看得见，否则换下一个点。
+    The peek frame enters neither the public plane nor the observation sequence.
     """
 
     a = controller.last_event.metadata["agent"]
@@ -576,10 +581,10 @@ def _dry_run_pairs(controller: Any, candidates: list[dict[str, Any]], u_containe
                    destinations: dict[str, list[str]] | None = None) -> tuple[dict[tuple[str, str], dict[str, Any]], list[dict[str, Any]]]:
     """Try every (object, U destination) placement for real, peek, and put the object back.
 
-    白话（裁决 31，proposed）：可行集里的 move／add 不再靠"容器有生成点"猜，而是在窗口
-    内真的把物体放过去一次、从该容器的重访视点偷看一眼（私有渲染，≥196 像素才算），再
-    用 TeleportObject 把物体放回原位。只有真放得下且看得见的 (物体, 目的容器) 对才进 F，
-    并记住那个点。窗口内容器本就不可见、干预之间不采帧，所以试放不会进入 public。
+    Ruling 31 (adopted 2026-09-20): a move / add pair enters F only if the object can be placed and the private peek
+    from the destination's revisit viewpoint sees >= MIN_VISIBLE_PIXELS (196); the point is remembered.  The dry run
+    never reaches the public plane: the containers are invisible in the window and no frame is taken between
+    interventions.
     """
 
     meta = controller.last_event.metadata
@@ -646,10 +651,10 @@ def _sweep_back(controller: Any, before: dict[str, tuple[dict[str, float], dict[
                 table: list[dict[str, Any]]) -> None:
     """Every pickupable object must end the dry run where it began; restore the ones that did not.
 
-    白话：试放某个物体时可能把旁边的物体碰下桌子，而那个物体自己那一行可能早就测完了，
-    逐行核对抓不到它。所以 dry-run 结束时把全部可拾取物体和开工前的快照比一遍，动了的
-    放回去并登记，放不回去就整条作废。这样"窗口里除了登记的干预之外什么都没变"才是可证
-    的，而不是假定的——裁决 34 的对照容器正是靠这一条成立。
+    Testing one object can knock over another whose own row was already checked, so all pickupable objects are compared
+    with the pre-dry-run snapshot; a moved object is restored and recorded, an unrestorable one fails the house.  This
+    makes "nothing but the registered interventions changed in the window" checked rather than assumed, which the
+    ruling-34 control containers rely on.
     """
 
     moved = []
@@ -679,10 +684,9 @@ def _apply_interventions(controller: Any, rows: list[dict[str, Any]], *, viewpoi
     """Execute the sampled interventions.  Every row's attempt record is appended to ``attempts``
     before anything can raise, so a failed house still leaves the full attempt table.
 
-    白话：执行放置时先试 dry-run 记住的那个点并偷看；若放不下或看不见（4bff1a8 里有 3 个
-    house 是这样），不再只在旧的 32 个点里找，而是重新向模拟器要当前状态下的生成点、
-    再均匀取 32 个逐点试放并偷看。每个点的错误、放置前物体的真实位姿都写进 provenance，
-    失败也写，这样下次能定因。
+    A move / add first tries the point the dry run remembered, then DRY_RUN_MAX_POINTS (32) evenly spaced fresh spawn
+    points of the current state, each followed by a peek (3 houses of the 4bff1a8 run needed the fresh points).  Every
+    point's error and the object's pose before execution go to provenance, failures included.
     """
 
     log = []
@@ -745,9 +749,8 @@ def _remaining_to(controller: Any, ep: Episode, cells: set, blocked: set, vp_box
     has cut the viewpoint cell off, the nearest admissible viewpoint inside the reachable component
     is selected instead and the change is recorded (00975 in the 4bff1a8 run).
 
-    白话：被拒绝的格间边可能把视点格割开（视点在椅子后面的死角）。以前只换路不换视点，
-    走不到就整条作废；现在在"带黑名单还走得到"的格子里重选最近的合格视点，并把新旧视点
-    写进 provenance。规则没变（最近合格视点、并列按网格序），只是"可达"改为按实测算。
+    The selection rule is unchanged (nearest admissible viewpoint, ties by grid order); only reachability is measured
+    under the blocklist.  Old and new viewpoints go to provenance.
     """
 
     here, yaw = _agent_cell_yaw(controller)
@@ -805,11 +808,9 @@ def _tail_window(transition: list[int], frames: int) -> tuple[list[int], list[in
     segment is what precedes them.  The transition target (the farthest reachable cell) and ``frames``
     are fixed before the walk, so the cut is not chosen by what was seen.
 
-    白话：这个函数决定"哪几帧算不可观测窗口"。输入是过渡段的起止观察序号和冻结的窗口长度 30，输出
-    是（离开段, 窗口段）两个区间。窗口＝"从最后视点走向最远可达格"这段路的最后 30 帧，之前的帧是离开
-    段：照常拍照观察，但不参与 U 的交集。例如过渡 95 帧，离开段是前 65 帧、窗口是后 30 帧；过渡只有
-    26 帧就整条失败，不缩短。它不等于"事后挑一段看起来不可见的帧"——目标格和长度在走之前就定了；也
-    不改封印规则、像素阈值或抽样。原先的整段口径在小房子里把每个容器都看到一次，被本裁决取代。
+    Returns (leave segment, window).  Leave-segment frames are observed as usual but do not enter the intersection
+    that defines U.  A transition shorter than ``frames`` (WINDOW_FRAMES = 30) fails the episode; the window is never
+    shortened.  The pre-ruling-53 whole-transition window saw every container once in small houses.
     """
 
     lo, hi = int(transition[0]), int(transition[1])
@@ -821,15 +822,13 @@ def _tail_window(transition: list[int], frames: int) -> tuple[list[int], list[in
 
 def _walk_window_segment(controller: Any, ep: Episode, cells: set, blocked: set, replans: list[dict[str, Any]], *,
                          frames: int, replan_on: bool) -> dict[str, Any]:
-    """Pending ruling 53 probe: after the transition, keep walking towards the cell farthest from
+    """Ruling-53 probe (window mode ``u_turn``): after the transition, keep walking towards the cell farthest from
     where the transition ended for exactly ``frames`` actions; that segment is the window.
 
-    白话（待裁 53 的探针，用户 2026-09-23 授权"先跑前几条看看效果"）：现行规则把整段过渡当窗口，
-    小房子走一遍就把每个容器都看到一次，U 为空。这里在过渡走到最远格之后，再朝"离现在位置最远的
-    可达格"继续走恰好 L 步（转身也算一步、也出一帧），U 只在这 L 帧上算。输入是当前位姿、可达格、
-    黑名单和 L；输出是这段的观察序号范围、真正走了几步、目标格和"到目标格一共有几步可走"。走不满
-    L 步（先到了目标格）整条按 intervention_window_unavailable 失败，不缩短窗口。它不改 U 的算法、
-    像素阈值或抽样，不是 S1-02 的冻结协议，产物只作估算。
+    Authorised by the user on 2026-09-23 as a probe (「先跑前几条看看效果」); ruling 53 then adopted the transition tail
+    (``_tail_window``) and this mode stays only to replay the probe roots.  A turn counts as one action and one frame.
+    Returns the segment's observation range, the actions walked, the target cell and the actions available to it.
+    Fewer than ``frames`` available actions fail the episode as intervention_window_unavailable; never shortened.
     """
 
     here, yaw = _agent_cell_yaw(controller)
@@ -860,7 +859,7 @@ def run_house(task: dict[str, Any]) -> dict[str, Any]:
     house_id, index, out = task["house_id"], task["index"], Path(task["out"])
     t0 = time.time()
     receipt: dict[str, Any] = {"house_id": house_id, "source_index": index, "code_commit": task["commit"]}
-    # defaults are the contract rules after rulings 25-38; the old values remain selectable only to replay s1-02b/159654f
+    # defaults are the contract rules after rulings 25-53; the old values remain selectable only to replay earlier S1 runs
     replan_on = bool(task.get("replan_blocked_edges", True))
     placement_tries = int(task.get("placement_tries", DRY_RUN_MAX_POINTS))
     add_source = str(task.get("add_source", "unseen_existing"))
@@ -942,8 +941,8 @@ def run_house(task: dict[str, Any]) -> dict[str, Any]:
         tr_start = len(ep.actions_done) - 1
         _execute(controller, ep, _to_far(blocked), blocked=blocked, replans=replans, replan=_to_far if replan_on else None)
         tr = [tr_start, len(ep.actions_done) - 1]
-        # pending ruling 53 probe: an optional window segment of exactly window_segment_frames actions
-        # walked after the transition; U is then computed on that segment only (0 = frozen whole-transition rule)
+        # the window (_resolve_window): transition_tail = the last WINDOW_FRAMES transition frames (ruling 53, the
+        # default); u_turn = the probe segment walked after the transition; whole_transition = the pre-ruling-53 rule
         window_mode, seg_frames = _resolve_window(task)
         window_segment = None
         leave = tr
@@ -1168,8 +1167,8 @@ def main() -> int:
     ap.add_argument("--stall-timeout-s", type=int, default=1800,
                     help="a started house with no heartbeat for this long is a stalled worker and is failed; "
                          "queued houses are never timed out; this is not a compute budget")
-    # Defaults are the S0-02 v3 rules after D-224-S1 rulings 25-32.  The pre-ruling values stay
-    # selectable only to replay the s1-02b/159654f run; they are not a second protocol.
+    # Defaults are the S0-02 v3 rules after D-224-S1 rulings 25-53 (= S3_REQUIRED_OPTIONS).  The pre-ruling values
+    # stay selectable only to replay earlier S1 runs (named in each help text); they are not a second protocol.
     ap.add_argument("--replan-blocked-edges", action=argparse.BooleanOptionalAction, default=True,
                     help="ruling 27: on a rejected MoveAhead, block that edge and replan the rest")
     ap.add_argument("--placement-tries", type=int, default=DRY_RUN_MAX_POINTS,
@@ -1286,12 +1285,11 @@ def _collect_house_receipts(out_root: Path) -> list[dict[str, Any]]:
 def main_regenerate(args: argparse.Namespace) -> int:
     """Rerun named houses of an existing output root under a user ruling, then rewrite the stage receipt.
 
-    白话（裁决 40）：用户把 `maximum_actions` 从 2000 改到 4000 并裁定"只重生成触顶失败的 house"。
-    这个入口只做这一件事：被点名的 house 的旧目录必须已经被移走（不覆盖），按当前提交重跑它们，
-    然后把该输出根下现有的全部逐 house 回执重新汇总成阶段回执。占用回执（S1-02a）不重算——它是
-    在 4 路并发下量的，单独重跑一条不是同一个测量。回执里同时记下所有出现过的代码提交，
-    以及本次是按哪条裁决重生成了哪些 house，旧目录在哪。它不是"重试到好为止"：名单来自裁决，
-    不来自结果。
+    Written for ruling 40 (``maximum_actions`` 2000 -> 4000; regenerate the houses that hit the limit).  Each named
+    house's old directory must already be moved aside (never overwritten); the named houses are rerun at the current
+    commit and every per-house receipt under the root is re-summarised into the stage receipt.  The S1-02a occupancy
+    receipt is not recomputed (it was measured at four workers).  The receipt records every code commit present, the
+    ruling and the regenerated houses.  The house list comes from the ruling, not from results.
     """
 
     houses = [h for h in args.houses.split(",") if h]
@@ -1358,14 +1356,13 @@ def main_regenerate(args: argparse.Namespace) -> int:
 
 
 def main_window_probe(args: argparse.Namespace) -> int:
-    """Run named houses under the pending-ruling-53 two-segment window and write an estimate receipt.
+    """Run named houses under a probe window (the ruling-53 probe) and write an estimate receipt.
 
-    白话：用户 2026-09-23 说"先别生成 50 条，先跑前几条看看效果估算一下"。这个入口只跑点名的几栋
-    house，过渡之后再走恰好 L 步作窗口段（见 `_walk_window_segment`），其余流程（封印、U、dry-run、
-    抽样、对照、扫掠二）与 S1-02 完全相同，然后把每栋的 U、可行集、执行的干预、move、U 内对照和
-    两段帧数汇总成 `window_probe_receipt.json`。输出根必须是新的；产物不是 S1-02 数据：S0-02 合同
-    的窗口定义没有改，S1-03 合同的提交登记表也不含本提交，所以任何读者都会拒绝把它当开发数据。
-    它不算成品率门、不重算占用回执，也不是裁决 53 的批准。
+    The user's authorisation of 2026-09-23: "先别生成 50 条，先跑前几条看看效果估算一下".  Everything but the window
+    (subject sealing, U, dry run, sampling, controls, sweep two) is the S1-02 worker; ``window_probe_receipt.json``
+    sums each house's U, feasible set, executed interventions, moves, controls inside U and segment lengths.  The output
+    root must be new.  The output is not S1-02 data (the S1-03 contract does not register the probe commit, so readers
+    refuse it); no yield gate, no occupancy receipt.
     """
 
     houses = [h for h in args.houses.split(",") if h]
@@ -1658,8 +1655,7 @@ S3_CPU_WINDOW_SECONDS = 30.0
 def s3_manifest_houses(manifest: Mapping[str, Any] | None = None) -> dict[str, list[str]]:
     """The three S3 lists (ruling 102-8), recomputed from the frozen split before anything runs.
 
-    白话：S3-02 只按已提交的 S3 清单生成。输入是清单文件（默认 configs/vsmt/lean_s3_01_manifests.json），输出 train／validation／test
-    三份名单；清单与按 S1-02a 冻结划分重算的结果不是逐项相同就拒绝。它不挑 house、不补 house，也不读任何 house 内容。
+    Default manifest: configs/vsmt/lean_s3_01_manifests.json; any difference from the S1-02a frozen split is refused.
     """
 
     from vsmt import lean_s3_manifests
@@ -1675,9 +1671,9 @@ def s3_split_receipt(split: str, houses: list[str], results: list[dict[str, Any]
                      run: dict[str, Any]) -> dict[str, Any]:
     """One split's stage receipt (ruling 103-5): outcomes, the recorded yield, moves, and the ruling-36 minimum on train only.
 
-    白话：输入一个划分的名单与逐 house 回执，输出该划分的阶段回执：成功／失败与失败原因、空窗口数、非空成品率（只记录，不判门）、
-    执行成功的搬动数与其中“源位置先重访”的数目，以及裁决 36 的判决——只有 train 判门（不足 120／60 记 below_minimum，驱动据此停下、
-    提规模裁决），validation／test 只记数字。它不重跑任何 house，也不替换失败的 house。
+    The non-null yield is recorded, not gated.  On train, fewer than 120 moves / 60 source-first moves is
+    ``below_minimum`` and the driver stops for a scale ruling; validation / test only record the numbers.  No house is
+    rerun or replaced.
     """
 
     by_id = {r["house_id"]: r for r in results}
@@ -1752,9 +1748,8 @@ def summarise_machine_samples(samples: list[tuple[float, int | None, int | None,
                               window_s: float = S3_CPU_WINDOW_SECONDS) -> dict[str, Any]:
     """Peaks of the container while the measured houses ran: process memory, GPU 0 memory and the CPU rate over ``window_s``.
 
-    白话：S1-02a 的占用只量了 worker 进程自己（RUSAGE_SELF），它启动的 Unity 进程的 CPU 与内存不在里面。这里按固定间隔读整个容器
-    的 CPU 累计时间、进程内存（不含页缓存）与 0 号卡显存，输出三项峰值；CPU 取任意 ``window_s`` 秒窗口里的最大平均核数（比整段
-    平均更接近峰值）。读不到的量记 None，不猜。
+    The S1-02a reading (RUSAGE_SELF) missed the Unity processes a worker starts; this samples the whole container.  The
+    CPU peak is the largest mean core count over any ``window_s`` window; a missing reading is None.
     """
 
     cpu = [(t, c) for t, c, _m, _g in samples if c is not None]
@@ -1785,10 +1780,9 @@ def s3_occupancy(results: list[dict[str, Any]], *, workers: int, machine: Mappin
                  baseline: Mapping[str, Any]) -> dict[str, Any]:
     """The S1-01 occupancy receipt of the S3 measurement: each per-worker cost is the larger of the worker-only and container readings.
 
-    白话：输入四条测量 house 的回执、四路并发下的容器峰值与开跑前的基线，输出 S1-01 规则要的五个量（峰值，不是均值）。CPU、内存
-    各取两种读法的较大值——S1-02a 的读法（worker 进程自身，逐 house 取最大）与整个容器的读法（峰值减基线，再除以 worker 数，含 Unity）；
-    显存是 0 号卡峰值减基线再除以 worker 数（与 S1-02a 相同）；磁盘是单 house 写入的最大值。模拟器并发上限记实测的 4。它只给推导公式
-    提供输入，不决定 worker 数。
+    Peaks, not means.  The container reading is (peak - baseline) / workers and includes Unity; GPU memory is GPU 0's
+    (peak - baseline) / workers as in S1-02a; disk is the largest single-house write.  The simulator concurrency limit is
+    the measured worker count (4).  It feeds the S1-01 derivation and does not set the worker count.
     """
 
     occ = [r["occupancy"] for r in results]
@@ -1856,11 +1850,10 @@ S3_REQUIRED_OPTIONS = {"replan_blocked_edges": True, "placement_tries": DRY_RUN_
 def main_s3(args: argparse.Namespace) -> int:
     """S3-02 generation (ruling 103-2 / 103-4): the measurement on four train houses, then every S3 manifest house.
 
-    白话：S3 的原始数据由这里生成，规则与 S1-02b、确认集完全相同（窗口为过渡最后 30 帧、dry-run 每个物体至多 8 个目的容器、
-    maximum_actions 4000、私有盐空窗口抽签、增补用 unseen_existing），只是名单换成 S3 清单、输出按划分分根。``s3-measure`` 先用
-    train 的前四个 house、四路并发量出单 worker 占用（写进 measure 根，不算 S3 数据）；``s3`` 再按 S1-01 规则推导 worker 数，把所选
-    划分的全部 house 放进同一个进程池生成，失败照记、不替换，最后每个划分写一份回执。它不读 validation／test 的任何结果，也不改任何
-    生成规则：任何一项生成选项不是 S0-02 v3 的现行值都会被拒绝。
+    The rules are those of S1-02b and the confirmation run (window = last 30 transition frames, at most 8 dry-run
+    destinations per object, maximum_actions 4000, salted null draw, add from unseen_existing); any generation option
+    other than ``S3_REQUIRED_OPTIONS`` or another salt is refused.  Failures are recorded, never replaced; no
+    validation / test result is read.
     """
 
     if _s3_options(args) != S3_REQUIRED_OPTIONS:

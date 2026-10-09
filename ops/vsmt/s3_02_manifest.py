@@ -1,25 +1,37 @@
 #!/usr/bin/env python3
 """S3-02 run support (ruling 103): input checks, stage markers, the checks between stages, worker sizing, the test seal and verify.
 
-白话：裁决 103 要求 S3-02 一条命令跑完：生成 450 个 house（train 300、validation 50、test 100）、补几何重载、建实例分割与 SAM2
-两套 cache，test 写进单独的根并封存。``s3_02_data.sh`` 负责按顺序起各段的计算；这个脚本做它旁边的记账与段间检查：
-  * check：开跑前核对全部输入——S3 清单、ProcTHOR 源文件的登记摘要、私有盐的摘要、前端资产、两份 ReID 头（S0-03 按来源钉住）、
-    模拟器解释器、显卡、cgroup 配额与内存，以及数据盘剩余是否够放还没写的产物（按已提交的 S1 报告推算全部产物，减去本次运行各根下
-    已经写下的字节）——写进运行清单 inputs.json；
-  * stage-state／mark／status：每段一个标记文件（done／hold／stopped／failed，记提交与退出码）；换了提交后，只有改动全在“登记生成器
-    提交”的三个文件与文档里，早先完成的段才仍有效；
-  * disk：生成前（以及中断后续跑前）用实测的单 house 字节数重算所需磁盘，同样减去本次运行已经写下的字节；
-  * movecheck：裁决 36——train 执行成功的搬动不少于 120、其中源位置先重访不少于 60，否则停下提规模裁决；
-  * hold：裁决 103-3——原始回执里的每个生成器提交都必须登记在 S1-03 的位姿登记表里，否则停在 hold 等登记提交；若某个提交的
-    camera_pose 编码与已登记的不同，就停下（stopped），不能登记；
-  * geometry-ok／cache-ok：几何重载与 cache 的每个划分是否完整、与原始 episode 一一对应、失败原因是否都是数据本身的原因；
-  * workers：实例分割 cache 的 worker 数（每个 2 线程，按 cgroup 配额与内存）与显卡清单；sam2-measure：SAM2 在一张卡上用 1～4 个
-    worker 试跑，取吞吐最高的每卡 worker 数并估总时长（裁决 84-4）——某一档里有 episode 因数据本身失败（如色块超上限）仍算数并列出，
-    因显存不足等别的原因失败的档不算；trial-ok：一档试跑是否跑完（退出码 0，或 1 且写了试跑回执）；
-  * seal-pending／test-summary／seal：test 根的待封印标记、只含计数的 test 汇总、封印（裁决 103-1）；
-  * verify：最后核对各划分在原始 episode、几何与两套 cache 之间一致、重算封印、核对每个导出文件的摘要、把测量用的四个 house 与
-    train 里同名的四个逐字节比较（只记录），写出最终运行清单。
-它不跑任何方法、不读任何评价结果，test 只算字节摘要与计数。
+Ruling 103 requires S3-02 to run as one command: generate 450 houses (train 300, validation 50, test 100), add the geometry
+reloads, build the instance-segmentation and SAM2 caches, and write test to separate roots that are sealed.
+``s3_02_data.sh`` starts each stage's computation in order; this script keeps the books and runs the checks between stages:
+  * check: before anything runs, verifies every input -- the S3 manifests, the ProcTHOR source at its registered digest, the
+    private salt's digest, the front-end assets, both ReID heads (pinned per source by S0-03), the simulator interpreter, the
+    cards, the cgroup quota and memory, and whether the free data disk holds the outputs not yet written (the projection of
+    all outputs from the committed S1 reports minus the bytes already under this run's roots) -- and writes the run manifest
+    inputs.json;
+  * stage-state / mark / status: one marker file per stage (done / hold / stopped / failed, with commit and exit code);
+    after a commit change, a stage finished earlier stays valid only if every changed file is one of the three files of the
+    generator-commit registration or a document;
+  * disk: before generation (and before a resume after an interruption) recomputes the disk needed from the measured bytes per
+    house, again minus the bytes this run has already written;
+  * movecheck: ruling 36 -- at least 120 executed moves on train, at least 60 of them source-first; otherwise stop for a scale
+    ruling;
+  * hold: ruling 103-3 -- every generator commit in the raw receipts must be in the S1-03 pose registry, otherwise hold until
+    a registration commit; a commit whose camera_pose encoder differs from the registered one stops the run (cannot be
+    registered);
+  * geometry-ok / cache-ok: whether each split of the geometry reloads and caches is complete, matches the raw episodes one to
+    one, and failed only for data reasons;
+  * workers: the instance-segmentation cache's worker count (2 threads each, from the cgroup quota and memory) and the card
+    list; sam2-measure: SAM2 trials with 1-4 workers on one card, the per-card count with the highest throughput and the
+    projected hours (ruling 84-4) -- a trial in which an episode fails for a data reason (e.g. too many fragments) counts and
+    is listed, one that fails for another reason (e.g. GPU memory) does not; trial-ok: whether a trial ran to its end (exit 0,
+    or exit 1 with a trial receipt);
+  * seal-pending / test-summary / seal: the pending-seal markers of the test roots, the counts-only test summary and the seal
+    (ruling 103-1);
+  * verify: at the end checks that every split agrees across raw episodes, geometry and both caches, recomputes the seal,
+    checks every export's digest, compares the four measured houses byte for byte with their train copies (recorded only) and
+    writes the final run manifest.
+It runs no method and reads no evaluation result; on test it computes only byte digests and counts.
 
 Usage (from the driver; see ops/vsmt/s3_02_data.sh):
   python ops/vsmt/s3_02_manifest.py check --run-root R --autodl-root A --source S --salt-file F --assets-json J ...
@@ -158,10 +170,12 @@ def run_roots(text: str | None) -> list[str]:
 def disk_requirement(projection: Mapping[str, Any], *, written: int, min_free_gib: float | None) -> dict[str, Any]:
     """The free space this run still needs: the projection of all its outputs minus what its roots already hold.
 
-    白话：check 在每个新提交上都会重跑（例如 hold 之后的登记提交），那时原始 episode（约 108 GB）已经写在盘上；若仍拿全部产物的推算
-    （约 337 GB）去比剩余空间，开机时可用空间不到约 446 GB 就会被误拒。这里输入推算、本次运行各根下已有的字节数与可选的人工下限，输出
-    还需要的空间：推算减已写入（不低于 0）；给了 MIN_FREE_GIB 就用它并记明是人工覆盖。例如推算 337 GB、已写 109 GB，就只要求剩余
-    228 GB。它只决定开不开跑，不改任何产物；写满的保护仍由 cache 的磁盘下限承担。
+    check reruns at every new commit (e.g. the registration commit after the hold), when the raw episodes (about 108 GB) are
+    already on disk; comparing the free space with the projection of all outputs (about 337 GB) would then wrongly refuse a
+    disk with less than about 446 GB free at the start. Inputs: the projection, the bytes already under this run's roots and
+    an optional manual floor. Output: the space still needed, projection minus written (at least 0); with MIN_FREE_GIB that
+    value is used and recorded as a manual override. Example: projection 337 GB, 109 GB written: 228 GB must be free. It
+    decides only whether to start and changes no output; the cache's own disk floor still guards against a full disk.
     """
 
     if min_free_gib is not None:
@@ -560,9 +574,11 @@ def trial_rate(trial_root: Path) -> dict[str, Any]:
 def choose_sam2_workers(rates: Mapping[int, Mapping[str, Any]]) -> int:
     """The per-card worker count with the highest processing rate among usable trials (fewer workers on a tie).
 
-    白话：一档试跑（一张卡上 k 个 worker、各跑一条大 episode 的前 60 帧）算数，要求它正好有 k 条 episode、处理过帧、并且失败的
-    episode（如果有）都是数据本身的原因——例如最大的 house 某帧色块超上限，这说明数据，不说明 k 个 worker 跑不动，照样按已处理的帧
-    计吞吐并列出来；因显存不足等别的原因失败的档不算。都不算数才停下。它只决定每卡起几个 worker，不改任何 cache 的内容。
+    A trial (k workers on one card, each over the first 60 frames of one large episode) is usable if it has exactly k episodes,
+    processed frames, and any failed episode failed for a data reason -- e.g. a frame of the largest house with more fragments
+    than the cap says something about the data, not about k workers, so throughput is taken from the processed frames and the
+    failure listed; a trial that failed for another reason (e.g. GPU memory) is not usable. Only when no trial is usable does
+    the stage stop. It decides the workers per card only and changes no cache content.
     """
 
     usable = {k: r for k, r in rates.items()

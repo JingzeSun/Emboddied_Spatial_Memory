@@ -1,10 +1,15 @@
-"""S2-01: run one arm over one cached episode with the common runner and write its receipts.
+"""S2-01: run one rule arm over one cached episode with the common runner and write its receipts.
+
+Also a library: ``lean_s2_04_evaluate_episode.py`` (the per-episode entry of S2-05, S2-06 and S3-03),
+``lean_s2_05_node_audit.py`` (the S3-03 / S3-05 audit runner) and ``llm_op.py`` take the policy gathering
+(``gather_policy``), the per-mask-source ReID head check (``sealed_mask_source_of``, ``reid_projector``),
+``EntryRefusal`` and ``S2_01_CONTRACT`` from here.
 
 Usage (server, frontend env; the S2-01 contract's ``episode_run`` and ``server_run`` bits must be open,
 and every policy value the runner reads must be frozen in its own contract):
     python ops/vsmt/lean_s2_01_runner.py \\
         --cache-root /root/autodl-tmp/vsmt_caches/lean-s1-03-<commit> \\
-        --episode-id procthor10k-0.1.2-train-00406 \\
+        --episode-id procthor10k-0.1.2-train-00406 --episode-root <S1-02 episode dir> \\
         --arm TAF --config '{"theta_a": 0.6, "d_a": null}' \\
         --descriptor reid_projection:vitb14 \\
         --weights /root/autodl-tmp/vsmt_private/lean-s1-04-diagnostics-<commit>/reid_head_vitb14.json \\
@@ -17,13 +22,9 @@ cache episode through the S1-04 loader (every frame seal recomputed from the loa
 ReID weights and checks their digest against the head S0-03 pins for the mask source the episode is
 sealed with (ruling 84-1 (b): one head per mask source); drives ``lean_runner.run_episode`` and
 streams per-frame receipts to ``frames.jsonl.gz``, the two S0-03 seal payloads per frame to
-``seals.jsonl.gz`` (the teacher's inputs), and an episode summary to ``receipt.json``.  Learned arms
-need a scorer from S2-03 and are refused here; multi-episode, multi-arm orchestration is S2-05.
-
-白话：这个入口把共同 runner 接到真实 cache 上跑一条 episode、一个臂。它先核对合同与授权位，再从各自
-的合同读登记值（为 null 就列出来拒绝），加载封印过的 cache（逐帧重算封印），核对权重摘要，然后逐帧
-运行并把回执流式写盘。它不编排多条 episode 或多个臂（S2-05），不算指标（S2-04），学习臂要等 S2-03 的
-打分器。
+``seals.jsonl.gz`` (the teacher's inputs), and an episode summary to ``receipt.json``.  This command
+refuses learned arms (they run through ``lean_s2_04_evaluate_episode.py --heads``), computes no metric
+and runs one episode and one arm only.
 """
 
 from __future__ import annotations
@@ -108,9 +109,9 @@ def sealed_mask_source_of(cache_dir: Path) -> str:
 def reid_projector(descriptor: str, weights_path: str | None, *, mask_source: str, device: str) -> tuple[Any, str | None]:
     """The shared ReID projection of one run and the weights digest it checked (ruling 84-1 (b)).
 
-    白话：输入描述子选择、--weights 文件和这条 episode 的 mask 来源，输出投影函数与权重摘要。选中的是投影描述子时，
-    权重文件的摘要必须等于 S0-03 为这个来源钉住的那份（实例分割 5cea91cf…、SAM2 f6fc67e5…），否则拒绝；选的是冻结
-    基线（不投影）时两者都是 None。例如 SAM2 的 episode 配上实例分割的头会被拒绝。它不训练、不改权重。
+    For the projected descriptor the weights digest must equal the head S0-03 pins for the episode's mask source
+    (instance segmentation 5cea91cf..., SAM2 f6fc67e5...); otherwise the run is refused.  For a frozen baseline
+    descriptor both values are None.
     """
 
     if descriptor != la.SELECTED_DESCRIPTOR:

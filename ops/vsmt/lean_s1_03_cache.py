@@ -1,4 +1,7 @@
-"""S1-03: build the shared frozen frontend cache over the S1-02 episodes.
+"""Build the frozen front-end cache (instance masks or SAM 2.1, DINOv2) of generator episodes: S1-03 and S3-02.
+
+The file name is historical: the same entry builds the S1-03 cache and, from ``ops/vsmt/s3_02_data.sh``, the
+instance-mask and SAM 2.1 caches of every S3-02 split (``--gpus``, ``--largest-first``, ruling 103-4).
 
 Usage (server, frontend env; every authorization bit in the S1-03 contract must be open first):
     python ops/vsmt/lean_s1_03_cache.py --episode-roots /root/autodl-tmp/vsmt_outputs/lean-s1-02a-<c>,... \\
@@ -31,7 +34,7 @@ What one worker does, per episode, and what it writes:
      instance masks go through the same admission (more than 64 is a construction failure);
   3. run frozen DINOv2 ViT-S/14 and ViT-B/14 over the same RGB through the reviewed extractor
      (ImageNet normalisation, inference mode, shape and finiteness checks) and pool one descriptor
-     per mask per set; S1-05 selects between the sets later, this stage stores both;
+     per mask per set; S1-05 selected ``reid_projection:vitb14``, and the cache still stores both sets;
   4. build each fragment's geometry from the public depth, seal the frame, and write it as one
      gzip-compressed JSON file per frame (``NNNN.cache.json.gz``; the seal covers the decoded
      object, not the bytes on disk, so the compression is free to change), and write that frame's
@@ -50,12 +53,10 @@ are the ones computed from the bytes actually loaded, never copied from a user-s
 The public clock handed to the D-223 free-space materialiser is the frame index in seconds
 (``time_s = index``): the rolling window is counted in observations, which is what D-223 froze.
 
-白话：这个入口把 S1-02 的公开画面变成五个臂共读的一份 cache。它是本阶段唯一加载模型的
-部件，所有几何与阈值都来自已冻结的 D-215／D-223，不在这里重新定义。SAM2 模式不读 private 面；
-实例分割模式（裁决 72，主表前端）只读私有实例图的 mask 像素几何与核对帧身份的两项，不把任何标签、
-ID、位姿或真值盒写进 cache。它不判断身份、不训练任何东西；任何一帧出问题就整条 episode 失败并留回执，不静默丢帧。每个 worker 进程
-只装一次模型；每条 episode 的回执记录实测的显存峰值、内存峰值、每帧秒数和写入字节数，作为
-worker 数与磁盘预算的依据。
+This is the only stage that loads models; every geometry rule and threshold comes from the frozen D-215 / D-223
+configuration.  It decides no identity and trains nothing.  Each worker process loads the models once; each episode
+receipt records the measured peak GPU memory, peak RSS, seconds per frame and bytes written, the basis of the worker
+count and the disk budget.
 """
 
 from __future__ import annotations
@@ -108,7 +109,7 @@ FRAME_FILE_SUFFIX = ".cache.json.gz"
 #: the recovered fragment masks of one frame (``--recover-masks``): packed bits in cache fragment
 #: order plus each mask's digest, so a reader can verify the file against the sealed frame
 MASK_FILE_SUFFIX = ".masks.npz"
-#: registered outcomes of the mask recovery pass (pending ruling 48; LOG-241 section four)
+#: registered outcomes of the mask recovery pass (ruling 48 (a), approved 2026-09-22; LOG-241 section four)
 RECOVERY_FAILURE_REASONS = (
     "fragment_mask_mismatch",
     "cache_missing_or_unsealed",
@@ -129,8 +130,8 @@ class CacheFailure(Exception):
 class InfrastructureAbort(Exception):
     """The machine, not the data, stopped an episode: the episode is aborted, never failed.
 
-    白话：磁盘快满这类机器问题不是数据问题，不能记成 episode 的科学失败；它让整个运行停下，
-    这条 episode 留 `aborted` 回执，之后用 --resume 从头重做这一条。
+    For example a nearly full disk: the whole run stops, the episode keeps an ``aborted`` receipt and ``--resume``
+    redoes it from the start.
     """
 
     def __init__(self, reason: str, detail: str = "") -> None:
@@ -145,9 +146,6 @@ def blocking_null_slots(contract: dict[str, Any]) -> list[str]:
     as null by construction (``build_fragment`` never receives a value) and nothing in this stage
     reads them, so they do not block generation while the contract records the field as null
     until frozen.  Any other null registered value still refuses the run.
-
-    白话：合同里登记为待冻结的值，只有本阶段真的要用到的才能拦住生成；`supported_by` 的五个
-    阈值按裁决 42 留 null、字段写 null，不拦。别的 null 值照旧拒绝。
     """
 
     rule = contract["supported_by_rule"]
@@ -226,10 +224,8 @@ def verify_assets(assets: dict[str, str], contract: dict[str, Any]) -> dict[str,
     SAM 2.1 (repository commit, config file, checkpoint) is checked against the S1-03 contract's
     ``bound_frozen_frontend`` block; the DINOv2 repository and both checkpoints against the S1-01
     asset registry.  A repository must be at the pinned commit with no tracked file modified.
-    Returns the verified digests, which are what the cache frames carry.
-
-    白话：runner 不相信 assets 文件里写的摘要，而是自己把要加载的字节算一遍，再跟合同／登记表
-    上钉的值比对；写进每一帧的 `descriptor_asset_sha256s` 就是这里算出的值。
+    Returns the verified digests, which are what the cache frames carry (``descriptor_asset_sha256s``); the digests
+    in the assets file are never trusted.
     """
 
     bound = contract["bound_frozen_frontend"]
@@ -302,10 +298,8 @@ def instance_frame_masks(private_dir: Path, index: int, public_record: dict[str,
     private record's frame index and digest (which must name the same frame as the public record),
     the instance image's file name and the label values of ``object_id_to_entity_id``, and the
     instance image pixels.  The object ids, poses and visibility counts in the same record are
-    never read, and nothing but boolean masks leaves this function.
-
-    白话：实例分割模式下每帧的"色块"来自私有实例图：先核对私有记录与公开帧是同一帧，再把每个登记
-    标签的像素区域变成一张匿名 mask。输出与 SAM 模式同形，之后走同一准入与同一几何。
+    never read, and nothing but boolean masks leaves this function.  The output has the shape of the SAM output and
+    goes through the same admission and geometry.
     """
 
     record = json.loads((private_dir / f"{index:04d}.frame.json").read_text(encoding="utf-8"))
@@ -373,9 +367,8 @@ def read_masks_file(path: Path) -> dict[str, Any]:
 def match_recovered_masks(cache_frame: dict[str, Any], admitted: list[Any]) -> dict[str, Any]:
     """Do the re-run proposals reproduce the sealed frame's fragments, digest for digest, in order?
 
-    白话：回收 mask 的前提是 SAM 在同一配置下逐位复现出当初进 cache 的那些 mask。这里把重算并
-    按 D-215 边界准入、按摘要排序后的 mask 摘要序列，与封印帧里的 fragment 摘要序列逐位比对；
-    不一致就整条 episode 登记 ``fragment_mask_mismatch``，不用 IoU 近似匹配冒充一致。
+    The re-run masks are admitted under the D-215 boundary and ordered by digest before the comparison; any
+    difference registers ``fragment_mask_mismatch`` for the episode (no approximate IoU matching).
     """
 
     expected = [row["mask_sha256"] for row in cache_frame["fragments"]]
@@ -390,8 +383,8 @@ def match_recovered_masks(cache_frame: dict[str, Any], admitted: list[Any]) -> d
 def recover_episode_masks(task: dict[str, Any]) -> dict[str, Any]:
     """Re-run SAM only over one cached episode and write ``NNNN.masks.npz`` beside every frame.
 
-    白话：不改 cache 里的任何字节。逐帧重跑冻结的 SAM 与同一准入规则，摘要逐位对上才写 mask 文
-    件；对不上就整条失败并留回执。DINO 不跑。回执记每帧是否匹配、字节数与每帧秒数。
+    No cache byte changes and DINOv2 does not run.  A mask file is written only when the digests match; a mismatch
+    fails the episode with a receipt.  The receipt records per frame the match, bytes and seconds.
     """
 
     started = time.time()
@@ -469,10 +462,8 @@ def recovery_plan(cache_root: Path) -> dict[str, list[str]]:
 
     A succeeded recovery receipt is reused; a failed one is final and kept -- the episode is not
     retried under this root, so a SAM mismatch stays on record instead of being overwritten by a
-    later attempt; an episode without a recovery receipt runs.  Same rule as ``resume_plan``.
-
-    白话：mask 回收的续跑只做还没有回执的 episode。成功回执直接复用；失败回执（比如 SAM 不逐位
-    复现）保留原样、不自动重试也不覆盖；要重试属于用户裁决，不由脚本自作主张。
+    later attempt; an episode without a recovery receipt runs.  Same rule as ``resume_plan``.  A retry
+    needs a user ruling.
     """
 
     kept_succeeded, kept_failed, run = [], [], []
@@ -561,8 +552,9 @@ def recover_masks_main(args: Any, *, contract: dict[str, Any], assets: dict[str,
 def causal_pose(record: dict[str, Any], *, code_commit: str, policy: dict[str, Any]) -> dict[str, Any]:
     """The public frame's causal pose, read under the ruling-49 correction policy.
 
-    白话：位姿不再原样照抄。按合同 ``public_pose_correction`` 登记的提交表，旧编码器生成的
-    episode 把俯仰角符号翻回来，新编码器生成的照原样读，没登记的提交拒绝。位置不变。
+    By the commits registered in the contract's ``public_pose_correction``: pre-ruling-49 encoder episodes get the
+    pitch sign restored, corrected-encoder episodes are read as written, other commits are refused.  The position is
+    unchanged.
     """
 
     try:
@@ -574,8 +566,7 @@ def causal_pose(record: dict[str, Any], *, code_commit: str, policy: dict[str, A
 def recovered_masks(path: Path, shape: tuple[int, int]) -> list[np.ndarray]:
     """One frame's masks from a superseded root's ``NNNN.masks.npz``, each re-digested from its pixels.
 
-    白话：``--masks-from`` 不跑 SAM，而是读旧根里回收好的 mask 文件。读进来的每个 mask 都按定义
-    从像素重算摘要，与文件里存的摘要逐位比对，尺寸也要和本帧 RGB 一致；对不上就整条失败。
+    Each digest must equal the stored one and each mask must match the frame's RGB size; otherwise the episode fails.
     """
 
     if not path.exists():
@@ -613,10 +604,9 @@ def camera_forward(quaternion: list[float]) -> list[float]:
 class FrozenModels:
     """SAM 2.1 and both DINOv2 backbones, loaded once per worker and never trained.
 
-    白话：这个类只负责把冻结的模型装进显存并按帧吐出 mask 与 patch token。它不改任何超参
-    （全部来自 D-215／D-223 的冻结配置），不做微调，也不跨帧传递任何状态。DINOv2 的加载与
-    预处理走的是 D-218 已审的同一条路（hub backbone、strict 加载、ImageNet 归一化、推理模式），
-    不在这里另写一份。
+    Every hyperparameter comes from the frozen D-215 / D-223 configuration; no state passes between frames.  DINOv2
+    loading and preprocessing follow the reviewed D-218 path (hub backbone, strict loading, ImageNet normalisation,
+    inference mode).
     """
 
     def __init__(self, frontend: dict[str, Any], assets: dict[str, str],
@@ -921,8 +911,8 @@ def parse_gpus(text: str | None) -> list[str] | None:
 def bind_worker_gpu(counter: Any, gpus: list[str]) -> None:
     """Pool initializer for ``--gpus`` (ruling 103-4): pin this worker to one device before torch touches CUDA.
 
-    白话：多卡主机上，spawn 进程池的第 k 个 worker（按启动先后）只看得见第 k mod n 张卡（CUDA_VISIBLE_DEVICES），模型就装在那张卡上，
-    每张卡分到的 worker 数相差至多一个。它只决定算在哪张卡上，不改模型、参数、准入规则或任何产物的内容。
+    The k-th spawned worker (in start order) sees card k mod n through CUDA_VISIBLE_DEVICES, so worker counts per card
+    differ by at most one.  It changes no model, parameter, admission rule or output byte.
     """
 
     with counter.get_lock():
@@ -966,9 +956,6 @@ def resume_plan(out_root: Path, episode_ids: list[str]) -> dict[str, list[str]]:
 
     A succeeded or failed receipt is final and kept (a failed episode is never replaced); an
     aborted receipt or a directory without one is a partial that the resume clears and redoes.
-
-    白话：续跑只重做没跑完的 episode——有 succeeded 或 failed 回执的都保留原样，被中断的
-    （aborted 回执或根本没有回执）整目录清掉重来。它不换样本，也不重跑已经成功的。
     """
 
     kept_succeeded, kept_failed, redo = [], [], []

@@ -1,19 +1,24 @@
 #!/usr/bin/env python3
 """S2-06 run support (ruling 100-6): input checks, stage markers, worker sizing, measured jobs, the pilot summary and the final verify.
 
-白话：裁决 100-6 要求 S2-06 一条命令跑完、每段可续跑、输入全部钉死、输出全部留档、最后能核对摘要。`s2_06_sam2.sh` 负责按顺序
-起各段的计算；这个脚本做它旁边的记账：
-  * check：开跑前核对全部输入——两套 cache 各 39 条且封印来源正确、几何重载与 S1-02 episode 齐全、两份 ReID 头的摘要等于 S0-03
-    为各自来源钉住的那份、实例分割分组头的摘要等于冻结清单、要并排读的已提交导出与已提交判读登记的摘要一致——并把它们连同
-    代码提交、线程数、cgroup 配额与磁盘写进运行清单 inputs.json；按帧数从大到小列出 episode；
-  * stage-state／mark：每段一个标记文件（done／hold／stopped／failed，记提交与退出码）；换了提交后，只有改动全在“登记 SAM2
-    拟合量与文档”的文件里，早先完成的段才算仍有效，否则拒绝续跑（除非操作者显式接受并记入标记）；
-  * workers：按 cgroup CPU 配额与内存、试跑实测的单任务峰值内存定 worker 数；
-  * run-measured：跑一条命令并记下墙钟、退出码与子进程峰值内存；pilot：汇总试跑的两条作业，并与实例分割同一 episode 的 TAF
-    审计耗时比较；
-  * verify：最后逐个重算导出文件的 sha256、核对每份训练回执的权重摘要与权重文件一致、每份合并审计 39 条且来源正确、确定性
-    探针（同一 episode 重跑一次审计）与原审计一致，写出最终运行清单。
-它不跑任何方法、不读任何指标来做决定，也不改任何文件以外的东西。
+Ruling 100-6 requires S2-06 to run as one command, every stage resumable, every input pinned, every output kept and the
+digests checkable at the end. `s2_06_sam2.sh` starts each stage's computation in order; this script keeps the books:
+  * check: before anything runs, verifies every input -- both caches with 39 episodes each, sealed with the right mask
+    source; the geometry reloads and S1-02 episodes complete; both ReID heads at the digests S0-03 pins for their source;
+    the instance-segmentation grouped heads at the frozen digests; the committed exports read side by side at the digests the
+    committed readings register -- and writes them, with the code commit, thread count, cgroup quota and disk, to the run
+    manifest inputs.json; lists the episodes by frame count, largest first;
+  * stage-state / mark: one marker file per stage (done / hold / stopped / failed, with commit and exit code); after a commit
+    change, a stage finished earlier stays valid only if every changed file is in the "SAM2 fitted-value registration and
+    documents" set; otherwise resuming is refused unless the operator accepts it explicitly (recorded in the marker);
+  * workers: worker counts from the cgroup CPU quota and memory and the per-job peak memory measured in the pilot;
+  * run-measured: runs one command and records wall clock, exit code and the children's peak memory; pilot: summarises the
+    two pilot jobs and compares them with the TAF audit time of the same episode under instance segmentation;
+  * probe: compares a re-run node audit with the original one or with a merged export row;
+  * verify: at the end recomputes every export's sha256, checks each training receipt's weight digest against its weights
+    file, each merged audit for 39 episodes and the right source, and the determinism probe (one audit run again) against
+    the original audit; writes the final run manifest.
+It runs no method, reads no metric to decide anything and changes nothing outside its own files.
 
 Usage (from the driver):
   python ops/vsmt/s2_06_manifest.py check --run-root R --repo-root W --autodl-root A ...   (see the driver)

@@ -1,23 +1,29 @@
 #!/usr/bin/env python3
 """S3-06 (ruling 113, 2026-10-08: 「推送 41f19cc；待裁 113 全按推荐」): the read-only reanalysis of the committed S3-05 exports.
 
-白话：S3-06 回答“论文里的每一个数能不能只用已提交的文件重算出来，以及写作还缺哪些只读的描述性数”。输入只有 ``results/``
-里已提交的 S3-05 导出（两份合并审计、输入、统计、清单）与 S3-04 冻结回执；输出两份文件：
-  * ``vsmt_lean_s3_06_reanalysis_<tag>.json``：
-    - D1 复算核对：用冻结的 ``lean_s3_05.tables``／``front_statistics``／``test_statistics``，按回执的 bootstrap 种子、次数与
-      ``test_runs`` 从合并审计重算统计，必须与已提交的 statistics 逐值相等（``receipt_sha256``、``written_utc`` 除外）；不等
-      就以退出码 3 停下，只写差异所在的字段，不写任何读数；
-    - D2 VSMT-lean 对 AssocOnly 在每项指标上的只报告比较：冻结回执的统计计划 ``statistics.ablations.arms`` 列了 AssocOnly，
-      而 S3-05 的实现（``lean_s3_05.COMPARED_ARMS``）没算；这里调用同一个冻结函数，只把对照清单换成计划里的那份；
-    - D3 每个只报告比较的双侧 90% 区间（``lean_s3_05.two_level_interval``，同一种子、同一批抽样；第 5 百分位必须等于已导出
-      的单侧下界）；
-    - D4 各指标的事件与分母计数；D5 主门两项的逐 house 配对差；D6 三分解的占比；D7 规模与成本（运行时间只作量级）；
-      D8 一致性核对（同一 house 上各运行的身份与检索事件数相同、三分解逐 episode 的恒等式）；
-  * ``vsmt_lean_s3_06_paper_index_<tag>.json``：论文每张表／图对应的结果文件（逐个核对 sha256 与所在阶段的 manifest）、
-    字段、生成命令与提交（裁决 113-5）。
-例如 D1 若有一个数与已提交的统计不同，脚本停下并列出那个字段，说明导出或环境有问题，而不是给出一份新的数。它只读已提交的
-文件，不读 test 根、不连服务器、不训练、不改任何冻结的函数；D2～D8 都是看过 test 之后算的描述性读数，不作门、不做多重
-比较校正。
+S3-06 checks that every number of the paper can be recomputed from committed files alone and adds the read-only descriptive
+numbers the writing still needs. Inputs: only the committed S3-05 exports in ``results/`` (two merged-audit files, inputs,
+statistics, manifest) and the S3-04 freeze receipt. Outputs, two files:
+  * ``vsmt_lean_s3_06_reanalysis_<tag>.json``:
+    - D1, replay check: recomputes the statistics from the merged audits with the frozen ``lean_s3_05.tables`` /
+      ``front_statistics`` / ``test_statistics`` at the receipt's bootstrap seed, iteration count and ``test_runs``; they
+      must equal the committed statistics value for value (except ``receipt_sha256`` and ``written_utc``); otherwise exit 3,
+      writing only the differing fields and no reading;
+    - D2, report-only comparison of VSMT-lean against AssocOnly on every metric: the freeze receipt's statistics plan
+      (``statistics.ablations.arms``) lists AssocOnly, but the S3-05 implementation (``lean_s3_05.COMPARED_ARMS``) did not
+      compute it; the same frozen function is called with the plan's list of controls;
+    - D3, two-sided 90% intervals of every report-only comparison (``lean_s3_05.two_level_interval``, same seed, same draws;
+      the 5th percentile must equal the exported one-sided lower bound);
+    - D4, event and denominator counts per metric; D5, per-house paired differences of the two main-gate metrics; D6, the
+      shares of the three-way decomposition; D7, size and cost (runtime as an order of magnitude only);
+    - D8, consistency checks (identity and retrieval event counts equal across runs on the same house; the per-episode
+      identity of the three-way decomposition);
+  * ``vsmt_lean_s3_06_paper_index_<tag>.json``: per paper table / figure the result file (sha256 checked against the manifest
+    of its stage), fields, generating command and commit (ruling 113-5).
+Example: if one D1 number differs from the committed statistics, the script stops and lists that field: the export or the
+environment is at fault, and no new number is produced. Committed files only: no test root, no server, no training, no
+frozen function changed; D2-D8 are descriptive readings computed after test was seen, with no gate and no multiplicity
+correction.
 
 Usage (repository root, a commit whose src/, ops/, configs/ and the input files have no uncommitted changes, whose inputs are
 tracked by git, and whose src/ and configs/ equal the freeze commit's):

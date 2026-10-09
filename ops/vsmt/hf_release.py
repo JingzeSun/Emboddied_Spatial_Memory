@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
 """S3-05R: pack, check and upload one release tier to Hugging Face (ruling 110), resumable; then verify the remote files.
 
-白话：按层（T0～T3）把 B1 上的产物打包、核对、上传到 Hugging Face 的私有仓库。每一项先打成确定性 tar（或原样复制的文件）
-放进暂存目录，算 sha256 和树摘要，并与已有摘要核对（test 对 S3-02 封印，cache 对 S3-02 导出）；核对不过就停下、不上传。
-暂存目录攒到一批（默认 20 GiB）就提交一次，并把这批记进 done.jsonl，所以中断后再跑会从下一项接着做。全部传完后写清单
-（MANIFEST.json，同时上传并复制到 exports），verify 再对照远端每个文件的大小与 sha256。例如 T1 的 test raw 一条 episode 是
-test/raw/<id>.tar，清单里记它恢复到 vsmt_outputs/s3-02-3f6ef1d/test/<id>。它不改、不删任何源目录。
+Packs, checks and uploads the B1 outputs tier by tier (T0-T3) to Hugging Face repositories (created private and made public
+after verification, e.g. T0/T1 in LOG-312; repositories and revisions in docs/REPRODUCE.md section 3). Each item becomes a deterministic tar (or a
+file copied as is) in the staging directory, gets its sha256 and tree digest, and is checked against the existing digests
+(test against the S3-02 seal, caches against the S3-02 exports); a failed check stops before any upload. Each batch of
+staged items (default 20 GiB) is committed once and recorded in done.jsonl, so a rerun after an interruption continues at the
+next item. After the last upload the manifest (MANIFEST.json, uploaded and copied to the exports) is written; verify then
+checks every remote file's size and sha256 against it. Example: a T1 test raw episode is test/raw/<id>.tar, restored to
+vsmt_outputs/s3-02-3f6ef1d/test/<id> per the manifest. No source directory is changed or deleted. The tier definitions are
+in ``ops/vsmt/lean_hf_release.py``.
 
 Usage (B1, from a checkout of the release commit; network through `source /etc/network_turbo`, token from `hf auth login`):
   python ops/vsmt/hf_release.py plan   --tier T1 --state-dir /root/autodl-tmp/hf-release/T1

@@ -1,18 +1,15 @@
-"""S2-05: export a pass of the development root to a committed results/ report with provenance.
+"""Export one pass of a development root (S2-05, S2-06) to a committed results/ report with provenance.
 
 Usage:
     python ops/vsmt/lean_s2_05_export.py --output-root /root/autodl-tmp/vsmt_private/lean-s2-05-<commit> \\
         --pass calibration --arm LOW --results results/vsmt_lean_s2_05_calibration_<commit>.json
 
-What it writes: the pass plan and receipt, the merged calibration report when the pass produced one
-(quantiles and histograms), every episode's seven-metric report with its decomposition totals and
-the sha256 of its receipt, the code commits found in the receipts, and the count of episodes that
-failed.  No private byte enters the file: the episode reports carry object keys only inside the
-recovery lists, which the S0-04 reporting fields already allow, and no frame, mask, descriptor or
-label is copied.
-
-白话：把服务器上一趟的产物压成一份可提交的 results 报告：趟计划与回执、合并后的校准分位数、每条
-episode 的七项指标与三分解总计和回执摘要、代码提交号。它不复制任何帧、mask、描述子或标签。
+Also called by ``ops/vsmt/s2_06_sam2.sh`` for the S2-06 SAM2 development passes.  What it writes: the pass plan and
+receipt, the merged calibration report when the pass produced one (quantiles and histograms), every episode's metric
+report as its receipt holds it (eight metrics since ruling 102-5 added retrieval success) with its decomposition
+totals and the sha256 of its receipt, the code commits found in the receipts, and the count of episodes that failed.
+No private byte enters the file: the episode reports carry object keys only inside the recovery lists, which the S0-04
+reporting fields already allow, and no frame, mask, descriptor or label is copied.
 """
 
 from __future__ import annotations

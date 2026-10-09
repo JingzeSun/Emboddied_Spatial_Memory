@@ -1,12 +1,21 @@
 #!/usr/bin/env python3
-"""Ruling 89-2 / 89-3 training: the registered recipe on concatenated record sources, with the field-wise encoding and the
-class-weighted existence loss, at a given registered seed (development diagnostics, S2-R track).
+"""Development-stage training entry (S2-R, rulings 89-2/89-3): one head set from concatenated record sources at one seed.
 
-白话：输入一个或多个训练记录来源（趟根目录:趟名:臂，例如第 0 轮 ELU-P 轨迹与本臂第 1 轮轨迹）、一个登记种子和臂（VSMT-lean 或
-AssocOnly），输出一份头权重与训练回执。做法与登记配方相同（AdamW、lr 1e-3、wd 1e-4、20 遍、按选择 house 的验证损失选检查点，
-按 split 种子把 39 个 house 留出 30／9），只加裁决 89 的两处：逐字段编码（统计量只用训练 house）与存在损失的类别权重（gone 权重 ＝
-训练 house 的 present 行数 ／ gone 行数，AssocOnly 没有存在项）。各来源全量拼接、不重采样；训练预算是拼接集上的 20 遍，实际
-更新次数写进回执。它不是正式训练，不产生表行，也不读 validation／test。
+Used by the S2-06 SAM 2.1 development table (ops/vsmt/s2_06_sam2.sh: stages train0 and train1, and the optional retraining in
+verify). The paper's S3 training entry is ops/vsmt/s3_03_train.py, which takes the recipe from
+`lean_s3_03.training_settings`. This script produces no paper table row and reads no validation/test data.
+
+Inputs: one or more record sources ``<run root>:<pass>:<arm>`` (e.g. the round-0 ELU-P records and the arm's own round-1
+records), a registered seed and the arm (VSMT-lean or AssocOnly). Outputs: weights.json (total-loss selection),
+weights_grouped.json with --group-selection (ruling 96 (a)) and training_receipt.json. Recipe: the S0-05 values (AdamW,
+learning rate 1e-3, weight decay 1e-4, 20 epochs, checkpoints scored on held-out selection houses; the 39 development houses
+are split 30 train / 9 selection by the S1-02a split seed, `lean_reid_head.holdout_split`) plus the two ruling-89 changes:
+field-wise encoding (statistics from the training houses only) and the class-weighted existence loss (gone weight = present
+rows / gone rows on the training houses; AssocOnly has no existence term). --revision-91 adds the cosine-decayed learning
+rate (1e-3 to 1e-5), gradient-norm clipping at 1.0 and the -ln w existence prior correction; its --help text still says
+"pending ruling 91", but these are part of the recipe frozen by ruling 99-1 and S2-06 always passes the flag. Sources are
+concatenated in full without resampling; the budget is 20 epochs over the concatenation, and the updates taken are recorded
+in the receipt.
 
 Usage:
   python ops/vsmt/ruling89_train.py --source <root>:dagger_round_0:ELU-P [--source <root>:dagger_round_1:VSMT-lean] --arm VSMT-lean

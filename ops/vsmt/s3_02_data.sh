@@ -18,10 +18,10 @@
 #                   overrides it, recorded)
 #   measure         the generator's s3-measure: four train houses at four workers -> the S1-01 occupancy (worker and container peaks)
 #   generate        free disk again with the measured bytes per house, minus what is already written (a resume); the generator's
-#                   s3 over train, validation and test in one
-#                   pool, workers by the S1-01 rule (headroom 0.2) with the simulator limit SIM_LIMIT assumed (recorded as an
-#                   extrapolation; 16 = the confirmation generation, 2339baa); the test root is pending-sealed from its creation;
-#                   then ruling 36 on train: fewer than 120 moves or 60 source-first -> STOP (marker 'stopped') for a scale ruling
+#                   s3 over train, validation and test in one pool, workers by the S1-01 rule (headroom 0.2) with the simulator
+#                   limit SIM_LIMIT assumed (recorded as an extrapolation; 16 = the confirmation generation, 2339baa); the test
+#                   root is pending-sealed from its creation; then ruling 36 on train: fewer than 120 moves or 60 source-first
+#                   -> STOP (marker 'stopped') for a scale ruling
 #   hold            ruling 103-3: every generator commit of the raw receipts must be in the S1-03 pose registry
 #                   (correct_encoder_since_code_commits); until a commit registers it (pre-authorised; only the S1-03 contract and
 #                   its two pinning tests change, as 2339baa -> 6b65cb1) the stage HOLDS; an encoder that differs STOPS

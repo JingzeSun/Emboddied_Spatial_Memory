@@ -1,89 +1,83 @@
-"""D-224 / S2-05: read-only node-matching audit of one episode run (evidence for the pending ruling 70).
+"""D-224 closed-loop audit runner of one episode: the run of record of every S3-03 validation and S3-05 test audit.
+Written for S2-05 as a read-only node-matching audit (evidence for ruling 70; rulings 72 (B) and 77 then fixed the columns).
 
 Usage:
     python ops/vsmt/lean_s2_05_node_audit.py run --cache-root <S1-03 cache root> --episode-root <S1-02 episode dir> \\
         --geometry-root <S1-04 geometry root> --episode-id <id> --arm LOW --config '{"d_low": null}' \\
         --descriptor vitb14 --weights <reid weights> --output-root <audit root> [--frames N]
     python ops/vsmt/lean_s2_05_node_audit.py merge --output-root <audit root> --arm LOW --results <results/*.json>
+    python ops/vsmt/lean_s2_05_node_audit.py compare --full <audit> --metrics-only <audit> --out <report>
 
-The ``run`` subcommand replays exactly what the S2-04 entry does (the S2-01 runner over the sealed
-cache, the S2-04 teacher labelling every step behind the two-seal gate) and, after every frame,
-decomposes the node precision/recall loss of the committed memory under the IoU matching rule
-(max-weight matching on 3D IoU >= 0.3, ruling C; the secondary column node_prf1_iou since ruling 72 (B),
-whose primary column is the centroid-within-delta rule, re-scored below as centroid_within_0.5m and
-checked against the evaluator) and re-scores the same predictions
-under alternative rules that a ruling could pick.  It writes one ``node_audit.json`` per episode
-and arm; it writes no label, training record, receipt or contract byte and freezes nothing.
-``merge`` pools the audits of one arm into a committed ``results/`` report.  No private key
-enters either file: truth-side rows are grouped by the ProcTHOR type prefix and by the
-pickupable / receptacle / other group only.
+Callers: ``ops/vsmt/s3_03_manifest.py`` (``NODE_AUDIT``) launches ``run --metrics-only --manifest-split validation`` per
+episode and ``merge`` per group, and runs the ruling-104-2 equivalence probe (one train episode, full and metrics-only,
+``compare_audits``); ``ops/vsmt/s3_05_manifest.py`` launches ``run --metrics-only --manifest-split test --test-receipt
+<S3-04 receipt>`` per episode and ``merge`` per group.
 
-白话：这是给"节点 F1 为什么低"找原因的只读审计，不是新指标、不是新规则。输入和 S2-04 入口完全一样
-（冻结 cache、S1-02 的 episode 目录、S1-04 几何表、臂与配置），输出每帧把"记忆里的实体"和"范围内在场
-的真值物体"各自分类：实体为什么没匹配上（身份含糊、物体已不在、位置对但框太小、物体被另一个实体
-占了），真值物体为什么没被匹配（有同身份实体但框太小、同身份实体离得远、只有身份含糊的实体在附近、
-根本没有实体——再分从未出过色块与出过色块但丢了）；并把同一批预测按几种备选口径（IoU 0.1、IoU>0、
-质心落在真值框内、质心 0.5 m 内、按私有身份并框后的 IoU 0.3 上界）重新计分。例如某帧 48 个实体里
-41 个身份含糊、64 个真值物体里 62 个附近没有任何实体，就说明问题主要在记忆而不在匹配口径。它不改
-任何合同或数值，产物只用于裁决 70 的讨论；按身份并框的上界用了私有身份，只能作诊断列，不是方法。
+The ``run`` subcommand replays exactly what the S2-04 entry does (the S2-01 runner over the sealed cache, the S2-04
+teacher labelling every step behind the two-seal gate) and writes one ``node_audit.json`` per episode, arm and
+configuration with the teacher's metric report.  Without ``--metrics-only`` it also decomposes, after every frame, the
+node precision/recall loss of the committed memory under the IoU 0.3 column (``node_prf1_iou``, secondary since ruling
+72 (B)) and re-scores the same predictions under alternative rules (``RULES``); the column
+``identity_centroid_0.5m_or_in_box_0.25m_count_first`` reproduces the evaluator's primary column (ruling 77) and
+``iou_0.3_count_first`` its secondary column (count-first matching since ruling 76 (3)(a)), both checked every frame.
+It writes no label, training record, receipt or contract byte and freezes nothing.  ``merge`` pools the audits of one
+arm into a ``results/`` report.  No private key enters any file: truth-side rows are grouped by the ProcTHOR type
+prefix and by the pickupable / receptacle / other group only.  The union-box columns grouped by private identity are
+group diagnostics that change both the count and the geometry, not an upper bound (LOG-262).
 
-v2（裁决 76 (1)(a)）再加三块只读统计与两列：质心主列自己的分类账（"离得远"拆成物体真被搬动、物体没动两类）；
-每次 BIRTH 的原因（首次出现、没有承载实体、正确实体没被召回、召回了但 logit 不过新建线——TAF 即余弦低于 θ_a、
-合格却在联合分配里输了），用同一个 logit 函数在封存行上重算；每个去重时刻，去重之后剩下的实体对按状态组合
-（active／dormant）与私有身份（同物体／不同物体／含糊）在余弦、距离、IoU 各档下能过几对——同物体对是还能收回
-的重复，不同物体对是误合并风险；以及两列"先最大匹配数、再最大权"的匹配数。按身份并框那两列只是分组诊断，
-同时改了数量与几何，不是上界（LOG-262）。
+Diagnostic blocks of a full audit (all read-only, none changes a label, decision or metric):
 
-v3（裁决 79-2／79-3，2026-09-28）再加一块只读统计：每个存在候选（本帧没被匹配、应可见的实体）按八项归档——标签状态、
-标签原因、物体的干预类别、窗口阶段（帧号 > window_end 才算窗口后，同评价器）、实体按节点主列规则（裁决 77：质心
-≤ δ_moved 或落在真值框外扩 0.25 m 内）是否仍在原处、提交后的记忆里是否另有实体按同一规则承载该物体、本帧该物体
-有没有色块、学生的决定（RETRACT／NOOP）。白话：输入是重跑时每帧的旧记忆、标签、学生决定和真值框，输出"撤回正标签和
-假撤回各落在什么实体上"。例如沙发表面质心离中心 0.7 m、但在沙发框内，标签是 gone、节点主列却算它在原处，这一格就
-是标签与指标的冲突；另有实体承载的那一格是重复实体。它不改任何标签、决定或指标，只计数。
+- v2 (ruling 76 (1)(a)): the centroid column's own ledger (``CENTROID_*_CATEGORIES``; "far" split into object moved /
+  not moved); the reason of every BIRTH (first observation, no carrier, correct carrier not recalled, recalled but its
+  logit below the birth logit -- for TAF a cosine below theta_a --, or lost in the joint solve), recomputed with the
+  arm's logit function on the sealed rows; at every dedup tick, the surviving entity pairs by state pair (active /
+  dormant) and private identity (same object = recoverable duplicate, different objects = false-merge risk) at each
+  cosine, distance and IoU gate; and two count-first matching columns.
+- v3 (rulings 79-2 / 79-3, 2026-09-28): every existence candidate (unmatched this frame, should be visible) filed by
+  label status, label reason, intervention class, window phase (frame > window_end, as in the evaluator), whether the
+  entity is in place under the node primary rule (ruling 77: centroid <= delta_moved or inside the truth box padded by
+  0.25 m), whether another committed entity carries the object under the same rule, whether the object has a fragment
+  this frame, and the student's decision (RETRACT / NOOP).
+- v4 (rulings 80-3 / 80-4, 2026-09-28): every fragment's association decision filed by teacher status, outcome
+  (correct / wrong bind / birth instead of bind / bind instead of birth), the prior state of the chosen entity
+  (active / dormant / retracted, or birth) and first sighting; same-frame duplicates are judged with the grouping rule
+  of ``lean_teacher.decompose_frame``, so the counts agree with its correct / amortization_error frame by frame.
+  ``--dormancy-override`` (diagnostic only, not a registered arm or configuration) replaces the shared dormancy
+  missed-opportunity limit; a huge value switches dormancy off.
+- v5 (ruling 81-3, 2026-09-28): loss-of-carrier events and the absence that follows.  A present in-scope object that had
+  a qualifying carrier (node primary rule, ruling 77) after the previous commit and has none now is one event,
+  attributed per former carrier (``LOSS_CAUSES``; several causes count as mixed).  The frames without a qualifying
+  carrier until one returns, the object leaves or the episode ends form one absence interval owned by that event.
+  This is not a counterfactual: blocking the step would change the later memory and assignments.
+- v6-v10: see ``SCHEMA_VERSION`` and the functions they name (fold co-observation, re-observation attribution, carrier
+  state, the ruling-88-2 oracle cells, the ruling-89-1 global recall rank).
+- v11 (ruling 84-1 (b), implemented by ruling 100-1 (i), 2026-10-01): the ReID head digest checked against
+  ``--weights`` follows the mask source the episode's seal declares (instance segmentation 5cea91cf..., SAM2
+  f6fc67e5...; a seal without ``mask_source`` is SAM2); ``--mask-source``, when given, must equal it.  The audit records
+  ``mask_source`` and the weights digest; a merge refuses audits of two sources or of mixed old and new receipts.
 
-v4（裁决 80-3／80-4，2026-09-28）：每个色块的关联决定按四项归档——teacher 状态（该绑定的 labelled、该新建的
-birth、召回漏掉、身份含糊、未标注）、结果（正确、绑错到别的实体、该绑却新建、该新建却绑定）、被选中实体此前
-的状态（active／dormant／retracted，新建记 birth）、该物体此前是否出过色块（首次出现与否）。同帧重复色块按
-三分解的同组规则判，与 decompose_frame 的 correct／amortization_error 逐帧对得上。白话：输入是每帧旧记忆里各
-实体的状态、teacher 目标和学生的分配，输出"关联错在哪儿、错绑到的是休眠还是活动实体"。例如一个首次出现的物体
-被绑到一个休眠实体上，就记为"该新建却绑定、dormant、首次出现"。另加诊断开关 --dormancy-override（只用于诊断，
-不是登记的臂或配置）：把共享休眠的错失上限换成给定值，取极大值即等于关闭休眠。
+Job form (ruling 104-7, 2026-10-03): ``run --configs '[{"config": ..., "output_root": ...}, ...]'`` audits several
+configurations of one arm (one set of heads) on one episode in one job: the cache is verified once; each configuration
+re-reads the geometry table and intervention log, runs the closed loop from the first frame with a new teacher and
+writes its own audit (temporary file, then rename).  ``--skip-existing`` keeps a finished audit whose episode, arm,
+configuration and mode match.  Each configuration's audit is byte-identical to a separate run (tested).
 
-v5（裁决 81-3，2026-09-28）：失去承载的事件与此后的缺失时长。一个在场、在节点范围内的物体，上一帧提交后的记忆里
-有按节点主列规则（裁决 77）合格的实体承载它，这一帧一个都没有了，就是一次“失去承载”；按它原先各承载实体这一帧
-的遭遇归因——被学生绑到别的物体的色块上（误绑定）、被撤回、被去重折叠、被绑到本物体的色块却离开了原处、身份
-改变、物体真值位置变了、其他；几个承载实体原因不一记为混合。此后该物体没有合格实体的帧数记在这一段缺失里，
-直到重新有合格实体、物体离场或 episode 结束，同一段只归到开启它的那一次事件。白话：输入是逐帧提交前后的记忆、
-学生的分配与存在决定、只读真值，输出“哪次操作之后丢了哪个物体、丢了多久”。例如杯子 A 唯一的实体被绑到杯子 B
-的色块上，A 随后 100 帧没有实体，就记一次误绑定事件和一段 100 帧的缺失。它不是反事实：拦下这次绑定之后记忆
-和分配都会变，不能据此算出“修好就能挽回多少”。
+Run of record (ruling 104-4 (1), 2026-10-03): ``run --metrics-only`` uses the same runner, teacher and metric report but
+builds no ``NodeAudit`` (``audit`` is null) and refuses every diagnostic option (oracle, overrides, residual trace).
+Both modes record ``metrics_only``, the teacher's three-way decomposition counts ``decomposition_totals`` (counts only,
+no private key) and ``trajectory_sha256`` (sha256 over the per-frame chain of tick, stage A / B seal digests and
+committed-memory digest).  ``compare`` checks a full and a metrics-only audit of one episode field by field (all equal
+except ``VOLATILE_AUDIT_KEYS``, ``VOLATILE_REPORT_FIELDS`` and ``MODE_KEYS``) and exits 3 on a difference: the audit
+equivalence probe of ruling 104-2.  A merge never mixes the two modes; a metrics-only merge holds the per-episode reports
+and the summed decomposition counts, and selection readings read only the per-episode reports.
 
-v11（裁决 84-1 (b)，由裁决 100-1 (i) 落地，2026-10-01）：审计按 episode 封印声明的 mask 来源取 ReID 头摘要核对 --weights
-（实例分割 5cea91cf…、SAM2 f6fc67e5…；SAM2 封印没有 mask_source 字段即 sam2），--mask-source 给出时须与封印一致；回执记下
-mask_source 与权重摘要，合并时一组审计里出现两种来源（或新旧回执混合，旧回执没有这一项）就拒绝。它不改任何审计口径。
-
-v12 起的作业形式（裁决 104-7，2026-10-03）：``run --configs '[{"config": …, "output_root": …}, …]'`` 让一个作业在同一条
-episode 上审计同一臂（同一组头）的多个配置——cache 只核验一次，每个配置各自重读几何表与干预日志、各用一个新 teacher 从第一帧
-跑闭环、各写各的审计文件（先写临时文件再改名，作业中途停下不会留下看似完成的文件）；``--skip-existing`` 续跑时保留已完成且
-episode、臂、配置与模式都对得上的那几份。白话：省掉的是重复核验 cache 与重复启动进程，每个配置的结果与单独跑一次逐字节相同
-（测试对拍）。
-
-v12（裁决 104-4 ①，2026-10-03）：``run --metrics-only`` 是 S3 的正式闭环审计——同一个 runner、同一个 teacher、同一份指标
-报告，只是不建 NodeAudit、不跑 v2～v10 的诊断块（``audit`` 记 null），也不收任何诊断开关（oracle、覆盖值、残留追踪）。
-两种模式的审计文件都新记三样东西：``metrics_only``、teacher 的三分解计数 ``decomposition_totals``（只有计数，没有私有键）、
-逐帧封存链摘要 ``trajectory_sha256``（每帧的 tick、阶段 A／B 封存摘要与提交后的记忆摘要连成一串再取 sha256）。``compare``
-子命令把同一 episode 的完整审计与 metrics-only 审计逐项对拍（除墙钟时间、提交号、头文件路径、实测耗时与内存、``audit`` 块
-与模式标记外全部相等），不同即退出码 3——这是裁决 104-2 的审计等价探针。合并时 metrics-only 与完整审计不混合；
-metrics-only 的合并只有逐 episode 报告与三分解计数的合计，选参读数只读逐 episode 的报告。白话：输入与完整审计相同，输出
-少了只用于诊断的分类账，指标一个字节都不变；例如 TAF 一条 836 帧的 episode，省下的是按七八种备选口径重新匹配的时间。
-它不改指标、标签或任何决定。
-
-附录臂 LLM-op（裁决 105，2026-10-04）：``run --metrics-only --manifest-split validation --arm LLM-op --config '{}'
---llm-op-archive <这条 episode 的调用存档> [--llm-op-mode live --llm-op-run-root <运行根>]`` 是它的正式闭环审计。决定来自
-``lean_llm_op.LlmOpScorer``：存档里有的调用逐条回放（请求摘要须一致），live 模式才在存档末尾之后调 DeepSeek API；runner、teacher
-与指标和其他臂完全相同。审计文件多一块 ``llm_op``（调用次数、无效回答、回退、token、费用、存档摘要），其他臂的文件不变。
-合同的 validation_run 位未按裁决打开、缺存档、live 缺运行根或试点登记的模型名、或不是 metrics-only／validation 时一律拒绝；
-STOP 文件、模型名改变、致命的 API 回答与存档问题各用自己的退出码停下（``lean_llm_op.EXIT_*``），可从存档续跑。
+Appendix arm LLM-op (ruling 105, 2026-10-04): ``run --metrics-only --manifest-split validation --arm LLM-op --config '{}'
+--llm-op-archive <the episode's call archive> [--llm-op-mode live --llm-op-run-root <run root>]`` is its run of record.
+Decisions come from ``lean_llm_op.LlmOpScorer``: archived calls are replayed (request digests must match); only the live
+mode calls the DeepSeek API past the archive's end.  Runner, teacher and metrics are those of the other arms.  The audit
+gains an ``llm_op`` block (calls, invalid answers, fallbacks, tokens, cost, archive digest).  ``llm_op_refusal`` lists
+the refusals; a STOP file, a changed model name, a fatal API answer or an archive problem stops the run with its own
+exit code (``lean_llm_op.EXIT_*``), resumable from the archive.
 """
 from __future__ import annotations
 
@@ -162,8 +156,9 @@ RULES = (
     # since ruling 76 (3)(a) these two reproduce the evaluator and the plain two above keep the earlier max-weight objective
     "centroid_within_0.5m_count_first",
     "iou_0.3_count_first",
-    # metric candidates for the pending node-metric ruling (read-only): large objects whose visible surface centroid sits
-    # more than 0.5 m from the whole-box centre, and a pair that must also be the entity's own object
+    # node-metric candidates examined for ruling 77 (read-only): large objects whose visible surface centroid sits more than
+    # 0.5 m from the whole-box centre, and a pair that must also be the entity's own object; ruling 77 made the last one
+    # the primary column node_prf1
     "centroid_0.5m_or_in_box_0.25m_count_first",
     "identity_centroid_0.5m_count_first",
     "identity_centroid_0.5m_or_in_box_0.25m_count_first",
@@ -198,7 +193,8 @@ BIRTH_REASONS = (
     "correct_carrier_below_birth_logit",   # recalled, but its association logit does not beat the birth logit (TAF: cosine below theta_a)
     "correct_carrier_lost_joint_competition",  # recalled and eligible, the joint solve still chose birth
 )
-#: Ruling 76 (1)(a): the dedup gate values tallied over entity pairs at every dedup tick (the frozen ones are 0.8 / 0.5 / 0.05).
+#: Ruling 76 (1)(a): the dedup gate values tallied over entity pairs at every dedup tick (frozen cosine / distance / IoU:
+#: 0.6 / 0.5 m / 0.05 since ruling 77 (2)(a), 0.8 / 0.5 m / 0.05 under ruling 68; ``lean_memory.SHARED_DEDUP``).
 DEDUP_COSINES = (0.5, 0.6, 0.7, 0.8, 0.9)
 DEDUP_DISTANCES_M = (0.25, 0.5, 1.0)
 DEDUP_IOUS = (0.0, 0.05, 0.1)
@@ -385,12 +381,11 @@ def attribute_reobservation(
 ) -> dict[str, Any]:
     """v7 (ruling 86-0): one moved object's first labelled re-observation, filed by where the pre-move identity was lost.
 
-    白话：输入一个被搬动物体搬动后第一次带标签重见的那一帧——搬动前承载它的实体（窗口末帧按证据多数票认定，和身份连续率的
-    分母同一口径）、这一帧之前的记忆状态、该色块的召回列表、学生的实际选择、teacher 的目标与各格 logit——输出这次重见接没接回
-    原编号，以及没接回时卡在哪一步：原实体已不在记忆里（被合并掉或被 NoVersion 删除）、原实体在但没进召回、进了召回但学生选了新建、
-    进了召回但学生选了别的实体；搬动前根本没有承载实体的，再分“搬动前从没出过色块”和“出过但没有实体按多数票认它”。例如杯子搬动前由
-    实体 A 承载，A 在窗口里被错撤成 retracted，重见时 A 进了召回、学生却选了新建，就记 chose_birth、原实体状态 retracted、曾被撤回。
-    它只读，不改任何决定；判定“接回”与评价器的身份连续率完全相同（选中的列属于搬动前承载实体之一）。
+    ``carriers`` are the pre-move carriers fixed at the window end by evidence majority (the denominator of identity
+    continuity).  "kept" is the evaluator's identity-continuity test (the chosen column is one of those carriers); the
+    other categories, first that applies: carrier gone (folded, or deleted by NoVersion), not recalled, recalled but
+    birth chosen, recalled but another entity chosen.  Without a pre-move carrier the reason is "never fragmented before
+    the move" or "no entity resolving to it by majority".  Read-only.
     """
 
     from vsmt import lean_assignment as la
@@ -458,10 +453,10 @@ def original_carrier_global_rank(memory: Mapping[str, Any], view: Mapping[str, A
                                  carriers: Sequence[str]) -> dict[str, Any]:
     """v10 (ruling 89-1): the public rank of the original carrier in the recall's global cosine ordering (read-only).
 
-    白话：输入重见那一帧之前的记忆、这一帧的公开视图（投影后的描述子）、色块和搬动前的承载实体，输出“原实体”（仍在记忆里的承载实体中
-    首版本最早的那个）在“这个色块对全部实体的余弦从高到低、并列按实体 ID”排序里的名次（从 1 起）和记忆里的实体数。排序键与 S0-03 召回
-    的全局通道逐位相同（``cosine_matrix`` 与 ``recall_for_fragment`` 的 ``everywhere`` 排序），所以名次 ≤ k′ 就等于全局通道会召回它。
-    例如名次 4 说明 k′ 从 3 加到 4 就能召回。它只读，不改召回、不改决定；私有身份只用来指出哪个实体是原实体，名次本身是公开量。
+    The original carrier is the carrier still in memory with the earliest first version.  Its rank (from 1) orders all
+    entities by the fragment's cosine, descending, ties by entity id -- the key of S0-03's global recall channel
+    (``cosine_matrix`` and the ``everywhere`` ordering of ``recall_for_fragment``), so rank <= k' means the global channel
+    recalls it.  Private identity only names the original carrier; the rank itself is public.
     """
 
     from vsmt import lean_assignment as la
@@ -647,7 +642,7 @@ class NodeAudit:
             "iou_positive": [[v if v > 0.0 else 0.0 for v in row] for row in iou_rows],
             "centroid_inside_truth_box_padded_0.25m": [[(1.0 / (1.0 + d)) if inside else 0.0 for d, inside in zip(drow, irow, strict=True)]
                                                        for drow, irow in zip(dist_rows, inside_rows, strict=True)],
-            # = the primary column node_prf1 since ruling 72 (B) (delta_moved_m is the frozen 0.5 m); checked against the evaluator below
+            # the ruling-72 (B) primary column (delta_moved_m is the frozen 0.5 m); ruling 77 added the identity and box tests (checked below)
             "centroid_within_0.5m": [[(1.0 / (1.0 + d)) if d <= self.delta else 0.0 for d in row] for row in dist_rows],
         }
         # oracle grouping by private identity: one union box per resolved key, ambiguous entities stay single
@@ -1242,11 +1237,14 @@ def augment_recall(recall: Mapping[str, Sequence[str]], memory: Mapping[str, Any
 class OracleDiagnostic:
     """Ruling 88-2 (i): the teacher's decisions used as the policy, a diagnostic mode of the node audit (never a method).
 
-    白话：它回答“这套词表、召回与执行器在每步决定都对时最多能做到多好”。每帧在求解之前，它按 S0-04 的规则直接算 teacher 的关联目标
-    （标为 labelled 或 birth 的色块取该列，召回漏掉、无标注、身份含糊、同帧重复的色块一律新建并计数）和存在标签（可判定候选里 gone 的撤回，
-    其余不撤回；标签口径是节点主列或诊断用的“仅质心”），把它们写成远超学习头量程的 logit 交给同一个 runner；可以只替换关联或只替换存在，
-    另一半用学习头（2×2 混合格）；可选“补召回”，把色块主导物体的最早承载实体补进召回。例如被拿走的杯子在第一次可判定时就被撤回，被搬走的
-    书第一次重见就接回原编号。它在两段封存之前读私有真值，所以只能作诊断：产物标 ``oracle``，不写训练记录，不进任何表，不选参。
+    It measures the ceiling of the vocabulary, recall and executor when every decision is right.  Before each solve it
+    computes, by the S0-04 rules, the teacher's association targets (labelled / birth fragments take that column;
+    recall-miss, unlabelled, identity-ambiguous and same-frame duplicate fragments are born and counted) and existence
+    labels (gone candidates are retracted, the rest kept; place rule node primary or diagnostic centroid only), and hands
+    them to the same runner as logits far outside any trained head's range.  Association or existence alone may be
+    replaced, the other half from the learned heads (the 2x2 cells); ``recall`` appends the earliest carrier of each
+    fragment's dominant object.  It reads private truth before both seals, so its output is marked ``oracle``, writes no
+    training record and enters no table or selection.
     """
 
     def __init__(self, *, teacher: Any, geometry_table: Mapping[str, Any], executed_interventions: Sequence[Mapping[str, Any]],
@@ -1663,8 +1661,8 @@ def run(args: argparse.Namespace) -> int:
 def llm_op_refusal(args: argparse.Namespace, plan: Sequence[tuple[dict[str, Any], str]], llm: Any) -> str | None:
     """Ruling 105: LLM-op's audit is a metrics-only run of record on validation, one configuration ({}), one archive per episode.
 
-    白话：LLM-op 只在 validation 上按“只出指标”的口径跑；必须给它这条 episode 的调用存档；live 模式还要运行根（里面有 STOP 文件和
-    试点登记的模型名），并且合同的 validation_run 位已经按裁决打开。缺一样就拒绝，不花一分钱。
+    Also refused: no archive, the contract's ``validation_run`` bit closed, and in live mode a missing run root (STOP file,
+    the model name the pilot registered) or API key.  A refusal happens before any API call.
     """
 
     if not args.metrics_only:

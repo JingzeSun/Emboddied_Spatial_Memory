@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 """Ruling 89-1 reading: the recall diagnostic on the decision-ceiling cell (O-V-node) and the frozen k' choice.
 
-白话：输入是决定上限格（teacher 关联＋teacher 存在、节点主列标签）在全局候选数 k′ = 3、5、8、12 下各 39 条开发 episode 的合并节点审计，
-输出三样东西：① k′=3 下每次“原实体没进召回”时原实体在全局余弦排序里的公开名次分布；② 每个 k′ 下 65 个搬动物体首次重见的分类计数
-（接回／原实体没进召回／新建／绑到别的实体／搬动前已无承载）与五项指标的 house 均值；③ 按裁决 89-1 冻结的规则取 k′：{5, 8, 12} 里
-第一个让漏召回 ≤ 3/65 的值；三个都不过即“暂停另提裁决”，不继续加大。例如 k′=5 漏 6 个、k′=8 漏 2 个，就取 8。它不是显著性检验，
-不看学习臂，也不改任何召回值（改 S0-03 是另一个提交）。
+Input: merged node audits of the decision-ceiling cell (teacher association + teacher existence, node-primary-column labels)
+at global candidate counts k' = 3, 5, 8, 12, 39 development episodes each. Output: (1) at k' = 3, the distribution of the
+original entity's public rank in the global cosine order whenever it was not recalled; (2) per k', the first-re-observation
+categories of the 65 moved objects (kept / original entity not recalled / BIRTH / bound to another entity / no pre-move
+carrier) and the house means of the five ruling-88 metrics; (3) k' by the rule frozen in ruling 89-1: the first of
+{5, 8, 12} with at most 3 of 65 recall misses; if none passes, pause for a new ruling, no larger k'. Example: 6 misses at
+k' = 5 and 2 at k' = 8 give 8. Not a significance test; no learned arm is read and no recall value is changed (changing
+S0-03 is a separate commit). Development stage (S2-R) only.
 
 Usage:
   python ops/vsmt/ruling89_recall.py --cell 3:<merged> --cell 5:<merged> --cell 8:<merged> --cell 12:<merged> --output <json>

@@ -1,4 +1,8 @@
-"""S2-05: the development table -- run a pass over every development episode, merge, fit, train, tabulate.
+"""S2-05 / S2-06 development table -- run a pass over every development episode, merge, fit, train, tabulate.
+
+Written for S2-05; ``ops/vsmt/s2_06_sam2.sh`` drives the S2-06 SAM2 development table through the same
+subcommands, ``ops/vsmt/ruling88_probes.py`` reuses its record reader, episode listing and split, and
+``ops/vsmt/s3_02_bench.py`` reads its registered pass configurations (``expected_pass_config``).
 
 Subcommands (server, frontend env; the S2-05, S2-04 and S2-01 bits must be open and every value frozen):
     run-pass            one arm over every succeeded development episode as parallel S2-04 runs
@@ -8,15 +12,17 @@ Subcommands (server, frontend env; the S2-05, S2-04 and S2-01 bits must be open 
     table               assemble the development table from the passes' episode receipts
 
 Every run-pass names the cache's mask source (ruling 72: ``--mask-source simulator_instance_masks`` for the
-main table, ``sam2`` for the robustness appendix); an episode sealed with another source fails, a resume or
-a merge over receipts of two sources is refused, and the table records the one source its rows share.
+main table, ``sam2`` for the SAM 2.1 table -- a robustness appendix under ruling 72, a second full main table since
+ruling 83-3); an episode sealed with another source fails, a resume or a merge over receipts of two sources is
+refused, and the table records the one source its rows share.
 
-Typical order (the contract's ``passes.order``):
-    run-pass --pass calibration --arm LOW --config '{"d_low": null}' --calibration ...
+Typical order (the contract's ``passes.order``; since ruling 75 (1)(a) the calibration pass runs the fit pass's arm
+and configuration and also writes the ELU-P counts, so ``fit-elu-p --from-pass calibration`` replaces the separate
+``elu_p_fit`` pass):
+    run-pass --pass calibration --arm TAF --config '{"theta_a": <rollout theta_a>, "d_a": null}' --calibration --elu-p-counts ...
     calibration-report --output-root <root>
         (rulings freeze the grids, the rollout_config and the development configurations)
-    run-pass --pass elu_p_fit --arm TAF --config '{"theta_a": <rollout theta_a>, "d_a": null}' --elu-p-counts ...
-    fit-elu-p --output-root <root>
+    fit-elu-p --output-root <root> --from-pass calibration
         (the three fitted values are registered in S0-05 for the pass's mask source: ruling 68 (10), ruling 100-1 (ii))
     run-pass --pass dagger_round_0 --arm ELU-P --config '<rollout_config + the fitted set of --mask-source>' ...
     train --pass dagger_round_0 --round 0 [--assoc-only] ...
@@ -26,9 +32,9 @@ Typical order (the contract's ``passes.order``):
     run-pass --pass development_table --arm <TAF|RAC|LOW|VSMT-lean|NoVersion|AssocOnly> ...
     table --output-root <root>
 
-白话：这个入口把 S2-04 的单 episode 运行铺到全部开发 episode 上：每条 episode 一个子进程、多 worker
-并行、按 episode_id 升序合并、已有回执的不重跑；再把各趟的产物合起来——校准直方图合并出分位数、拟
-合计数求和后估三个量、训练记录按 S1-04 留出训练头、最后从各臂的回执装开发表。它不选参、不选赢家。
+One subprocess per episode, several workers, merged by ascending episode_id; episodes with a receipt are not rerun.
+Development training splits the pass's episodes by the ruling-47 hold-out rule (``lean_reid_head.holdout_split``).
+Nothing here selects a configuration or a winner.
 """
 
 from __future__ import annotations
@@ -157,10 +163,10 @@ PASS_ARMS = {
 def expected_pass_config(pass_name: str, arm: str, *, mask_source: str = arms.ELU_P_FITTED_MAIN_MASK_SOURCE) -> dict[str, Any] | None:
     """The registered configuration a pass runs an arm at (ruling 68), or None when the pass registers none.
 
-    白话：每一趟该用什么配置是登记好的，不由命令行临时决定：拟合趟 TAF 取 rollout 的 theta_a 且无门；
-    第 0 轮 ELU-P 取 rollout_config 加 S0-05 为这趟 mask 来源登记的三个拟合量（裁决 100-1 (ii)：实例分割与 SAM2
-    各一套，SAM2 那套拟合登记前为 None）；第 1 轮与开发表用 S2-05 的开发配置槽。命令行给的配置必须与之相等，否则拒绝。
-    默认来源是主表的实例分割，S2-06 的调用一律显式给 mask_source。
+    Fit pass: TAF at the rollout theta_a without a gate.  Round 0: ELU-P at the rollout_config plus the three values
+    S0-05 registers for the pass's mask source (ruling 100-1 (ii): one set per source).  Round 1 and the development
+    table: the S2-05 development configuration slots.  A command-line configuration must equal it.  The default
+    source is the instance-mask main table; S2-06 always passes ``mask_source``.
     """
 
     contract = dev.validate_development_contract(load_json(S2_05_CONTRACT))

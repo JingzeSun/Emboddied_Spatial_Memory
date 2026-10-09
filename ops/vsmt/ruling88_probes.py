@@ -1,18 +1,28 @@
 #!/usr/bin/env python3
 """Ruling 88-2 (ii): three minute-scale mechanism checks on the sealed S2-05 training records (read-only diagnostics).
 
-白话：裁决 88 的第 0 步里有三个便宜的核验，都只读已封存的训练记录（公开特征加 teacher 标签），不跑模拟器、不改任何规则：
-  * coverage（P1 状态覆盖）：第 0 轮（ELU-P 轨迹）与第 1 轮（VSMT-lean 轨迹）的记录里，关联行按候选状态（活动／休眠／撤回）、
-    labelled 目标按目标实体的状态、存在行按标签各有多少。例如第 1 轮若撤回态的 labelled 目标只有几十条，主表用的头就没学过从撤回态
-    恢复。
-  * sensitivity（P2 训练后敏感度）：训练好的头对关键线索有多敏感——关联头把两个余弦特征各加 0.1、存在头把自由空间覆盖从 0 换成 1、
-    新建头把最高余弦加 0.1，看 logit 变多少，分别按“没见帧数”、观察次数、像素数分档。例如 300 帧没见的候选 logit 几乎不随余弦变，
-    说明整行 LayerNorm 把余弦压没了、训练也没补回来。
-  * imitation（P3 模仿充分性）：同架构的头能不能学会规则臂在同一批行上的决定。TAF、LOW 的联合分配与 HandCost 的存在决定只依赖当帧
-    特征，是阳性对照；RAC 与 ELU-P 的存在决定依赖历史，沿记录顺序逐实体重放（两次候选之间是否被匹配、匹配几次，由上次看见帧与观察
-    次数推出；去重合并后的计数按记录值近似）。输出训练 house 与选择 house 上的分类均衡一致率。
-它们都不是方法，不产生任何表行或权重以外的产物（P3 的权重只作诊断，不进任何运行）。判读规则在 DECISIONS 裁决 88-2 冻结，由
-ruling88_analysis.py 执行。
+Step 0 of ruling 88: three cheap checks that read only sealed training records (public features plus teacher labels); no
+simulator, no rule changed.
+  * coverage (P1, state coverage): in the round-0 (ELU-P) and round-1 (VSMT-lean) records, the number of association rows by
+    candidate state (active / dormant / retracted), of labelled targets by the target entity's state and of existence rows
+    by label and state. Example: if round 1 has only a few dozen labelled targets in the retracted state, the main-table heads have
+    not learned to recover from it.
+  * sensitivity (P2, trained-head sensitivity): the logit change of a trained head under a perturbation of its key cue
+    (association: both cosine features + 0.1; existence: free-space coverage 0 -> 1; birth: highest cosine + 0.1), binned by
+    ticks since last seen, observation count and pixel count. Example: a candidate unseen for 300 frames whose logit barely
+    moves with the cosine shows that the row LayerNorm (pre-ruling-89 recipe) flattened the cosine and training did not
+    restore it.
+  * imitation (P3, imitation sufficiency): whether a head of the same architecture learns a rule arm's decisions on the same
+    rows. The joint assignments of TAF and LOW and the existence decisions of HandCost read only this frame's features
+    (positive controls); the existence decisions of RAC and ELU-P depend on history and are replayed along the records entity
+    by entity (whether and how often an entity was matched between two candidacies is derived from its last-seen frame and
+    observation count; counts after deduplication merges are approximated by the recorded values). Output: class-balanced
+    agreement on the training and selection houses.
+None of these is a method or produces anything but readings and diagnostic weights (P3 weights enter no run). The reading
+rules are frozen in DECISIONS ruling 88-2 and applied by ruling88_analysis.py.
+
+Reused outside S2-R through ruling89_probes.py: `_entry`, `read_records` and `state_of` (the record reader and state decoder
+behind ruling89_train.py, the S2-06 training entry, and the S3-03 coverage reading); `_entry` also by s3_02_bench.py.
 
 Usage:
   python ops/vsmt/ruling88_probes.py coverage --output-root <pass root> --pass dagger_round_0:ELU-P --pass dagger_round_1:VSMT-lean --output <json>

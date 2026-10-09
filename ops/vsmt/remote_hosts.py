@@ -1,29 +1,39 @@
 #!/usr/bin/env python3
 """Remote CPU hosts for the S3 job pools (user 2026-10-04: S3-03 and the CPU-only stages after it on several rented hosts).
 
-白话：S3-03 剩下的活大多是 validation 审计（每个审计作业一个核、彼此独立），一台 32 核的 CPU 机要跑好几天。这个模块让
-同一个作业池把一部分作业交给别的 CPU 机去跑，而作业的状态、日志与结果仍只在协调机（运行驱动的那台）上记一份：
+Most of the remaining S3-03 work is validation audits (one core per audit job, independent of each other), several days on a
+32-core CPU host. This module lets the same job pool hand some jobs to other CPU hosts, while the jobs' states, logs and
+results stay recorded once, on the coordinator (the host running the driver):
 
-  * ``setup``：从协调机把工作机要的静态东西按原绝对路径同步过去——同一份 Python 环境、同一个代码 worktree、validation 的
-    原始数据／几何／两套 cache、ReID 头，以及训练要读的第 0 轮记录（只在允许训练时）。
-  * ``admit``：准入检查，全过才写 ``<运行根>/hosts/<名>.json`` 的 ``admitted: true``：能连上、rsync 在；Python／torch／numpy
-    版本相同；代码逐文件 sha256 相同；静态输入逐文件 sha256 相同；在工作机上重跑几个协调机已跑完的审计，结果与协调机的
-    逐位相同（时间等易变字段除外，与裁决 104-2 的确定性探针同一比较）；允许训练时再比一次小训练的权重摘要。
-  * ``remote-run``：池子派到工作机的每个作业都由协调机上的这个小进程代跑：先把作业自己的输出位置在工作机上设成与协调机
-    相同（协调机有就推过去、没有就在工作机上删掉），推作业要的小输入（训练头、记录），再用 ssh 在工作机上以同一条命令
-    （同一个 run-measured 包装）运行，训练每隔一段时间把输出（含逐 epoch 存档）拉回，结束后把输出与内存回执拉回协调机，
-    以作业自己的退出码退出；连不上、推拉失败时以 75 退出，池子把作业放回队列、把这台机暂停（``hosts/<名>.suspended``）。
+  * ``setup``: copies from the coordinator, at the same absolute paths, what a worker needs: the same Python environment, the
+    same code worktree, the validation raw data / geometry / both caches, the ReID heads and, only if trainings are allowed,
+    the round-0 records they read.
+  * ``admit``: the admission check; only when everything passes is ``admitted: true`` written to
+    ``<run root>/hosts/<name>.json``: reachable with rsync present; identical Python / torch / numpy versions; identical
+    sha256 of every code file and every static input; a few audits the coordinator has finished rerun on the worker and
+    bit-identical to the coordinator's (except volatile fields such as times; the same comparison as the ruling-104-2
+    determinism probe); with trainings allowed, also the weight digest of one short training.
+  * ``remote-run``: every job the pool sends to a worker is run by this small process on the coordinator: it first makes the
+    job's output location on the worker equal to the coordinator's (pushed if the coordinator has it, deleted on the worker
+    otherwise), pushes the small inputs the job needs (training heads, records), runs the same command on the worker over ssh
+    (inside the same run-measured wrapper), pulls a training's outputs (epoch checkpoints included) back at intervals, pulls
+    the outputs and the memory receipt back when the job ends, and exits with the job's own exit code; on a connection or
+    transfer failure it exits 75, and the pool requeues the job and suspends the host (``hosts/<name>.suspended``).
 
-S3-05（裁决 107-3）：作业类 ``test`` 只在 S3-05 解封之后才可能出现——它的静态输入（四类 test 根与 S3-02 的封印）写在 S3-05 解封后
-的 ``inputs.json`` 里，所以解封前 ``setup --kinds test`` 无从复制；准入时在工作机上按封印逐文件重算摘要（``verify_seal``，标记须
-为本回执所打开），结果记进 test 读取记录（``record_copy``）；准入审计用 S3-03 运行根（``--reference-run-root``）里已完成的 validation
-审计，在冻结提交上逐位比对，不读 test。
+S3-05 (ruling 107-3): the job kind ``test`` can only appear after S3-05 has unsealed test -- its static inputs (the four test
+roots and the S3-02 seal) are in the ``inputs.json`` written after unsealing, so ``setup --kinds test`` has nothing to copy
+before; at admission the digests are recomputed file by file on the worker against the seal (``verify_seal``; the markers
+must have been opened by this receipt) and recorded in the test read record (``record_copy``); the admission audits use
+finished validation audits of the S3-03 run root (``--reference-run-root``), compared bit for bit at the frozen commit,
+without reading test.
 
-输入是协调机的运行根与工作机的地址／端口；输出是 ``hosts/<名>.json``（准入记录与预算）和每个远程作业拉回的结果。
-例如一台 32 核工作机准入后，池子在本机放不下时就把审计派给它，每个审计的结果拉回协调机原来的位置，合并与读数照旧。
-它不改任何作业的命令、输入或科学口径，只改作业在哪台机上跑；工作机上的结果在准入时已核对与协调机逐位相同。
-密钥：协调机上的专用密钥（默认 ``/root/.ssh/vsmt_workers_ed25519``，``VSMT_WORKER_KEY`` 可改），工作机的
-``authorized_keys`` 要有它的公钥；从不使用密码（BatchMode）。
+Inputs: the coordinator's run root and the worker's address / port. Outputs: ``hosts/<name>.json`` (admission record and
+budget) and the results each remote job pulls back. Example: once a 32-core worker is admitted, audits that do not fit on
+the coordinator go to it, each result returns to its original path on the coordinator, and merges and readings are
+unchanged. It changes no job's command, inputs or scientific scope, only the host a job runs on; admission has checked that
+the worker's results are bit-identical to the coordinator's. Key: a dedicated key on the coordinator (default
+``/root/.ssh/vsmt_workers_ed25519``, overridable by ``VSMT_WORKER_KEY``) whose public key is in the worker's
+``authorized_keys``; never a password (BatchMode).
 """
 
 from __future__ import annotations

@@ -1,13 +1,20 @@
 #!/usr/bin/env python3
 """Ruling 82-1 reading: the spread of five training seeds and the seed-paired VSMT-lean vs AssocOnly gaps (read-only).
 
-白话：裁决 81 发现同一训练配方下，只换初始化和种子，VSMT-lean 与 AssocOnly 的节点 F1 先后就会翻转。这个脚本读两个臂各
-5 个种子（登记的 7、19、31、43、59，都是“只用本臂轨迹、20 遍”的登记配方）的节点审计 v5 合并结果，对每个指标输出：
-每个种子的 house 均值、5 个种子的均值与标准差；每个种子上 VSMT-lean 减 AssocOnly 的 house 均值差（按 house 配对）、
-这 5 个差的均值、标准差和同号个数。按裁决 82 预登记的规则：至少 4 个种子的差同号，且差的均值绝对值大于 5 个差的标准差，
-才算在开发集层面确定了先后；否则记为“开发集上分不出”。另把每个 house 先对 5 个种子取平均、再按 house 重抽样给出区间，
-只作参考。例如节点 F1 的 5 个差是 +0.04、+0.07、−0.01、+0.03、+0.05，4 个同号、均值 0.036 大于标准差 0.030，就算确定；
-LOG-270 那次旧初始化的训练只作参考列，不进判定。它不是显著性检验，也不替代正式 test。
+Ruling 81 found that, under one training recipe, changing only the initialisation and seed flips the node-F1 order of
+VSMT-lean and AssocOnly. This script reads merged node audits (schema v5 when written) of both arms at the five registered
+seeds (7, 19, 31, 43, 59; the registered recipe at the time: own-arm records only, 20 epochs) and reports per metric: each
+seed's house mean, the mean and standard deviation over the five seeds; per seed, the house-paired mean difference VSMT-lean
+minus AssocOnly, and the mean, standard deviation and same-sign count of these five gaps. Pre-registered rule of ruling 82:
+the order is established at the development level only if at least 4 gaps share a sign and |mean gap| exceeds the standard
+deviation of the 5 gaps; otherwise "not distinguishable on the development set". A house-resampling interval of the
+seed-averaged house differences is added for context only. Example: node-F1 gaps +0.04, +0.07, -0.01, +0.03, +0.05 have 4
+of the same sign and mean 0.036 > sd 0.030: established. The LOG-270 training with the old initialisation is a reference
+column only. Not a significance test and no substitute for test.
+
+Reused outside S2-R: `analyse` and `METRICS` by s2_06_reading.py (S2-06 ruling 100-3 reading); `house_values`, `ARMS` and
+`VSMT_ONLY` by ruling95_reading.py, whose `read` S2-06 also reuses. The S3 gate's 82-1 condition is implemented separately
+in `lean_teacher`.
 
 Usage:
   python ops/vsmt/ruling82_seed_analysis.py --group VSMT-lean:7:<merged audit json> ... --group AssocOnly:59:<...> \

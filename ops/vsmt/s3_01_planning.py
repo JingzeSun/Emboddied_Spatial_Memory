@@ -1,20 +1,30 @@
 #!/usr/bin/env python3
-"""S3-01 planning numbers for pending ruling 102: event denominators, development re-readings, null calibration and power.
+"""S3-01 planning numbers behind ruling 102: event denominators, development re-readings, null calibration and power.
 
-白话：待裁 102 要在碰 validation／test 之前写死主门怎样判。这个脚本只读已提交的开发集与确认集合并审计（实例分割开发集、
-实例分割确认集、SAM2 开发集；VSMT-lean 与 AssocOnly 各 5 个种子，四个规则臂各一份），回答四件事：
-  * 身份连续率的考题是否各臂相同：每个臂“搬动后第一次带标签重见”的事件数（与臂无关）与其中“搬动前该臂有承载实体”的
-    事件数（条件定义的分母，随臂变化）；
-  * 两种身份连续率定义（已登记的条件定义：分母只含搬动前有承载实体的事件；候选的共同事件定义：分母是全部重见事件，搬动前
-    没有承载实体记失败）与两种排除清单（主表全部运行都可算 / 只看参与比较的两臂）下，开发读数各是多少；
-  * 零效应校准：真实收益为 0 时，四种判定规则（只按 house 重采样；它加 82-1 种子稳定条件；种子与 house 两级重采样加 82-1；
-    只有两级重采样）有多大概率误判“成立”；
-  * 功效与情景：真实收益取若干事先列出的正值、种子波动取若干值时，按 test 尝试生成 100 个 house 折算的有效 house 数，各规则
-    判“成立”的概率；另报把开发估计直接代入的情景。
-模拟是半参数的：house 部分从开发数据逐 house 整行重抽（每行是该 house 5 个种子的配对差减去各种子的均值，保留真实的 house
-间差异与 house 内种子噪声），种子部分另加均值 0、标准差为设定值的正态偏移，再加上设定的真实收益。例如真实收益 0、种子标准差
-0.05 时，“只按 house 重采样”把这 5 个模型当成固定的，误判率会高于 5%，两级重采样不会。它不读 validation／test，不改任何合同，
-数字只用于规划：开发集是样本内的，确认集只有 43 个 house，正态种子偏移与平移收益都是假设。
+Output: results/vsmt_lean_s3_01_planning_6c57903.json (commit 6c57903, planning seed 102). Ruling 102 (approved
+2026-10-02; pending when this script was written) cites it as the S3 power statement (102-8), and the paper's null
+calibration of the two-level bound rests on it (Sec. IV-D and Limitations; docs/REPRODUCE.md, `appendix_power`).
+
+Reads only committed merged audits of the development and confirmation sets (instance-segmentation development,
+instance-segmentation confirmation, SAM2 development; VSMT-lean and AssocOnly at five seeds each, one run per rule arm) and
+reports four things:
+  * whether identity continuity poses the same events to every arm: per run, the first labelled re-observations after a
+    move (arm-independent) and those among them with a pre-move carrier entity (the conditional denominator, arm-dependent);
+  * the development readings under two identity-continuity definitions (conditional, registered before ruling 102-0: only
+    events with a pre-move carrier; common events, adopted by 102-0: every re-observation, no pre-move carrier counts as not
+    kept) and two exclusion lists (every main-table run defined / only the two compared arms);
+  * null calibration: with a true gain of 0, the share of replicates in which each of four decision rules passes
+    (house-only resampling; house-only plus the 82-1 seed-stability condition; two-level house x seed resampling plus 82-1;
+    two-level only);
+  * power and scenarios: the pass share of each rule for pre-listed positive gains and seed standard deviations, at the
+    defined-house count scaled from 100 attempted test houses; plus a plug-in scenario at the development estimates.
+The simulation is semi-parametric: whole house rows are resampled from the development data (each row is the house's five
+seed-paired differences minus the per-seed means, which keeps house heterogeneity and within-house seed noise), a normal seed
+offset with mean 0 and the set standard deviation is added, then the set true gain. Example: at a true gain of 0 and a seed
+standard deviation of 0.05, house-only resampling treats the five models as fixed and exceeds a 5% false-positive rate; the
+two-level resampling does not. No validation/test data is read and no contract is changed. The numbers are for planning
+only: the development readings are in-sample, the confirmation set has 43 houses, and the normal seed offset and the
+additive gain are assumptions.
 
 The two-level resampling draws house indices and seed indices independently; every drawn seed is evaluated on the same drawn
 houses (houses and seeds are crossed: one trained model is audited on every house), following the crossed-array bootstrap of

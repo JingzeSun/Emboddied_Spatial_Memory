@@ -1,20 +1,27 @@
 #!/usr/bin/env python3
 """S3-02 speed bench support: input check, episode choice, resource sampler and the summaries of the five measurements.
 
-白话：用户 2026-10-03 要求在一张 RTX 5090 上先测速，再决定 S3-02 的正式做法（「1 卡 5090 测速，写测速脚本，测 ①②③④⑤」）。
-``s3_02_bench.sh`` 负责按顺序起各项计算；这个脚本做旁边的记账与汇总：
-  * check：记下这台机器（显卡、驱动、torch 能否在这张卡上算、cgroup 配额与内存、数据盘）与各输入是否在；任何输入根若在封存的
-    S3 test 根里就拒绝（裁决 103-1 的守卫）；
-  * episodes／config：从开发集回执里挑 episode（中位大小或最大），给出开发表里某个臂的登记配置；
-  * sampler：每隔几秒记一次显存、显卡利用率、容器内存与 CPU 累计时间，测量结束时由驱动停掉；
-  * compat（⑤）：生成器在这台机器上跑 4 个 house 的占用测量，汇总成功与否和单 worker 占用，并按 S1-01 规则推算不同配额下能开几路；
-  * scaling（①）：SAM2 在一张卡上 1～4 个 worker 跑同一批 episode 的同样帧数，吞吐按“完成帧数 ÷ 实际墙钟”，失败单列，并核对各档
-    产出的 episode 封印是否逐条相同；
-  * caches（②）：两套 cache 依次跑与同时跑的总墙钟、各自吞吐、资源峰值，以及两种方式产出的封印是否逐条相同；
-  * profile（③）：一条闭环审计在 cProfile 下的耗时分布（按函数与按模块）；
-  * train-bench（④）：一份训练记录读进内存、转成张量各占多少内存与时间，再在 CPU 与 GPU 上各训 1 个 epoch 计时；
-  * collect：列出本次全部导出及其摘要。
-它只读开发集（不读 validation／test、不碰 S3 的根），所有输出写进测速目录；它不是任何正式阶段，不改任何方法、阈值或数据。
+On 2026-10-03 the user asked for a speed bench on one RTX 5090 before the S3-02 setup was fixed
+(「1 卡 5090 测速，写测速脚本，测 ①②③④⑤」). ``s3_02_bench.sh`` starts each measurement in order; this script keeps the books
+and writes the summaries:
+  * check: records the machine (cards, driver, whether torch computes on the card, cgroup quota and memory, data disk) and
+    whether each input exists; refuses any input root inside a sealed S3 test root (the ruling 103-1 guard);
+  * episodes / config: picks development episodes from their receipts (median size or largest) and gives a development-table
+    arm's registered configuration;
+  * sampler: every few seconds records GPU memory, GPU utilisation, container memory and cumulative CPU time; the driver
+    stops it when a measurement ends;
+  * compat (5): the generator's occupancy measurement of 4 houses on this machine: success, per-worker footprint, and the
+    workers the S1-01 rule allows at other quotas;
+  * scaling (1): SAM2 with 1-4 workers on one card over the same episodes and frames; throughput = frames completed / wall
+    clock; failures listed separately; whether the episode seals agree across the trials;
+  * caches (2): the two caches one after the other and both at once: total wall clocks, each cache's throughput, resource
+    peaks, and whether both ways write the same seals;
+  * profile (3): one closed-loop audit under cProfile, time by function and by module;
+  * train-bench (4): memory and time to load one record set and to prepare it as tensors, then one timed epoch on the CPU
+    and one on the GPU (the frozen recipe via ``ruling89_probes.revision_kwargs``);
+  * collect: every export of this bench with its digest.
+Reads development data only (no validation/test, no S3 root); every output goes to the bench directory. Not a formal stage;
+changes no method, threshold or data.
 
 Usage (from the driver; see ops/vsmt/s3_02_bench.sh):
   python ops/vsmt/s3_02_bench.py check --out X --repo-root R --autodl-root A --episode-roots E --sam2-cache C ...

@@ -1,17 +1,24 @@
 #!/usr/bin/env python3
 """Ruling 88-2 reading: the step-0 package (decision ceiling, 2x2 attribution, the three probes) under the frozen rules.
 
-白话：输入是第 0 步诊断包的全部产物——决定上限（teacher 当策略）六个确定性格的节点审计合并结果、2×2 两个混合格各 5 个种子的合并
-结果、学习版（裁决 86 的 VSMT-lean 5 个种子）、开发表四个规则臂（LOG-270）的逐 house 报告，以及 P1／P2／P3 三个核验的输出；输出按
-DECISIONS 裁决 88-2 事先冻结的读法给出的判读。
-  * G0-a 词表价值：O-V-主列相对 O-A，Missing 残留率低 ≥ 0.05，身份连续率与全部重见物体接回比例各不低于 O-A 超过 0.05。
-  * G0-b 版本价值：O-V-主列相对 O-N-主列，身份连续率高 ≥ 0.05。
-  * G0-c 主门可达：O-V-主列的 Missing 残留率比四个规则臂里最低的低 ≥ 0.05，身份连续率比最高的高 ≥ 0.05。
-  都在各自共同有效的 house 上按 house 配对取均值。判读：a 与 c 都过 → 进重设计；a 不过 → 先改主张或词表；a 过 c 不过 → 先裁主门或框架；
-  b 不过 → 不主张保留档案的价值。归因：换成 teacher 关联、换成 teacher 存在各自关掉学习版到上限差距的比例，比例大的一侧排前面。
-  P2：>100 帧两档对 1 帧档、观察次数 >100 两档对 1～10 档的中位 |Δlogit| 比值（五种子取中位），<0.1 证实、0.1～0.5 部分、≥0.5 不证实。
-  P3：训练 house 上的分类均衡一致率 ≥0.99 能表达、0.95～0.99 部分、<0.95 不能。
-例如 O-V-主列 Missing 残留率 0.02、O-A 0.30、RAC 0.089，身份连续率 0.80 对 0.78／0.149，则 a、c 都过。它不是显著性检验，也不选配置。
+Inputs: the whole step-0 package -- merged node audits of the six deterministic decision-ceiling cells (teacher as policy),
+the two mixed cells of the 2x2 at five seeds each, the learned arm (ruling-86 VSMT-lean, five seeds), the per-house reports
+of the four rule arms of the development table (LOG-270), and the P1/P2/P3 probe outputs. Output: the reading under the
+rules frozen in advance by DECISIONS ruling 88-2.
+  * G0-a, vocabulary value: O-V-node against O-A has a Missing residual rate lower by >= 0.05, and neither identity
+    continuity nor the re-attached share of all re-observed objects is more than 0.05 below O-A.
+  * G0-b, version value: O-V-node against O-N-node has identity continuity higher by >= 0.05.
+  * G0-c, main gate reachable: O-V-node's Missing residual rate is >= 0.05 below the lowest of the four rule arms and its
+    identity continuity >= 0.05 above the highest.
+  Each is a house-paired mean over the houses valid for both sides. Reading: a and c pass -> redesign; a fails -> revise the
+  claim or the vocabulary first; a passes and c fails -> rule on the main gate or framing first; b fails -> no claim for the
+  value of keeping versions. Attribution: the share of the learned-to-ceiling gap closed by swapping in the teacher's
+  association and by swapping in the teacher's existence; the larger side is listed first.
+  P2: the ratio of median |delta logit| of the two >100-frame bins to the 1-frame bin, and of the two >100-observation bins
+  to the 1-10 bin (median over five seeds); < 0.1 confirmed, 0.1-0.5 partial, >= 0.5 not confirmed.
+  P3: class-balanced agreement on the training houses >= 0.99 expressible, 0.95-0.99 partial, < 0.95 not expressible.
+Example: O-V-node Missing residual 0.02, O-A 0.30, RAC 0.089, identity continuity 0.80 against 0.78 / 0.149: a and c pass.
+Not a significance test and selects no configuration. Development stage (S2-R) only; nothing here is reused by S2-06 or S3.
 
 Usage:
   python ops/vsmt/ruling88_analysis.py --cell O-V-node:<merged> ... --mixed OA-LE:7:<merged> ... --learned 7:<merged> ...

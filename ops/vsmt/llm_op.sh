@@ -1,10 +1,11 @@
 #!/bin/bash
-# LLM-op, the appendix arm on the DeepSeek API (ruling 105, user 2026-10-04: 「待裁 105 全按推荐，但105-11我新租一台机器去同时做」).
+# LLM-op, the validation-only arm on the DeepSeek API, paper Table III (ruling 105, user 2026-10-04:
+# 「待裁 105 全按推荐，但105-11我新租一台机器去同时做」).
 #
 # On the S3-02 host (read-only there; it touches nothing of the S3-03 run):
 #   bash ops/vsmt/llm_op.sh plan                       draw the validation episode (one per front end since ruling 108; 105-2
-#                                                      had 15) and the pilot episode, write
-#                                                      $RUN_ROOT/plan.json and $RUN_ROOT/transfer.txt (the paths to copy); refuses
+#                                                      had 15) and the pilot episode, write $RUN_ROOT/plan.json and
+#                                                      $RUN_ROOT/transfer.txt (the paths to copy); refuses
 #                                                      S3-03 inputs with problems, and provisional ones unless ALLOW_PROVISIONAL=1
 #   bash ops/vsmt/llm_op.sh transfer <host> <port>     copy those paths, at the same absolute paths, to the LLM-op host over ssh
 #                                                      (rsync; SSH_KEY names the key the LLM-op host accepts)
@@ -18,9 +19,9 @@
 #                                                      call kind it could not price, a fallback rate above 2%, two model names
 #   bash ops/vsmt/llm_op.sh run                        the validation episodes (2 front ends x 1) as node-audit runs of record;
 #                                                      no new episode at $30 (started ones resume), STOP at $40 (ruling 108; the
-#                                                      ledger includes the pilot) (every worker also
-#                                                      checks the ledgers itself); run it again to resume (archived calls are
-#                                                      replayed, never paid twice); long: nohup ... > <log> 2>&1 &
+#                                                      ledger includes the pilot; every worker also checks the ledgers itself);
+#                                                      run it again to resume (archived calls are replayed, never paid twice);
+#                                                      long: nohup ... > <log> 2>&1 &
 #   bash ops/vsmt/llm_op.sh status                     progress, spend, STOP reason
 #   bash ops/vsmt/llm_op.sh stop                       write STOP: every worker stops before its next call (killing the driver
 #                                                      writes it too)
@@ -30,10 +31,11 @@
 #
 # Environment (optional): PY (/root/miniconda3/bin/python3.12), RUN_ROOT ($AUTODL/vsmt_private/llm-op-run), INPUTS (the S3-03
 #   check's inputs.json, for plan), SSH_KEY (for transfer), DEEPSEEK_API_KEY_FILE (/root/.config/vsmt/deepseek.env), WORKERS (at
-#   most the check's choice), ALLOW_PROVISIONAL=1 (plan from provisional S3-03 inputs; recorded), SUPERSEDE_PLAN=1 (ruling 108: rewrite a plan
-#   made for another episode count, the old one kept as plan.superseded.<sha12>.json), ACCEPT_PILOT=1 (the user accepted
-#   the pilot's decision point; recorded), RESUME_AFTER_STOP=1 (the user decided to go on after a STOP; the STOP file is kept as
-#   STOP.<n>; past the $200 safety stop a resumed run stops again at once unless a ruling raises it), RETRY_FAILED=1, EXPORT_OUT.
+#   most the check's choice), ALLOW_PROVISIONAL=1 (plan from provisional S3-03 inputs; recorded), SUPERSEDE_PLAN=1 (ruling
+#   108: rewrite a plan made for another episode count, the old one kept as plan.superseded.<sha12>.json), ACCEPT_PILOT=1 (the
+#   user accepted the pilot's decision point; recorded), RESUME_AFTER_STOP=1 (the user decided to go on after a STOP; the STOP
+#   file is kept as STOP.<n>; past the $40 safety stop of ruling 108 a resumed run stops again at once unless a ruling raises
+#   it), RETRY_FAILED=1, EXPORT_OUT.
 # Exit status: 0 done; 2 refused (a closed contract bit, a missing step, a changed plan or commit); 3 a decision point (projection
 #   over the cap, a STOP, unfinished episodes); anything else a failure (see $RUN_ROOT/logs).
 set -u

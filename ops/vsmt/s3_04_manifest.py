@@ -2,18 +2,23 @@
 """S3-04 (ruling 106, 2026-10-05: 「待裁 106 全按推荐」): the choice on validation and the freeze before test -- the steps of
 ``ops/vsmt/s3_04_freeze.sh``.
 
-白话：S3-04 在 S3-03 收尾核验通过之后、S3-05 解封 test 之前运行一次，两套前端一起冻结。每一步读 S3-03 的运行根（只读）与导出，
-写本次的输出根 ``$AUTODL/vsmt_private/s3-04-<提交>``：
-  * ``check``（G1、G5）：S3-03 在登记提交上的 verify 没有问题、导出与清单一致、30 份第 1 轮权重与训练回执一致、合同登记值等于
-    运行值；四个 test 根的封存标记仍是 sealed 且摘要等于 S3-02 导出的封印（只读标记文件）；
-  * ``select --front``（G2、G3 与选择）：用冻结代码从合并审计重算选参读数并与 S3-03 记下的逐值比较，核对共同事件，再按 102-4
-    选出每个臂的配置，定下 test 运行清单与复现探针的 episode；
-  * ``probe --front``（G4）：在本提交上把每个选中运行（学习臂 5 个种子）在 2 条 validation episode 上重跑，逐位对比 S3-03 的审计；
-  * ``receipt``：五项全过、S3-05 入口已在本提交里，才写冻结回执（选择、test 运行清单、统计计划、代码摘要、权重与登记值摘要、
-    环境）与导出；
-  * ``verify``：重算导出的摘要，写运行清单与核对文件。
-输入是 S3-03 的运行根与导出；输出是 ``exports/vsmt_lean_s3_04_*_<提交>.json``。例如 G4 发现某个规则臂的复现审计与 S3-03 差了
-一个记忆摘要，probe 以退出码 3 停下，不写回执。它不读 test、不训练、不算主门，也不改 S3-03 运行根里的任何文件。
+S3-04 runs once, after S3-03's closing verify passed and before S3-05 unseals test, and freezes both front ends together.
+Each step reads the S3-03 run root (read only) and exports, and writes this commit's output root
+``$AUTODL/vsmt_private/s3-04-<commit>``:
+  * ``check`` (G1, G5): S3-03's verify at the registration commit found no problem, its exports equal its manifest, the 30
+    round-1 weights files equal their training receipts, the contract's registered values equal the run's; the four test
+    roots' seal markers still say sealed with the digest of the seal S3-02 exported (marker files only);
+  * ``select --front`` (G2, G3 and the choice): recomputes the selection readings from the merged audits with the frozen code
+    and compares them value by value with S3-03's, checks the common events, then picks each arm's configuration by 102-4 and
+    fixes the S3-05 run list and the probe episodes;
+  * ``probe --front`` (G4): reruns every selected run (learned arms at the five seeds) on 2 validation episodes at this commit
+    and compares them bit for bit with S3-03's audits;
+  * ``receipt``: only when G1-G5 passed and S3-05's entry is in this commit, writes the freeze receipt (choice, test run
+    list, statistics plan, code digests, weight and registered-value digests, environment) and the exports;
+  * ``verify``: recomputes the exports' digests and writes the run manifest and the verification file.
+Inputs: the S3-03 run root and exports. Outputs: ``exports/vsmt_lean_s3_04_*_<commit>.json``. Example: if G4 finds that a
+rule arm's rerun audit differs from S3-03's by one memory digest, probe stops with exit 3 and no receipt is written. It reads
+no test data, trains nothing, computes no main gate and changes no file in the S3-03 run root.
 """
 
 from __future__ import annotations

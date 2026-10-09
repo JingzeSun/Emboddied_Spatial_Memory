@@ -1,6 +1,12 @@
 #!/usr/bin/env python3
 """Python-3.9-compatible AI2-THOR family worker for the VM-04 audit.
 
+Kept from the VM-04 stage of the superseded D-122 direction because the current D-224 generator
+(``lean_s1_02a_pilot.py``) and geometry tool (``lean_s1_04_object_geometry.py``) import its house
+loader: ``load_source_record``, ``records_from_json``, ``load_pinned_asset_id_database``,
+``upgrade_house_schema_v1`` and ``bootstrap_house_agent``.  Its own worker entry is not part of any
+current stage.
+
 The worker owns one preselected house and all 18 fixed slots.  Target choice
 uses anonymous mask geometry only.  Private simulator IDs remain under the
 private raw directory and never enter public camera/RGB/depth files.
