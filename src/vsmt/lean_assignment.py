@@ -4,11 +4,9 @@ This module turns one frozen frontend frame plus the prior predicted memory
 into the exact inputs of the frame-level joint assignment, and solves it.
 Everything here is public: it never takes a private, teacher, future or
 reference argument, and it never reads a path, slot index or sample name.
-
-白话：这个模块解决"本帧的每个色块该和旧记忆里的哪个实体配对，还是自己新建"。
-输入是冻结前端的一帧、此前预测的记忆和一组无默认值的规则数值，输出是召回集合、
-特征矩阵、代价矩阵和一次分配结果。例如两个相似色块同时匹配一个旧实体时，分配
-会把其中一个推向新建。它不训练模型、不读取私有数据、不决定该记什么指标。
+The rule values (recall counts and radii) are passed explicitly, without
+defaults; the outputs are the recall sets, the feature matrices, the cost
+matrix and one assignment per frame.  Nothing here trains a model.
 
 Three ordering facts matter and are enforced rather than assumed:
 
@@ -209,8 +207,9 @@ RECALL_LOCAL_RADIUS_M = 3.0
 RECALL_BIRTH_NEIGHBOURHOOD_RADIUS_M = 1.0
 #: D-224-S1 ruling 68 (2026-09-25): the two remaining S0-03 slots.  The existence threshold here is a
 #: reference value only -- the runner takes tau_r from each configuration of the S0-05 VSMT-lean grid
-#: (0.3..0.9) and no code reads this constant; the reference-score seed fixes the deterministic
-#: stand-in the invariance test scores public inputs with.
+#: (0.15..0.9 since ruling 87-1); no decision reads this constant, only ``validate_assignment_contract``
+#: compares the contract's ``cost_matrix.existence_threshold_tau_r`` with it.  The reference-score seed
+#: fixes the deterministic stand-in the invariance test scores public inputs with.
 EXISTENCE_THRESHOLD_TAU_R_REFERENCE = 0.5
 REFERENCE_SCORE_SEED = 224
 REID_TRAINING_HOUSES = 30
@@ -294,9 +293,9 @@ def _hex64(value: Any, code: str) -> str:
 def reid_weights_sha256_for(mask_source: str) -> str:
     """The pinned ReID head digest of one mask source (ruling 84-1 (b)); an unregistered source is refused.
 
-    白话：两套前端各有一份 ReID 投影头：实例分割 cache 上训练的（主表）和 SAM2 cache 上训练的（SAM 2.1 表）。输入是
-    episode 封印声明的 mask 来源，输出该来源钉住的权重摘要；入口拿它核对 --weights 文件，摘要不符就拒绝。例如 SAM2 的
-    episode 配上实例分割的头会被拒绝。它不读文件、不训练，也不决定用哪个前端。
+    Each front end has its own head: the one trained on the instance-segmentation cache (main table) and the one
+    trained on the SAM2 cache (SAM 2.1 table).  The entries check the ``--weights`` file against the digest of the
+    mask source the episode seal declares, so a SAM2 episode with the instance-segmentation head is refused.
     """
 
     _require(mask_source in REID_WEIGHTS_SHA256_BY_MASK_SOURCE, f"reid_weights_unregistered_mask_source:{mask_source}")
@@ -342,9 +341,8 @@ def _volume(lower: Sequence[float], upper: Sequence[float]) -> float:
 def validate_cache_frame(frame: Mapping[str, Any]) -> dict[str, Any]:
     """Check one frozen frontend frame.  It must carry no private identifier.
 
-    白话：输入共享前端 cache 的一帧，输出同样内容的副本，并在字段不符、几何非法
-    或出现场景标识时拒绝。例如把 house ID 写进 fragment 会被拒。它不打开图像，也
-    不判断 fragment 是否真的对应一个物体。
+    Returns a copy; refuses unexpected fields (e.g. a house ID added to a fragment) and invalid geometry.  It opens no
+    image and does not judge whether a fragment is an object.
     """
 
     _require(type(frame) is dict, "frame_not_object")
@@ -424,10 +422,10 @@ def recall_for_fragment(
 ) -> list[str]:
     """Return the recalled entity ids for one fragment, in a fixed order.
 
-    白话：输入一个色块和旧记忆，输出这次要为它考虑的实体列表。两条通道取并集：本
-    地通道在登记半径内按余弦取前 k 个，全局通道**对全部状态一视同仁**、不设距离
-    上限、按余弦取前 k′ 个。例如杯子从厨房搬到卧室后，全局通道仍能把旧杯子召回来。
-    它不判断谁是正确答案，也不读取私有身份。
+    The union of two channels: the local channel takes the top ``local_count`` entities by cosine within
+    ``local_radius_m``; the global channel treats every state alike, has no distance limit and takes the top
+    ``global_count`` by cosine (so a cup carried from the kitchen to a bedroom is still recalled).  Local entries come
+    first, duplicates dropped.
 
     Why the global channel ignores state.  An earlier version gave the
     distance-free channel only to dormant and retracted entities.  That
@@ -437,7 +435,7 @@ def recall_for_fragment(
     BIRTH.  The comparison would then measure "does it have the lifecycle
     vocabulary" *and* "is it allowed distant candidates" together, which is
     not the causal counterfactual D-224-HIJ made mandatory.  Candidate
-    eligibility is now state-independent and identical for all five arms;
+    eligibility is now state-independent and identical for all arms;
     state only decides which atom an assignment compiles to.
 
     Ties in cosine are broken by ``entity_id`` so the order never depends on
@@ -590,10 +588,8 @@ def existence_feature_vector(
     ``history`` is the entity's ruling-89-2 summary (``EXISTENCE_HISTORY_FEATURES``) before this frame; absent, the
     entity has no eligible frame and no match on record, which is every value zero.
 
-    白话：输入一个本帧未被分配的实体、当前帧和已经解出的分配，输出存在头的特征
-    行。其中"最相似色块是否仍未被分配"必须在分配之后才有定义，因此存在特征在求
-    解之后计算。例如一个实体的最佳色块已经绑给别的实体，说明它更可能真的不在了。
-    它仍然只用公开量，不读取私有身份。
+    "Is the most similar fragment still unassigned" is defined only once the assignment exists, hence the order (a best
+    fragment already bound to another entity is evidence that this one is gone).  Every input is public.
     """
 
     entity_id = str(entity["entity_id"])
@@ -660,10 +656,10 @@ def build_assignment_inputs(
 ) -> dict[str, Any]:
     """Stage A: build recall, the association rows and the birth rows, and seal.
 
-    白话：输入一帧和旧记忆，输出召回集合、两张特征矩阵、列顺序和一个封存摘要。
-    它在任何模型运行前、任何私有文件打开前完成；此后私有数据怎么变，这份摘要都
-    必须逐字节不变。例如只换模拟器实例映射，摘要必须一模一样。存在特征不在这一
-    阶段，它要等求解之后由 `seal_solution_and_existence` 封存。
+    The output (recall sets, the two feature tables, the column order and the seal digest) is built before any model
+    runs and before any private file is opened; no private change may alter it (e.g. a changed simulator instance map
+    leaves the digest byte-identical).  The existence rows are sealed after the solve, by
+    ``seal_solution_and_existence``.
     """
 
     checked_frame = validate_cache_frame(frame)
@@ -792,10 +788,8 @@ def build_cost_matrix(
 ) -> dict[str, Any]:
     """Turn head outputs into the rectangular cost matrix, cost = ``-logit``.
 
-    白话：输入封存好的特征矩阵和三个头给出的 logit，输出代价矩阵：行是色块，列是
-    被召回的实体加上每个色块自己的新建列。代价取 logit 的相反数，而不是
-    `-log sigmoid(logit)`。例如两个色块竞争同一个实体时，用哪种变换会改出不同的
-    最优配对。它不决定 logit 怎么来，也不做任何学习。
+    Rows are the fragments; columns are the recalled entities plus one BIRTH column per fragment; cells outside recall
+    take the derived forbidden cost (``_forbidden_cost``).
 
     Why ``-logit`` and not ``-log sigmoid(logit)``.  METHOD trains the
     association and birth heads with a per-fragment softmax cross-entropy, so
@@ -847,10 +841,8 @@ def build_cost_matrix(
 def _forbidden_cost(legal_values: Sequence[float], *, rows: int) -> float:
     """A cost no optimal assignment can ever prefer, derived from the matrix.
 
-    白话：召回之外的组合需要一个"永远不会被选"的代价。固定写 1e9 不安全，因为一
-    个足够极端的 logit 会产生同样大甚至更大的合法代价。这里改为由当前矩阵的最大/
-    最小合法代价和行数算出来，保证任何含禁止格的分配都严格贵于任意全合法分配。
-    例如全部合法代价都在 [-5, 5] 且有 3 行时，禁止代价取 21。它不是一个可调参数。
+    A fixed constant such as 1e9 is unsafe, because an extreme logit can produce a legal cost as large.  The bound is not
+    a tunable parameter; e.g. legal costs in [-5, 5] with 3 rows give 3 * 5 - 2 * (-5) + 1 = 26.
 
     Any all-legal assignment costs at most ``rows * hi``.  An assignment that
     uses one forbidden cell costs at least ``B + (rows - 1) * lo``.  Requiring
@@ -869,10 +861,8 @@ def _forbidden_cost(legal_values: Sequence[float], *, rows: int) -> float:
 def solve_rectangular_assignment(matrix: Sequence[Sequence[float]]) -> list[int]:
     """Minimum-cost assignment, canonicalised to the lexicographic optimum.
 
-    白话：输入行数不超过列数的代价矩阵，输出每一行选中的列号，使总代价最小；若存
-    在多个代价相同的最优解，固定返回"按行依次取可行的最小列号"的那一个。例如两个
-    色块都最像同一个实体时，只有一个能拿到它，另一个会被推向次优列或新建列。它是
-    确定性的，且不依赖行列的偶然输入顺序。
+    Input: a cost matrix with no more rows than columns; output: the column chosen for each row.  Among optima of equal
+    cost the one taking, row by row, the smallest feasible column is returned, so the result is deterministic.
 
     Written here rather than taken from scipy: scipy is not a dependency, and
     the tie-breaking has to be ours because a rectangular assignment usually
@@ -976,10 +966,9 @@ def _lexicographically_smallest_optimum(
 ) -> list[int]:
     """Canonicalise an optimum to the lexicographically smallest one.
 
-    白话：一个矩形分配通常有多个代价相同的最优解。这一步把结果收敛到"按行依次取
-    可行的最小列号"的那一个，使返回值只由矩阵和规范行列顺序决定。例如
-    `[[1,0],[1,0]]` 的两个最优解 `[1,0]` 与 `[0,1]` 代价都是 1，这里固定返回
-    `[0,1]`。它不改变最优代价，只消除并列时的任意性。
+    The optimal cost is unchanged; only the arbitrariness among ties is removed, so the result depends on the matrix
+    and the canonical row and column order alone.  E.g. ``[[1,0],[1,0]]`` has the optima ``[1,0]`` and ``[0,1]``, both
+    of cost 1; ``[0,1]`` is returned.
 
     Why the equality subgraph and not a re-solve per candidate.  The earlier
     version re-solved the whole matrix once per *tried* column, which is
@@ -1106,9 +1095,8 @@ def solve_frame(
 ) -> dict[str, Any]:
     """Solve one frame and return fragment -> column, plus the realised cost.
 
-    白话：输入封存的特征与三个头的 logit，输出每个色块被分配到哪个实体或新建列。
-    例如 f1 分到 e1、f2 分到自己的新建列。它不提交事务，也不做存在判定；那两步由
-    调用方按 S0-01 的执行器完成。
+    A column is an entity id or the fragment's own BIRTH column.  Committing the transaction (S0-01 executor) and the
+    existence decisions are left to the caller.
     """
 
     built = build_cost_matrix(
@@ -1154,10 +1142,10 @@ def seal_solution_and_existence(
     ``existence_history`` maps entity id to its ruling-89-2 summary before this frame (the runner's); an entity
     without an entry has none on record (all zero).
 
-    白话：输入 stage A 的封存、当前帧、旧记忆和求解结果，输出第二份封存：分配回执
-    加上每个"本帧应可见却未被分配"的实体的存在特征。两份封存都完成后，teacher 才
-    可以打开 private。例如一个实体的最佳色块已经绑给别人，这条线索就落在这一份里。
-    它不做存在判定（那要 τ_r），也不读取私有数据。
+    The second seal holds the assignment receipt and the existence rows of every entity left unassigned that has a
+    geometry record in this frame; the runner applies the eligibility rule (active or dormant, should be visible)
+    afterwards.  The teacher may open private files only after both seals.  No existence decision is made here (that
+    needs tau_r) and nothing private is read.
 
     The split exists because one existence feature is "the best-matching
     fragment is still unassigned", which has no meaning before the solve.
@@ -1228,9 +1216,8 @@ def seal_solution_and_existence(
 def reference_untrained_scores(inputs: Mapping[str, Any], *, seed: int) -> list[float]:
     """A fixed deterministic stand-in for the untrained network's logits.
 
-    白话：输入封存的特征矩阵和一个登记的 seed，输出一组确定性分数。它**不是**真
-    的模型，只是让"未训练 logits 逐字节不变"这句话可被测试：同样的特征给同样的
-    分数。例如只换私有标注而公开输入不变时，这组分数必须一模一样。
+    It is not a model: it hashes (seed, feature row) so that "untrained logits are byte-identical under private
+    changes" is testable -- the same features give the same scores.
     """
 
     _int(seed, "reference_seed_invalid", minimum=0)
@@ -1249,10 +1236,10 @@ def assert_private_mutation_invariance(
 ) -> dict[str, Any]:
     """Require identical public bytes across runs that differ only privately.
 
-    白话：输入同一公开前缀、不同私有标注下的若干次构建结果，输出一份不变性回执，
-    并在召回顺序、特征矩阵、封存摘要或参考分数有任何差异时拒绝。例如只交换两个
-    物体的模拟器实例 ID，这些都必须逐字节相同。它不证明整条流水线无泄漏，只证明
-    这一层的公开产物不随私有数据变化。
+    ``runs`` are builds of the same public prefix under different private annotations (e.g. two objects' simulator
+    instance ids swapped); any difference in recall, feature rows, assignment, seal digest or reference scores is
+    refused, otherwise an invariance receipt is returned.  It shows that this layer's public outputs do not depend on
+    private data, not that the whole pipeline is leak-free.
     """
 
     _require(len(runs) >= 2, "invariance_needs_two_runs")

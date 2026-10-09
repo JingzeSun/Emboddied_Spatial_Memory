@@ -7,14 +7,15 @@ runtime and memory readings and the interface-issue list.  The per-episode work 
 composes and that the contract binds:
 
   * ``Histogram`` and ``CalibrationCollector``: mergeable fixed-bin histograms of the sealed
-    quantities the still-null values and grids are chosen against (same-object and other-object
-    cosines, target-pair centroid distances and box IoU, best cosine of novel fragments, the two
-    geometry ratios of existence candidates by gone/present, fragment dominance shares).  They read
-    the sealed rows and the S0-04 labels of a pass, never anything private beyond the labels;
-  * ``EluPCounter``: the S0-05 v2 fitting procedure's four count records over one episode, from the
-    private truth tracker, the frame's public visibility and the gate arm's assignment; the counts
-    of every development episode are summed and ``lean_controls.fit_elu_p_quantities`` turns them
-    into ELU-P's three fitted scalars;
+    quantities the values and grids were chosen against (ruling 68 froze the grids from the S2-05
+    calibration quantiles): same-object and other-object cosines, target-pair centroid distances and box IoU,
+    best cosine of novel fragments, the two geometry ratios of existence candidates by gone/present,
+    fragment dominance shares.  They read the sealed rows and the S0-04 labels of a pass, never
+    anything private beyond the labels;
+  * ``EluPCounter``: the S0-05 v2 fitting procedure's three count records over one episode, from the
+    private truth tracker, the frame's public depth view and the gate arm's assignment; the counts
+    of every episode of the pass are summed and ``fit_elu_p`` (through
+    ``lean_controls.fit_elu_p_quantities``) turns them into ELU-P's three fitted scalars;
   * ``development_table``: house-level headline values per arm and metric from the S2-04 episode
     reports, the ruling-X2 exclusion list per metric over the applicable arms (never-retracting arms
     are not applicable to the false retract rate), the mean per arm over the effective houses and the
@@ -22,13 +23,12 @@ composes and that the contract binds:
     plus the size-and-cost readings;
   * ``validate_development_contract``: the machine contract.
 
-白话：S2-05 要出第一张开发表，但跑之前有一堆数值还没定（去重阈值、dormancy 次数、各臂网格与开发
-配置、ELU-P 的三个拟合量），定它们需要看到真实分布。本模块提供三件纯工具：一是"校准直方图"，从
-封存的特征行和 S0-04 标签里统计同物体/异物体余弦、目标对距离与 IoU、新物体的最高余弦、存在候选的
-两个比例等，用来给网格与阈值提议；二是 ELU-P 拟合量的计数器，按 S0-05 v2 的定义逐帧数"看不见一
-阵子后还在原处"、"每帧被移走的风险"、"物体在时门内配上 vs 物体不在时门内仍配上"；三是开发表的装
-配：按 house 取每臂每指标的主值，按裁决 X2 算排除清单，取均值与 VSMT-lean 对每臂的配对差。它不做
-bootstrap（S3）、不选参、不训练。
+S3 reuses part of this module although it is named for S2-05: ``ops/vsmt/s3_03_manifest.py`` takes
+``CalibrationCollector``, ``fit_elu_p``, ``CALIBRATION_ARM_CONFIG`` and the development configurations
+(``development_configuration``, ``validate_development_contract``) for the S3-03 calibration pass and
+ELU-P refit (ruling 104-1 1b); ``ops/vsmt/lean_s2_04_evaluate_episode.py``, the per-episode entry
+of that calibration pass, builds the ``CalibrationCollector`` and the ``EluPCounter``; ``lean_s3_05``
+reads ``BETTER``.  Nothing here selects or trains.
 """
 
 from __future__ import annotations
@@ -139,9 +139,8 @@ def _require(condition: bool, code: str) -> None:
 def development_configuration(contract: Mapping[str, Any], arm: str) -> dict[str, Any] | None:
     """The registered development configuration of an arm in runner form, or None while a slot is still null.
 
-    白话：把合同里 development_configurations 的槽位翻译成 runner 吃的配置：距离门 "no_gate" 变成 None、
-    数字原样；NoVersion 用 VSMT-lean 的 tau_r；AssocOnly 没有参数。任一槽仍是 null 就返回 None（未冻结）。
-    翻译出来的配置必须是 S0-05 已冻结网格的一格，否则拒绝（ruling 68 (3)）。
+    A distance gate spelled "no_gate" becomes None and numbers are kept; NoVersion takes VSMT-lean's tau_r;
+    AssocOnly has no parameter.  The result must be a member of the frozen S0-05 grid (ruling 68 (3)).
     """
 
     _require(arm in DEVELOPMENT_CONFIGURATIONS, f"development_configuration_unknown_arm:{arm}")
@@ -250,10 +249,12 @@ class Histogram:
 class CalibrationCollector:
     """Histograms of the sealed quantities the open values and grids are chosen against, from one pass's steps and labels.
 
-    白话：每帧拿 runner 的一步（封存 A 的特征行、封存 B 的存在行、实体几何比例）和 S2-04 的标签，把
-    "被标为同一物体的目标对"的余弦/距离/IoU、"其他候选对"的余弦、新物体色块的最高余弦、存在候选按
-    gone/present 分的两个比例与错失次数、色块主导占比等记进固定边界的直方图。直方图可跨 episode、跨
-    worker 合并，分位数由直方图算出，用来给网格与阈值提建议；它不读任何私有字节（只读标签）。
+    Per frame, from a runner step (stage-A association rows, stage-B existence rows, entity geometry) and the
+    S2-04 labels: cosine, distance and IoU of the target pairs labelled the same object, cosine and distance of
+    the other recalled pairs, the best cosine of novel fragments, the two ratios and the missed count of
+    existence candidates by gone/present, fragment dominance shares and the series listed in
+    ``CALIBRATION_SERIES``.  Histograms merge across episodes and workers and give the quantiles.  Reads no
+    private bytes beyond the labels.
     """
 
     def __init__(self) -> None:
@@ -350,15 +351,21 @@ class CalibrationCollector:
 # --------------------------------------------------------------------------
 
 class EluPCounter:
-    """The four count records of one episode under the gate arm's rollout, per the S0-05 v2 definitions.
+    """The three count records of one episode under the gate arm's rollout, per the S0-05 v2 definitions.
 
-    白话：逐帧数三件事。(1) 初始 log-odds 的先验：某物体被看见过之后，它上次被看见的位置有一阵子对
-    方法不可观察（用 S2-04 那套采样盒判定），等那个位置再次可观察的第一帧，记一次"物体帧"，若物体仍
-    在场且离上次被看见的位置不超过 delta_moved，记一次"在位"。(2) 持续性风险：本 episode 至少被看见过
-    一次的物体各贡献"帧数"个物体-tick，其中被移走或搬动的记一次事件。(3) 匹配增益：对有承载实体的物
-    体，物体在场、未被干预、其真值盒可观察的帧记一次"应命中"，若门把某个色块绑到了它的承载实体记一次
-    命中；被移走/搬动之后，旧位置可观察的帧记一次"应误配"，若门仍把色块绑到承载实体记一次误配。
-    它只读追踪器真值、公开可见体积、门臂的分配和 teacher 的证据映射。
+    (1) Prior of the initial log-odds: after an object has been observed, its last observed place may stay
+    unobservable to the method for a while (judged by ``lean_evaluation.place_observable``, the S2-04 box
+    test); at the first frame in which that place is observable again one object frame is counted, and one
+    in-place frame when the object is present and within delta_moved of its last observed centroid.
+    (2) Persistence hazard: every object observed at least once in the episode contributes as many object
+    ticks as the episode has frames, and each removed or moved one among them counts one event.
+    (3) Match gain: for an object with a carrier entity, each frame in which it is present, not intervened
+    away and its truth box is observable counts one expected hit, and one hit when the gate bound some
+    fragment to its carrier entity; after the intervention window, for a removed or moved object, each frame in
+    which its old place is observable counts one expected false match, and one false match when the gate still
+    bound a fragment to its carrier.
+    Reads the tracker truth, the frame's public depth view, the gate arm's assignment and the teacher's
+    evidence map.
     """
 
     def __init__(self, *, geometry_table: Mapping[str, Any], executed_interventions: Sequence[Mapping[str, Any]],
@@ -457,7 +464,7 @@ def sum_counts(records: Iterable[Mapping[str, Mapping[str, int]]]) -> dict[str, 
 
 
 def fit_elu_p(records: Iterable[Mapping[str, Mapping[str, int]]], *, rollout_config: Mapping[str, Any]) -> dict[str, Any]:
-    """The three ELU-P scalars from the summed development counts (train split, after the seals)."""
+    """The three ELU-P scalars from the summed counts of a train-split pass (S2-05 development, S3-03 calibration), after the seals."""
 
     counts = sum_counts(records)
     try:
@@ -483,10 +490,11 @@ def development_table(reports: Mapping[str, Mapping[str, Mapping[str, Any]]], *,
                       method_arm: str = METHOD_ARM) -> dict[str, Any]:
     """House-level headline values, ruling-X2 exclusions, per-arm means and paired development differences.
 
-    白话：输入每个臂在每条 episode 上的 S2-04 报告，输出开发表：每个指标按 house 取各臂主值，某个 house
-    在任一适用臂上没法算就对所有臂一并排除（裁决 X2；从不撤回的臂对假撤回率不适用、不参与排除），报告有
-    效 house 数、各臂均值和 VSMT-lean 对每个臂的配对差均值（不做 bootstrap，那是 S3）。缺任一臂的 house
-    直接拒绝而不是跳过。它不选赢家。
+    Input: every arm's S2-04 report per house.  Per metric, a house where the metric is undefined for any
+    applicable arm is excluded for all arms (ruling X2; never-retracting arms are not applicable to the false
+    retract rate and take no part in the exclusion); the table reports the effective house count, the per-arm
+    means and the mean paired difference of VSMT-lean against each arm (no bootstrap: that is S3).  A house set
+    that differs between arms is refused, not skipped.  Selects no winner.
     """
 
     names = [str(arm) for arm in table_arms]

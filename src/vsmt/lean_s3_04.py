@@ -1,17 +1,24 @@
 """S3-04 (ruling 106, 2026-10-05): the configuration choice on validation and the freeze before test, as pure functions.
 
-白话：裁决 106 把 S3-04 写定为"每套前端每个臂拿哪个配置去考 test、考 test 那天跑哪份代码与哪些权重"。这个模块把其中可测试的
-部分写成纯函数，供 ``ops/vsmt/s3_04_manifest.py`` 的各步调用：
-  * 选择（106-2）：在 S3-03 的选参读数上对每个臂调用 ``lean_arms.select_configuration``（102-4 的约束、节点 F1、并列取编号小），
-    并给出只报告的项（约束不可满足、缺种子、选中点落在网格端点）；
-  * 读数复算（106-3 G2）：从合并审计重算的读数与 S3-03 记下的读数逐值比较；
-  * 共同事件（G3）：身份连续率与检索成功率的事件数在全部运行里只能有一个值；
-  * 复现探针的 episode（G4）：帧数最少、且至少有 1 个身份连续率事件的 2 条 validation episode；
-  * test 运行清单（106-4）：每套前端每条 test episode 25 个运行（5 个规则臂各 1 个配置、4 个学习臂各 5 个种子）；
-  * 代码摘要（106-4）：受 Git 跟踪的 src/、ops/、configs/ 每个文件的 sha256 与总摘要；S3-05 入口用 ``verify_freeze`` 逐项重算。
-输入是读数、清单与文件内容，输出是选择、差异清单与回执各块。例如实例分割前端 VSMT-lean 十个 τ_r 里 validation Missing 残留率
-都高于 AssocOnly，选择就取节点 F1 最大的那个并记 constraint_not_satisfiable，回执里写明它不能支持"撤回减少了陈旧实体"。
-它不读 test、不训练、不算主门、不比较哪个臂赢。
+Ruling 106 defines S3-04 as fixing, per front end and arm, the configuration that runs on test, and the code and
+weights that run on test day. This module holds the testable parts, called by the steps of
+``ops/vsmt/s3_04_manifest.py``:
+  * selection (106-2): ``lean_arms.select_configuration`` on S3-03's selection readings for every arm (ruling 102-4
+    constraint, node F1, ties to the smallest index), plus report-only items (constraint not satisfiable, missing
+    seeds, chosen value at a grid end);
+  * readings recomputation (106-3 G2): the readings recomputed from the merged audits against S3-03's, value by value;
+  * common events (G3): the identity-continuity and retrieval-success event counts take one value over all runs;
+  * reproduction-probe episodes (G4): the 2 validation episodes with the fewest frames among those with at least one
+    identity-continuity event;
+  * test run list (106-4): 25 runs per test episode and front end (5 rule arms with 1 configuration each, 4 learned
+    arms with 5 seeds each);
+  * code digest (106-4): the sha256 of every Git-tracked file under src/, ops/ and configs/ and one digest over them;
+    the S3-05 entry recomputes it item by item with ``verify_freeze``.
+Inputs are readings, manifests and file contents; outputs are the selection, difference lists and receipt blocks.
+Example: if every one of VSMT-lean's ten tau_r values on the instance-segmentation front end has a validation Missing
+residual rate above AssocOnly's, the node-F1 maximum is chosen, constraint_not_satisfiable is recorded, and the receipt
+states that the arm's result cannot support "retraction reduces stale entities".
+It does not read test, train, compute the primary gate or compare arms.
 """
 
 from __future__ import annotations

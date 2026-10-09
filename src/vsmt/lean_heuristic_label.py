@@ -1,16 +1,24 @@
 """HeuristicLabel's labels (D-224-SW ruling T, D-224-X X3/X4, ruling 104-1 1c): ELU-P's public decisions on any trajectory.
 
-白话：HeuristicLabel 这个消融回答“把私有实例真值换成公开启发式的决定当标签，学到的东西会差多少”。它的标签是 ELU-P 在预登记
-``rollout_config``（θ_a 0.7、无距离门、自由空间权重 1.0、撤回门 0.0）加 S3 拟合量下、对同一帧封存特征行会作的决定：
-  * 关联：ELU-P 的门 logit（余弦 ≥ θ_a 记余弦、否则哨兵；新建 logit＝θ_a）在同一召回列上用同一求解器联合求解，每个色块分到的
-    列（某个实体或它自己的新建列）就是它的目标；
-  * 存在：对这一帧可判定的每个实体（应可见、未被这条轨迹分配、未撤回），若 ELU-P 这一帧会把某个色块绑给它，记 present；否则
-    取 ELU-P 的对数几率——与 ELU-P 臂同一递推（每个可判定帧减去衰减与覆盖乘权重，每次匹配加增益），沿这条轨迹的可判定行与匹配
-    累积——低于撤回门记 gone，否则 present。
-这个“影子”对数几率等价于裁决 89-2 的历史摘要的线性式，但按 ELU-P 臂的递推逐步算，所以在 ELU-P 自己的轨迹上与臂的决定逐位相同
-（裁决 104-2 的 G4 门：逐行比较，不一致 0 行）；在 HeuristicLabel 自己的轨迹上，它就是“ELU-P 看到同样的观察序列会怎么判”。
-输入是 runner 的一步产物（阶段 A、阶段 B、回执、提交后的记忆），输出一条与 teacher 记录同格式的训练记录。所有色块与可判定行都有
-标签、都进损失。它只读公开特征行与三个拟合量（私有真值只经这三个标量进来，合同已写明），不读任何私有文件，也不改 runner。
+The HeuristicLabel ablation measures what the learned heads lose when the private-instance teacher is replaced by a
+public heuristic. Its labels are the decisions ELU-P would make on the same sealed feature rows of a frame, at the
+registered ``rollout_config`` (theta_a 0.7, no distance gate, free-space weight 1.0, retract threshold 0.0) with the
+three values fitted for S3:
+  * association: ELU-P's gate logits (the cosine when cosine >= theta_a, otherwise the sentinel; birth logit theta_a)
+    are solved jointly over the same recall columns by the same solver; each fragment's assigned column (an entity or
+    its own birth column) is its target;
+  * existence: every entity eligible this frame (should be visible, not assigned on this trajectory, not retracted) is
+    present if ELU-P binds a fragment to it this frame; otherwise it takes ELU-P's log-odds, updated by the ELU-P arm's
+    recursion (each eligible frame subtracts the decay plus weight x free-space coverage, each match adds the gain)
+    along this trajectory's eligible rows and matches, and is gone below the retract threshold, present otherwise.
+This shadow log-odds equals the linear form of the ruling-89-2 history summary but is computed step by step with the
+ELU-P recursion, so on ELU-P's own trajectory it reproduces the arm's decisions exactly (ruling 104-2 gate G4: row-by-row
+comparison, 0 mismatching rows); on HeuristicLabel's own trajectory it is what ELU-P would decide on the same
+observation sequence.
+Input: one runner step (stage A, stage B, receipt, committed memory). Output: one training record in the teacher's
+format; every fragment and every eligible row is labelled and enters the loss. Reads only public feature rows and the
+three fitted values (private truth enters only through these three scalars, as the contract states); reads no private
+file and does not modify the runner.
 """
 
 from __future__ import annotations

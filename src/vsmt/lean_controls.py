@@ -15,8 +15,9 @@ existence -- live in ``lean_arms`` (S0-05, reviewed) and are wired into every fr
    object still stands in place after an unobserved gap (``initial_log_odds``), the per-tick hazard of
    being removed or moved (``persistence_log_decay_per_tick``) and the log-likelihood ratio of the
    association gate binding when the object is there versus when it is not (``match_gain``).  The
-   counting over episodes needs the S0-04 teacher's identities and is orchestrated with the
-   development run (S2-05); the estimators here refuse degenerate counts instead of clamping.
+   counting over episodes (``lean_development.EluPCounter``) needs the S0-04 teacher's identities;
+   it ran in the S2-05 development run and again in the S3-03 calibration pass (ruling 104-1 1b).
+   The estimators here refuse degenerate counts instead of clamping.
 3. **The LLM-op interface** (appendix arm; two calls per frame since ruling 105, 2026-10-04): the
    existence features exist only after the solve, so a frame asks twice.  The association call renders
    the sealed stage-A rows as two CSV tables with one header row each (every recalled pair with its 14
@@ -31,15 +32,7 @@ existence -- live in ``lean_arms`` (S0-05, reviewed) and are wired into every fr
    fragment BIRTH, every entity NOOP) are what ruling 105-6 applies after three invalid answers.
    Asking the model, the attempts, the call archive and the split guard live in ``lean_llm_op``.
 
-白话：S2-02 补三样东西。第一，四个对照各自借了哪篇论文的机制、改了什么、并明写"不是官方实现、没有
-抄代码"，供论文如实引用；第二，ELU-P 三个只在 train 上估一次的量的算式（先验 log-odds、每帧被移走
-的风险率换成的衰减、门内配上与配错的对数似然比），输入是计数，计数为零或全部命中这类退化情况直接
-拒绝而不是硬钳；第三，附录臂 LLM-op 的接口（裁决 105 起每帧问两次）：存在特征要等关联求解后才有，
-所以先把封存 A 渲染成两张带表头的表（召回对的 14 个特征、每个色块新建选项的 4 个特征）连同登记的
-关联指令发出去，要每个色块一行"选哪个候选或 BIRTH"；求解后再把可判定实体渲染成一张表，要每个实体
-一行 RETRACT 或 NOOP。解析器严格：每行恰好一个给出过的选项，只容忍空行和代码围栏行；选择变成喂给
-同一个求解器的 logit；三次无效回答后的回退是色块全 BIRTH、实体全 NOOP。这里不训练、不读私有数据，
-也不真的调用模型——调用、重问、存档和 split 守卫在 ``lean_llm_op``。
+Nothing here trains, reads private data or calls a model.
 """
 
 from __future__ import annotations
@@ -58,6 +51,10 @@ STAGE_ID = "S2-02"
 NOT_AN_OFFICIAL_IMPLEMENTATION = "mechanism-level clean-room adaptation written from the papers' descriptions; no upstream source, class layout, default threshold, prompt or test was copied"
 
 #: Per control: the idea borrowed, how this adaptation departs from it, and the contract's own source line.
+#: The strings are registered data and stay as written.  Two of them predate later changes: the ELU-P and RAC
+#: ``departs`` lines describe the free-space coverage of the entity box, which since rulings 74/75 is the per-point
+#: depth test on the entity's last seen surface points (``lean_runner.entity_geometry``); the "title-level"
+#: references are resolved in the paper (``paper/refs.bib``: perpetua2025, dsg2026, mem0_2025).
 CONTROL_PROVENANCE: dict[str, dict[str, Any]] = {
     "TAF": {
         "contract_source": "ConceptGraphs-style threshold association and fusion; unofficial adapter",
@@ -369,9 +366,9 @@ def _table(title: str, header: Sequence[str], rows: Sequence[Sequence[str]]) -> 
 def render_association_tables(stage_a: Mapping[str, Any]) -> str:
     """Ruling 105-4: the sealed stage-A rows as two CSV tables -- every recalled pair, then every fragment's BIRTH option.
 
-    白话：输入封存 A，输出发给关联调用的表格文本。CANDIDATES 每行一个（色块，召回实体）对和它的 14 个特征，
-    NEW 每行一个色块新建选项的 4 个特征；行序按封存顺序，特征按冻结顺序，统一 4 位小数，只有匿名 ID。
-    例如三个色块各召回两个实体，就是 6 行候选加 3 行新建。它不挑行、不排序、不加任何真值。
+    CANDIDATES has one row per (fragment, recalled entity) pair with its 14 features, NEW one row per fragment
+    with its 4 BIRTH features; rows in sealed order, features in the frozen order, 4 decimals, anonymous ids
+    only.  No row is dropped or reordered and no truth is added.
     """
 
     assoc_order = list(stage_a["association_feature_order"])

@@ -1,21 +1,26 @@
 """D-224 / S1-03: the shared frozen frontend cache, as a pure core.
 
-This module turns one public frame -- RGB-derived anonymous masks, metric depth, intrinsics and
-the causal camera pose -- into the lean cache record the five arms read, and projects that record
-into the frame shape S0-03's assignment layer validates.  No simulator, no SAM, no DINOv2 and no
-GPU are imported here: the runner loads the frozen models and hands their outputs in, so every
-rule below is testable without a model.
+This module turns one public frame -- anonymous masks (SAM 2.1, or since ruling 72 simulator
+instance segmentation), metric depth, intrinsics, the causal camera pose and two sets of DINOv2
+patch tokens -- into the lean cache record all arms read, and projects that record into the frame
+shape S0-03's assignment layer validates.  No simulator, no SAM, no DINOv2 and no GPU are imported
+here: the runner loads the frozen models and hands their outputs in, so every rule below is
+testable without a model.
 
-白话：这个模块解决「一帧公开画面怎样变成五个臂共读的一条 cache 记录」。输入是本帧的匿名 mask
-列表、公开深度、内参、因果位姿，以及两套 DINOv2 patch token；输出是每个色块的像素数、深度有效
-率、质心、三维包围盒、两套描述子，加上逐帧封印。例如一帧 18 个 mask 就写 18 条 fragment 记录。
-它**不判断身份**（那是 S2 的分配层），**不训练任何部件**，**不读 private 面**，也**不存逐实体的
-应可见比例**——那个量因臂而异，由 S2-01 的 runner 在线算。
+Per admitted mask the record holds one fragment: pixel count, valid-depth ratio, centroid,
+axis-aligned box and both descriptor sets; each frame carries a seal.  The module makes no identity
+decision (that is the S2 assignment layer), trains nothing, reads no private file and stores no
+per-entity should-be-visible ratio: that ratio depends on each arm's memory and is computed online
+by the S2-01 runner.
 
-Everything geometric is delegated to the already reviewed D-223 implementation so the cache cannot
-drift from the frozen frontend; the one thing this module adds is the axis-aligned bounding box,
-which the D-223 region record does not carry (it stores the point-cloud mean and the box size, and
-the mean is not the box centre, so the two cannot be combined into a box).
+Fragment geometry comes from the public front-end helpers ``vsmt.l1_entities``
+(``backproject_public_entity_geometry``) and ``vsmt.shared_frontend_core`` (mask and config types),
+which the D-223 production profile also composes; the D-223 contract
+(``configs/vsmt/vm04_d223_f01_production_reader_v1.json``, pinned by ``D223_FRONTEND_CONFIG_SHA256``)
+is read by the S1-03 and S1-04 scripts, and the D-223 reader module itself is not imported.  The
+cache therefore cannot drift from the frozen frontend; the one thing this module adds is the
+axis-aligned bounding box, which the frozen region record does not carry (it stores the point-cloud
+mean and the box size, and the mean is not the box centre, so the two cannot be combined into a box).
 """
 
 from __future__ import annotations
@@ -82,8 +87,10 @@ DESCRIPTOR_SETS = ("vits14", "vitb14")
 DESCRIPTOR_DIMENSIONS = {"vits14": 384, "vitb14": 768}
 
 #: The lean cache record.  ``entity_geometry`` is deliberately absent: the should-be-visible and
-#: free-space-coverage ratios depend on M_{t-1}, which differs per arm, so they are derived online
-#: by the S2-01 runner from the public volumes stored here (METHOD section 5).
+#: free-space-coverage ratios depend on M_{t-1}, which differs per arm, so the S2-01 runner derives
+#: them online (``lean_runner.entity_geometry``: per-point depth tests of each entity's last-seen
+#: surface points against the frame's public depth, rulings 74/75; METHOD section 5).  The two voxel
+#: volumes stored here no longer enter those ratios.
 CACHE_FRAME_FIELDS = (
     "frame_digest", "tick", "camera_position_m", "camera_forward",
     "fragments", "surfaces", "free_space", "visibility", "frame_seal",
@@ -179,10 +186,11 @@ def admit_proposals(
 ) -> list[AnonymousMask]:
     """Admit one frame's proposals under the D-215 boundary, or fail the frame.
 
-    白话：一帧里 SAM 返回的 mask 要先过三道门：像素数 ≥196 的才算色块；重复的 mask 直接判
-    整条 episode 构造失败（同一个东西被数成两个会污染分配）；数量超过 64 也是构造失败而**不是**
-    截断——悄悄丢掉第 65 个等于让数据规模决定数据内容。输出按 mask 摘要排序，所以同一帧在任何
-    机器上得到同样的顺序。它不判断 mask 对不对、也不看深度。
+    Masks below 196 pixels are dropped.  A duplicate mask is a construction failure of the episode
+    (one object counted twice would corrupt the assignment), and more than 64 admitted masks is a
+    construction failure, never a truncation (silently dropping the 65th would let the data volume
+    decide the data content).  The output is sorted by mask digest, so a frame gives the same order
+    on every machine.  Mask correctness and depth are not judged here.
     """
 
     kept: list[AnonymousMask] = []
@@ -207,11 +215,13 @@ def admit_proposals(
 def instance_label_masks(label_image: Any, label_values: Sequence[int]) -> list[np.ndarray]:
     """Ruling 72: one anonymous boolean mask per labelled value present in a private instance image.
 
-    白话：实例分割前端的"色块"就是模拟器实例图里每个带标签的实例各自的像素区域。输入是一帧私有
-    实例图（每个像素一个整数标签，0 为背景）和这一帧登记过的标签集合；输出是每个在图里出现的标签
-    一张布尔 mask，按 mask 摘要排序，标签值本身不随 mask 带出。例如一帧里有沙发、墙和杯子三个实例，
-    就输出三张 mask，谁是沙发谁是杯子不告诉下游。它不筛像素数、不设上限——那是 ``admit_proposals``
-    的事，≥196 像素与每帧 ≤64（超过即构造失败）两条对 SAM 与实例分割一视同仁。
+    The fragments of the instance-segmentation front end are the pixel regions of the labelled
+    instances in the simulator's instance image.  Input: one frame's private instance image (one
+    integer label per pixel, 0 = background) and the frame's registered label set.  Output: one
+    boolean mask per label present in the image, sorted by mask digest; the label values do not
+    travel with the masks.  No pixel floor or cap is applied here: ``admit_proposals`` applies the
+    same rule (>= 196 px, <= 64 per frame, overflow is a construction failure) to SAM 2.1 and
+    instance masks.
     """
 
     image = np.asarray(label_image)
@@ -233,10 +243,12 @@ def fragment_aabb(
 ) -> tuple[list[float], list[float]]:
     """The axis-aligned bounding box of one fragment's valid world points.
 
-    白话：S0-03 要 `aabb_min_m` 与 `aabb_max_m`，而冻结前端的记录里只有点云均值 `centroid_m`
-    和包围盒尺寸 `extent_m`；均值不是盒心，两者推不出盒子。所以这里用与冻结反投影**逐行相同**
-    的算式重新取一次世界点，直接读 min 与 max。测试钉住 `max − min` 与冻结 `extent_m` 完全相等，
-    一旦上游反投影改了，测试立刻失败而不是悄悄给出错误的盒子。
+    S0-03 needs ``aabb_min_m`` and ``aabb_max_m``, while the frozen record has only the point-cloud
+    mean ``centroid_m`` and the box size ``extent_m``; the mean is not the box centre, so no box
+    follows from the two.  The world points are therefore recomputed with arithmetic identical, line
+    for line, to the frozen back-projection, and min and max are read directly.  A test pins
+    ``max - min`` to the frozen ``extent_m``, so a change of the upstream back-projection fails the
+    test instead of silently giving a wrong box.
 
     The arithmetic below is the same as ``backproject_public_entity_geometry``: camera axes are
     +x right, +y up, +z forward, pixel coordinates carry no half-pixel offset, depth is axial z.
@@ -325,8 +337,8 @@ def build_fragment(
 def project_surface(record: Mapping[str, Any], *, ordinal: int) -> dict[str, Any]:
     """Keep the geometry of one public surface and drop its descriptor.
 
-    白话：支撑面在冻结记录里带一条描述子，而 cache 只需要「面在哪、多大、朝向如何」。没有任何
-    特征读这个描述子，所以丢掉它比留着更诚实——留着会让人以为下游用了它。
+    The frozen surface record carries a descriptor, while the cache needs only position, size and
+    orientation.  No feature reads the descriptor; keeping it would suggest a downstream use.
     """
 
     projected = {
@@ -345,9 +357,10 @@ def check_volume_records(records: Sequence[Mapping[str, Any]], *, fields: Sequen
                          label: str) -> list[dict[str, Any]]:
     """Check the public volume records the frozen materialiser produced.
 
-    白话：自由空间与可见体积由已冻结的材化算出，这里只核对它们的字段与可靠性。可靠性必须是 1.0：
-    D-223 的材化只在一个体块内每个像素深度都有效时才生成该体块（裁决 42 的依据），所以不存在部分
-    可靠的体块；出现别的值说明上游语义变了，必须整帧失败而不是照收。
+    Free space and visible volume come from the frozen D-223 materialiser; only their fields and
+    reliability are checked here.  Reliability must be 1.0: the materialiser emits a block only when
+    every pixel depth inside it is valid (the basis of ruling 42), so no partially reliable block
+    exists, and another value means the upstream semantics changed; the frame then fails.
     """
 
     out = []
@@ -369,9 +382,10 @@ def build_frame(
 ) -> dict[str, Any]:
     """One sealed lean cache frame.
 
-    白话：把本帧的色块、支撑面、自由空间体素与可见体积体素封成一条记录，并算出帧封印。封印覆盖
-    本帧全部公开内容加前端资产摘要，所以「换了私有文件而 cache 逐字节不变」可以被检验。记录里不
-    允许出现 house、场景、对象 ID 等字样，出现即整条失败。
+    Packs the frame's fragments, surfaces, free-space blocks and visible-volume blocks into one
+    record and computes the frame seal.  The seal covers every public field of the frame plus the
+    frontend asset digests, so "a private file changed while the cache stayed byte-identical" is
+    checkable.  A key naming a house, scene, object id or another forbidden token fails the record.
     """
 
     for name, value in (("fragments", fragments), ("surfaces", surfaces),
@@ -437,9 +451,10 @@ def verify_frame_seal(frame: Mapping[str, Any], *, frontend_config_sha256: str,
                       descriptor_asset_sha256s: Mapping[str, str]) -> None:
     """Recompute the frame seal from the loaded frame and refuse any difference.
 
-    白话：读 cache 的一方不能只把文件里写好的摘要字符串再抄一遍，要把读到的色块、描述子、盒、
-    表面和两个体积摘要按同一定义重新算一次封印，和文件里的封印逐位比较。描述子被改而封印没改，
-    这里会拒绝；写入 cache 时用的前端配置或资产摘要不同，这里也会拒绝。
+    A reader does not copy the stored digest string: it re-derives the seal from the fragments,
+    descriptors, boxes, surfaces and two volume digests it loaded, by the same definition, and
+    compares it with the stored seal.  A changed descriptor under an unchanged seal is refused, and
+    so is a frontend config or asset digest other than the one the cache was written with.
     """
 
     stored = frame.get("frame_seal") or {}
@@ -475,9 +490,9 @@ def seal_episode(frames: Sequence[Mapping[str, Any]], *, frontend_config_sha256:
                  mask_source: str = MASK_SOURCE_SAM2) -> dict[str, Any]:
     """The episode seal over every frame seal and, since ruling 72, the cache's mask source.
 
-    白话：episode 封印盖住全部帧封印；裁决 72 之后还要说明这份 cache 的色块从哪来。实例分割 cache
-    把 ``mask_source`` 写进封印内容，所以把它改名成 SAM2 cache（或反过来）必然对不上封印；SAM2 cache
-    的封印内容保持裁决 72 之前的样子，已经建好的 SAM2 cache 不用重建也照样核得过。
+    An instance-segmentation cache writes ``mask_source`` into the sealed payload, so relabelling it
+    as a SAM 2.1 cache (or the reverse) breaks the seal.  A SAM 2.1 cache keeps the pre-ruling-72
+    payload, so SAM 2.1 caches built before the ruling still verify without a rebuild.
     """
 
     _require(mask_source in MASK_SOURCES, "public_input_missing_or_malformed", f"unregistered_mask_source:{mask_source}")
@@ -510,9 +525,10 @@ def assignment_view(
 ) -> dict[str, Any]:
     """Project one cache frame into the frame shape S0-03 validates.
 
-    白话：cache 里每个色块存了两套描述子，而 S0-03 要求一帧里维度一致，所以投影时只取一套；
-    选哪一套是 S1-05 的裁决，这里由调用方指定。同时丢掉 mask 摘要、支撑面与体素（它们只用来在
-    线算 entity_geometry），并接收 runner 算好的 entity_geometry。cache 本身永远不存它。
+    Each cached fragment holds two descriptor sets, while S0-03 requires one dimension per frame, so
+    the projection keeps one; which one is the S1-05 choice, passed by the caller.  The mask digest,
+    surfaces and volumes are dropped, and the ``entity_geometry`` the runner computed online is
+    attached; the cache itself never stores it.
     """
 
     _require(descriptor_set in DESCRIPTOR_SETS, "public_input_missing_or_malformed", descriptor_set)
@@ -550,9 +566,11 @@ def assignment_view(
 def validate_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
     """Check that the S1-03 machine contract agrees with this implementation.
 
-    白话：输入 S1-03 合同，输出副本，并在绑定的前端摘要、色块边界、描述子维度、字段清单、失败
-    原因或授权位与本实现不一致时拒绝。例如把每帧上限从 64 改成 128、或把溢出改成截断，都会被拒。
-    它不检查仍为 null 的数值，也不检查 cache 是否已经生成。
+    Returns a copy of the contract and refuses it when a bound frontend digest, the proposal
+    boundary, a descriptor dimension, a field list, the failure reasons or an authorization bit
+    disagree with this implementation; e.g. raising the per-frame cap from 64 to 128, or replacing
+    the overflow failure by truncation, is refused.  Values that are still null and whether the
+    cache has been generated are not checked.
     """
 
     _require(type(contract) is dict, "public_input_missing_or_malformed", "contract_not_object")

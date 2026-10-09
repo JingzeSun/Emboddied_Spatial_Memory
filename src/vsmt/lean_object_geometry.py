@@ -19,12 +19,10 @@ objects S0-04 consumes.  The observed-set box (the union of back-projected priva
 frames an object was seen in) is also computed here, but it is a proxy that ruling 45 allows only
 as a comparison column in the S1-04 report, never as the truth box.
 
-白话：这个模块解决"评价器和 S1-04 诊断要真值整物体包围盒，而私有面逐帧只有 x/y/z"的缺口。
-输入是模拟器重载一次读到的每个物体的初始位置、朝向、盒中心与尺寸，加上私有逐帧记录里的位置
-和干预日志；输出是每帧每个物体的真值盒（episode 系）与在场标志，以及两项残差检查。例如一把
-椅子初始盒中心 (3.1, 0.45, 2.0)、尺寸 (0.5, 0.9, 0.5)，第 t 帧记录它在 (5.6, 0.45, 2.0)，那么第
-t 帧的盒子就是初始盒平移 (2.5, 0, 0) 再减去原点。它**不等于**逐帧真值：放置后的物理沉降没有
-记录，是登记的残差；它也不做身份判定、不打开任何模型。
+Example: a chair with initial box centre (3.1, 0.45, 2.0) and size (0.5, 0.9, 0.5), recorded at
+(5.6, 0.45, 2.0) in frame t, has in frame t the initial box translated by (2.5, 0, 0), minus the
+episode origin.  This is not per-frame truth: the unrecorded physics settle after placement is the
+registered residual.  The module makes no identity decision and opens no model.
 
 The module must stay importable under the simulator environment's Python 3.9 (the reload tool
 runs there), so it uses no 3.10+ syntax at runtime.
@@ -101,9 +99,11 @@ def build_geometry_table(
 ) -> dict[str, Any]:
     """One episode's object geometry table from the reload's metadata.
 
-    白话：输入模拟器重载后 ``metadata.objects`` 的原始列表、此刻的相机世界位置（就是观测 0 的原
-    点）和 agent 位姿，输出按 ``object_id`` 排序的表。没有 ``axisAlignedBoundingBox`` 的物体照
-    样登记，但盒字段为 null 并单独计数，不静默丢掉。它不改任何一个数，只换成 [x, y, z] 列表。
+    Input: the raw ``metadata.objects`` list after the reload, the camera world position at that
+    moment (the observation-0 origin) and the agent pose.  Output: the table sorted by
+    ``object_id``.  An object without ``axisAlignedBoundingBox`` is still registered, with null box
+    fields and a separate count, never silently dropped.  No number is changed; vectors are only
+    rewritten as [x, y, z] lists.
     """
 
     _require(isinstance(episode_id, str) and bool(episode_id), "episode_id_invalid")
@@ -203,8 +203,10 @@ def world_to_episode(point_world: Sequence[float], origin_world: Sequence[float]
 def truth_box(row: Mapping[str, Any], position_world: Sequence[float], origin_world: Sequence[float]) -> tuple[list[float], list[float]]:
     """The object's box at a recorded world position, in the episode frame.
 
-    白话：初始盒中心跟着"记录位置 − 初始位置"平移（盒尺寸不变，因为 PlaceObjectAtPoint 保持
-    朝向），再减去观测 0 的相机位置换到 episode 系。输出 (min, max)。物体没有盒就拒绝，不猜。
+    The initial box centre is translated by (recorded position - initial position); the size is kept
+    because ``PlaceObjectAtPoint`` keeps the rotation.  Subtracting the observation-0 camera position
+    moves it into the episode frame.  Returns (min, max); an object without a box is refused, not
+    guessed.
     """
 
     _require(row["initial_aabb_center_world_m"] is not None, "object_has_no_box:" + str(row["object_id"]))
@@ -256,11 +258,12 @@ def union_box(
 class EpisodeTruthTracker:
     """Present-or-not and latest known world position of every table object, frame by frame.
 
-    白话：它把"物体现在在不在、在哪"这两件私有事实按帧维护出来。规则：没被 remove 的物体一直
-    在场；被 remove 的物体从不可观测窗口的最后一帧之后起不在场（runner 在过渡段最后一帧之后、扫
-    掠二第一帧之前执行全部干预）。位置取最近一次私有记录看见它的位置；被 move/add 的物体在窗口
-    结束后、第一次被重新看见之前，用干预日志的放置点作位置并标注来源为 ``placement_point``。它
-    不看任何公开量，也不判断方法对不对。
+    An object that was not removed is always present; a removed object is absent in every frame
+    after the last window frame (the runner executes every intervention after the last transition
+    frame and before the first sweep-two frame).  The position is the one the latest
+    private record saw; a moved or added object, after the window and before it is seen again, takes
+    the placement point of the intervention log, with source ``placement_point``.  No public value
+    is read.
     """
 
     def __init__(
@@ -346,8 +349,9 @@ def backproject_mask(
 ) -> np.ndarray:
     """World points (episode frame, because the pose is) of a mask's valid depth pixels.
 
-    The arithmetic is the frozen D-223 backprojection, line for line, so a private mask and a
-    public fragment land in the same frame; the S1-03 box test pins the same expression.
+    The arithmetic is the frozen back-projection (``l1_entities.backproject_public_entity_geometry``),
+    line for line, so a private mask and a public fragment land in the same frame; the S1-03 box test
+    pins the same expression.
     """
 
     binary = np.asarray(mask)
@@ -385,9 +389,10 @@ def drift_report(
 ) -> dict[str, Any]:
     """How far non-intervened objects' recorded positions stray from the reload's initial positions.
 
-    白话：重载得到的初始位置若与 episode 里各帧记录的位置对不上，说明重载不可复现或有物体被
-    误动，这是裁决 45 这条路的前提。输入表与全部私有帧记录，输出最大漂移、超过容差的物体清单
-    与只被看见过的物体数。被干预的物体不计（它们本来就会动）。
+    A mismatch between the reloaded initial positions and the positions recorded in the episode means
+    the reload is not reproducible or an object was moved by accident; ruling 45 rests on this not
+    happening.  Returns the maximum drift, the objects over tolerance and the number of objects
+    observed.  Intervened objects are skipped (they move by design).
     """
 
     rows = {row["object_id"]: row for row in validate_geometry_table(table)["objects"]}

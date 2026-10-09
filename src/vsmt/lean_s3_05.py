@@ -1,17 +1,24 @@
 """S3-05 (ruling 107, 2026-10-05): the statistics of the one test run, assembled from the frozen functions.
 
-白话：裁决 107-4 写定了 test 跑完之后算什么、怎样算。这个模块把合并后的 test 审计（每套前端每个运行一份）装成“house × 运行”
-的表，然后只调用已冻结的函数：
-  * 主门：``lean_teacher.primary_gate``（VSMT-lean 对 AssocOnly，两项主门指标各用一份排除清单，两级重采样加 82-1），两套前端各一次，
-    再 ``fixed_sequence`` 走三步（实例分割两项 → SAM2 Missing 残留率 → SAM2 身份连续率）；
-  * 原主门：``original_gate``（对 test 上逐指标最强的规则臂，只报告）；
-  * 只报告的比较：VSMT-lean 对每个消融与每个规则臂、每项指标，用与主门相同的单一排除清单、两级重采样与 82-1（``gate_metric``，
-    102-2 “原主门与消融用同一套清单与重采样只报告”）；学习臂按种子配对，规则臂与 HandCost 不分种子；
-  * 节点 F1：VSMT-lean 对 AssocOnly 的差值与 90% 区间（两级重采样的第 5／95 百分位，与主门同一抽样、同一 bootstrap 种子）；
-  * 主表：每个臂每项指标在该指标清单内 house 上的均值，学习臂另给逐种子与 5 个种子的均值 ± 标准差（85-2 ①）；三分解合计、
-    规模与成本、逐例失败、各指标有效 house 数与排除清单。
-输入是合并审计的逐 episode 行与可用 test episode 名单；输出是一份统计。例如某个学习臂在一条 test episode 上两次都崩溃，这一格记
-None，这个 house 对受影响的指标按单一清单对所有臂排除并计数，不换 house。它不读任何数据文件、不改任何冻结的函数。
+Ruling 107-4 fixes what is computed after the test run and how. This module arranges the merged test audits (one per
+front end and run) as house x run tables and then calls only frozen functions:
+  * primary gate: ``lean_teacher.primary_gate`` (VSMT-lean against AssocOnly, one exclusion list per main-gate metric,
+    two-level resampling plus 82-1) once per front end, then ``fixed_sequence`` over three steps (instance
+    segmentation, both metrics -> SAM 2.1 Missing residual rate -> SAM 2.1 identity continuity);
+  * original gate: ``original_gate`` (against the strongest rule arm per metric on test), reported only;
+  * report-only comparisons: VSMT-lean against every ablation and rule arm on every metric, with the same one exclusion
+    list, two-level resampling and 82-1 as the gate (``gate_metric``; ruling 102-2: the original gate and the ablations
+    use the same lists and resampling and are reported only); learned arms are paired by seed, rule arms and HandCost
+    are seedless;
+  * node F1: the VSMT-lean minus AssocOnly difference and its 90% interval (5th/95th percentiles of the two-level
+    resampling, the same draws and bootstrap seed as the gate);
+  * main table: each arm's mean per metric over the houses the metric's list keeps, with per-seed values and the mean
+    +- standard deviation over the 5 seeds for learned arms (ruling 85-2 (1)); decomposition totals, size and cost,
+    per-run failures, effective house counts and exclusion lists.
+Input: the merged per-episode audit rows and the usable test episode list; output: one statistics object. A (run,
+episode) without an audit is None in every metric (ruling 107-2); for a main-table run the house is then excluded for
+the affected metrics for every arm by the one list and counted; no house is replaced. It reads no data file and changes
+no frozen function.
 """
 
 from __future__ import annotations

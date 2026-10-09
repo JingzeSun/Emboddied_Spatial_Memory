@@ -5,14 +5,9 @@ holds.  No simulator is imported or started.  The planner turns (house
 start pose, reachable positions, eligible containers, the interventions
 chosen for the window) into one registered action sequence and the frame
 bookkeeping the generator needs to know which frames are sweep one, the
-transition and sweep two.
-
-白话：这个模块解决"给定这栋房子能走的格子和要看的容器，走哪条路、在哪转身、
-在哪抬头"。输入是起始位姿、可达位置、合格容器的中心点和本次要重访的容器；输出
-是一串登记好的动作，以及每段（扫掠一／过渡／扫掠二）对应的观察序号范围。例如
-三个容器分别在客厅、厨房、卧室，输出就是从起点依次走到三个视点并注视、再走一
-段过渡、再回到被干预的那两个视点的动作序列。它不启动模拟器、不看图像、不知道
-哪个物体会被干预（那是选择器的事），也不保证视点真的看得清。
+transition and sweep two.  It does not know which object is intervened on
+(that is the selector, ``lean_interventions``) and does not guarantee that a
+viewpoint actually sees the container clearly.
 
 The rules bound by the S0-02 contract:
 
@@ -67,8 +62,8 @@ def snap(value: float, grid: float = GRID_M) -> int:
 def reachable_cells(positions: Iterable[Mapping[str, float]], grid: float = GRID_M) -> set[tuple[int, int]]:
     """Snap reachable positions to (ix, iz) grid cells.
 
-    白话：输入模拟器给的可达位置，输出吸附到 0.25 m 网格后的整数格子集合。例如
-    (1.02, 0.95, 2.48) 变成 (4, 10)。y 被丢掉——路线在一层平面上。
+    The 0.25 m grid maps e.g. (1.02, 0.95, 2.48) to (4, 10); y is dropped
+    because the route lies in one floor plane.
     """
 
     return {(snap(p["x"], grid), snap(p["z"], grid)) for p in positions}
@@ -90,10 +85,12 @@ def bfs_path(cells: set[tuple[int, int]], start: tuple[int, int],
              goal: tuple[int, int], blocked: frozenset | set = frozenset()) -> list[tuple[int, int]]:
     """Shortest grid path from start to goal, ties broken by grid order.
 
-    白话：在可达格子上找最短路。并列时按 (ix, iz) 的字典序展开，因此同一对起
-    终点在任何机器上得到同一条路。找不到就报错，不绕行、不猜。`blocked` 是执行中
-    被模拟器拒绝过的格间边（例如两格之间有把椅子），带着它重算就是绕行——绕行本
-    身也是确定性的，因为拒绝是模拟器对同一 house 的确定答案。
+    Ties expand in (ix, iz) lexicographic order, so a start/goal pair gives the
+    same path on every machine; no path raises, nothing is guessed.
+    ``blocked`` holds grid edges the simulator rejected during execution (e.g. a
+    chair between two cells); recomputing with it is the detour, and the detour
+    is deterministic because the rejection is the simulator's fixed answer for
+    the same house.
     """
 
     if start not in cells or goal not in cells:
@@ -156,10 +153,12 @@ def admissible_viewpoints(
 ) -> list[dict[str, Any]]:
     """All (cell, yaw, pitch) from which the container centre is in the frustum.
 
-    白话：输入容器中心和可达格子，输出所有能把容器中心放进 90° 视锥的视点，每个
-    视点带距离、最佳朝向与俯仰。距离只在 [0.75, 2.5] m 之间找；朝向从四个 90° 档
-    里挑最接近的，水平误差 > 45° 就不算；俯仰从 −30/0/30 里挑最接近的，竖直误差
-    > 45° 也不算。它不检查中间有没有墙挡着——那要靠真实深度帧判定。
+    Each viewpoint carries its distance and best yaw and pitch.  Horizontal
+    distance is searched only in [0.75, 2.5] m; the yaw is the closest of the
+    four 90-degree headings and is rejected beyond 45 degrees of horizontal
+    error; the pitch is the closest of -30/0/30 and is rejected beyond 45
+    degrees of vertical error.  Occluding walls are not checked here; that
+    needs the real depth frame.
     """
 
     low, high = VIEWPOINT_DISTANCE_M
@@ -205,11 +204,13 @@ def reachable_component(cells: set[tuple[int, int]], start: tuple[int, int],
                         blocked: frozenset | set = frozenset()) -> set[tuple[int, int]]:
     """Every cell reachable from ``start`` without crossing a blocked edge.
 
-    白话：被模拟器拒绝过的格间边可能把一个视点格从当前位置"割开"（例如视点在椅
-    子后面的死角）。这个函数从当前格出发做一次 BFS，返回带着黑名单还走得到的全部
-    格子；`select_viewpoint(..., component=...)` 只在这些格子里选视点，因此重选出的
-    视点仍是"最近的可达合格视点"，规则不变，只是把"可达"从事先全知改成带着实测黑
-    名单算。它不删黑名单、不猜边是否真的能走。
+    Edges the simulator rejected can cut a viewpoint cell off from the current
+    position (e.g. a viewpoint in a dead corner behind a chair).  One BFS from
+    the current cell returns every cell still reachable under the blocklist;
+    ``select_viewpoint(..., component=...)`` chooses only among these, so the
+    re-selected viewpoint is still the nearest reachable admissible one: the
+    rule is unchanged, only "reachable" is computed with the measured
+    blocklist.  The blocklist is never pruned.
     """
 
     if start not in cells:
@@ -232,8 +233,9 @@ def reachable_component(cells: set[tuple[int, int]], start: tuple[int, int],
 def nearest_neighbour_tour(start: tuple[int, int], targets: Sequence[tuple[int, int]]) -> list[int]:
     """Visit order of targets by nearest-neighbour from start, grid-order tie-break.
 
-    白话：从起点出发，每次去最近的未访问目标（曼哈顿距离），并列取格子序小的。
-    不做任何事后优化，因此顺序是输入的纯函数。返回目标的下标顺序。
+    Each step goes to the nearest unvisited target (Manhattan distance), ties
+    to the smaller cell; no post-optimisation, so the order is a pure function
+    of the input.  Returns target indices.
     """
 
     remaining = list(range(len(targets)))
@@ -298,10 +300,13 @@ def plan_route(
 ) -> dict[str, Any]:
     """Plan sweep one, the transition and sweep two as one action sequence.
 
-    白话：输入起始位姿、可达位置、合格容器（id → 中心）、扫掠二要按顺序重访的
-    容器 id 列表（由选择器给出，move 的源与目标都在里面且顺序已由 RNG 决定），可
-    选一个过渡段要去的格子；输出动作序列与三段的观察序号范围。观察序号 0 是起
-    点，之后每个动作产生一个观察。动作总数超过登记上限（裁决 40 后为 4000）直接报错，不截断。
+    ``revisit_sequence`` comes from the selector (``revisit_sequence`` in
+    ``lean_interventions``): both ends of every move, in RNG order, with the
+    ruling-34 controls interleaved.  ``transition_cell`` is the optional goal of
+    the transition.  Returns the actions and the observation ranges of the three
+    segments; observation 0 is the start and every action adds one observation.
+    More actions than the registered cap (4000 since ruling 40) raise; the
+    route is never truncated.
     """
 
     cells = reachable_cells(reachable, grid)

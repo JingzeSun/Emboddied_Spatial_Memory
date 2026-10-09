@@ -1,22 +1,29 @@
 """Ruling 103-1: the S3 test data are generated in S3-02 and sealed until S3-05.
 
-白话：裁决 103-1 让 test 的原始 episode、几何重载与两套 cache 跟 train／validation 一起生成，但写进单独的根并封存——S3-03／S3-04
-的入口拒绝读 test 根，S3-05 先核对封印再读，且只读一次。这个模块做三件事：
-  * 标记：每个 test 根放一个 ``TEST_SEALED.json``。生成期间是“待封印”（``pending``，还没有摘要）；S3-02 把四个根都生成完以后，
-    算出封印并把标记换成带封印摘要的正式标记（``sealed``）；
-  * 守卫：``refuse_sealed(paths, reader=...)``——给定的任一路径本身、它的任一上级目录，或（裁决 104-6）它的任一直接子目录里有
-    这个标记就拒绝；读取数据的入口在加载任何数据之前调用它，所以 test 根即使被误传给训练、选参或审计入口，也在读第一帧之前就停下，
-    把三个 split 的上一级目录传进来也一样被挡住；
-  * 封印：逐 episode 计算目录树摘要（每个文件的相对路径、字节数与 sha256 排序后再求 sha256），原始 episode、几何重载、实例分割
-    cache、SAM2 cache 四类根各一份，连同根下各阶段回执的摘要写成一个封印文件；S3-05 用 ``verify_seal`` 重算并逐项比对。
-输入是四个 test 根的路径与 test 名单，输出是标记、封印与核对结果。例如有人把 SAM2 cache 的 test 根传给节点审计入口，入口报出挡住
-它的标记路径并以退出码 2 结束。它只算字节摘要，不看任何帧的内容，不删除、不移动任何文件；它也不是“永远不能读”：S3-05 的入口在核对
-封印之后另行解封（裁决 107-1，见下）。
+Ruling 103-1 generates the raw test episodes, the geometry reload and both caches together with train/validation, but
+into separate sealed roots: the S3-03/S3-04 entries refuse the test roots, and S3-05 verifies the seal before it reads
+them, once. This module provides:
+  * markers: a ``TEST_SEALED.json`` in every test root, ``pending`` (no digest yet) while S3-02 writes it; once all
+    four roots are complete, S3-02 computes the seal and replaces each marker by a ``sealed`` one carrying the seal
+    digest;
+  * the guard: ``refuse_sealed(paths, reader=...)`` refuses when the marker is in a given path itself, in any directory
+    above it, or (ruling 104-6) in any directory directly below it; data-reading entries call it before loading
+    anything, so a test root passed by mistake to a training, selection or audit entry stops before the first frame,
+    and so does the parent directory of the three split roots;
+  * the seal: a tree digest per episode (sha256 over the sorted relative path, byte count and sha256 of every file) for
+    each of the four root kinds (raw episodes, geometry reload, instance-segmentation cache, SAM 2.1 cache), together
+    with the digests of each root's top-level files (its stage receipts), written to one seal file; S3-05 recomputes
+    and compares it item by item with ``verify_seal``.
+Inputs are the four test root paths and the test manifest; outputs are markers, the seal and verification results.
+Example: the SAM 2.1 cache test root passed to the node-audit entry makes it print the blocking marker path and exit
+with code 2. The module only computes byte digests: it reads no frame content and deletes or moves no file.
 
-解封（裁决 107-1，2026-10-05）：``open_roots`` 只在 ``verify_seal`` 逐项相等之后把四个标记改成“已打开”（``opened``，保留封印
-摘要，并记下是哪份 S3-04 冻结回执放行的），每个 test 根旁写读取记录 ``TEST_READ.json``（第 1 次读取、时间、提交、回执摘要；
-工程故障后的续跑是同一次读取，不增加次数）；复制到工作机后的核对结果用 ``record_copy`` 记进同一份记录。``refuse_sealed`` 对
-三种状态一律拒绝，所以 S3-03／S3-04 的入口照旧读不到；只有带同一份回执摘要调用 ``admit_opened`` 的 S3-05 入口能读。
+Opening (ruling 107-1, 2026-10-05): ``open_roots`` changes the four markers to ``opened`` (keeping the seal digest and
+recording which S3-04 freeze receipt authorised it) only after ``verify_seal`` reports no difference, and writes the
+read record ``TEST_READ.json`` into each test root (reading 1, time, commit, receipt digest; a resume after an
+engineering failure is the same reading and does not increment it); ``record_copy`` adds the verification of a copy on
+a remote host to the same record. ``refuse_sealed`` refuses all three states, so the S3-03/S3-04 entries still cannot
+read test; only an S3-05 entry calling ``admit_opened`` with the same receipt digest can.
 """
 
 from __future__ import annotations
@@ -35,7 +42,8 @@ STATE_PENDING = "pending"
 STATE_SEALED = "sealed"
 #: ruling 107-1: S3-05 verified the seal and opened the root for the run its freeze receipt names
 STATE_OPENED = "opened"
-#: ruling 107-1: the read record beside each opened test root (outside the seal: it did not exist when the seal was taken)
+#: ruling 107-1: the read record in each opened test root, beside the marker (outside the seal: it did not exist when the
+#: seal was taken)
 READ_RECORD_NAME = "TEST_READ.json"
 RULE = ("ruling 103-1: the test data are generated in S3-02 into their own roots and sealed; the S3-03 and S3-04 entries refuse "
         "them; S3-05 verifies the seal, then reads them once")
@@ -121,7 +129,8 @@ def sealed_marker(path: str | Path) -> Path | None:
 
 
 def refuse_sealed(paths: Iterable[str | Path | None], *, reader: str) -> None:
-    """Raise if any given path lies in a sealed (or pending) test root; a data-reading entry calls this before loading anything."""
+    """Raise if any given path is covered by a test-root marker (``sealed_marker``) in any state: pending, sealed or
+    (ruling 107-1) opened; a data-reading entry calls this before loading anything."""
 
     for path in paths:
         if path is None or str(path) == "":

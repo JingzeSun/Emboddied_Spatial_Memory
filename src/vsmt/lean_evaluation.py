@@ -1,6 +1,7 @@
 """D-224 / S2-04: teacher and evaluator wiring -- from the S2-01 runner's per-frame products and the
-private plane to labels, the three-way decomposition, the eight metrics (the seven of S0-04 and the
-ruling-70 secondary node column) and the training records.
+private plane to labels, the three-way decomposition, the eight S0-04 metrics (the eighth, retrieval
+success, since ruling 102-5) with their registered secondary and diagnostic columns, and the training
+records.
 
 The S0-04 core (``lean_teacher``, reviewed) already defines every label rule, every metric and the
 statistics.  What it does not say is *where its inputs come from* once a real arm has run on a real
@@ -17,22 +18,18 @@ comes from one auditable path:
     frame's private record, opens private truth only against the receipt's two-seal gate, and
     produces the S0-04 labels (targets and existence), the decomposition, the per-frame metric
     inputs, the S2-03 training record and the nuisance-probe rows; at the end it assembles the
-    seven-metric episode report with exactly the frozen fields;
+    episode report of the eight metrics and their secondary and diagnostic columns, with exactly
+    the frozen fields;
   * the intervention bookkeeping the metrics need: old and new places of intervened objects from
-    the S1-04 truth tracker, "observable to the method" decided by the same sampled-box test the
-    arms apply to their own entities (S2-01 ``entity_geometry`` at the S0-05 shared minimum),
-    carriers before a move, first labelled re-observation after a move, and the recovery flags.
+    the S1-04 truth tracker; "observable to the method", decided by the per-point depth test of
+    ruling 74 (S2-01 ``entity_geometry``) at the S0-05 shared minimum ratio on a grid sampled
+    inside the truth box (a place has no surface of its own; the arms test their entities' last
+    seen surface points since ruling 75); carriers before a move; the first labelled
+    re-observation after a move; and the recovery flags.
 
 The public phase never sees this module: the runner is a pure function of the cache and the arm,
-and the receipt it returns already carries the two seals.  Nothing here changes a public byte.
-
-白话：S0-04 已经把"标签怎么打、七项指标（裁决 70 后再加一列质心次级节点列）怎么算"定死了；S2-04 补的是"跑起来之后这些输入从哪来"。
-每帧：拿 runner 的一步产物（封存 A/B、分配、存在候选与决定、提交前后的记忆）和这一帧的私有记录
-（实例图、物体位姿、可见像素），先核对放行回执，再算每个色块落在哪个物体上、每个实体一直在
-收集谁的证据，据此给出 S0-04 的目标列与存在标签、三分解、逐帧的节点匹配与污染占比、假撤回、
-规模成本，并顺手写出 S2-03 要吃的训练记录。窗口过后，从 S1-04 的真值追踪器取被移走/搬动物体的
-旧位置与新位置，用臂自己那套"包围盒采样点落进可见体积"的判定决定"这个地方对方法可观察了没
-有"，从而算 Missing 残留率、身份连续率和恢复延迟。它不训练、不选参、不改任何公开字节。
+and the receipt it returns already carries the two seals.  Nothing here changes a public byte; it
+does not train or select configurations.
 """
 
 from __future__ import annotations
@@ -178,9 +175,10 @@ def fragment_instances(cache_frame: Mapping[str, Any], masks: Mapping[str, Any],
                        label_to_object: Mapping[int, str]) -> dict[str, dict[str, Any]]:
     """The S0-04 ``fragment_instance`` table of one frame from the recovered masks and the private instance image.
 
-    白话：输入封印过的 cache 帧、回收的色块 mask（先按定义重算每个 mask 的摘要、与帧里钉的摘要
-    逐位核对）和私有实例图，输出每个色块落在各个私有物体上的像素占比（分母是色块全部像素，背景
-    是没列出的余量）和色块的公开像素数。它只是把 S1-04 已经用过的重叠算法接到 S0-04 的输入形状上。
+    Each mask's digest is recomputed and compared with the digest pinned in the sealed frame first.
+    The overlap shares use all fragment pixels as the denominator (background is the unlisted
+    remainder); ``pixel_count`` is the fragment's public pixel count. The overlap is the S1-04
+    function (``lean_frontend_diagnostics.overlap_from_masks``) fed into the S0-04 input shape.
     """
 
     expected = [str(row["mask_sha256"]) for row in cache_frame["fragments"]]
@@ -224,10 +222,13 @@ def place_box(entry: Mapping[str, Any]) -> tuple[list[float], list[float]]:
 
 def place_observable(cache_frame: Mapping[str, Any], box: tuple[Sequence[float], Sequence[float]], *,
                      samples_per_axis: int, visible_min_ratio: float) -> bool:
-    """Is a place observable to the method this frame?  The arms' own sampled-box test, applied to a truth box.
+    """Is a place observable to the method this frame?  The arms' should-be-visible test, applied to a truth box.
 
-    Since ruling 74 that test is the per-point depth test on the frame's public depth view, so "observable
-    to the method" and "should be visible to the arm" stay one yardstick (ruling 65 (1)).
+    The test is ``lean_runner.entity_geometry``: the per-point depth test of ruling 74 on the frame's public
+    depth view against the S0-05 minimum ratio, so "observable to the method" and "should be visible to the
+    arm" stay one yardstick (ruling 65 (1)). A place has no surface of its own, so its points are a grid
+    sampled inside the truth box (``samples_per_axis`` per axis); the arms' entities test their last-seen
+    surface points instead (ruling 75).
     """
 
     pseudo = {"entities": [{"entity_id": "place", "aabb_min_m": list(box[0]), "aabb_max_m": list(box[1])}]}
@@ -243,10 +244,11 @@ def place_observable(cache_frame: Mapping[str, Any], box: tuple[Sequence[float],
 class EpisodeTeacher:
     """Runs the S0-04 teacher and evaluator over one arm's rollout of one episode, frame by frame.
 
-    白话：一条 episode、一个臂建一个对象。每帧调用 ``label_frame`` 一次，传入 runner 的那一步和
-    这一帧的私有记录、色块 mask、实例图，它返回这一帧的标签、三分解、指标输入与训练记录；跑完后
-    调用 ``episode_report`` 拿七项指标（字段恰为 S0-04 冻结的那些）和诊断信息。私有真值只凭回执里
-    的两段封存摘要打开，公开产物一个字节都不读写。
+    One instance per episode and arm. ``label_frame`` takes each runner step with the frame's private
+    record, fragment masks and instance image, and returns the frame's labels, decomposition, metric
+    inputs and training record; ``episode_report`` then returns the eight metrics and their secondary
+    and diagnostic columns (exactly the frozen S0-04 fields) plus diagnostics. Private truth opens only
+    against the receipt's two seal digests; no public byte is changed.
     """
 
     def __init__(
@@ -580,10 +582,12 @@ class EpisodeTeacher:
 class NuisanceTally:
     """Ruling 104-2: ``nuisance_probes`` over the pooled rows of a split, accumulated frame by frame as count tables.
 
-    白话：裁决 104-2 的 split 级 nuisance 探针要把一整条 split 的标签行放在一起判（S0-04 冻结的最大优势 0.05），几百条
-    episode 的行全装进内存太大。这里逐帧读入每条 nuisance 记录，只累计“字段取值 × 标签”的个数，最后用
-    ``nuisance_probe_from_counts`` 算出与 ``nuisance_probes`` 对全部行逐位相同的结果。输入是 S2-04 入口写的
-    ``nuisance.jsonl.gz`` 的每一行，输出是同样结构的探针结果。它不设阈值、不改标签。
+    The split-level probe of ruling 104-2 judges the pooled label rows of a whole split against S0-04's
+    frozen maximum advantage (0.05, ruling 68); the rows of hundreds of episodes do not fit in memory.
+    Only the field-value x label counts are kept, and ``lean_teacher.nuisance_probe_from_counts`` gives
+    results identical to ``nuisance_probes`` over all rows. Input: each line of the S2-04 entry's
+    ``nuisance.jsonl.gz``; output: the structure ``nuisance_probes`` returns. It applies no threshold
+    (the caller does) and changes no label.
     """
 
     BLOCKS = (("association", NUISANCE_ASSOCIATION_LABELS), ("existence", NUISANCE_EXISTENCE_LABELS))

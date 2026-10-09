@@ -4,16 +4,15 @@ This module holds the rules that decide *whether an asset may be placed on
 the server at all* and *how many workers a step is allowed to start*.  It
 holds none of the machinery that fetches anything.  It does not open a
 socket, does not run a subprocess, does not import torch, does not read the
-server and does not write files.  The acquisition and probe entry points
-(S1-01 proper) will call these checks; the checks must therefore be runnable
-at authorization-review time, before a single byte has been downloaded.
+server and does not write files, so the checks run at authorization-review
+time, before a single byte has been downloaded.  Passing them shows neither
+that an asset works nor that the derived worker count runs.
 
-白话：这个模块解决"一个资产现在到底允不允许被放到服务器上，以及这台机器现在
-能安全开几个 worker"。输入是资产登记表、许可证记录、授权位、获取回执、容量读
-数和单 worker 实测占用，输出是通过或拒绝并给出原因，以及一个可复算的 worker
-数和卡住它的那一项。例如 ViT-B/14 的来源和摘要都还是 null，任何获取请求都被拒
-为 registration_incomplete。它不下载资产、不安装依赖、不探测机器、不证明资产
-可用，也不证明这个 worker 数跑得动。
+Only ``derive_worker_count`` is called outside the tests (by
+``lean_pilot.plan_scale_up`` for the S1-02b worker count); the registry,
+licence, receipt and contract checks are called only by the tests, which
+hold the S1-01 contract (``configs/vsmt/lean_s1_assets_capacity_v2.json``)
+to them.
 
 Four rules carry the S1-01 continue gate:
 
@@ -205,10 +204,10 @@ def _bool(value: Any, code: str) -> bool:
 def validate_asset_entry(entry: Mapping[str, Any]) -> dict[str, Any]:
     """Check one registry row's shape and its status/identity agreement.
 
-    白话：输入一行资产登记，输出同样内容的副本，并在字段缺失、多出、模式或状态
-    不在登记清单内，或"状态说登记完整但标识其实是 null"时拒绝。例如一个 checkpoint
-    标成 registered_not_acquired 却没有 sha256，会被拒。它不检查这个资产是否真的
-    存在于网上或服务器上。
+    Returns a copy and refuses a missing or extra field, an unregistered mode
+    or status, or a status claiming a complete registration over a null
+    identity (e.g. a checkpoint marked registered_not_acquired without a
+    sha256).  Whether the asset exists online or on the server is not checked.
     """
 
     _require(type(entry) is dict, "asset_entry_not_object")
@@ -244,9 +243,9 @@ def validate_asset_entry(entry: Mapping[str, Any]) -> dict[str, Any]:
 def registration_is_complete(entry: Mapping[str, Any]) -> bool:
     """Say whether this row identifies its asset tightly enough to verify it.
 
-    白话：输入一行登记，输出 True/False，回答"拿到字节以后有没有东西可以比对"。
-    例如一个文件类资产必须同时有字节数和 sha256，一个代码仓库必须有 commit。它不
-    回答这个标识是不是正确的那一个。
+    I.e. whether fetched bytes would have something to be compared against: a
+    file asset needs both byte count and sha256, a repository a commit.
+    Whether the identity is the right one is not answered.
     """
 
     mode = entry.get("acquisition_mode")
@@ -264,9 +263,9 @@ def registration_is_complete(entry: Mapping[str, Any]) -> bool:
 def validate_asset_registry(entries: Sequence[Mapping[str, Any]]) -> dict[str, dict[str, Any]]:
     """Check the whole registry and index it by ``asset_id``.
 
-    白话：输入整张资产登记表，输出按 asset_id 索引的副本，并在有重复 id、某行不
-    合法或表为空时拒绝。例如同一个 checkpoint 被登记两次（一次有摘要一次没有）
-    会被拒，否则谁先被读到就决定用哪一份。
+    Refuses a duplicate id, an invalid row or an empty registry.  A checkpoint
+    registered twice (once with a digest, once without) is refused; otherwise
+    whichever row is read first would decide.
     """
 
     _require(type(entries) in (list, tuple) and len(entries) > 0, "asset_registry_empty")
@@ -281,9 +280,9 @@ def validate_asset_registry(entries: Sequence[Mapping[str, Any]]) -> dict[str, d
 def validate_license_record(record: Mapping[str, Any]) -> dict[str, Any]:
     """Check one licence record's four required facts.
 
-    白话：输入一个资产的许可证记录，输出副本，并在四项中任意一项缺失或为 null 时
-    拒绝。例如只写了 "Apache-2.0" 而没有出处，会被拒。它不判断许可证条款本身，也
-    不构成法律意见。
+    Returns a copy and refuses any of the four missing or null (e.g.
+    "Apache-2.0" without its source).  The licence terms themselves are not
+    judged; this is not legal advice.
     """
 
     _require(type(record) is dict, "license_record_not_object")
@@ -306,10 +305,10 @@ def acquisition_is_permitted(
 ) -> dict[str, Any]:
     """Decide whether this asset may be fetched right now, and say why not.
 
-    白话：输入一行登记、它的许可证记录和当前授权位，输出 {"permitted": ...,
-    "reason": ...}。例如 SAM2 的授权位是 false，返回 permitted=False、reason=
-    "authorization_closed"；ViT-B/14 即使授权位打开，也会因 registration_incomplete
-    被拒。它不执行获取，也不保证获取会成功。
+    Returns {"permitted": ..., "reason": ...}: e.g. with the SAM 2.1 bit false,
+    permitted=False and reason "authorization_closed"; an entry whose
+    registration is incomplete is refused as "registration_incomplete" even
+    with its bit open.  Nothing is fetched, and success is not guaranteed.
     """
 
     validated = validate_asset_entry(entry)
@@ -343,10 +342,11 @@ def verify_asset_receipt(
 ) -> dict[str, Any]:
     """Compare an acquisition receipt against the registration.
 
-    白话：输入一行登记和一份获取回执，输出 {"match": ..., "action": ...,
-    "mismatched_fields": [...]}。例如实测 sha256 与登记值不同，match=False、
-    action="stop_and_report_verbatim"，并列出 sha256。登记值永远不会被回执改写：
-    这个函数只比对，不回写，也不建议任何替代来源。
+    Returns {"match": ..., "action": ..., "mismatched_fields": [...]}; e.g. an
+    observed sha256 that differs gives match=False, action
+    "stop_and_report_verbatim" and lists sha256.  The registration is never
+    rewritten from a receipt: this only compares, writes nothing back and
+    proposes no substitute source.
     """
 
     validated = validate_asset_entry(entry)
@@ -398,9 +398,10 @@ def verify_asset_receipt(
 def validate_capacity_receipt(receipt: Mapping[str, Any]) -> dict[str, Any]:
     """Check that a capacity receipt reports every measurement and both counts.
 
-    白话：输入一份容量回执，输出副本，并在缺少 15 项读数之一、缺少单 worker 占用、
-    没写 requested/actual worker 数或没写瓶颈时拒绝。例如只写了"用了 8 个 worker"
-    而没有依据，会被拒。它不检查这些读数是不是真的来自这台机器。
+    Returns a copy and refuses a receipt missing one of the 15 measurements,
+    the single-worker occupancy, the requested/actual worker counts or the
+    binding constraint (e.g. "8 workers used" without a basis).  Whether the
+    readings come from this machine is not checked.
     """
 
     _require(type(receipt) is dict, "capacity_receipt_not_object")
@@ -437,13 +438,14 @@ def derive_worker_count(
 ) -> dict[str, Any]:
     """Derive the largest safe worker count and name the constraint that binds.
 
-    白话：输入实测的机器读数和实测的单 worker 占用，加上一个余量比例，输出
-    {"worker_count": n, "binding_constraint": ..., "per_resource": {...}}。做法是
-    每项可用资源先乘 (1 − 余量) 再除以单 worker 占用取下整，四项资源与模拟器并发
-    上限取最小值。例如内存允许 12 个、显存允许 9 个、模拟器只能 4 个，结果是 4 且
-    瓶颈写 simulator_concurrency_limit。占用为 0 的资源不参与（例如纯 CPU 任务的
-    显存）；任何一项算出 0 个则报错，而不是悄悄回落到 1。它不保证这个数实际跑得
-    稳，只保证它有依据、可复算。
+    Returns {"worker_count": n, "binding_constraint": ..., "per_resource": {...}}.
+    Each available resource is multiplied by (1 - headroom) and divided by the
+    single-worker cost, rounded down; the count is the minimum over the four
+    resources and the simulator concurrency limit (e.g. RAM allows 12, VRAM 9,
+    the simulator 4: the result is 4, bound by simulator_concurrency_limit).  A
+    resource with zero cost is skipped (e.g. VRAM for a CPU-only task); a count
+    below the minimum raises instead of silently falling back to 1.  The count
+    is grounded and reproducible, not guaranteed to run stably.
     """
 
     _require(type(measurements) is dict and type(occupancy) is dict,
@@ -493,10 +495,12 @@ def derive_worker_count(
 def validate_assets_capacity_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
     """Check that the S1-01 machine contract agrees with this implementation.
 
-    白话：输入 S1-01 机器合同，输出同样内容的副本，并在字段清单、获取模式、状态
-    集合、许可证四项、15 项读数、worker 推导输入、两份回执字段、停止动作、禁止位
-    清单或授权位与本实现不一致时拒绝。例如合同把某个摘要不符的动作从"停下"改成
-    "换镜像"，会被拒。它不检查仍为 null 的数值，也不批准任何授权。
+    Returns a copy and refuses a contract whose field list, acquisition modes,
+    statuses, four licence facts, 15 measurements, worker-derivation inputs,
+    receipt fields, stop action, closed-bit list or authorization bits
+    disagree with this implementation (e.g. a digest mismatch answered by
+    "switch mirror" instead of "stop").  Values that are still null are not
+    checked, and no authorization is granted.
     """
 
     _require(type(contract) is dict, "contract_not_object")

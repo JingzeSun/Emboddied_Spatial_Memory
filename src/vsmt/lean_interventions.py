@@ -1,16 +1,21 @@
 """D-224 / S1-02 I1: the intervention selector, as a pure function.
 
-Enumerate every feasible (object, kind, shared window) triple first, then
-sample from that set with an RNG derived from the frozen split seed and the
-house id.  Never sample-then-retry: that would favour objects in easily
-hidden places, which is selecting samples by how concealable they are.
+Decides which objects an episode changes and how: object eligibility, the
+set F of feasible (object, kind, shared window) triples, the dry-run
+destinations, sampling of at most 6 interventions, the twin-control
+containers (ruling 34), the null-window draw (p = 0.2, ruling 37) and the
+sweep-two revisit order.  It is distinct from ``lean_intervention``
+(singular), which holds the S0-02 data-contract checks and the constants
+this module imports.
 
-白话：这个模块解决"这条 episode 该动哪些物体、怎么动"。输入是这栋房子的物体表
-（谁可拾取、谁在哪个容器上）、扫掠一里每个物体最多可见了多少像素、过渡段内始
-终看不见的容器集合 U、每个目标容器放不放得下，以及冻结的 seed 和 house id；输
-出是至多 6 个干预（物体、类型、源、目标、复制件的新 id）和一个"本条是不是空窗
-口"的判定。例如 F 里有 9 个可行三元组，就从 9 个里无放回抽最多 6 个，同一物体
-只用一次。它不启动模拟器、不看图像、不做任何顺序重抽。
+Every feasible triple is enumerated first, then sampled without replacement
+with an RNG derived from the frozen split seed and the house id, each object
+used at most once.  Never sample-then-retry: that would favour objects in
+easily hidden places, which is selecting samples by how concealable they
+are.  Input: the house's object table (pickupable, parent receptacle), the
+maximum visible pixels per object in sweep one, the set U of containers
+unobservable throughout the window and per-destination placement results.
+No simulator is started and no image is read.
 """
 
 from __future__ import annotations
@@ -45,13 +50,8 @@ def parent_receptacle_of(parents: Sequence[str] | None) -> str | None:
     shelving unit, dining table).  Taking entry 0 attributed 99 of the 987 eligible objects of the
     7c10d2c development run to the floor, so they could never be a remove/move source or a control
     holder (LOG-243 supplement).  The first non-Floor entry is the receptacle; an object listed only
-    under Floor sits on the floor and has no container; an empty list has none either.
-
-    白话：模拟器给每个物体报的"父容器"是一张表，矮家具上的物体会把房间地板排在表的第一位。
-    以前只取第一项，结果放在电视柜上的碗被记成"在地板上"，而地板不是容器，这只碗就永远不能
-    被拿走或搬走，电视柜也被当成空的。现在取表里第一个不是 Floor 的受体；只有 Floor 的物体
-    确实在地上，返回 None，不算合格物体。输入是父容器表，输出是一个受体 id 或 None。它不判断
-    物体是否可见，也不改变 U。
+    under Floor sits on the floor and has no container; an empty list has none either.  Returns a
+    receptacle id or None (the object is then not eligible); visibility and U are not touched.
     """
 
     for parent in parents or []:
@@ -63,11 +63,12 @@ def parent_receptacle_of(parents: Sequence[str] | None) -> str | None:
 def derive_rng(split_seed: int, house_id: str, purpose: str, private_salt: str | None = None) -> random.Random:
     """A Random seeded from (split seed, house id, purpose tag) and, for the null draw only, a private salt.
 
-    白话：随机数不引入新种子，全部由已冻结的划分 seed、house id 和一个用途标签
-    派生。同一 house 在任何机器上抽到同样的干预；换个用途标签就得到另一条互不
-    重叠的随机流。标签不在登记表里就报错。唯一例外是空窗口抽签（裁决 37）：seed
-    写在公开合同里、house id 就是目录名，两者都拿得到，所以再混入一个只存在于仓库
-    外的私有盐；provenance 只登记盐的 sha256。
+    No new seed is introduced: the same house draws the same interventions on
+    every machine, and each registered purpose tag gives a separate stream; an
+    unregistered tag raises.  The null-window draw (ruling 37) is the one
+    exception: the seed is in the public contract and the house id is the
+    directory name, so both are known, and a private salt kept outside the
+    repository is mixed in; provenance records only the salt's sha256.
     """
 
     if purpose not in RNG_PURPOSE_TAGS:
@@ -95,13 +96,16 @@ def select_controls(
 ) -> dict[str, Any]:
     """The unintervened control containers sweep two revisits (ruling 34, twin control).
 
-    白话：扫掠二若只重访被干预的容器，"被重访 ⇒ 有变化"就是 100% 的结构捷径。这里
-    为每个被干预容器配一个对照容器：从 U（过渡段全程看不见）里去掉被干预集合、只留
-    至少持有一个扫掠一里看见过的合格物体的容器，用派生 RNG 无放回抽取同样多个；U 里
-    不够时才从 U 外的持物容器补，并把补的数目登记出来。对照容器上什么都没动，重访
-    它考的是"没变就不该撤回"。输入是合格物体表、全部容器、U、本条抽中的干预（空窗口
-    episode 也传"本该执行"的那份）；输出对照列表、来源计数和缺口。它不改变干预抽样，
-    不从空容器里挑对照——重访一个空抽屉什么也测不到。
+    If sweep two revisited only intervened containers, "revisited implies
+    changed" would be a perfect structural shortcut.  One control is drawn per
+    intervened container, without replacement and with the derived RNG, from U
+    minus the intervened set, restricted to containers holding at least one
+    eligible object seen in sweep one; only when U runs short are holders
+    outside U added, and their number is recorded.  Nothing changes on a
+    control, so revisiting it tests "unchanged must not be retracted".  A null
+    window episode passes the interventions it would have executed.  Returns
+    the controls, source counts and the shortfall.  Empty containers are never
+    controls (revisiting an empty drawer tests nothing).
     """
 
     involved: set[str] = set()
@@ -138,9 +142,10 @@ def eligible_objects(
 ) -> list[dict[str, Any]]:
     """Objects that may be intervened on.
 
-    白话：合格物体＝可拾取、在某个容器内或其上、扫掠一中至少一帧可见像素 ≥196、
-    不是 agent 或结构件。输入是物体表和"每个物体最多可见了多少像素"，输出合格
-    物体列表（按 id 排序）。看不见的物体记忆里没有实体，动它没有意义。
+    Eligible: pickupable, in or on a receptacle, at least 196 visible pixels in
+    some sweep-one frame, and neither the agent nor a structure.  Returns the
+    eligible objects sorted by id.  An object never seen has no entity in
+    memory, so changing it would test nothing.
     """
 
     out: list[dict[str, Any]] = []
@@ -160,11 +165,12 @@ def eligible_objects(
 def unseen_objects(objects: Sequence[Mapping[str, Any]], visible_pixels: Mapping[str, int]) -> list[dict[str, Any]]:
     """Pickupable objects on a receptacle that have never been rendered so far (0 px).
 
-    白话（裁决 30，proposed）：`add` 的另一种来源——不是复制已见物体，而是把 house 里
-    一个**从未出现在任何私有掩码里**的真实物体搬到 U 容器上。对记忆来说它就是新实体
-    （BIRTH），而且它是真实 prefab，实例分割能登记它。输入是物体表和"每个物体至今最
-    多可见像素"，输出 0 像素的合格物体（按 id 排序）。它不等于"没看清"的物体：哪怕
-    1 个像素也算见过。
+    Ruling 30 (adopted): the ``add`` source is a real object of the house that
+    has never appeared in any private mask, relocated onto a U container,
+    instead of a copy of a seen object.  For the memory it is a new entity
+    (BIRTH), and as a real prefab it is registered by instance segmentation.
+    Returns the 0-px objects sorted by id; a single visible pixel counts as
+    seen.
     """
 
     out: list[dict[str, Any]] = []
@@ -189,9 +195,12 @@ def feasible_triples(
 ) -> list[dict[str, Any]]:
     """Every (object, kind, ...) whose involved containers are all in U.
 
-    白话：先定过渡段、算出其内始终不可见的容器集合 U，再穷举：remove 要源容器
-    ∈ U；move 要源、目标都 ∈ U 且目标放得下且目标 ≠ 源；add（复制已有物体）要目
-    标 ∈ U 且放得下。输出按确定顺序排列的可行三元组列表 F，抽样只从 F 里抽。
+    With U fixed for the window: ``remove`` needs the source in U; ``move``
+    needs source and destination in U, a destination that accepts the object
+    and differs from the source; ``add`` needs a destination in U that accepts
+    the object (a copy of an eligible object when ``unseen`` is None, otherwise
+    an unseen existing object, ruling 30).  Returns the feasible list F in a
+    deterministic order; sampling draws only from F.
     """
 
     out: list[dict[str, Any]] = []
@@ -219,7 +228,7 @@ def feasible_triples(
                 out.append({"kind": "add", "object_id": obj["object_id"], "asset_id": obj.get("asset_id"),
                             "source": obj["parent_receptacle"], "destination": dst, "add_source": "unseen_existing"})
     if pair_ok is not None:
-        # dry-run prescreen (ruling 31, proposed): a move/add is feasible only if the simulator
+        # dry-run prescreen (ruling 31, adopted): a move/add is feasible only if the simulator
         # actually placed the object there and it was visible from the destination's viewpoint
         kept = []
         for row in out:
@@ -242,11 +251,13 @@ def dry_run_destinations(
 ) -> dict[str, list[str]]:
     """Which U destinations the dry run tests for each candidate object (ruling 39, m=8).
 
-    白话：dry-run 的开销是 候选物体 × |U| × 最多 32 个点。裁决 39 后每个候选物体只用派生 RNG
-    （标签 dry_run_order）从 U 里随机挑至多 m 个目的容器去试放偷看，自己所在的容器不算。
-    被挑中的子集是均匀随机的，所以每个真实可行的 (物体, 目的容器) 对入选概率相同，抽样公平
-    性不变；代价是可行集只覆盖测过的那部分，回执要一起记 pairs_tested 与 pairs_total。
-    m=0 表示全部测，只用于复算 S1 的 50 条。输出按物体 id 排序、每个物体的目的容器保持抽签顺序。
+    The dry run costs candidates x |U| x at most 32 points.  Since ruling 39 each candidate object
+    tests at most m destinations drawn from U with the derived RNG (tag ``dry_run_order``), its own
+    container excluded.  The tested subset is uniformly random, so every truly feasible
+    (object, destination) pair has the same chance and sampling stays fair; the cost is that the
+    feasible set covers only the tested pairs, so the receipt records pairs_tested and pairs_total.
+    m = 0 tests every destination and exists only to replay the 50 S1 episodes.  Returns objects in
+    id order, each with its destinations in draw order.
     """
 
     if type(per_object) is not int or per_object < 0:
@@ -273,14 +284,16 @@ def sample_interventions(
 ) -> list[dict[str, Any]]:
     """Draw up to ``maximum`` triples without replacement, one object at most once.
 
-    白话：从 F 里用派生 RNG 无放回抽，抽到的物体不再抽第二次（add 复制它算用过
-    它）。输出带序号的干预列表；复制件的新 id 由 (house, 物体, 序号) 派生。
+    Draws from F with the derived RNG; a drawn object is never drawn again (copying it in an
+    ``add`` counts as using it).  Returns the indexed interventions; a copy's new id is derived from
+    (house, object, index).
 
-    ``stratify_by_kind``（裁决 29，已采纳，默认开）：每个名额先在"还有可用三元组"
-    的类型里均匀抽一个类型，再在该类型里均匀抽三元组。关掉即回到 S1-02b 首跑的按
-    三元组均匀抽，add 因三元组数量占优而几乎总被抽中——只用于复算旧运行。
-    ``one_placement_per_destination``（裁决 32，已采纳，默认开）：每个目的容器每条
-    episode 至多一次放置，remove 不限。
+    ``stratify_by_kind`` (ruling 29, adopted, on by default): each slot first draws a kind uniformly
+    among the kinds with triples left, then a triple uniformly within that kind.  Off reproduces the
+    first S1-02b run's uniform draw over triples, in which ``add`` was nearly always drawn because
+    it has the most triples; it is kept only to replay old runs.
+    ``one_placement_per_destination`` (ruling 32, adopted, on by default): at most one placement per
+    destination container per episode; ``remove`` is unlimited.
     """
 
     rng = derive_rng(split_seed, house_id, "intervention")
@@ -323,10 +336,11 @@ def revisit_sequence(
 ) -> list[str]:
     """Containers sweep two revisits, in order; move's two ends ordered by RNG; controls interleaved.
 
-    白话：扫掠二要重访的容器序列。remove 重访源，add 重访目标，move 两端都重
-    访，先源还是先目标由派生 RNG 逐个决定。重复容器只保留第一次出现。对照容器
-    （裁决 34）再由同一条随机流逐个插到序列的随机位置，因此"变的先、不变的后"这
-    种顺序信息不存在。
+    ``remove`` revisits the source, ``add`` the destination, ``move`` both ends,
+    source or destination first decided per move by the derived RNG; a repeated
+    container keeps only its first occurrence.  The control containers (ruling
+    34) are then inserted one by one at random positions from the same stream,
+    so the order carries no "changed first, unchanged later" signal.
     """
 
     rng = derive_rng(split_seed, house_id, "revisit_order")

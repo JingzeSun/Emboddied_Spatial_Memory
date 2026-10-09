@@ -9,14 +9,18 @@ expose feeds the S1-01 formula so S1-02b can scale to the remaining
 houses.
 
 This module holds the rules that decide whether such a pilot is
-admissible.  It starts no simulator, generates no episode, writes no data
+admissible and whether its measured occupancy may be used for the
+derivation.  It starts no simulator, generates no episode, writes no data
 plane, reads no private file and imports nothing heavier than the two
-modules it deliberately reuses.
+modules it deliberately reuses.  Passing its checks does not show that the
+pilot runs.
 
-白话：这个模块解决"这次 pilot 算不算合规，以及量出来的占用能不能拿去推导"。
-输入是冻结的划分参数、house 池、pilot 计划、运行回执和占用读数，输出是通过或
-拒绝并给出原因。例如回执里写的 4 个 house 与按划分键重算出来的不一致，直接拒。
-它不启动模拟器、不生成 episode、不读 private，也不证明 pilot 跑得通。
+Beyond the pilot, ``train_block`` fixes the train-block order the S1-02
+generator (``ops/vsmt/lean_s1_02a_pilot.py``) uses for the development
+houses (positions 0-49) and the ruling-81 confirmation set (positions
+50-99).  ``lean_s3_manifests`` derives the S3-01 lists from the same
+``split_freeze`` with the same ``assign_split`` (it does not call this
+module), so its S3 train positions 100-399 continue that order.
 
 Four rules carry the S1-02a continue gate:
 
@@ -52,9 +56,10 @@ PILOT_HOUSES_PER_WORKER = 1
 PILOT_TOTAL_HOUSES = PILOT_WORKERS * PILOT_HOUSES_PER_WORKER
 
 #: The split parameters that must be frozen before the first episode.
-#: ``train_houses`` may still be open here: it is registered at S3-01 and
-#: may only ever decrease, which trims the tail of the train block and
-#: moves no house in test or validation.
+#: ``train_houses`` may still be open here: it was designed to be registered
+#: at S3-01 and to only ever decrease, which trims the tail of the train
+#: block and moves no house in test or validation.  S3-01 left it null:
+#: ruling 102-8 takes train positions 100-399 instead (``lean_s3_manifests``).
 SPLIT_FREEZE_FIELDS = ("seed", "validation_houses", "test_houses", "train_houses")
 FROZEN_BEFORE_GENERATION = ("seed", "validation_houses", "test_houses")
 
@@ -125,10 +130,11 @@ def _number(value: Any, code: str, *, minimum: float | None = None) -> float:
 def validate_split_freeze(freeze: Mapping[str, Any]) -> dict[str, Any]:
     """Check that the split parameters are frozen tightly enough to generate.
 
-    白话：输入划分冻结段，输出副本，并在 seed 或 test/validation 规模仍为 null、
-    为负、或不是整数时拒绝。例如 seed 还没定就想跑第一条 episode，会被拒。
-    `train_houses` 允许仍为 null，因为它到 S3-01 才登记且此后只能下调。它不检查
-    house 池里是否真有这么多 house，那是 `select_pilot_houses` 的事。
+    Returns a copy and refuses a seed or test/validation size that is still
+    null, negative or not an integer (e.g. a first episode before the seed is
+    fixed).  ``train_houses`` may stay null: it was left for S3-01 and may only
+    decrease once set (S3-01 kept it null, ruling 102-8).  Whether the pool
+    holds enough houses is checked by ``select_pilot_houses``.
     """
 
     _require(type(freeze) is dict, "split_freeze_not_object")
@@ -147,16 +153,16 @@ def validate_split_freeze(freeze: Mapping[str, Any]) -> dict[str, Any]:
 def train_block(house_ids: Sequence[str], freeze: Mapping[str, Any]) -> list[str]:
     """Return the train block under the registered split, in split order.
 
-    白话：输入 house 池与冻结的划分参数，输出 train 那一份，顺序就是划分键的顺
-    序。例如 seed 或 test/validation 规模一改，这个列表的起点就会挪动——这正是
-    它们必须先冻结的原因。它直接调用 S0-02 的 `assign_split`，不另写一套划分。
+    Changing the seed or a test/validation size moves the start of this list,
+    which is why they are frozen first.  It calls S0-02's ``assign_split``
+    rather than a second split implementation.
     """
 
     checked = validate_split_freeze(freeze)
     train = checked["train_houses"]
     if train is None:
-        # Before S3-01 registers it, the train block is simply everything
-        # the test and validation blocks did not take.
+        # While it is null (S3-01 kept it null, ruling 102-8), the train block
+        # is simply everything the test and validation blocks did not take.
         train = len(house_ids) - checked["validation_houses"] - checked["test_houses"]
         _require(train >= PILOT_TOTAL_HOUSES, "house_pool_too_small_for_the_pilot")
     split = assign_split(
@@ -174,9 +180,9 @@ def select_pilot_houses(
 ) -> list[str]:
     """Return the four pilot houses: the head of the train block.
 
-    白话：输入 house 池与冻结的划分参数，输出 pilot 的 4 个 house。它们不是挑出
-    来的，是 train 块最前面的 4 个，任何人换掉一个都会被重算抓到。例如同一个池
-    和同一组参数在任何机器上得到同样这四个。它不检查这些 house 能不能加载。
+    The houses are not chosen: the same pool and parameters give the same four
+    on every machine, and a swapped house is caught by the recomputation.
+    Whether they load is not checked.
     """
 
     block = train_block(house_ids, freeze)
@@ -193,9 +199,9 @@ def validate_pilot_plan(
 ) -> dict[str, Any]:
     """Check a pilot plan against the recomputed selection.
 
-    白话：输入 pilot 计划、house 池与冻结参数，输出副本，并在 worker 数不是 4、
-    每 worker 不是 1 个 house、house 重复，或写下的 house 与重算结果不一致时拒
-    绝。例如有人把第 4 个 house 换成一个"看起来更干净"的，重算立刻不符。
+    Returns a copy and refuses a worker count other than 4, other than one
+    house per worker, duplicate houses, or houses that differ from the
+    recomputation (e.g. the fourth house swapped for a "cleaner-looking" one).
     """
 
     _require(type(plan) is dict, "pilot_plan_not_object")
@@ -218,10 +224,10 @@ def validate_pilot_receipt(
 ) -> dict[str, Any]:
     """Check a pilot run receipt and refuse a regeneration.
 
-    白话：输入 pilot 回执（可选再给一份"已经生成过的 house"清单），输出副本，并
-    在字段缺失、计划数不等于成功数加失败数、失败回执数量对不上、失败原因不在登
-    记清单内，或在重新生成一个已经生成过的 house 时拒绝。例如计划 4 条成功 3 条
-    却只有 0 份失败回执，说明有一条被静默丢弃。
+    Returns a copy and refuses missing fields, planned != succeeded + failed, a
+    failure-receipt count that does not match, an unregistered failure reason,
+    or a house in ``already_generated`` (a regeneration).  E.g. 4 planned, 3
+    succeeded and no failure receipt means one episode was silently dropped.
     """
 
     _require(type(receipt) is dict, "pilot_receipt_not_object")
@@ -253,9 +259,10 @@ def validate_pilot_receipt(
 def validate_occupancy_receipt(receipt: Mapping[str, Any]) -> dict[str, Any]:
     """Check that the occupancy reading is complete, peak and honestly scoped.
 
-    白话：输入占用回执，输出副本，并在五个量缺一、取的是均值而不是峰值、跑的是
-    合成小基准而不是完整 episode，或没写明是在几路并发下量的时候拒绝。例如只写
-    了平均内存，按它配出来的并发会在高峰期把机器挤爆。
+    Returns a copy and refuses a missing value of the five, an average instead
+    of a peak, a synthetic micro-benchmark instead of a full episode, or a
+    reading that does not state its concurrency.  A worker count provisioned
+    from average memory overloads the machine at the peak.
     """
 
     _require(type(receipt) is dict, "occupancy_receipt_not_object")
@@ -282,10 +289,10 @@ def plan_scale_up(
 ) -> dict[str, Any]:
     """Derive the S1-02b worker count and say whether it is an extrapolation.
 
-    白话：输入占用回执与容量读数，输出 S1-01 公式算出的 worker 数、卡住它的那一
-    项，以及一个 `is_extrapolation` 标志——算出来的数大于实测验证过的并发时为
-    True。例如 pilot 只验证了 4 路而公式算出 9，那 9 是从单 worker 成本外推的，
-    回执必须这么写。它不重新实现推导公式，直接调 S1-01 的那一个。
+    Returns the worker count of the S1-01 formula (``lean_assets.derive_worker_count``,
+    not reimplemented), its binding constraint and ``is_extrapolation``: True
+    when the count exceeds the measured concurrency (e.g. a pilot verified at 4
+    while the formula gives 9, extrapolated from single-worker costs).
     """
 
     checked = validate_occupancy_receipt(occupancy_receipt)
@@ -307,9 +314,11 @@ def plan_scale_up(
 def validate_pilot_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
     """Check that the S1-02a machine contract agrees with this implementation.
 
-    白话：输入 S1-02a 机器合同，输出副本，并在 pilot 形状、占用口径、回执字段、
-    失败原因清单、禁止位清单或授权位与本实现不一致时拒绝。例如合同把峰值改成均
-    值，或把 pilot 的 4 条说成不计入 50 条，都会被拒。它不检查仍为 null 的数值。
+    Returns a copy and refuses a contract whose pilot shape, occupancy rule,
+    receipt fields, failure reasons, closed-bit list or authorization bits
+    disagree with this implementation (e.g. average instead of peak, or the 4
+    pilot episodes not counted towards the 50).  Values that are still null are
+    not checked.
     """
 
     _require(type(contract) is dict, "contract_not_object")
@@ -409,7 +418,7 @@ def validate_pilot_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
         for name in FROZEN_BEFORE_GENERATION:
             _require(f"split_freeze.{name}" not in open_values,
                      f"contract_{name}_frozen_but_still_listed_as_open")
-    # train_houses is registered at S3-01, so it stays open either way.
+    # train_houses was left for S3-01 (which kept it null, ruling 102-8), so it stays open either way.
     _require("split_freeze.train_houses" in open_values
              or freeze["train_houses"] is not None,
              "contract_train_size_neither_open_nor_registered")

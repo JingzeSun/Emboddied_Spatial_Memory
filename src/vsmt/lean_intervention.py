@@ -2,14 +2,19 @@
 
 This module holds every rule that decides *whether a generated episode is
 admissible*, and none of the machinery that generates one.  It does not open
-AI2-THOR, does not read RGB-D, does not touch numpy and does not write files.
-The generator (S1-02) will call these checks; the checks must therefore be
-runnable at contract-review time, before any data exists.
+AI2-THOR, does not read RGB-D, does not touch numpy and does not write files,
+so every check runs at contract-review time, before any data exists.  It is
+distinct from ``lean_interventions`` (plural), the S1-02 intervention selector.
 
-白话：这个模块解决"一条已经计划好或已经生成的 episode 合不合规"。输入是 house
-划分、路线计划、干预计划、逐观察可见性判定和三面文件清单，输出是通过或拒绝并
-给出原因。例如一次干预的源容器在窗口内某一帧仍然可见，整条 episode 被拒。它不
-生成数据、不调用模拟器、不读取 RGB-D，也不判断干预在科学上是否有趣。
+Who calls what: the S1-02 generator (``ops/vsmt/lean_s1_02a_pilot.py``)
+imports this module's constants and ``check_move_minimum`` and applies the
+window rule itself with ``vm04_public_visibility``; ``lean_interventions``,
+``lean_route`` and ``lean_object_geometry`` import constants;
+``house_split_rank`` and ``assign_split`` serve ``lean_reid_head``,
+``lean_pilot`` and ``lean_s3_manifests``.  The remaining validators (split
+manifest, route and intervention plans, window unobservability, three-plane
+layout, reader whitelist, public frame record, failure receipt, yield and the
+S0-02 contract) are called only by the tests, which hold the contract to them.
 
 Four rules carry the S0-02 continue gate:
 
@@ -17,9 +22,9 @@ Four rules carry the S0-02 continue gate:
    moved between train/validation/test after the fact.
 2. An intervention may only run while **every** container it touches is
    unobservable for the whole window.  The judgement is not re-derived here:
-   the generator supplies the per-observation visibility verdicts produced by
-   ``vm04_public_visibility``, and this module requires them to be complete,
-   contiguous and uniformly negative.
+   the per-observation verdicts come from ``vm04_public_visibility`` (applied
+   by the generator), and ``assert_windows_unobservable`` requires them to be
+   complete, contiguous and uniformly negative.
 3. ``private`` and ``provenance`` never appear in a deployment reader's
    whitelist, and the three planes never share a file.
 4. A failed house keeps a receipt and is never replaced, so the realised
@@ -46,8 +51,8 @@ PLANES = ("public", "private", "provenance")
 #: never move a house into or out of test or validation.
 SPLIT_PREFIX_ORDER = ("test", "validation", "train")
 
-#: Planes a deployment-time reader (frontend, recall, features, any of the
-#: five arms) may mount.  Everything else is teacher/evaluator/audit only.
+#: Planes a deployment-time reader (frontend, recall, features, any arm) may
+#: mount.  Everything else is teacher/evaluator/audit only.
 DEPLOYMENT_READABLE_PLANES = frozenset({"public"})
 
 #: Intervention kinds.  ``move`` keeps the simulator object, ``remove`` takes
@@ -199,9 +204,10 @@ def _reject_forbidden_keys(value: Any, *, code: str) -> None:
 def house_split_rank(house_id: str, *, seed: int) -> str:
     """Return the deterministic ordering key for one house.
 
-    白话：输入 house 标识和登记的 seed，输出一个只由这两者决定的排序键。例如同
-    一个 house 在任何机器、任何时间都得到同一个键，因此划分无法在看过结果后被
-    调整。它不表示这个 house 属于哪一份，那由下面的前缀规则决定。
+    The key depends only on the house id and the registered seed, so a house
+    gets the same key on every machine at any time and the split cannot be
+    adjusted after a result was seen.  The key does not say which split the
+    house belongs to; the prefix rule of ``assign_split`` does.
     """
 
     _identifier(house_id, "house_id_invalid")
@@ -215,11 +221,12 @@ def assign_split(
 ) -> dict[str, list[str]]:
     """Split houses by hash prefix into three mutually exclusive lists.
 
-    白话：输入候选 house 清单与三份规模，输出 train/validation/test 三个互斥列
-    表。排序后的前缀先给 test、再给 validation、最后给 train（D-224-X 裁决 X6）：
-    这样 S3-01 若按成品率下调 train 规模，test 与 validation 的成员一个都不会变；
-    反过来 test/validation 的规模与 seed 必须在第一条 episode 生成前冻结，因为
-    改它们会挪动 train 的起点。它不生成任何数据，也不检查 house 是否真的可加载。
+    The sorted prefix goes to test first, then validation, then train
+    (D-224-X ruling X6), so lowering the train size at S3-01 changes no test
+    or validation member; conversely the test/validation sizes and the seed
+    must be frozen before the first episode is generated, because changing
+    them moves the start of the train block.  Whether a house actually loads
+    is not checked.
     """
 
     _require(type(house_ids) is list or type(house_ids) is tuple, "house_ids_invalid")
@@ -242,9 +249,9 @@ def assign_split(
 def validate_split_manifest(manifest: Mapping[str, Any]) -> dict[str, Any]:
     """Recompute the split from its own declared inputs and require a match.
 
-    白话：输入一份划分清单，输出同样内容的副本，并在清单与按规则重算的结果不
-    一致时拒绝。例如有人把一个 house 从 test 挪到 train，重算立刻不符。它不检查
-    这些 house 是否已经生成成功。
+    Returns a copy; a house moved from test to train, for example, no longer
+    matches the recomputation.  Whether the houses were generated
+    successfully is not checked.
     """
 
     _require(type(manifest) is dict, "split_manifest_not_object")
@@ -280,9 +287,10 @@ def validate_route_plan(
 ) -> dict[str, Any]:
     """Check one pre-registered route: closed action alphabet, budget, order.
 
-    白话：输入执行前登记的完整动作序列，输出同样内容的副本，并在出现未登记动
-    作、超出机械保护上限或观察序号不连续时拒绝。例如把一个未登记的 Teleport 混
-    进路线会被拒。它不检查路线在这个 house 里是否真的走得通，那要等真实执行。
+    Returns a copy and refuses an unregistered action (e.g. a Teleport), a
+    route over the protection limit, or an observation count that does not
+    equal the action count plus one.  Whether the route is walkable in the
+    house is known only from the real execution.
     """
 
     _require(type(plan) is dict, "route_plan_not_object")
@@ -311,10 +319,11 @@ def validate_intervention_plan(
 ) -> dict[str, Any]:
     """Check the declared interventions of one episode.
 
-    白话：输入一条 episode 的干预计划，输出同样内容的副本，并在干预数量超限、
-    类型不在三类之内、窗口越界或两次干预共用同一物体时拒绝。例如一个物体先被
-    移走又被搬动，属于矛盾计划。它不判断窗口内容器是否真的看不见，那由
-    assert_windows_unobservable 检查。
+    Returns a copy and refuses too many interventions, a kind outside the
+    three, a window out of range, or one object used by two interventions
+    (e.g. removed and then moved: a contradictory plan).  Whether the
+    containers are unobservable in the window is checked by
+    ``assert_windows_unobservable``.
     """
 
     _require(type(plan) is dict, "intervention_plan_not_object")
@@ -385,10 +394,12 @@ def assert_windows_unobservable(
 ) -> dict[str, Any]:
     """Require every touched container to be unobservable for the whole window.
 
-    白话：输入干预计划和逐观察的公开可见性判定，输出一份逐干预的回执，并在窗口
-    内任何一帧任何相关容器被判为可见、或判定缺失、或判定不连续时拒绝。例如源容
-    器在窗口中间的一帧重新进入视野，整条 episode 失败，不缩短窗口、不换物体。
-    它不自己计算可见性；判定必须由 `vm04_public_visibility` 在公开深度上产生。
+    Returns one receipt per intervention and refuses when any involved
+    container is judged visible in any window frame, or a verdict is missing
+    or non-contiguous; e.g. a source container that re-enters the view in the
+    middle of the window fails the episode, without shortening the window or
+    changing the object.  Visibility is not computed here; the verdicts must
+    come from ``vm04_public_visibility`` on public depth.
 
     ``visibility`` maps ``"<container_ref>@<observation_index>"`` to a verdict
     dict carrying ``visible`` and the receipt digest of the depth frame it was
@@ -434,9 +445,10 @@ def assert_windows_unobservable(
 def validate_three_plane_layout(layout: Mapping[str, Any]) -> dict[str, Any]:
     """Check that the three faces are disjoint and correctly populated.
 
-    白话：输入一条 episode 的三面文件清单，输出同样内容的副本，并在同一个文件同
-    时出现在两面、或公开面出现 private 字段名时拒绝。例如把 instance mask 写进
-    public 目录会被拒。它不打开这些文件，只检查清单与字段名。
+    Returns a copy and refuses a file listed in two planes or a path outside
+    its plane's directory (e.g. a private-plane instance mask whose path lies
+    under ``public/``).  The files are not opened; only the listing is
+    checked.
     """
 
     _require(type(layout) is dict, "layout_not_object")
@@ -461,9 +473,9 @@ def assert_reader_whitelist(
 ) -> dict[str, Any]:
     """Refuse any deployment reader that asks for private or provenance.
 
-    白话：输入一个读取器的标识与它想挂载的面，输出通过回执，并在部署期读取器请
-    求 private 或 provenance 时拒绝。例如候选特征计算器请求 instance mask 会被
-    拒。它不检查该读取器实际打开了什么文件，那由运行期回执另行核对。
+    Returns a grant receipt; e.g. a candidate-feature reader requesting the
+    instance masks is refused.  Which files the reader actually opens is not
+    checked here; runtime receipts check that separately.
     """
 
     _identifier(reader_id, "reader_id_invalid")
@@ -485,9 +497,9 @@ def assert_reader_whitelist(
 def validate_public_frame_record(record: Mapping[str, Any]) -> dict[str, Any]:
     """Check one public frame record and reject any private identifier in it.
 
-    白话：输入一条公开帧记录，输出同样内容的副本，并在字段不符或任何层级出现
-    house/object/instance 之类标识时拒绝。例如在内参里塞一个 scene_name 会被拒。
-    它不读取图像本身，也不验证 depth 数值是否合理。
+    Returns a copy and refuses a field mismatch or a house/object/instance
+    identifier at any depth (e.g. a ``scene_name`` inside the intrinsics).
+    The images are not read and the depth values are not checked.
     """
 
     _require(type(record) is dict, "public_frame_not_object")
@@ -508,9 +520,9 @@ def validate_public_frame_record(record: Mapping[str, Any]) -> dict[str, Any]:
 def validate_failure_receipt(receipt: Mapping[str, Any]) -> dict[str, Any]:
     """Check that a failed house is kept, explained and not replaced.
 
-    白话：输入一条失败回执，输出同样内容的副本，并在原因不在封闭清单内、或声称
-    已被替换时拒绝。例如把失败的 house 换成下一个候选会被拒。它不判断这次失败是
-    否可以修复。
+    Returns a copy and refuses a reason outside the closed list or a receipt
+    claiming a replacement (e.g. swapping in the next candidate house).
+    Whether the failure is fixable is not judged.
     """
 
     _require(type(receipt) is dict, "failure_receipt_not_object")
@@ -544,9 +556,9 @@ def summarize_yield(
 ) -> dict[str, Any]:
     """Return the realised yield, with every failure accounted for.
 
-    白话：输入计划数、成功数和全部失败回执，输出成品率摘要，并在数目对不上时拒
-    绝。例如计划 50 条、成功 47 条却只有 2 份失败回执，说明有一条被静默丢弃。
-    它不决定成品率是否足够，那由 S0-02 登记的下限和用户裁决决定。
+    Refuses counts that do not add up: 50 planned, 47 succeeded and only 2
+    failure receipts means one episode was silently dropped.  Whether the
+    yield suffices is decided by the S0-02 minimum and the user's ruling.
     """
 
     total = _int(planned, "planned_invalid", minimum=1)
@@ -569,9 +581,10 @@ def summarize_yield(
 def validate_intervention_data_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
     """Check that the S0-02 machine contract agrees with this implementation.
 
-    白话：输入 S0-02 机器合同，输出同样内容的副本，并在动作字母表、干预三类、三
-    面划分、部署可读面、失败原因清单或授权位与本实现不一致时拒绝。例如合同多出
-    一个 "teleport" 动作会被拒。它不检查仍为 null 的数值。
+    Returns a copy and refuses a contract whose action alphabet, intervention
+    kinds, planes, deployment-readable planes, failure reasons, bound rule
+    constants or authorization bits disagree with this implementation (e.g. an
+    extra "teleport" action).  Values that are still null are not checked.
     """
 
     _require(type(contract) is dict, "contract_not_object")
@@ -786,10 +799,13 @@ def validate_intervention_data_contract(contract: Mapping[str, Any]) -> dict[str
 def check_move_minimum(moves: int, moves_source_first: int, *, is_train_block: bool) -> dict[str, Any]:
     """Judge the dataset-level move minimum (ruling 36).
 
-    白话：数据集里 move 太少，identity_continuity 和 REACTIVATE 就没有统计力。输入是一个
-    生成批次里执行成功的 move 数和其中"源先重访"的数目，以及这批是不是 S3-01 的 train
-    块；输出是判决表。train 块低于 120／60 记 `below_minimum`，触发规模裁决而不是放宽规则；
-    S1 的 50 条只报告数字，不判门。它不改变抽样规则，也不补样。
+    Too few moves leave identity_continuity and REACTIVATE without
+    statistical power.  Input: the executed moves of one generation batch,
+    the number of them whose source is revisited first, and whether the batch
+    is the S3-01 train block.  A train block below 120 / 60 is marked
+    ``below_minimum``, which triggers a scale ruling, never a relaxed rule;
+    the 50 S1 episodes only report the numbers.  The sampling rule is not
+    changed and no sample is added.
     """
 
     result = {"moves": int(moves), "moves_source_first": int(moves_source_first),

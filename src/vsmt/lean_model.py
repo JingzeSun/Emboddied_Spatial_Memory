@@ -1,24 +1,47 @@
 """D-224 / S2-03: VSMT-lean's learned cost heads -- the only trained part of the method.
 
 Three heads score the S0-03 sealed feature rows: the association head a(f, e) over the 14 frozen
-association features, the existence head r(e) over the 12 existence features, the birth head b(f)
-over the 4 birth features (METHOD section 7).  Each head is LayerNorm on its input followed by two
-GELU layers of width 128 and a linear read-out to one logit.  The heads never see a fragment id,
-an entity id, a slot, a path or a sample name: they read the feature vectors positionally in the
-frozen S0-03 order, so the runner can hand the logits back keyed by the sealed rows.
+association features, the existence head r(e) over the 17 existence features (12 before ruling 89-2
+appended five history summaries), the birth head b(f) over the 4 birth features (METHOD section 7).
+Each head is an input encoding followed by two GELU layers of width 128 and a linear read-out to one
+logit.  The heads never see a fragment id, an entity id, a slot, a path or a sample name: they read
+the feature vectors positionally in the frozen S0-03 order, so the runner can hand the logits back
+keyed by the sealed rows, and permuting the candidate rows leaves each row's logit unchanged.  They
+read no future frame and no private file.
+
+Two recipes are implemented; the keyword switches of ``train_heads`` / ``train_heads_streamed`` choose
+between them.
+  * The paper's recipe (ruling 99-1, METHOD section 7), assembled by ``lean_s3_03.training_settings``:
+    the field-wise encoding as input layer (count fields take log1p, then every unbounded field is
+    standardised with statistics of the training houses; no learnable parameter; ruling 89-2 / 89-3),
+    the existence term weighting gone rows by w = present rows / gone rows (ruling 89-2 (a)), a cosine
+    learning-rate schedule 1e-3 -> 1e-5 over the 20 epochs and gradient-norm clipping at 1.0 (ruling
+    91), existence decisions on sigmoid(logit - ln w) (ruling 91; stored as ``existence_logit_offset``),
+    and, in DAgger round 1 of the arms with an existence head, grouped checkpoint selection (ruling 96
+    (a)).  54,787 parameters for VSMT-lean's three heads, 35,842 for AssocOnly's two.
+  * The recipe registered in S0-05 before ruling 89 (every switch off, the defaults; kept for the runs
+    before ruling 89): a row LayerNorm as input layer, an unweighted existence term, a constant
+    learning rate and checkpoint selection by the single total loss (54,207 parameters with the
+    12-feature existence head of those runs).
 
 What this module provides:
   * ``make_heads`` / ``parameter_count`` / ``weights_payload`` / ``load_heads`` -- the network, its
     exact size, and a digest-carrying weights file with no private byte in it;
   * ``LeanScorer`` -- the scorer interface the S2-01 runner calls (``association_and_birth_logits``
     on stage A, ``existence_logits`` on the eligible stage-B rows), keys exactly the sealed rows;
-  * ``frame_loss`` -- the registered loss: per-fragment softmax cross-entropy over the fragment's
-    recalled columns plus its BIRTH column, plus per-entity existence binary cross-entropy, equal
-    weights; fragments whose label is recall_miss / unlabelled / identity_ambiguous /
-    duplicate_of_labelled and candidates whose label is identity_ambiguous enter no loss term;
-  * ``train_heads`` -- AdamW, per-frame batches, a registered seed, every registered epoch run,
-    and the epoch with the lowest validation loss kept (early stopping as best-epoch selection, no
-    patience value to freeze); the same values on the same device give the same weights;
+  * ``frame_loss`` -- the loss: per-fragment softmax cross-entropy over the fragment's recalled
+    columns plus its BIRTH column (labels from the S0-04 teacher), plus per-entity existence binary
+    cross-entropy, the two terms added; fragments whose label is recall_miss / unlabelled /
+    identity_ambiguous / duplicate_of_labelled and candidates whose label is identity_ambiguous
+    enter no loss term;
+  * ``train_heads`` / ``train_heads_streamed`` -- AdamW, per-frame batches, a registered seed, every
+    registered epoch run, and the epoch with the lowest held-out loss kept (early stopping as
+    best-epoch selection, no patience value to freeze); the same values on the same device give the
+    same weights.  In this module "validation" (``validation_records``, the validation loss, the
+    validation terms) means the held-out *training* houses that score checkpoints -- in S3 the last
+    60 houses of the train manifest (the 240/60 split of ``lean_s3_03.checkpoint_split``), at the
+    development stages the selection houses of ``lean_reid_head.holdout_split`` -- never the
+    validation split;
   * the AssocOnly switch (``assoc_only=True``): the same association and birth heads, no existence
     head and no existence loss term, trained from scratch (D-224-X ruling X3); NoVersion is a runner
     switch and uses these heads unchanged.
@@ -26,13 +49,6 @@ What this module provides:
 What it does not do: it does not build features (S0-03), does not solve or compile (S0-03, runner),
 does not label (S0-04), does not roll out memories (runner) and does not orchestrate DAgger rounds
 (S2-05 / S3-03); it only registers the schedule those steps must follow.
-
-白话：这个模块是 VSMT-lean 里唯一要训练的部件。输入是 S0-03 封存好的三张特征表（每行是一个
-色块—实体对、一个实体、或一个色块的公开特征），输出三个标量 logit；每个头是"输入归一化 + 两层
-128 宽 GELU + 读出一维"的小 MLP，三个头合计五万余参数。训练目标：每个色块在"它召回的实体们 +
-新建"之间做 softmax 交叉熵（标签来自 S0-04 teacher），每个应可见未匹配的实体做"已不在"的二元交
-叉熵，两项等权；召回漏掉、无标注、身份含糊、同帧重复的色块不进损失。它不看未来，不读私有数据，
-不认识任何 ID：换一下候选的顺序，每个实体拿到的 logit 不变。
 """
 
 from __future__ import annotations
@@ -85,12 +101,13 @@ FIELD_ENCODING_STATISTICS_RULE = ("mean and population standard deviation of eac
                                   "training houses' records; a standard deviation below 1e-8 is replaced by 1; identity fields keep 0 and 1")
 #: Ruling 89-2 (a): the existence loss weights gone rows by (present rows / gone rows) of the training houses.
 EXISTENCE_CLASS_WEIGHT_RULE = "binary cross-entropy with pos_weight = present rows / gone rows over the training houses' records"
-#: Proposed for pending ruling 91 only (2026-09-30, off by default, not a registered recipe): the learning rate of epoch e is
-#: lr_min + (lr - lr_min) * (1 + cos(pi * e / epochs)) / 2 and each step's gradient norm is clipped.
+#: Ruling 91 (approved 2026-09-30; part of the ruling-99-1 recipe, off by default here): the existence decision reads the
+#: head output minus ln w (this rule), and the learning rate of epoch e is lr_min + (lr - lr_min) * (1 + cos(pi * e / epochs)) / 2
+#: with each step's gradient norm clipped (``COSINE_SCHEDULE_RULE``).
 EXISTENCE_PRIOR_CORRECTION_RULE = ("the existence logit handed to decisions is the head output minus ln(pos_weight): training with pos_weight w "
                                    "moves the optimal logit up by ln w, so without it tau_r 0.5 acts like tau_r 1/(1+w)")
 COSINE_SCHEDULE_RULE = "per epoch e of E: lr_e = lr_min + (lr - lr_min) * (1 + cos(pi * e / E)) / 2; gradient norm clipped before each step"
-#: Ruling 96 (a) (2026-10-01): the head groups of the per-group checkpoint selection and the validation term each is kept on.
+#: Ruling 96 (a) (2026-10-01): the head groups of the per-group checkpoint selection and the held-out term each is kept on.
 #: The association and birth heads share one cross-entropy (a fragment's softmax over its recalled columns and the BIRTH
 #: column), so they are one group and keep one epoch.
 GROUP_SELECTION = (("association_birth", ("association", "birth"), "association"), ("existence", ("existence",), "existence"))
@@ -220,10 +237,8 @@ def field_encoding_statistics_streamed(records: Iterable[Mapping[str, Any]], *, 
     Only the fields the encoding standardises are kept, one float64 column each, so neither the raw records nor the
     identity fields are ever all in memory.  The numbers are those of ``field_encoding_statistics``: the same float64
     values in the same row order, log1p on the same contiguous clipped column, numpy's mean and population std of the
-    column (pinned by test against the whole-matrix function, beyond numpy's pairwise-summation block sizes).
-
-    白话：编码统计要用训练 house 的全部特征行，现行做法先把全部原始记录读进内存再算（S3 第 1 轮约 85 GB）。这里逐条读，
-    只留下要标准化的那几列（每列一个连续的 float64 数组），读完一条就丢；算出的均值与标准差与整表算法逐位相同。
+    column (pinned by test against the whole-matrix function, beyond numpy's pairwise-summation block sizes).  The
+    list form holds every raw record in memory (about 85 GB in S3 round 1).
     """
 
     keep = {name: [index for index, field in enumerate(HEAD_FEATURES[name]) if FIELD_ENCODING[field] != "identity"] for name in heads}
@@ -253,8 +268,10 @@ def field_encoding_statistics_streamed(records: Iterable[Mapping[str, Any]], *, 
 def make_heads(*, assoc_only: bool, seed: int, encoding: Mapping[str, Any] | None = None) -> Any:
     """The three (or, for AssocOnly, two) heads with a seeded initialisation.
 
-    白话：每个头按"seed 加头名"各自播种再初始化（裁决 79-5 (a)），所以同一 seed 下 AssocOnly 与 VSMT-lean 的关联头、
-    新建头起点逐位相同，因果对照只差存在头与生命周期，不再多一份随机初始化的差别。
+    Each head is seeded from (seed, head name) (ruling 79-5 (a)), so at one seed the association and birth heads of
+    AssocOnly and VSMT-lean start bit-identical and the causal comparison carries no initialisation difference.  With
+    ``encoding`` (ruling 89-2 / 89-3) the input layer is the field-wise encoding with those statistics, otherwise a row
+    LayerNorm.
     """
 
     import torch
@@ -285,7 +302,7 @@ def make_heads(*, assoc_only: bool, seed: int, encoding: Mapping[str, Any] | Non
         )
     heads.feature_orders = {name: tuple(HEAD_FEATURES[name]) for name in heads}
     heads.encoding = None if encoding is None else clone_json(dict(encoding))
-    heads.existence_logit_offset = 0.0  # pending ruling 91 only: -ln(pos_weight) when the prior correction is on
+    heads.existence_logit_offset = 0.0  # ruling 91: set to -ln(pos_weight) by training when the prior correction is on
     return heads
 
 
@@ -315,7 +332,7 @@ def weights_payload(heads: Any, *, training: Mapping[str, Any]) -> dict[str, Any
     if encoding is not None:
         body["encoding"] = {"rule": FIELD_ENCODING_STATISTICS_RULE, "per_head": {name: encoding[name] for name in tensors}}
     offset = float(getattr(heads, "existence_logit_offset", 0.0) or 0.0)
-    if offset != 0.0:  # pending ruling 91 only; inside the digest
+    if offset != 0.0:  # ruling 91 prior correction; inside the digest
         body["existence_logit_offset"] = {"value": offset, "rule": EXISTENCE_PRIOR_CORRECTION_RULE}
     body["sha256"] = hashlib.sha256(canonical_json({k: v for k, v in body.items() if k != "training"}).encode("utf-8")).hexdigest()
     return body
@@ -382,9 +399,10 @@ def _logits(head: Any, rows: Sequence[Sequence[float]], *, width: int, device: s
 class LeanScorer:
     """The S2-01 scorer interface over trained heads: logits keyed exactly by the sealed rows.
 
-    白话：runner 把封存 A 的行交给它，它返回每个（色块，实体）对的关联 logit 与每个色块的新建
-    logit；runner 再把可判定的存在行交给它，返回每个实体的"已不在"logit。键就是封存行的键，
-    一个不多一个不少；特征按冻结顺序取位置。它不选原子，不读记忆。
+    The runner hands it the sealed stage-A rows and receives one association logit per (fragment, entity) row and one
+    birth logit per fragment; it then hands it the eligible stage-B existence rows and receives one "gone" logit per
+    entity, with the heads' ``existence_logit_offset`` (ruling 91) added.  Features are read positionally in the frozen
+    order.  It chooses no atom and reads no memory.
     """
 
     def __init__(self, heads: Any, *, device: str = "cpu") -> None:
@@ -541,7 +559,7 @@ def batch_prepared(prepared: Mapping[str, Any], *, device: str = "cpu") -> dict[
     most of it in per-fragment forward calls).  The loss is the same function -- the mean over labelled fragments of the
     softmax cross-entropy over [recalled columns..., BIRTH] plus the existence term -- computed on a padded score matrix whose
     padding is -inf, so values agree with ``prepared_loss`` up to float summation order (pinned by test).  It is used only
-    under ``field_encoding``; the registered default path is untouched.
+    under ``field_encoding``; the default path (the recipe before ruling 89) is untouched.
     """
 
     import torch
@@ -602,16 +620,18 @@ def batched_loss(heads: Any, batched: Mapping[str, Any], *, existence_pos_weight
 def frame_loss(heads: Any, record: Mapping[str, Any], *, device: str = "cpu") -> dict[str, Any]:
     """The registered loss on one labelled frame, with the term counts; None when no term applies.
 
-    白话：对本帧每个有明确目标的色块，在"它召回的实体们 + 新建"之间算 softmax 交叉熵；对每个有明确
-    gone/present 标签的存在候选算二元交叉熵；两项各自取平均后等权相加。召回漏掉（正确实体不在候选
-    里）、无标注、身份含糊、同帧重复的色块和身份含糊的候选都不进损失，只计数。
+    The association term is the mean, over fragments with a target, of the softmax cross-entropy over [recalled
+    columns..., BIRTH]; the existence term is the mean binary cross-entropy over the candidates labelled gone or present
+    (unweighted here; ``prepared_loss`` takes the class weight); the two are added.  Fragments with an excluded status
+    (``ASSOCIATION_EXCLUDED_STATUSES``, e.g. recall_miss: the correct entity is not among the candidates) and
+    identity-ambiguous candidates enter no term and are only counted.
     """
 
     return prepared_loss(heads, prepare_frame(record, device=device))
 
 
 # --------------------------------------------------------------------------
-# 4. training: AdamW, per-frame batches, best epoch by validation loss
+# 4. training: AdamW, per-frame batches, best epoch by held-out loss (the "validation" records)
 # --------------------------------------------------------------------------
 
 class _TermMeans:
@@ -690,24 +710,38 @@ def train_heads(
     existence_prior_correction: bool = False, group_selection: bool = False, best_callback: Any = None,
     optimizer_foreach: bool = False,
 ) -> dict[str, Any]:
-    """Train the heads once and keep the best-validation epoch; every value explicit, None refused.
+    """Train the heads once and keep the best held-out epoch; every value explicit, None refused.
 
-    ``group_selection`` (ruling 96 (a), off by default): training runs exactly as without it; at every epoch end the run
-    additionally remembers, per head group, the weights of the epoch whose own validation term is lowest (``GROUP_SELECTION``),
-    and returns that combination under ``grouped`` next to the unchanged total-loss selection.
+    ``validation_records`` are the records of the held-out training houses that score checkpoints (S3: the last 60
+    houses of the train manifest, ``lean_s3_03.checkpoint_split``), not the validation split.  The heads are seeded per
+    head (``head_seed``) and the frames shuffled by a generator seeded with ``seed``; one AdamW step per frame; every
+    registered epoch runs, the mean held-out loss is scored at each epoch end, and the weights of the lowest epoch are
+    kept (ties to the earlier epoch).  The same records and values on the same device give bit-identical weights; a
+    non-finite loss stops the training, which is returned with ``diverged`` true.
 
-    Ruling 89-2 / 89-3 switches (both off by default, which is the registered recipe bit for bit): ``field_encoding``
-    builds the heads with the field-wise encoding whose statistics come from ``train_records`` only;
-    ``existence_class_weight`` weights gone rows by present / gone rows of ``train_records`` (validation scored alike).
+    With every switch at its default this is the training procedure registered in S0-05 before ruling 89 (row
+    LayerNorm, unweighted existence term, constant learning rate, total-loss selection), kept for the runs before ruling
+    89; on today's feature rows its existence head is 17 wide, so it reproduces the procedure, not the 12-feature heads
+    of those runs (``load_heads`` still loads them).  The paper's recipe (ruling 99-1) is what
+    ``lean_s3_03.training_settings`` passes: every switch below on, except ``group_selection`` outside round 1 of
+    VSMT-lean and HeuristicLabel and ``existence_class_weight`` for AssocOnly:
+      * ``field_encoding`` (ruling 89-2 / 89-3): heads with the field-wise encoding whose statistics come from
+        ``train_records`` only;
+      * ``existence_class_weight`` (ruling 89-2 (a)): gone rows weighted by present / gone rows of ``train_records``
+        (held-out records scored alike);
+      * ``cosine_min_learning_rate`` and ``gradient_clip_norm`` (ruling 91): the cosine schedule from ``learning_rate``
+        down towards this minimum, and the gradient-norm clipping at every step;
+      * ``existence_prior_correction`` (ruling 91): the returned heads carry -ln w as ``existence_logit_offset``;
+      * ``group_selection`` (ruling 96 (a)): training runs exactly as without it; at every epoch end the run additionally
+        remembers, per head group, the weights of the epoch whose own held-out term is lowest (``GROUP_SELECTION``), and
+        returns that combination under ``grouped`` next to the unchanged total-loss selection.
 
-    白话：按登记的 seed 初始化并洗牌，每帧一个 batch，AdamW；每个 epoch 结束在 validation 上算一次
-    平均损失，跑完全部登记的 epoch 后保留 validation 损失最低那个 epoch 的权重（并列取更早的）。
-    同样的数据、同样的值、同一设备两次训练权重逐位相同。损失出现非有限值即判发散并如实返回。
-    ``epoch_callback(epoch, heads)``（裁决 79-3，只读诊断用，默认不调用）在每个 epoch 的 validation 之后
-    被调用一次，此时头处于 eval 模式；它不得改动头或优化器，训练结果与不传时逐位相同。
-    ``best_callback(snapshot)``（裁决 104-7 推测执行，默认不调用）在其后被调用，拿到“到目前为止最好的”检查点
-    （总损失与分组各自的），用 ``snapshot_weights`` 可以写出此刻若训练结束会返回的权重；它同样只读。
-    ``train_heads_streamed`` 是同一训练的流式版本（S3-03），两者逐位相同。
+    ``epoch_callback(epoch, heads)`` (ruling 79-3, read-only diagnostics, not called by default) runs once per epoch
+    after the held-out scoring, with the heads in eval mode; it must not change the heads or the optimiser, and the
+    result is bit-identical to a run without it.  ``best_callback(snapshot)`` (ruling 104-7, speculative execution, not
+    called by default, read-only as well) runs after it with the best checkpoints so far (total-loss and grouped);
+    ``snapshot_weights`` turns a snapshot into the weights the run would return if it ended at that epoch.
+    ``train_heads_streamed`` is the streamed form of the same training (S3-03); the two are bit-identical.
     """
 
     _check_training_values(learning_rate=learning_rate, weight_decay=weight_decay, epochs=epochs, seed=seed)
@@ -749,10 +783,9 @@ def train_heads_streamed(
     (``field_encoding_statistics_streamed``); the second turns each record into its prepared (and batched) tensors and
     drops the record.  Everything after preparation is the same function as ``train_heads``, so the weights, curves and
     per-epoch terms are bit-identical (pinned by test, and on the server by the training equivalence probe, ruling 104-2).
-
-    白话：现行训练先把全部原始记录读进内存（每条记录约 170 KB，S3 第 1 轮每个进程约 85 GB），再转张量。这里逐条读：
-    第一遍只取算编码统计要的那几列，第二遍逐条转成张量、原始记录读完即丢，内存只剩张量（约为原来的 3%）。
-    训练本身与 ``train_heads`` 是同一段代码，结果逐位相同。它不改配方、不改选点，只改数据怎样进内存。
+    Only the memory footprint changes: the list form holds every raw record (about 170 KB each, about 85 GB per process
+    in S3 round 1), the streamed form only the prepared tensors (about 3 % of that); the recipe and the selection are
+    unchanged.  ``checkpoint`` (an ``EpochCheckpoint``) lets a stopped training continue at the next epoch.
     """
 
     _check_training_values(learning_rate=learning_rate, weight_decay=weight_decay, epochs=epochs, seed=seed)
@@ -783,12 +816,13 @@ def train_heads_streamed(
 class EpochCheckpoint:
     """The whole training state at an epoch end, so that a stopped training continues instead of starting again.
 
-    白话：训练每跑完一个 epoch，把此刻的全部状态存成一个文件：当前权重、AdamW 的状态、洗牌用的随机数生成器、
-    已有的损失曲线与逐项损失、到目前最好的权重（总损失与分组各一份）和已走的更新步数。进程被打断（关机、升级、
-    内存不足被杀）后用同一命令重跑，先照常把记录读进内存，再从存档的下一个 epoch 接着训。接着训与一口气训完
-    逐位相同（测试钉住，服务器上用真实记录再核一次）。``key`` 是这次训练全部输入的摘要（臂、轮、种子、配方、
-    输入文件摘要、线程数、torch 版本等），与存档里的不一致就拒绝续训，绝不把别的训练的存档接上。
-    它不改配方、不改选点，不存在时训练与原来一样。
+    After every epoch the file holds the current weights, the AdamW state, the shuffling generator and the torch RNG
+    state, the loss curves and per-term losses so far, the best weights so far (total-loss and grouped) and the number
+    of updates taken.  A process stopped by a shutdown, an upgrade or an out-of-memory kill is rerun with the same
+    command: the records are prepared as usual and training continues at the saved next epoch; a resumed run equals an
+    uninterrupted one bit for bit (pinned by test, checked again on the server with real records).  ``key`` is a digest
+    of every input of the training (arm, round, seed, recipe, input-file digests, thread count, torch version, ...); a
+    saved state with another key is refused, never continued from.  Without a checkpoint the training is unchanged.
     """
 
     FORMAT = 1
@@ -870,7 +904,7 @@ def _train_on_frames(
         updates_taken = int(saved["updates_taken"])
         first_epoch = int(saved["next_epoch"])
     for epoch in range(first_epoch, int(epochs)):
-        if cosine_min_learning_rate is not None:  # pending ruling 91 only; None keeps the registered constant rate
+        if cosine_min_learning_rate is not None:  # ruling 91 (ruling-99-1 recipe); None keeps the pre-ruling-89 constant rate
             rate = float(cosine_min_learning_rate) + (float(learning_rate) - float(cosine_min_learning_rate)) * (1.0 + math.cos(math.pi * epoch / int(epochs))) / 2.0
             for group in optimiser.param_groups:
                 group["lr"] = rate
@@ -941,7 +975,7 @@ def _train_on_frames(
         training.update({"field_encoding": bool(field_encoding), "existence_class_weight": class_counts,
                          "existence_class_weight_rule": EXISTENCE_CLASS_WEIGHT_RULE if existence_class_weight else None,
                          "updates_taken": updates_taken})
-    if offset is not None:  # pending ruling 91 only
+    if offset is not None:  # ruling 91 prior correction (ruling-99-1 recipe)
         heads.existence_logit_offset = offset
     if cosine_min_learning_rate is not None or gradient_clip_norm is not None or existence_prior_correction:
         training.update({"existence_prior_correction": bool(existence_prior_correction),"cosine_min_learning_rate": cosine_min_learning_rate, "gradient_clip_norm": gradient_clip_norm,
@@ -973,9 +1007,7 @@ def snapshot_weights(snapshot: Mapping[str, Any]) -> dict[str, Any]:
     copy of the heads with the best state loaded and the prior offset set, then, under group selection, a copy with each
     group's best state -- so at the epoch the run finally keeps, their digests equal the final ones (pinned by test); the
     live heads are not touched.  The ``training`` block of a snapshot only names the epochs (no digest covers ``training``).
-
-    白话：推测执行要在训练还没结束时，就知道“如果现在停，会留下哪份权重”。输入是回调拿到的当前最好检查点，输出是同样
-    构造的权重文件；训练结束时最终选中的权重若与某次快照相同，两者的摘要逐位相等，下游按摘要认领推测产物。它不改训练。
+    Downstream steps claim a speculative product by this digest.
     """
 
     import copy
@@ -1032,12 +1064,13 @@ def train_heads_by_updates(
 ) -> dict[str, Any]:
     """Train for a fixed number of optimizer updates, scoring validation every ``evaluate_every`` updates (ruling 81-2).
 
-    白话：裁决 81-2 的受控对照要让“数据多了”和“训练多了”分得开，所以训练量按真正执行的优化器更新次数计，
-    验证按固定的更新间隔打分，而不是按 epoch。输入与 ``train_heads`` 相同，另加更新预算和验证间隔；输出同样是
-    最佳检查点的权重、各检查点的验证损失与收敛情况。数据一遍用完就按同一个洗牌生成器再洗一遍，直到预算用完
-    （可以停在一遍的中间）。例如只用本臂数据、预算是累积数据 20 遍的步数，就等于把本臂数据多训练约一倍。
-    预算设为“20 遍的步数”、间隔设为“一遍的步数”时，它与 ``train_heads`` 逐位相同（有测试）。这只是诊断用的
-    训练方式，不是登记的训练配方。
+    Diagnostics only, not a registered recipe.  The controlled comparison of ruling 81-2 separates "more data" from "more
+    training", so the budget counts the optimizer updates actually taken and the held-out loss is scored at a fixed
+    update interval rather than per epoch.  Inputs are those of ``train_heads`` without its recipe switches (the
+    procedure before ruling 89) plus the budget and the interval; outputs are the weights of the best checkpoint, every checkpoint's held-out loss and the divergence
+    flag.  When a pass over the data ends the same generator reshuffles it, until the budget is used (possibly mid-pass):
+    e.g. one arm's own records with the update count of 20 passes over the pooled records train that data about twice as
+    long.  With a budget of 20 passes' updates and an interval of one pass it equals ``train_heads`` bit for bit (tested).
     """
 
     import torch
@@ -1122,7 +1155,8 @@ def recipe_matches_contract(*, learning_rate: float, epochs: int, seeds: Sequenc
 
 def dagger_schedule(rollout_config: Mapping[str, Any]) -> list[dict[str, Any]]:
     """The registered DAgger rounds: round 0 on ELU-P rollouts at the pre-registered configuration, round 1 on the
-    round-0 model's own rollouts; both reported, the main table reads the registered round (D-224, D-224-X ruling X4)."""
+    round-0 model's own rollouts; both reported, the main table reads the registered round (D-224, D-224-X ruling X4).
+    Under ruling 99-1 round 1 trains on the round-0 records and these, concatenated in full (METHOD section 7)."""
 
     _require(tuple(rollout_config) == arms.ROLLOUT_CONFIG_PARAMETERS, "rollout_config_parameters_mismatch")
     for name in arms.ROLLOUT_CONFIG_PARAMETERS:

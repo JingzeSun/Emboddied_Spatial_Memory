@@ -1,7 +1,7 @@
 """Ruling 105 (2026-10-04): the LLM-op appendix arm against the DeepSeek API -- contract, prices, calls, archive and scorer.
 
 LLM-op asks a frozen general LLM to make the five-atom decisions from the same sealed feature tables every arm reads
-(S0-05 ``appendix_arm``, METHOD section 8).  Ruling 105 fixed how: DeepSeek ``deepseek-flash`` (served as V4.1-Flash on
+(S0-05 ``appendix_arm``, METHOD section 9).  Ruling 105 fixed how: DeepSeek ``deepseek-flash`` (served as V4.1-Flash on
 2026-10-04) in its default thinking mode, two calls per frame (association, then existence after the solve; the
 rendering, the two instructions and the strict parsers live in ``lean_controls``), at most three answers per call and
 then the fallback, every request and response appended to an archive that a rerun replays without calling the API, one
@@ -28,13 +28,8 @@ first of the same salted order), a $30 cap and a $40 safety stop, both on the le
    filtered or unparseable, and the third invalid one sends the frame to the fallback.  Counts, tokens, cost and
    latency per call kind go into the run's payload.
 
-白话：附录臂 LLM-op 让一个冻结的通用大模型，直接看和其他臂完全相同的封存特征表来做五原子决定。裁决 105 定了怎么调：
-DeepSeek ``deepseek-flash``（2026-10-04 实际是 V4.1-Flash），默认推理模式；每帧问两次（先关联、求解后再判存在）；每次
-最多要三个回答，三次都无效就回退；每个请求和回答先存档再用，重跑从存档回放、不再花钱；一趟只认一个模型名；先在 train
-上试点 200 帧；费用到 150 美元不再开新 episode，到 200 美元全部停；正式运行只在 validation 上。裁决 108 改为每套前端
-1 条 episode、上限 30 美元、安全停 40 美元（都含试点花费），其余不变。本模块管合同、计价、
-密钥、网络调用、存档和给 runner 的打分器。例如某帧关联回答被截断，就同一请求再问；第三次还不行，这一帧的色块全记
-BIRTH 并计一次回退。它不训练、不读私有数据，密钥只进请求头。
+At the cap no new episode starts; at the safety stop every process stops.  Nothing here trains or reads private
+data.
 """
 
 from __future__ import annotations
@@ -649,9 +644,12 @@ def _percentile(values: Sequence[float], share: float) -> float | None:
 class LlmOpScorer:
     """LLM-op's decisions for ``lean_runner``: association logits through the learned-arm interface, existence decisions directly.
 
-    白话：runner 每帧先调 ``association_and_birth_logits``（没有色块就不问），求解后再调 ``existence_decisions``（没有可判定实体
-    就不问）。每次调用最多三个回答，无效（空、截断、被过滤、解析不了）就同一请求再问，第三次仍无效就按裁决 105-6 回退并计数。
-    split 守卫：正式运行只许 validation；试点只许 train、至多 200 帧。它没有跨帧状态，整帧回滚时无需回滚它。
+    Per frame the runner calls ``association_and_birth_logits`` (no call when the frame has no fragment) and,
+    after the solve, ``existence_decisions`` (no call without an eligible entity).  Each call takes at most
+    three answers; an invalid one (empty, truncated, filtered, unparseable) repeats the same request, and the
+    third invalid one sends the frame to the ruling-105-6 fallback, which is counted.  Split guard: runs of
+    record on validation only, the pilot on train only and at most 200 frames.  The scorer keeps no decision
+    state across frames, so a frame rolled back for an illegal program needs no rollback here.
     """
 
     def __init__(self, caller: LlmCaller, *, split: str, pilot: bool = False, frames: int | None = None) -> None:

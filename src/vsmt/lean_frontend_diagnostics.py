@@ -5,18 +5,19 @@ sealed: does a frozen descriptor (or the shared ReID projection) separate the sa
 views from other objects in the same house; how often does the S0-03 recall rule miss the correct
 entity as a function of its four values (ruling 46: measured against an *ideal memory* built from
 private truth, so the answer is a property of the frontend and not of any arm); and how well does
-a single-view fragment box overlap the whole-object truth box that ruling 45 reconstructs (the
-node P/R/F1 metric matches at IoU 0.3, so a median below it would make every arm's F1 noise).
+a single-view fragment box overlap the whole-object truth box that ruling 45 reconstructs (when
+this stage ran, node P/R/F1 matched at IoU 0.3, so a median below it would have made every arm's F1
+noise; since rulings 72 (B) and 77, IoU 0.3 is only the secondary column ``node_prf1_iou``).
 
 Nothing here loads a model, a simulator or a file.  The runner hands in, per frame, the cache
 fragments (descriptor, centroid, box) together with the private label each fragment got from
-the strict-majority rule below; the functions return numbers and the contract validator binds
-every constant.
+the strict-majority rule below; the functions return distribution statistics and the contract
+validator binds every constant.  The module selects no descriptor, sets no arm parameter and
+computes no paper metric; the ideal memory of the recall curve is built from truth and serves only
+as a diagnostic.
 
-白话：这个模块回答三件事——冻结描述子分不分得开同一物体的不同视角、S0-03 的召回规则在不同
-k/k′/半径下漏掉正确实体的比例、单视角色块盒与整物体真值盒的三维 IoU。输入是 cache 里每帧的色块
-（描述子、质心、盒）加上诊断标注（哪个私有实例占了色块像素的严格过半）；输出是分布统计。它不
-选描述子、不定任何臂的参数、不算论文指标；召回曲线用的"记忆"是由真值造的理想记忆，只作诊断。
+Not only a diagnostic: ``overlap_from_masks`` is a runtime dependency of the evaluator
+(``lean_evaluation.fragment_instances`` builds the S0-04 ``fragment_instance`` table with it).
 
 Importable under Python 3.9 as well (no 3.10+ syntax at runtime).
 """
@@ -174,10 +175,12 @@ def separation_statistics(
 ) -> dict[str, Any]:
     """Cross-view separation of one descriptor set over one episode.
 
-    白话：对每个物体最多抽 64 个带标签色块，每个色块最多配 8 个它也出现的别的帧；正分＝色块与
-    该物体在那一帧的均值描述子的余弦，负分＝那一帧里别的物体均值描述子的最高余弦，分离度＝正−负。
-    那一帧若没有别的物体，这一对不算。输出分布统计与样本数；`separate_objects`（例如 add 的物
-    体）单列。
+    Per object at most 64 labelled fragments are sampled, each paired with at most 8 other frames in
+    which the object also appears.  Positive score = cosine of the fragment to the object's mean
+    descriptor in that frame; negative score = highest cosine to another object's mean descriptor in
+    that frame; separation = positive - negative.  A frame without another object contributes no
+    pair.  Returns distribution statistics and sample counts; ``separate_objects`` (e.g. the objects
+    of ``add`` interventions) are reported in a separate column.
     """
 
     means = _per_frame_object_means(frames, descriptor_key)
@@ -312,9 +315,11 @@ def recall_curve(
 ) -> dict[str, Any]:
     """recall_miss over the grid, memory sizes, and birth-neighbourhood counts, for one episode.
 
-    白话：逐帧走一遍：先用当前理想记忆判每个带标签、且其物体已在记忆里的色块在各 (k, k′, R) 下
-    有没有召回到正确实体，再把这一帧的带标签色块并进记忆。物体不在记忆里的色块是真 BIRTH，只
-    统计它附近各半径内的实体数。输出每个网格点的决定数与漏召回数、记忆规模的最大值与 p95。
+    Frame by frame: every labelled fragment whose object is already in the ideal memory is checked
+    for recall of the correct entity at each (k, k', R), then the frame's labelled fragments are
+    merged into the memory.  A fragment whose object is not yet in memory is a true BIRTH; only the
+    number of entities within each birth radius is counted for it.  Returns decisions and misses per
+    grid point and the maximum and p95 of the memory size.
     """
 
     memory = IdealMemory()

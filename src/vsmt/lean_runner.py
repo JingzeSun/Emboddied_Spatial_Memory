@@ -6,10 +6,12 @@ S0-05 contract says it may change (how the association, birth and existence logi
 which atoms its vocabulary allows).  Nothing here reads a private file: the public phase is a pure
 function of (cache frames, policy values, arm configuration, arm weights).
 
-Per frame, in this order:
+``run_frame`` is the per-frame loop of METHOD section 6 (entity geometry -> stage A -> logits ->
+solve -> stage B -> existence -> compile and commit, or the empty program).  Per frame, in this order:
   1. entity geometry: the two S0-03 ratios per entity of M_{t-1}, derived online by the per-point
-     depth test of ruling 74 (METHOD section 5) -- a pure function of (this frame's public depth,
-     intrinsics and causal pose, M_{t-1}) with a registered sampling resolution and a frozen margin;
+     depth test of ruling 74 (METHOD section 5) on the entity's last seen surface points (ruling 75)
+     -- a pure function of (this frame's public depth, intrinsics and causal pose, M_{t-1}, the
+     surface points the run kept from earlier public depth views) with a frozen margin;
      the public depth view is attached to the frame by the reader after the seal check
      (``PUBLIC_DEPTH_VIEW_KEY``), never written into the cache;
   2. the S0-03 view of the frame under the descriptor S1-05 froze (the shared ReID projection of
@@ -33,12 +35,7 @@ After both seals exist, the private side may build the evaluator's truth table f
 ``in_scope`` from the S0-04 rule (observable at least once since the episode start, not a
 structural type), boxes for present in-scope objects.
 
-白话：这是五个臂共用的"每帧走一遍"的流程。输入是 cache 的一帧（色块、公开体积）和上一帧的记忆，
-输出是这一帧的原子程序、提交后的新记忆和一份回执。例如一帧里三个色块：先算旧记忆里每个实体"本帧
-应该能看到多少、被可靠深度射线穿过多少"，把 ViT-B/14 描述子投影成 128 维，按冻结规则召回候选并封
-存，臂给出每格的 logit，解一次矩形分配，再封存分配与存在特征，臂再对"应可见却没匹配"的实体判
-RETRACT/NOOP，最后编译成原子一次提交。程序非法就整帧回滚，这一帧改提交空程序并计一次，避免整条
-episode 卡死。它不训练、不读私有文件、不算任何论文指标；臂之间只有 logit 与词表不同。
+The runner trains nothing and computes no paper metric.
 """
 
 from __future__ import annotations
@@ -66,12 +63,13 @@ DESCRIPTOR_CHOICES = (la.SELECTED_DESCRIPTOR, la.FROZEN_DESCRIPTOR_BASELINE)
 PROJECTION_PREFIX = "reid_projection:"
 
 #: Entity geometry rule (METHOD section 5, S2-01), ruling 74 (2026-09-26): the per-point depth test.
-#: Every cell centre of a uniform grid over the entity AABB is projected into this frame's public depth
-#: image (public intrinsics, causal public pose, the frozen back-projection's convention inverted); with
-#: its axial depth z and the depth d measured at its pixel it is seen through when d > z + margin, on the
-#: surface when |d - z| <= margin, occluded when d < z - margin, unobserved outside the image or on an
-#: invalid depth.  should_be_visible_ratio = (seen through + on surface) / points;
-#: free_space_coverage_ratio = seen through / (seen through + on surface), 0 when nothing is observed.
+#: Every tested point is projected into this frame's public depth image (public intrinsics, causal public
+#: pose, the frozen back-projection's convention inverted); with its axial depth z and the depth d measured
+#: at its pixel it is seen through when d > z + margin, on the surface when |d - z| <= margin, occluded when
+#: d < z - margin, unobserved outside the image or on an invalid depth.  should_be_visible_ratio = (seen
+#: through + on surface) / points; free_space_coverage_ratio = seen through / (seen through + on surface),
+#: 0 when nothing is observed.  Ruling 74 tested the cell centres of a uniform grid over the entity AABB;
+#: ruling 75 (below) replaced them, for an entity, by its last seen surface points.
 #: The block-frustum rule it replaces (LOG-260, LOG-261: it saw the entity box in about 3 percent of
 #: entity-frames, gone-above-present AUC 0.57) is kept as ``entity_geometry_blocks`` for diagnostics only.
 ENTITY_GEOMETRY_RULE = (
@@ -100,9 +98,11 @@ PUBLIC_DEPTH_VIEW_KEY = "public_depth_view"
 PUBLIC_DEPTH_VIEW_FIELDS = ("frame_digest", "depth_m", "calibration", "pose", "fragment_surface_points")
 HALFSPACE_TOLERANCE_M = 1e-9
 #: The registered sampling resolution (points per axis): D-224-S1 ruling 60 (2026-09-24) froze
-#: it at 4, i.e. 64 cell centres per entity and a ratio granularity of 1/64.  The contract's value
-#: slot carries the same number and the validator refuses any other; the ops entry still reads the
-#: contract, so the constant here only binds the two together.
+#: it at 4, i.e. 64 cell centres per box and a ratio granularity of 1/64.  Since ruling 75 the grid is
+#: used only for a truth place without surface points (``lean_evaluation.place_observable``); an entity
+#: is tested on its surface points.  The contract's value slot carries the same number and the validator
+#: refuses any other; the ops entry still reads the contract, so the constant here only binds the two
+#: together.
 ENTITY_GEOMETRY_SAMPLES_PER_AXIS: int | None = 4
 
 #: Illegal-program rule (D-224-X, METHOD section 6 step 6).
@@ -197,11 +197,14 @@ def sha(value: Any) -> str:
 
 
 # --------------------------------------------------------------------------
-# 1. entity geometry: a pure function of (public volumes, M_{t-1})
+# 1. entity geometry: a pure function of (the public depth view, M_{t-1}, the kept surface points)
 # --------------------------------------------------------------------------
 
 def _blocks(records: Sequence[Mapping[str, Any]]) -> tuple[np.ndarray, np.ndarray]:
-    """Normals (B, 6, 3) and offsets (B, 6) of the frame's volume blocks."""
+    """Normals (B, 6, 3) and offsets (B, 6) of the frame's volume blocks.
+
+    Superseded block-frustum path (before ruling 74): used only by ``entity_geometry_blocks`` and the tests.
+    """
 
     normals = np.zeros((len(records), 6, 3), dtype=np.float64)
     offsets = np.zeros((len(records), 6), dtype=np.float64)
@@ -217,7 +220,11 @@ def _blocks(records: Sequence[Mapping[str, Any]]) -> tuple[np.ndarray, np.ndarra
 
 
 def sample_points(lower: Sequence[float], upper: Sequence[float], *, samples_per_axis: int) -> np.ndarray:
-    """Cell centres of a uniform ``s x s x s`` grid over the box; a flat axis yields its single coordinate."""
+    """Cell centres of a uniform ``s x s x s`` grid over the box; a flat axis yields its single coordinate.
+
+    Since ruling 75 ``entity_geometry`` uses the grid only for a truth place without surface points; the
+    superseded ``entity_geometry_blocks`` also samples it.
+    """
 
     s = _int(samples_per_axis, "samples_per_axis_invalid", minimum=1)
     lo = np.asarray([float(v) for v in lower], dtype=np.float64)
@@ -239,9 +246,11 @@ def block_aabbs(normals: np.ndarray, offsets: np.ndarray, *, margin: float = BLO
     Engineering (S2-05 profiling, LOG-254): testing every sample point of every entity against every
     block of the frame took a fifth of the per-frame time.  A block is the convex hull of its
     vertices, so a point inside it (within the 1e-9 m tolerance) lies inside the block's exact
-    bounding box padded by far less than the margin; ``entity_geometry`` therefore tests only the
-    blocks whose padded box meets the entity box and gets the same ratio to the last bit.  A block
+    bounding box padded by far less than the margin; ``entity_geometry_blocks`` therefore tests only
+    the blocks whose padded box meets the entity box and gets the same ratio to the last bit.  A block
     without four feasible vertices is left unbounded (no filtering) so the fallback is always safe.
+
+    Superseded block-frustum path (before ruling 74): used only by ``entity_geometry_blocks`` and the tests.
     """
 
     count = int(normals.shape[0])
@@ -271,6 +280,8 @@ def inside_union_fraction(points: np.ndarray, normals: np.ndarray, offsets: np.n
     The dot products are explicit per-coordinate multiply-adds in a fixed order, not a BLAS matmul,
     so the same frame and memory give the same ratio on every machine (the S1-03 digests once moved
     by one ULP between BLAS builds; a boundary point must not flip between platforms).
+
+    Superseded block-frustum path (before ruling 74): used only by ``entity_geometry_blocks`` and the tests.
     """
 
     if normals.shape[0] == 0 or points.shape[0] == 0:
@@ -287,11 +298,12 @@ def inside_union_fraction(points: np.ndarray, normals: np.ndarray, offsets: np.n
 def entity_geometry_blocks(
     memory: Mapping[str, Any], cache_frame: Mapping[str, Any], *, samples_per_axis: int | None,
 ) -> dict[str, dict[str, float]]:
-    """The superseded block-frustum ratios (diagnostics only since ruling 74; the runner never calls it).
+    """The superseded block-frustum ratios (before ruling 74; no runner, entry point or audit calls it, only the tests).
 
-    白话：裁决 74 之前的算法：包围盒采样点落进本帧可见体积块、自由空间块并集的比例。块视锥为了保守，
-    在每个 14×14 像素块里取最近深度再退 10 cm，放在桌上的小物体原位置几乎永远算不进去（LOG-260）。
-    只留给探针与审计做新旧对照。
+    The rule before ruling 74: the shares of the entity box's grid points inside the union of the frame's
+    visible-volume blocks and inside the union of its free-space blocks.  The block frustum takes the nearest
+    depth in each 14 x 14 pixel block and backs off 10 cm, so the place of a small object on a table was
+    almost never inside it (LOG-260).
     """
 
     _require(samples_per_axis is not None, "policy_value_missing:entity_geometry_samples_per_axis")
@@ -367,8 +379,9 @@ def fragment_surface_points(mask: Any, depth_view: Mapping[str, Any], *,
                             max_points: int = FRAGMENT_SURFACE_MAX_POINTS) -> list[list[float]]:
     """Ruling 75 (2)(a): a fragment's surface points -- its mask pixels with valid public depth, back-projected.
 
-    白话：色块的"表面点"就是它 mask 里深度有效的像素反投影到世界坐标，按行优先像素顺序等间隔取至多 64 个。
-    它只用公开深度、内参、因果位姿和匿名 mask，与冻结反投影同一约定；一个像素都没有有效深度时返回空。
+    At most ``max_points`` (64), evenly spaced in row-major pixel order, in world coordinates.  Reads only the
+    public depth, intrinsics, causal pose and the anonymous mask, with the frozen back-projection's convention;
+    returns an empty list when no mask pixel has a valid depth.
     """
 
     from vsmt.l1_entities import _camera_values
@@ -424,12 +437,16 @@ def entity_geometry(
 ) -> dict[str, dict[str, float]]:
     """The two S0-03 ratios for every entity of M_{t-1}, by the per-point depth test (ruling 74).
 
-    白话：输入上一帧的记忆和本帧的公开深度视图（深度图、内参、因果位姿），输出每个实体两个比例。把实体
-    包围盒上 64 个采样点逐个投到深度图上：测到的深度比点远出 5 cm 叫"看穿"（那里是空的），差不多远叫"在
-    表面"，更近叫"被挡"，出画或深度无效叫"看不到"。应可见比例＝（看穿＋在表面）／64；自由空间覆盖＝看穿／
-    （看穿＋在表面），一个点都没看到时记 0。例如杯子被拿走后相机再看桌面，原位置的点测到的是后面的墙，
-    全部看穿，覆盖为 1；杯子还在时只看到它朝相机的表面，其余点被自己挡住，覆盖为 0。它只读公开深度、内参
-    与位姿和记忆，五个臂拿到逐字节相同的函数；它不等于读私有真值，也不改 cache。
+    The tested points: with ``surface_points`` (the runner), an entity's last seen surface points, i.e. up to
+    ``FRAGMENT_SURFACE_MAX_POINTS`` (64) per fragment of its evidence at its last_seen_tick (ruling 75 (2)(a));
+    without it (a truth place, ``lean_evaluation.place_observable``), the ``samples_per_axis``^3 cell centres of
+    a grid over the box (64 at the frozen 4).  ``samples_per_axis`` is required in both cases.  A point whose
+    measured depth lies more than ``margin_m`` (0.05 m) beyond it is seen through, within the margin on the
+    surface, nearer occluded, outside the image or on an invalid depth unobserved.  should_be_visible_ratio =
+    (seen through + on surface) / points; free_space_coverage_ratio = seen through / (seen through + on
+    surface), 0 when no point is observed; an entity without surface points gets 0 for both.  Reads only the
+    public depth view and the memory, is the same function for all arms, reads no private truth and never
+    writes into the cache.
     """
 
     _require(samples_per_axis is not None, "policy_value_missing:entity_geometry_samples_per_axis")
@@ -464,8 +481,8 @@ def entity_geometry(
 def descriptor_projector(weights_payload: Mapping[str, Any], *, expected_sha256: str, device: str = "cpu") -> Callable[[Sequence[Sequence[float]]], list[list[float]]]:
     """A callable projecting frozen descriptors through the shared ReID head, digest-checked first.
 
-    白话：输入 S1-04 写出的权重文件内容和冻结的摘要，输出一个"把 768 维描述子投成 128 维单位向量"的
-    函数；摘要对不上直接拒绝，因为五个臂必须用同一份权重。它不训练。
+    The head (the weights payload S1-04 wrote) maps a 768-d descriptor to a 128-d unit vector.  A digest
+    other than the frozen one is refused, because all arms must use the same weights.  Trains nothing.
     """
 
     from vsmt import lean_reid_head as rh
@@ -633,10 +650,13 @@ def update_existence_history(history: Mapping[str, Mapping[str, float]], eligibl
                              order: Sequence[str], matched: Sequence[str]) -> dict[str, dict[str, float]]:
     """Ruling 89-2 (a): advance every entity's history summary by one frame (all arms, public quantities only).
 
-    白话：输入上一帧结束时每个实体的历史摘要、本帧可判定的存在行（应可见、未被分配、未撤回）和本帧被匹配
-    （BIND／REACTIVATE）的实体，输出更新后的摘要。可判定帧：可判定帧数加一、累计覆盖加上当帧覆盖；两个 RAC 计数
-    在覆盖不低于各自的 ρ 时加一、否则清零。被匹配：匹配次数加一、两个 RAC 计数清零。其余量永不清零（撤回也不清零），
-    例如一个被撤回又被接回的实体，匹配次数与累计覆盖接着原来的数往上加。它不做决定，也不读私有数据。
+    Inputs: the summaries at the end of the previous frame, this frame's eligible existence rows (should be
+    visible, unassigned, not retracted) and the entities matched this frame (BIND or REACTIVATE).  An eligible
+    row adds one to ``eligible_frames_since_birth`` and its coverage to ``free_space_coverage_sum_since_birth``;
+    each of the two RAC run counters adds one when the coverage is at least its rho and is reset to 0
+    otherwise.  A match adds one to ``matches_since_birth`` and resets both RAC counters.  Nothing else is ever
+    reset, not even by a retraction: a retracted and re-attached entity continues its counts.  Decides nothing
+    and reads no private data.
     """
 
     coverage_at = arms.feature_index(order, "free_space_coverage_ratio")
@@ -702,9 +722,10 @@ def run_frame(
 ) -> dict[str, Any]:
     """One frame for one arm: the eight steps of the module docstring, returning the new state and a receipt.
 
-    白话：输入上一帧的状态（记忆、臂的时间状态、计数）和 cache 的一帧，输出新状态、这一帧的回执，以及
-    S0-03 的两份封存（teacher 之后要用）。例如 TAF 在这一帧把两个色块绑到旧实体、一个新建，对一个应可见
-    却没匹配的实体记 NOOP。任何一步用到的登记值都必须由调用方给出，None 直接拒绝。
+    ``state`` holds the memory, the arm's temporal state, the history summaries, the kept surface points and
+    the counters.  The result also carries both S0-03 seals (``stage_a``, ``stage_b``, which the teacher reads
+    afterwards), the assignment view, M_{t-1} and the entity geometry.  Every registered value comes from the
+    caller; None is refused.
     """
 
     checked_policy = validate_policy(policy)
@@ -715,7 +736,7 @@ def run_frame(
     _require(tick == int(memory["tick"]) + 1, "frame_tick_not_next")
 
     # 1-2. entity geometry by the per-point depth test (ruling 74) on this frame's public depth view and
-    # M_{t-1}; the view under the frozen descriptor
+    # the last seen surface points of M_{t-1}'s entities (ruling 75); the view under the frozen descriptor
     depth_view = public_depth_view_of(cache_frame)
     _require(sorted(depth_view["fragment_surface_points"]) == sorted(str(f["fragment_id"]) for f in cache_frame["fragments"]),
              "public_depth_view_surface_points_do_not_match_the_fragments")
@@ -893,10 +914,12 @@ def assert_identical_cache_across_arms(summaries: Sequence[Mapping[str, Any]]) -
 class TruthTableBuilder:
     """Frame-by-frame truth table for the S0-04 evaluator, with the ruling-56 (continued) scope flag.
 
-    白话：输入每帧的私有记录（哪些物体有多少像素）和 S1-04 真值追踪器给出的"在不在、盒子在哪"，输出
-    评价器要的真值表：到这一帧为止见过的每个私有键一行，present 来自追踪器，in_scope 按 S0-04 规则算
-    （此前至少一帧私有 mask ≥196 像素，且不是墙/房间/门/窗）。结构件不在几何表里，登记为在场、范围
-    外、无盒；其他不在几何表里的键说明数据有问题，整条 episode 失败而不是悄悄缩小范围。
+    Inputs per frame: the private record (pixels per object) and the S1-04 truth tracker's presence and boxes.
+    One row per private key seen up to this frame: ``present`` from the tracker, ``in_scope`` by the S0-04 rule
+    (a private mask of at least 196 pixels in some frame so far, and not a structural type such as a wall,
+    room, door or window).  A structural key, which the geometry table lacks, is present, out of scope and
+    without a box; so is a key spawned after the reload (ruling 69), which is also counted.  Any other key
+    outside the geometry table is a data fault and fails the episode instead of silently shrinking the scope.
     """
 
     def __init__(self) -> None:

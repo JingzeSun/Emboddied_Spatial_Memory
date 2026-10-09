@@ -2,24 +2,21 @@
 
 METHOD §13 says the lean cores reuse only pure functions that cannot produce
 a second numerical semantics.  They used to reach those functions through
-``vsmt.graph_ops``, but that module imports ``cpmt.executor.validate_graph``
-at module level and defines ``GraphRevision`` and the place scaffold in the
+``vsmt.graph_ops``, but that module imported ``cpmt.executor.validate_graph``
+at module level and defined ``GraphRevision`` and the place scaffold in the
 same file, so importing one pure helper pulled the whole archived
 unified-graph line into the current entry point.  Ruling 9 of D-224-S1 cut
-that edge: the three helpers are copied here **verbatim**, so the numbers do
-not move, and no lean module imports ``vsmt.graph_ops`` or ``cpmt.executor``
-any more.
+that edge: the three helpers (cosine similarity, centroid distance, opaque
+ID) are copied here **verbatim**, so the numbers do not move, and no lean
+module imports ``vsmt.graph_ops`` or ``cpmt.executor`` any more.  Since
+``vsmt/__init__.py`` stopped importing the archived modules and
+``graph_ops`` was removed from ``main`` after the tag ``paper-v1``, the
+boundary also holds at run time.
 
-白话：这个模块只放三个小函数——余弦相似度、质心距离和不透明 ID。它解决的是
-"为了用 20 行纯函数而把整条已归档的统一图代码拉进当前入口"这个依赖问题。输入
-是两个向量、两个带 `centroid_m` 的几何体，或任意几个片段；输出是一个数或一个
-字符串。例如两个描述子完全同向，余弦为 1.0。函数体逐字抄自 `vsmt.graph_ops`，
-因此任何数值都不会改变；它不是新算法，也不改变任何方法语义。
-
-``vsmt.graph_ops`` keeps its own copies for the archived modules and their
-tests.  The two copies are identical today and are not expected to diverge,
-because neither line is under development; ``test_vsmt_lean_geometry.py``
-pins that equality so a future edit to either side is caught.
+``test_vsmt_lean_geometry.py`` pins these copies to the outputs of
+``graph_ops`` recorded at ``paper-v1`` (digests over random inputs, plus the
+degenerate cosines and opaque IDs as literal values) and checks the import
+boundary at source level and at run time.
 """
 
 from __future__ import annotations

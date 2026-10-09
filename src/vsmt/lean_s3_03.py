@@ -1,18 +1,25 @@
 """S3-03 (ruling 104, 2026-10-03): the registered rules of training and configuration selection, as pure functions.
 
-白话：裁决 104 把 S3-03 的几条规则写定了，这个模块把它们写成可测试的纯函数与常量，供训练入口、调度器与选参读数共用：
-  * 训练 house 与选点 house（104-1 1a）：S3 train 清单（已是 S0-02 划分名次顺序）前 240 个训练、后 60 个只给检查点打分；
-    由清单决定、与成败无关，生成或 cache 失败的 house 只是缺席、不顶替。开发集用的 ``holdout_split``（按名次前 30 个训练、
-    其余全归选点）照搬到 S3 只会用 30 个 house 训练，所以 S3 不用它；
-  * 每个学习臂、每一轮的训练设置（99-1 的配方，104-1 1c／1d）：标签来源（teacher 记录或 HeuristicLabel 记录）、是否没有
-    存在头（AssocOnly）、是否分组选点（第 1 轮的 VSMT-lean 与 HeuristicLabel）；
-  * 清单守卫（104-6）：拟合趟、第 0／1 轮轨迹只收 S3 train 清单里的 episode，validation 审计只收 validation 清单里的，test 一律
-    不给；
-  * 选参读数（104-1 1f）：一套前端的全部 validation 审计（每臂每配置，学习臂与 AssocOnly 每个种子）按指标先定一份排除清单，
-    再算每次运行的 house 均值、学习臂的种子均值，给出 AssocOnly 的参照值和 S3-04 选参函数 ``select_configuration`` 的输入。
-输入是已提交的清单与臂名（读数还要各次运行的逐 episode 报告），输出是名单、设置与读数。例如第 1 轮的 HeuristicLabel 读
-``heuristic_training_records.jsonl.gz``，分组选点；一条 validation episode 被误交给第 0 轮轨迹，入口报出它不在 train 清单并以
-退出码 2 结束。它不读任何数据文件、不训练，也不选配置（选择在 S3-04）。
+This is the module where the paper's training recipe (ruling 99-1, METHOD section 7) is assembled:
+``training_settings`` returns, per trained arm and DAgger round, the recipe switches that ``ops/vsmt/s3_03_train.py``
+passes to ``lean_model.train_heads_streamed`` together with the S0-05 learning rate, weight decay and epochs.  The
+functions and constants are shared by the training entry, the scheduler and the selection readings:
+  * training and selection houses (104-1 1a): the S3 train manifest, already in S0-02 split order, gives its first 240
+    houses to training and its last 60 to checkpoint scoring only.  The split is fixed by the manifest, independent of
+    outcomes; a house whose generation or cache failed is absent and never replaced.  The development-stage
+    ``holdout_split`` (the first 30 houses train, the rest select) would train S3 on 30 houses, so S3 does not use it;
+  * per learned arm and round, the training settings (the ruling-99-1 recipe, 104-1 1c / 1d): the label source (teacher
+    records or HeuristicLabel records), whether there is no existence head (AssocOnly), and whether the checkpoint is
+    chosen by grouped selection (round 1 of VSMT-lean and HeuristicLabel) or by the total held-out loss;
+  * the manifest guard (104-6): the fit pass and the round-0 / round-1 rollouts take only episodes of the S3 train
+    manifest, the validation audits only episodes of the validation manifest; test is never handed out;
+  * the selection readings (104-1 1f): over every validation audit of one front end (each arm and configuration, the
+    learned arms and AssocOnly at each seed) one exclusion list per metric, then the house mean of every run and the
+    seed mean of the seeded arms, giving the AssocOnly reference and the inputs of S3-04's ``select_configuration``.
+Inputs are the committed manifest and arm names (the readings also take each run's per-episode reports); outputs are
+house lists, settings and readings.  Example: round-1 HeuristicLabel reads ``heuristic_training_records.jsonl.gz`` with
+grouped selection; a validation episode handed to a round-0 rollout is refused by the entry as not in the train
+manifest (exit code 2).  The module reads no data file, trains nothing and selects no configuration (S3-04 does).
 """
 
 from __future__ import annotations

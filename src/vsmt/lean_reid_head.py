@@ -6,15 +6,15 @@ fragments of the 30 training houses of the cached development block, then frozen
 shares the same bytes, so it is not a private advantage of any method.  It is scored (cross-view
 separation, ``lean_frontend_diagnostics``) on the 12 selection houses only, and S1-05 keeps it
 only if its median separation beats the best frozen descriptor by the ledgered 0.05 margin.
+The weights file holds only floats, no private byte; the head makes no identity decision.
+Ruling 73 retrained it on the instance-segmentation cache, and ruling 84-1 (b) pins one head per
+``mask_source`` (METHOD section 5).
 
-白话：这个模块实现共享 ReID 投影头。输入是冻结描述子与诊断标注（哪个色块属于哪个物体），输出
-是一个 128 维单位向量的线性投影。训练目标是"同一物体的色块拉近、不同物体的色块推开"（有监督
-对比损失）。它只在前 30 条训练 house 上训练一次、在后 12 条选择 house 上评分；权重文件只有浮点
-数，不含任何私有字节。它不做身份判定，不属于任何臂。
-
-The five training values (temperature, epochs, batch size, learning rate, seed) are registered
-null in the S1-04 contract and must be frozen by ruling before ``train_head`` is called for real;
-the functions here take them as explicit arguments and refuse ``None``.
+The five training values are frozen in the S1-04 contract
+(``configs/vsmt/lean_s1_04_frontend_diagnostics_v1.json``, ``reid_training``) by D-224-S1 ruling 48
+and the S1-04 code review (2026-09-22): temperature 0.07, epochs 20, batch 512 fragments, learning
+rate 0.001, seed 20260922.  The functions here still take them as explicit arguments and refuse
+``None``.
 """
 
 from __future__ import annotations
@@ -51,8 +51,8 @@ def _require(condition: bool, code: str) -> None:
 def holdout_split(house_ids: Sequence[str], *, seed: int) -> dict[str, Any]:
     """The first 30 cached development houses by S0-02 split rank train, the last 12 select.
 
-    白话：把有 cache 的开发 house 按 S0-02 的哈希前缀顺序排好，前 30 条只训练、之后至多 12 条只
-    选择。没有 cache 的 house 不在输入里，自然被跳过；不足 12 条就如实记缺口，不顶替。
+    Houses without a cache are not in the input and are thereby skipped.  A shortfall below 12
+    selection houses is recorded as such, never filled from elsewhere.
     """
 
     ids = sorted(set(house_ids), key=lambda house: (house_split_rank(house, seed=seed), house))
@@ -154,8 +154,9 @@ def train_head(
 ) -> dict[str, Any]:
     """Train the projection once; returns the weights payload and the loss curve.
 
-    白话：按登记的种子洗牌、按批做对比学习，每个 epoch 记一次平均损失；损失出现 NaN 或 Inf 即
-    判训练发散并如实返回。同一输入与同一五个值在同一设备上两次训练得到逐位相同的权重。
+    Shuffles with the registered seed, trains contrastively per batch and records the mean loss per
+    epoch; a NaN or Inf loss marks the run as diverged and is returned as such.  The same input and
+    the same five values on the same device give bit-identical weights.
     """
 
     import torch

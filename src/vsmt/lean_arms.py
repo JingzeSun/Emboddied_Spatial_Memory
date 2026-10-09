@@ -6,16 +6,20 @@ dormancy rules and the S0-04 evaluator.  An arm differs from the others in
 exactly two places: how the association and birth logits of the cost
 matrix are produced, and how the existence decision (RETRACT or NOOP) is
 made for an unassigned, should-be-visible entity.  This module holds those
-two places for the four rule arms, the vocabulary restrictions of the four
-ablations, the split guard for the appendix arm, the admission rule for the
-optional arm, and the configuration-grid budget.
+two places for the rule arms (the four controls and HandCost), the
+vocabulary restrictions of the four ablations, the split guard for the
+appendix arm, the admission rule for the optional arm (VSMT-lean-ctx,
+registered but not run: dropped from S3, METHOD section 10), the
+configuration-grid budget, ``compile_program``, NoVersion's deletion and the
+ruling-102-4 selection rule.  Features are read from the sealed S0-03 rows by
+their registered order.
 
-白话：这个模块解决"对照臂和消融臂到底怎么填同一张代价表、怎么做同一个存在判
-定"。输入是 S0-03 封存的特征行（按登记顺序取值）和各臂的登记参数，输出是喂给
-S0-03 求解器的 logit 字典、逐实体的 RETRACT/NOOP 决定，以及编译好的原子程序。
-例如 TAF 对一个余弦 0.8、距离 0.3 m 的候选给 logit 0.8，对余弦 0.2 的候选给
-登记的哨兵值；ELU-P 对一个连续三帧被可靠自由空间覆盖的实体把 log-odds 压到门
-下并记 RETRACT。它不训练、不读私有数据、不选参数，参数全部为 null 待冻结。
+Nothing here trains, reads private data or selects a parameter.  The values
+are frozen in code and bound to the S0-05 contract: the grids
+(``FROZEN_GRIDS``, ruling 68 (1), tau_r extended by ruling 87-1), the ELU-P
+rollout configuration (``ROLLOUT_CONFIG``, ruling 68 (2)), and the shared
+should-be-visible minimum, the training values and ELU-P's fitted scalars
+(``FROZEN_VALUES_BY_RULING``, rulings 68 and 104-1 1b).
 
 Three constraints from D-224-R shape the rule arms:
 
@@ -55,6 +59,8 @@ METHOD_ARM = "VSMT-lean"
 CONTROL_ARMS = ("TAF", "ELU-P", "RAC", "LOW")
 ABLATION_ARMS = ("NoVersion", "HandCost", "HeuristicLabel", "AssocOnly")
 APPENDIX_ARM = "LLM-op"
+#: Registered but not run: VSMT-lean-ctx was dropped from S3 (METHOD section 10).  Its entries in the
+#: tables below stay because the S0-05 contract still registers the optional arm.
 OPTIONAL_ARM = "VSMT-lean-ctx"
 MAIN_TABLE_ARMS = (METHOD_ARM, *CONTROL_ARMS, "AssocOnly")
 ALL_ARMS = (METHOD_ARM, *CONTROL_ARMS, *ABLATION_ARMS, APPENDIX_ARM, OPTIONAL_ARM)
@@ -170,7 +176,8 @@ ELU_P_FITTED = ("initial_log_odds", "persistence_log_decay_per_tick", "match_gai
 #: Ruling 100-1 (ii) (2026-10-01): the three fitted scalars are kept per mask source.  ``arms.ELU-P.fitted`` holds the
 #: simulator_instance_masks set (ruling 68 (10), unchanged); every other source has its own block under
 #: ``fitted_by_mask_source``, null until that source's calibration pass is fitted by the same registered procedure and
-#: the values are registered in place.  A pass reads the set of its episodes' mask source.
+#: the values are registered in place.  A pass reads the set of its episodes' mask source.  Since ruling 104-1 1b
+#: (2026-10-05) both sets hold the S3-03 refit (``FROZEN_VALUES_BY_RULING`` below).
 ELU_P_FITTED_MAIN_MASK_SOURCE = "simulator_instance_masks"
 ELU_P_FITTED_PATHS = {
     "simulator_instance_masks": "arms.ELU-P.fitted",
@@ -195,8 +202,9 @@ ROLLOUT_CONFIG_GATE_PARAMETER = "d_a"
 #: D-224-S1 ruling 68 (2026-09-25, LOG-256 sequel): the pre-registered grids, frozen from the
 #: 39-episode calibration quantiles (same-object cosine to the entity mean p50 0.78 against 0.60 for
 #: other objects, crossing near 0.7; 35 / 46 / 65 percent of same-object pairs within 0.5 / 1 / 2 m;
-#: free-space coverage not separating gone from present under the current geometry rule, so the
-#: RAC and ELU-P grids bracket the 0.65 baseline).  At most twelve configurations per method, every
+#: free-space coverage not separating gone from present under the geometry rule of the time -- the
+#: block frustum, replaced by ruling 74 on 2026-09-26 -- so the RAC and ELU-P grids bracket the
+#: 0.65 baseline).  At most twelve configurations per method, every
 #: rule arm with a no-gate member; the contract must carry exactly these values.
 #: D-224-S1 ruling 87-1 (2026-09-29, LOG-283/284): every tau_r grid extended down by 0.15, 0.2 and 0.25 (ten values,
 #: within the twelve-configuration budget) because the trained existence heads score almost every candidate below
@@ -226,7 +234,7 @@ SPLIT_ALLOWED: dict[str, tuple[str, ...]] = {
     APPENDIX_ARM: ("validation",),
 }
 
-#: VSMT-lean training recipe values already frozen by D-224 (底层模型).
+#: VSMT-lean training recipe values already frozen by D-224 (its "base model" item).
 TRAINING_FROZEN = (
     ("arms.VSMT-lean.training.learning_rate", 1e-3),
     ("arms.VSMT-lean.training.epochs", 20),
@@ -293,14 +301,14 @@ def gate_association_logits(
     inputs: Mapping[str, Any], *, theta_a: float, d_a: float | None,
     reactivates_retracted: bool,
 ) -> dict[str, Any]:
-    """ConceptGraphs-style gate with a graded cost inside it (TAF, ELU-P, RAC, HandCost).
+    """ConceptGraphs-style gate with a graded cost inside it (TAF, ELU-P, RAC; also the HeuristicLabel labeller).
 
-    白话：输入 S0-03 阶段 A 的封存行和两个门参数，输出每个（色块，实体）对的 logit
-    和每个色块的新建 logit。余弦不低于 θ_a、质心距离不超过 d_a（d_a 为 None 表示
-    无距离门）的对给 logit = 余弦，其余给登记的哨兵值；新建 logit 恒为 θ_a，于是
-    "最大余弦 ≥ θ_a 就绑定、否则新建"在联合分配下成立，而两个合格实体之间由余弦
-    高低而不是 ID 顺序决定。不承认 retracted 复活的臂对 retracted 行给哨兵。它不读
-    记忆，只读封存行。
+    HandCost has its own ``hand_cost_association_logits``.  From the sealed stage-A rows: a pair with cosine
+    >= theta_a and centroid distance <= d_a (None: no distance gate) gets logit = cosine, any other pair the
+    registered sentinel; every BIRTH logit is theta_a.  Under the joint solve a fragment therefore binds when
+    its best eligible cosine is at least theta_a and is born otherwise, and between two eligible entities the
+    higher cosine wins, not the id order.  An arm that does not revive retracted entities gives retracted rows
+    the sentinel.  Reads only the sealed rows, not the memory.
     """
 
     theta = _finite(theta_a, "theta_a_invalid")
@@ -329,10 +337,10 @@ def gate_association_logits(
 def low_association_logits(inputs: Mapping[str, Any], *, d_low: float | None) -> dict[str, Any]:
     """Last-observation-wins: the nearest centroid within d_low takes the fragment (LOW).
 
-    白话：输入封存行和距离门，输出 logit = −质心距离（门内）或哨兵（门外），新建
-    logit = −d_low；于是最近的实体赢，距离超过 d_low 则新建。d_low 为 None 时无门，
-    新建 logit 取该色块所有召回距离的最大值再减一，保证任一召回实体都优于新建。
-    LOW 不读描述子、不撤回、不复活 retracted。
+    Logit = -centroid distance inside the gate, the sentinel outside it or for a retracted entity; BIRTH logit
+    = -d_low, so the nearest entity wins and a fragment farther than d_low is born.  With d_low None (no gate)
+    the BIRTH logit is -(the fragment's largest eligible recalled distance + 1), so any recalled entity beats
+    BIRTH.  LOW reads no descriptor, never retracts and never revives a retracted entity.
     """
 
     if d_low is not None:
@@ -362,10 +370,10 @@ def low_association_logits(inputs: Mapping[str, Any], *, d_low: float | None) ->
 def hand_cost_association_logits(inputs: Mapping[str, Any], *, theta_b: float) -> dict[str, Any]:
     """Stateless hand scores in VSMT-lean's association and birth slots (HandCost, D-224-SW ruling S).
 
-    白话：输入封存行和一个新建常数，输出每个召回对的 logit = 余弦（没有门，retracted
-    也可复活）和每个色块的新建 logit = θ_b。它和 VSMT-lean 用同一套决策结构、同一
-    求解器，只是把学习头换成"余弦"和"常数"两个手写分数，于是回答的是"同一结构下
-    学习代价值多少"；ELU-P 回答的则是"时间累积的概率遗忘值多少"。它没有梯度。
+    Logit = cosine for every recalled pair (no gate; a retracted entity may be revived) and BIRTH logit =
+    theta_b.  The decision structure and the solver are VSMT-lean's with the learned heads replaced by two hand
+    scores, so HandCost measures what learned costs add under the same structure; ELU-P separately measures
+    temporally accumulated probabilistic forgetting.  No gradient.
     """
 
     theta = _finite(theta_b, "theta_b_invalid")
@@ -418,9 +426,9 @@ def eligible_existence_rows(
 ) -> dict[str, Any]:
     """Keep the stage B rows that are active or dormant and should be visible this frame.
 
-    白话：输入阶段 B 的存在行和登记的应可见比例下限，输出可判定的行以及被排除的
-    两类计数：不够可见的（本帧看不到它，不能算它"错失"）和 retracted 的（没有
-    RETRACT/NOOP 可判）。这个门五臂共享，因为它决定谁会累计错失次数、谁会休眠。
+    Also returns the two excluded lists: rows below the should-be-visible minimum (not seen this frame, so not
+    a miss) and retracted rows (no RETRACT or NOOP to decide).  The filter is shared by all arms because it
+    decides which entities accumulate missed opportunities and go dormant.
     """
 
     minimum = _finite(visible_min_ratio, "visible_min_ratio_invalid")
@@ -458,13 +466,13 @@ def elu_p_existence(
     initial_log_odds: float, persistence_log_decay_per_tick: float, free_space_weight: float,
     retract_threshold: float,
 ) -> dict[str, Any]:
-    """Fusion++ log-odds existence with a Perpetua-style persistence decay (ELU-P, HandCost).
+    """Fusion++ log-odds existence with a Perpetua-style persistence decay (ELU-P; also the HeuristicLabel labeller).
 
-    白话：输入可判定的存在行、每个实体上一帧的 log-odds、以及登记参数，输出决定和
-    新的 log-odds。每个应可见却未匹配的帧，log-odds 减去持续性衰减，再减去自由空
-    间覆盖比例乘权重；低于门就 RETRACT。例如实体连续三帧被可靠深度射线穿过，
-    log-odds 一路下降到门下，第三帧记 RETRACT。它不看未来，也不读私有数据；持续性
-    衰减与匹配增益只在 train 上拟合，不进网格。
+    HandCost has its own ``hand_cost_existence``.  For every eligible row (should be visible, unassigned) the
+    entity's log-odds (``initial_log_odds`` when it has none yet) loses the persistence decay and
+    ``free_space_weight`` x its free-space coverage; below ``retract_threshold`` the decision is RETRACT,
+    otherwise NOOP.  Returns the decisions and the updated log-odds.  Reads no future and no private data; the
+    persistence decay and the match gain are fitted on train only and are not grid parameters.
     """
 
     initial = _finite(initial_log_odds, "initial_log_odds_invalid")
@@ -505,11 +513,12 @@ def rac_existence(
 ) -> dict[str, Any]:
     """DSG-style render-and-compare: n consecutive negative renders retract (RAC).
 
-    白话：输入可判定的存在行、每个实体的连续负证据计数和两个参数，输出决定和新
-    计数。渲染比对由共享前端完成：实体包围盒体素被可靠深度射线穿过的比例就是
-    "观测深度比记忆表面更远"的像素比例；本帧该比例不低于 ρ_rac 记一次负证据，
-    否则清零；连续达到 n_rac 次记 RETRACT 并清零。它与 ELU-P 的差别只在决策规则，
-    不在渲染。
+    The comparison is the shared ``free_space_coverage_ratio`` of the existence row (rulings 74/75): of the
+    entity's last seen surface points that fall on a valid depth in this frame and are not occluded, the share
+    whose measured depth lies more than the margin (0.05 m) beyond the point.  An eligible frame with that share
+    >= rho_rac adds one negative render, any other eligible frame resets the run to 0; reaching n_rac records
+    RETRACT and resets the run.  A match also resets it (``rac_observe_matches``).  Returns the decisions and the
+    updated runs.  RAC and ELU-P differ only in the decision rule, not in the comparison.
     """
 
     rho = _finite(rho_rac, "rho_rac_invalid")
@@ -561,11 +570,10 @@ def compile_program(
 ) -> list[dict[str, Any]]:
     """Turn an assignment plus existence decisions into atoms, within the arm's vocabulary.
 
-    白话：输入 S0-03 的分配（色块 → 实体或新建列）、每个实体的当前状态、存在决定
-    和臂名，输出这一帧的原子列表：分到 active 实体记 BIND，分到 dormant 或 retracted
-    记 REACTIVATE，分到新建列记 BIRTH，存在决定原样成为 RETRACT/NOOP。任何原子不
-    在该臂词表内就拒绝：AssocOnly 只允许 BIND/BIRTH，不承认 retracted 复活的臂分到
-    retracted 实体也拒绝。它不执行原子，那是 S0-01 执行器的事。
+    A fragment assigned to an active entity gives BIND, to a dormant or retracted entity REACTIVATE, to its own
+    birth column BIRTH; the existence decisions become RETRACT or NOOP as given.  An atom outside the arm's
+    vocabulary is refused (AssocOnly allows only BIND and BIRTH), and so is an assignment to a retracted entity
+    for an arm that does not revive retracted entities.  Executes nothing: that is the S0-01 executor's job.
     """
 
     name = _arm(arm)
@@ -609,9 +617,9 @@ def compile_program(
 def apply_no_version(memory: Mapping[str, Any]) -> dict[str, Any]:
     """Physically delete every retracted entity and reseal (NoVersion).
 
-    白话：输入一份提交后的记忆，输出删掉全部 retracted 实体并重新封存的记忆。这
-    正是 NoVersion 消融的定义：撤回等于删除，档案与版本一起消失，再出现只能 BIRTH。
-    它不改召回规则、代价头或训练。
+    This is the NoVersion ablation's definition: a retraction is a deletion, the record disappears with its
+    versions, and a reappearance can only be a BIRTH.  The recall rule, the cost heads and the training are
+    unchanged.
     """
 
     # 2026-09-27, engineering: no deep copies.  The memory carries its whole history, and the three copies this made
@@ -666,10 +674,10 @@ def assert_rollout_config(
 ) -> dict[str, Any]:
     """The registered ELU-P rollout configuration must be a no-gate member of the grid.
 
-    白话：输入登记的 ELU-P 轨迹配置（三个数值）和已冻结的 ELU-P 网格，输出补上
-    d_a=None 的完整配置，并在它不是网格里的一格时拒绝（D-224-X 裁决 X4）。它用来
-    生成 VSMT-lean 第 0 轮 DAgger 的记忆轨迹和 HeuristicLabel 的公开标签，在
-    S2-05 与 S3-03 都用同一格，与 validation 选参无关。它不选参数。
+    Returns the three registered values completed with d_a = None, refused when that is not a grid member
+    (D-224-X ruling X4).  The configuration produces VSMT-lean's DAgger round-0 memory rollouts and
+    HeuristicLabel's public labels, the same cell in S2-05 and S3-03, independent of validation selection.
+    Selects nothing.
     """
 
     _require(tuple(rollout.keys()) == ROLLOUT_CONFIG_PARAMETERS, "rollout_config_parameters_mismatch")
@@ -687,9 +695,9 @@ def assert_rollout_config(
 def arms_without_atom(atom: str) -> tuple[str, ...]:
     """Arms whose vocabulary lacks ``atom``, in registered order.
 
-    白话：输入一个原子名，输出词表里没有它的臂。对 RETRACT 就是 TAF、LOW、AssocOnly：
-    它们从不撤回，假撤回率对它们按构造没法算，S0-04 的排除清单与配对要把它们当
-    "不适用"处理（D-224-X 裁决 X2 复审修订，LOG-225）。它不判断任何臂好坏。
+    For RETRACT these are TAF, LOW and AssocOnly: they never retract, the false retract rate is undefined for
+    them by construction, and the S0-04 exclusion list and pairing treat them as not applicable (D-224-X ruling
+    X2, review revision, LOG-225).
     """
 
     _require(atom in ATOMS, f"atom_unknown:{atom}")
@@ -707,9 +715,11 @@ def assert_split_allowed(arm: str, split: str) -> None:
 def ctx_admission(totals: Mapping[str, int]) -> dict[str, Any]:
     """VSMT-lean-ctx is admitted only if amortization error is the largest S2-05 class.
 
-    白话：输入 S2-05 开发表上 VSMT-lean 的三分解计数，输出是否允许启用上下文臂。
-    只有当模型自己的错（amortization error）大于召回漏掉的和标签含糊的，换更强的
-    决策网络才有对象；否则瓶颈在前端或标签，按 D-224-EFG 先动前端。它不看指标高低。
+    Input: VSMT-lean's three decomposition counts on the S2-05 development table.  Only when the model's own
+    errors (amortization error) exceed both recall misses and teacher errors does a stronger decision network
+    have a target; otherwise the bottleneck is the front end or the labels and, per D-224-EFG, the front end
+    is changed first.  Reads no metric value.  The optional arm was dropped from S3 (registered, not run;
+    METHOD section 10); only the tests call this function.
     """
 
     counts = {name: _int(totals[name], f"decomposition_count_invalid:{name}", minimum=0) for name in DECOMPOSITION}
@@ -815,12 +825,15 @@ EXPECTED_BOOLEAN_CLAIMS.update({
     for arm, parameter in NO_GATE_PARAMETER.items()
 })
 
-#: Policy values that must still be null.
+#: The shared should-be-visible minimum.
 #: D-224-S1 ruling 67 (2026-09-24) froze the shared should-be-visible minimum at 0.5; ruling 68
 #: (2026-09-25, LOG-256 sequel) superseded it with 1/64: the cache's visible volume lies before the
 #: depth surface while entity boxes are surface shells, so 0.5 admitted 0.2 percent of entity-frames
 #: (2,068 existence candidates in 44,097 frames); one of the 64 cell centres before the surface now
-#: makes an entity should-be-visible (3.5 percent of entity-frames).
+#: makes an entity should-be-visible (3.5 percent of entity-frames).  That rationale counted the 64
+#: cell centres of the entity box grid; since ruling 75 the ratio is over the entity's last seen
+#: surface points (up to 64 per fragment of its latest evidence frame), so one observed point suffices
+#: for an entity with at most 64 points and an entity with more needs proportionally more.
 SHOULD_BE_VISIBLE_MIN_RATIO = 1.0 / 64.0
 FROZEN_VALUES_BY_RULING = (
     ("shared.should_be_visible_min_ratio", SHOULD_BE_VISIBLE_MIN_RATIO, "D-224-S1 ruling 68"),
@@ -878,9 +891,11 @@ def _lookup(contract: Mapping[str, Any], path: str) -> Any:
 def elu_p_fitted(contract: Mapping[str, Any], mask_source: str) -> dict[str, Any]:
     """ELU-P's three fitted scalars for one mask source, as the S0-05 contract registers them (ruling 100-1 (ii)).
 
-    白话：ELU-P 的初始 log-odds、持续衰减与匹配增益是在各自前端的校准趟上拟合的。输入合同与 mask 来源，输出那一套三个
-    值；实例分割取 fitted 块（裁决 68 (10)），SAM2 取 fitted_by_mask_source.sam2，拟合并登记之前三个值都是 None。例如
-    S2-06 拟合登记前，SAM2 的第 0 轮会因为这里是 None 而被入口拒绝。它不拟合、不改值。
+    The initial log-odds, the persistence decay and the match gain are fitted on each front end's calibration
+    pass.  Instance segmentation reads the ``fitted`` block (ruling 68 (10)), SAM2 ``fitted_by_mask_source.sam2``;
+    before a set is fitted and registered its values are None and the entries refuse to run ELU-P (as SAM2's
+    round 0 was refused before the S2-06 fit).  Since ruling 104-1 1b both sets hold the S3-03 refit
+    (``FROZEN_VALUES_BY_RULING``).  Fits and changes nothing.
     """
 
     _require(mask_source in ELU_P_FITTED_PATHS, f"elu_p_fitted_unregistered_mask_source:{mask_source}")
@@ -892,10 +907,12 @@ def elu_p_fitted(contract: Mapping[str, Any], mask_source: str) -> dict[str, Any
 def validate_arms_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
     """Check that the S0-05 machine contract agrees with this implementation.
 
-    白话：输入合同 JSON，输出同样内容的副本，并在任何一条声称与实现不符时拒绝：
-    每个布尔叶子都必须在登记表里且取值一致；臂名单、词表、网格参数名、复活规则、
-    哨兵值、配置上限与 D-224 冻结的训练常量按字节比对；待冻结数值必须为 null；
-    网格值一旦填入，笛卡尔积不得超过 12 且规则臂必须含无门选项。
+    Returns a copy and refuses any claim that disagrees with the code: every boolean leaf must be in
+    ``EXPECTED_BOOLEAN_CLAIMS`` with the same value; the arm lists, vocabularies, grid parameter names,
+    reactivation flags, sentinel, configuration limit and D-224 training constants are compared exactly; the
+    paths in ``NULL_POLICY_PATHS`` must be null (none since 2026-10-02) and ``FROZEN_VALUES_BY_RULING`` must
+    match; filled grids must equal ``FROZEN_GRIDS``, stay within 12 configurations and, for a rule arm, include
+    the no-gate option.
     """
 
     _require(type(contract) is dict, "contract_not_object")
@@ -1020,11 +1037,13 @@ def select_configuration(validation: Mapping[int, Mapping[str, Any]], *, arm: st
                          reference_missing_residual_rate: float | None) -> dict[str, Any]:
     """Ruling 102-4: the one configuration an arm takes to test, from its validation readings.
 
-    白话：输入一个臂在 validation 上每个配置的节点 F1 与 Missing 残留率（学习臂用 5 个种子的均值），以及同一前端 AssocOnly
-    的 validation Missing 残留率，输出它进 test 的唯一配置。有撤回机制的六个臂只能在残留率低于 AssocOnly 的配置里按节点 F1
-    取最大；没有一个满足时取节点 F1 最大的配置，并记“约束不可满足”——它的数值照算，但不能用来支持“这个臂的撤回减少了陈旧
-    实体”。其他臂（TAF、LOW、AssocOnly）只按节点 F1。并列取配置编号最小。例如 τ_r 0.9 节点 F1 最高、但残留率比 AssocOnly
-    还高，就不能选。它不读 test。
+    Inputs: the arm's node F1 and Missing residual rate per validation configuration (learned arms: means over
+    the five seeds) and the same front end's AssocOnly validation Missing residual rate.  The six arms with a
+    retraction mechanism take the node-F1 maximum among the configurations whose residual rate is below
+    AssocOnly's; when none qualifies (or the reference is undefined) they take the overall node-F1 maximum,
+    recorded as not satisfiable -- its numbers are computed as usual but cannot support a claim that the arm's
+    retraction reduces stale entities.  TAF, LOW and AssocOnly select by node F1 only.  Ties go to the smallest
+    configuration index.  Reads no test data.
     """
 
     _require(type(validation) is dict and bool(validation), "selection_needs_validation_readings")

@@ -1,4 +1,26 @@
-"""D-224 / S0-04: instance-truth teacher, error decomposition and metrics.
+"""D-224 / S0-04: instance-truth teacher, error ledger, evaluator metrics and gate statistics.
+
+The module holds three roles, in file order:
+
+1. Teacher (sections 1-3): the private gate (``build_private_gate``, ``assert_private_gate``); entity
+   identity and fragment dominance (``entity_identity``, ``fragment_dominance``); the association and
+   existence labels (``association_targets``, ``existence_labels``, ``place_holds``); the six-class
+   ledger of every decision (``decompose_frame``).
+2. Evaluator (section 4): its own node matcher (``_max_weight_matching``) and the eight metrics with
+   their registered secondary and diagnostic columns (``METRICS``): node P/R/F1, its IoU column and the
+   contamination fraction per frame (``evaluate_frame``); ``missing_residual_rate``;
+   ``false_retract_rate`` and ``false_retract_rate_in_scope``; ``identity_continuity`` and
+   ``identity_continuity_blocks``; ``retrieval_success`` (the eighth metric, ruling 102-5); recovery
+   latency (``object_memory_correct``, ``episode_recovery_latency``); ``contamination_auc``;
+   ``size_and_cost``.  ``assert_report_keys`` rejects any other metric or field.
+3. Statistics (sections 5, 5b and 6): the S3 gate of rulings 102-2 / 102-3 (``exclusion_over_runs``,
+   ``two_level_lower_bound``, ``seed_stability``, ``gate_metric``, ``primary_gate``, ``fixed_sequence``);
+   the reported pre-ruling-99 gate (``original_gate``, ``strongest_control``); the house-only bootstrap
+   (``paired_house_bootstrap``); the nuisance probes (``nuisance_probe``, ``run_nuisance_probes``).
+
+``validate_teacher_contract`` binds the S0-04 machine contract to the constants below;
+``lean_evaluation`` wires teacher and evaluator to the runner's per-frame products; ``lean_s3_05``
+assembles the test statistics from section 5b.
 
 Everything in this module runs *after* the two S0-03 seals exist.  It is the
 only place that reads private instance truth, and it does so through one
@@ -6,20 +28,15 @@ gate receipt rather than by opening files itself.  It depends on the S0-03
 products only as data shapes (recall lists, an assignment dict whose values
 are an ``entity_id`` or ``"birth:<fragment_id>"``, the existence candidate
 list, the two seal digests), never on that module's functions, so the two
-stages can be reviewed and revised independently.
-
-白话：这个模块解决"答案怎么来、错在哪一层、论文表上的每个数怎么算"。输入是封
-存后的召回与分配、旧记忆、当前帧的私有实例真值；输出是逐色块与逐实体的标签、
-三分解计数、七项指标，以及 house 级配对 bootstrap。例如一个色块的主导实例是旧
-杯子、旧杯子实体也在召回集合里、但学生把它分到了新建列，这一例记为 amortization
-error 而不是 recall miss。它不生成候选、不改召回、不进入部署推理。
+stages can be reviewed and revised independently.  It generates no
+candidate, never edits the recall set and takes no part in deployed inference.
 
 Four rules carry the S0-04 continue gate:
 
 1. Private truth opens only against a gate receipt that names both seals.
 2. Every label is either resolvable or explicitly counted as unresolvable;
    nothing ambiguous is silently dropped or silently guessed.
-3. The evaluator's box matching is its own code.  It deliberately does not
+3. The evaluator's node matching is its own code.  It deliberately does not
    import the method's assignment solver, so a solver bug cannot hide inside
    the numbers that judge it.
 4. The machine contract binds every boolean claim it makes; flipping any one
@@ -32,7 +49,8 @@ the shared dedup's ``canonical_of`` folding; fragment dominance is measured
 over all fragment pixels and entity identity is a strict majority; recovery
 latency starts at the first observable frame; existence candidates are active
 and dormant; truth nodes are objects observable at least once and displacement
-is measured from the entity's remembered centroid.
+is measured from the entity's remembered centroid (ruling 88-4 later added the
+padded truth-box test of the node primary column to the existence place test).
 """
 
 from __future__ import annotations
@@ -426,9 +444,9 @@ def _delta(delta_moved_m: Any) -> float:
 def assert_private_gate(receipt: Mapping[str, Any]) -> dict[str, Any]:
     """Accept private truth only against a receipt naming both S0-03 seals.
 
-    白话：输入 S0-03 放行回执，输出同样内容的副本，并在缺任一段摘要、摘要格式不
-    对或放行位不为真时拒绝。teacher 与评价器只能拿着这份回执打开私有数据。它不
-    重算摘要，那是 S0-03 的职责；它只保证"没有两段封存就没有私有数据"。
+    Returns a copy; refuses a missing or malformed digest, or a release bit that is not true.  The teacher
+    and the evaluator open private data only with this receipt.  It does not recompute the digests
+    (S0-03's validators do).
     """
 
     _require(type(receipt) is dict, "private_gate_not_object")
@@ -448,11 +466,9 @@ def assert_private_gate(receipt: Mapping[str, Any]) -> dict[str, Any]:
 def build_private_gate(stage_a: Mapping[str, Any], stage_b: Mapping[str, Any]) -> dict[str, Any]:
     """Turn the two S0-03 seal payloads into the one receipt this module accepts.
 
-    白话：输入 S0-03 的阶段 A 与阶段 B 两份封存产物，输出放行回执。只做结构核对：
-    两段都有合法摘要、指向同一帧、阶段 B 记录的阶段 A 摘要与阶段 A 自己的摘要一
-    致、两段各自带着它们该带的表。例如阶段 B 指向的阶段 A 摘要对不上，说明有人在
-    求解之后又改了召回，回执不发。它不重算任何摘要，那是 S0-03 自己的校验器的职
-    责；这里只保证"没有两段封存就没有私有数据"。
+    Structural checks only: both stages carry valid digests and point to the same frame, the stage-A digest
+    recorded in stage B equals stage A's own (a mismatch means the recall changed after solving), and each
+    stage carries its tables.  It does not recompute any digest (S0-03's validators do).
     """
 
     _require(type(stage_a) is dict and type(stage_b) is dict, "gate_inputs_not_objects")
@@ -482,11 +498,11 @@ def entity_identity(
 ) -> dict[str, Any]:
     """Resolve which private object an entity has been collecting evidence of.
 
-    白话：输入一个实体和"历史上每个证据色块对应哪个私有物体"的映射，输出该实体
-    的私有身份。取全部带物体的证据中的严格多数（超过一半）；没有严格多数（并列
-    或最多者不过半）就判为身份含糊，不另设阈值。例如五条证据里四条是杯子 A、一条
-    是杯子 B，身份为 A；三比三则含糊。背景色块（没有物体）不参与投票。它不改实
-    体，也不把含糊当成某一种答案。
+    ``evidence_instance`` maps each evidence fragment (``frame_digest|fragment_id``) to its private object
+    or None.  The identity is the strict majority (more than half) of the evidence that carries an object;
+    without one (a tie, or a top share of at most one half) the entity is ambiguous, with no further
+    threshold (four of five pieces of evidence on A resolve to A; three against three is ambiguous).
+    Background evidence does not vote.
     """
 
     counts: dict[str, int] = {}
@@ -553,11 +569,11 @@ def entity_identities(
 def fragment_dominance(overlap: Mapping[str, Any], *, dominance_min_share: float) -> dict[str, Any]:
     """Which private object, if any, dominates one fragment's mask.
 
-    白话：输入一个色块的 mask 与各私有物体实例 mask 的重叠占比（分母是色块全部像
-    素，背景是没列出的余量），输出主导物体。没有任何物体记 unlabelled；覆盖两个及
-    以上物体且最大占比低于登记阈值、或最大占比并列，记 identity_ambiguous；只覆盖
-    一个物体但占比低于阈值（大半是背景）记 unlabelled；否则主导物体成立。例如杯
-    子 0.7、书 0.2 是杯子主导；杯子 0.45、书 0.45 是含糊。它不看记忆，不决定目标列。
+    ``overlap`` holds each private object's share of the fragment (denominator: all fragment pixels;
+    background is the unlisted remainder).  No object: ``unlabelled``; two or more objects with the top
+    share below ``dominance_min_share`` or tied at the top: ``identity_ambiguous``; one object below the
+    threshold (mostly background): ``unlabelled``; otherwise the top object dominates (mug 0.7, book 0.2:
+    mug; mug 0.45, book 0.45: ambiguous).  It reads no memory and chooses no target column.
     """
 
     threshold = _ratio(dominance_min_share, "dominance_share_invalid")
@@ -598,12 +614,12 @@ def association_targets(
 ) -> dict[str, dict[str, Any]]:
     """One target column per fragment, with an explicit status.
 
-    白话：输入旧记忆、封存的召回、本帧每个色块的实例重叠表和历史证据映射，输出每
-    个色块该分到哪一列。主导物体不成立按 fragment_dominance 记 unlabelled 或
-    identity_ambiguous；记忆里没有这个物体记 birth；有但没被召回记 recall_miss；
-    有且被召回则目标是它（重复实体取首版本最早、并列取 ID 最小者；只有重复者被召
-    回时以被召回者为目标）；这个物体的证据只落在身份含糊的实体里，记
-    identity_ambiguous 而不是猜 birth。它不改召回、不补候选、不重排召回。
+    Without a dominant object the status is ``fragment_dominance``'s (``unlabelled`` or
+    ``identity_ambiguous``).  Otherwise: no entity of the object in memory -> ``birth``; an entity exists
+    but none was recalled -> ``recall_miss``; recalled -> ``labelled`` with that entity as target (among
+    duplicates the earliest first version, ties to the smallest id; if only some duplicates were recalled,
+    the first recalled one); the object's evidence lies only in ambiguous entities -> ``identity_ambiguous``,
+    never a guessed birth.  The recall set is never edited, extended or reordered.
     """
 
     checked = validate_memory(memory, copy=False)  # read only
@@ -698,11 +714,12 @@ def place_holds(
 ) -> tuple[bool, float, str | None]:
     """Is an entity's centroid at its own present object's place?  Returns (holds, distance_m, which test held).
 
-    白话：输入实体记住的质心和它自己那个物体此刻的真值（质心，以及有的话真值框），输出“它是否还在原处”。
-    节点主列的规则（裁决 77，裁决 88-4 起存在标签同用）：质心离物体质心不超过 δ_moved，或落在真值框外扩
-    0.25 m 内，任一成立即在原处；物体没有真值框时只看质心。例如沙发只看到一侧、表面质心离沙发中心 0.7 m
-    但在沙发框里，算在原处。"centroid_only" 是裁决 88 之前的规则，只供诊断对照。它不判断身份，调用方先确认
-    实体属于这个物体。
+    The node primary column's place test (ruling 77; the existence labels use it since ruling 88-4): the
+    centroid is within delta_moved_m of the object's truth centroid, or inside its truth box padded by
+    ``NODE_BOX_PAD_M`` (0.25 m); an object without a box uses the centroid test only.  A sofa seen from one
+    side, whose surface centroid is 0.7 m from the sofa's centre but inside its box, is in place.
+    ``"centroid_only"`` is the pre-ruling-88 rule, kept for diagnostics.  It does not check identity: the
+    caller has resolved the entity to this object.
     """
 
     _require(place_rule in EXISTENCE_PLACE_RULES, "existence_place_rule_unknown")
@@ -731,13 +748,15 @@ def existence_labels(
 ) -> dict[str, dict[str, Any]]:
     """One gone/present label per existence candidate.
 
-    白话：输入旧记忆、本帧的存在判定候选、每个私有物体当前是否存在及在哪里（质心，有的话还有真值框），
-    输出每个候选是"已不在原处"还是"仍在"。物体已被移出场景记 gone；物体在场时，实体按节点主列的地点规则
-    （质心 ≤ δ_moved 或落在真值框外扩 0.25 m 内，裁决 77；裁决 88-4 起标签同用）对自己的物体不成立才记
-    gone，否则 present；身份含糊的候选记 identity_ambiguous。在原处的重复实体因此记 present，冗余交给共享
-    去重。候选状态不在登记集合内（例如 retracted）直接拒绝而不是跳过，因为那说明上游把不该判的实体送了
-    进来。它不知道候选是否本该被看见，那由 S0-03 的应可见比例决定谁进候选。``place_rule="centroid_only"``
-    是裁决 88 之前的规则，只供决定上限诊断对照。
+    ``object_state`` gives each private object's presence and, when present, its centroid and truth box.
+    The object removed from the scene -> ``gone``; present -> ``gone`` only when the entity fails the node
+    primary place test for its own object (``place_holds``: centroid within delta_moved_m or inside the
+    truth box padded 0.25 m; ruling 77, used for labels since ruling 88-4), otherwise ``present``; an
+    ambiguous identity -> ``identity_ambiguous``.  In-place duplicates are therefore present; redundancy
+    is the shared dedup's job.  A candidate state outside ``candidate_states`` (e.g. retracted) is
+    rejected, not skipped: upstream sent an entity that must not be judged.  Which entities are
+    candidates is decided upstream (S0-03's should-be-visible ratio).  ``place_rule="centroid_only"`` is
+    the pre-ruling-88 rule, kept for the ruling-88 decision-ceiling diagnostic only.
     """
 
     checked = validate_memory(memory, copy=False)  # read only
@@ -783,15 +802,15 @@ def decompose_frame(
 ) -> dict[str, Any]:
     """Count where every decision of one frame landed; classes are exclusive and additive.
 
-    白话：输入本帧的标签、学生的分配和存在决定，输出三分解计数。recall_miss 是正确
-    实体不在召回里，学生无从选起；teacher_error 是标签本身含糊、无法评判；
-    amortization_error 是标签明确、候选也在，学生仍然选错（含假撤回与漏撤回）。
-    每个决定恰好落入 recall_miss / teacher_error / amortization_error / correct /
-    unlabelled / duplicate_of_labelled 之一，六类之和等于决定总数；分配与标签、决定
-    与候选的集合必须一一对应，缺一个或多一个都拒绝。它不把未标注色块算进任何错误。
-    同帧被折叠的重复色块和它的保留块按一组判：组内任一块分到了目标实体、且没有一块
-    被绑到别的既有实体，保留块记 correct；否则记 amortization_error。哪一块去承载物
-    体是学生的选择，teacher 只挑保留块来放标签，不能反过来因此扣分。
+    ``recall_miss``: the correct entity was not recalled, so the student could not choose it;
+    ``teacher_error``: the label itself is ambiguous; ``amortization_error``: a clear label with the
+    candidate present and a wrong choice (false and missed retracts included).  Every decision falls into
+    exactly one of recall_miss / teacher_error / amortization_error / correct / unlabelled /
+    duplicate_of_labelled, and the six sum to the decision count; the assignment must cover exactly the
+    labelled fragments and the decisions exactly the candidates.  Unlabelled fragments are charged to no
+    error class.  A folded same-frame duplicate group is judged on its keeper: correct when any member
+    reaches the target entity and none is bound to another existing entity, otherwise one
+    amortization_error (which member carries the object is the student's choice).
     """
 
     _require(set(assignment) == set(targets), "assignment_fragments_differ_from_targets")
@@ -894,7 +913,7 @@ def decompose_frame(
 
 
 # --------------------------------------------------------------------------
-# 4. the evaluator's own box matching and the per-frame metrics
+# 4. the evaluator's own node matching and the per-frame metrics
 # --------------------------------------------------------------------------
 
 def _max_weight_matching(weights: Sequence[Sequence[float]], *, count_first: bool = False) -> list[tuple[int, int]]:
@@ -1040,9 +1059,10 @@ def structural_type_of(object_key: str) -> str:
 def in_truth_node_scope(object_key: str, *, observable_before: bool) -> bool:
     """D-224-S1 ruling 56 continued: the in_scope flag the truth table must carry.
 
-    白话：真值表里每个物体的 ``in_scope`` 由这里算：此前至少可观测过一次，并且不是墙、房间（地面）、
-    门、窗这四类房屋结构件。例如 ``wall|6|...`` 永远不在范围内，``Mug|surface|2|4`` 被看见过一次
-    之后就在范围内。它不删除真值表里的行，只决定该行进不进节点指标的分母。
+    In scope: observable at least once so far, not one of ``STRUCTURAL_TYPES_EXCLUDED`` (wall, room
+    (floor), door, window and, since ruling 69, Ceiling_room) and not spawned after the reload (ruling 69).
+    ``wall|6|...`` is never in scope; ``Mug|surface|2|4`` is once it has been seen.  The flag removes no
+    row from the truth table; it decides whether the row enters the node metric's denominator.
     """
 
     _require(observable_before in {True, False}, "observable_before_invalid")
@@ -1053,9 +1073,10 @@ def in_truth_node_scope(object_key: str, *, observable_before: bool) -> bool:
 def is_spawned_after_reload(object_key: str) -> bool:
     """D-224-S1 ruling 69: does the key's last ``|`` field carry a spawn tag (``EggCracked_0``)?
 
-    白话：鸡蛋碎裂、面包切片这类物理事件会在运行时生成新物体，它们重载时不存在、没有初始盒；
-    它们的私有键最后一段是"字母_数字"的生成标签。这样的键记在场、范围外、无盒并计数，不算数据
-    损坏。普通键的最后一段是纯数字，不会误判。
+    Physics events (a cracked egg, a sliced loaf) spawn objects at run time that do not exist at the
+    reload and have no initial box; their private key ends in a spawn tag (letters, underscore, digits).
+    Such a key is present, out of scope, boxless and counted, not data corruption.  An ordinary key ends
+    in plain digits and never matches.
     """
 
     _require(type(object_key) is str and object_key, "object_key_invalid")
@@ -1097,17 +1118,18 @@ def evaluate_frame(
 ) -> dict[str, Any]:
     """Node precision/recall/F1, stale entities and the contamination fraction for one frame.
 
-    白话：输入提交后的记忆、本帧真值物体表（范围内每个物体是否在场及其框）和历史
-    证据映射，输出节点级精确率、召回率、F1，以及本帧的"污染占比"。预测集合是状
-    态在登记的"仍在记忆里"集合（推荐 active 与 dormant）中的实体。裁决 72 (B) 后主列
-    的匹配是"实体质心到真值质心的距离不超过已冻结的 δ_moved"、权重 1/(1+距离)，
-    按"先最大匹配数、再最大权"配对（裁决 76 (3)(a)：F1 数的是对数，权重只在对数相同时偏向更近的对），
-    回答"实体记在了对的地方吗"，是选参指标；同一批实体与真值、同一个匹配器
-    再按三维交并比 ≥ 0.3（Dyn-THOR 原口径）算一列次级指标 ``node_prf1_iou``，回答"框
-    重叠够吗"，不选配置、不进主门。陈旧实体是仍在记忆里、但
-    其物体已不在它记住的位置的实体；错误缺席是范围内在场、但记忆里没有任何该身份
-    实体在其位置附近的物体。污染占比 =（陈旧＋错误缺席）/（记忆里的实体＋错误缺
-    席）。它不评价撤回决定本身，那由假撤回率单独算。
+    Predictions are the entities in ``present_states`` (active and dormant, ruling L).  The primary column
+    (ruling 72 (B); the selection metric) matches them to the present in-scope truth objects; a pair
+    qualifies when the entity's strict-majority identity is the object and its centroid is within the
+    frozen delta_moved_m of the truth centroid or inside the truth box padded by ``NODE_BOX_PAD_M``
+    (ruling 77 (1)(a)), weighted 1/(1 + distance), most pairs first and then most weight (ruling 76 (3)(a):
+    F1 counts pairs; the weight only prefers nearer pairs at equal count).  The secondary column
+    ``node_prf1_iou`` uses the same sets and matcher with the 3D AABB IoU >= ``iou_min`` (0.3) test of
+    Dyn-THOR; it never selects and is not in the main gate.  A stale entity is in memory while its object
+    is absent or farther than delta_moved_m from the remembered centroid; a wrongly absent object is
+    present and in scope with no in-memory entity of its identity within delta_moved_m.  Contamination =
+    (stale + wrongly absent) / (predictions + wrongly absent).  RETRACT decisions are judged separately by
+    the false-retract rate.
     """
 
     checked = validate_memory(memory_after, copy=False)  # read only
@@ -1226,11 +1248,12 @@ def missing_residual_rate(
 ) -> dict[str, Any]:
     """Share of missing objects still represented at their old place (Dyn-THOR MRR).
 
-    白话：输入提交后的记忆、历史证据映射和"已被移走或搬走的物体及其原位置、原位置
-    是否已对方法可观察"，输出这些物体中仍有一个在记忆里（推荐 active 或 dormant）
-    的同身份实体留在原位置的比例。分母只算原位置已经可观察过的物体：还没重访过的
-    地方，任何方法都无从清理，单独计数。例如三件被搬走且都重访过，两件的旧记录
-    还挂在原位，残留率 2/3。它不惩罚在新位置正确恢复的实体，只看旧位置有没有清干净。
+    ``missing_objects`` gives each removed or moved object's old centroid and whether its old place has
+    been observable to the method since the intervention.  The rate is the share of judged objects that
+    still have an in-memory (active or dormant) entity of the same identity within delta_moved_m of the
+    old centroid.  Only objects whose old place has been observable are judged; the others cannot be
+    cleaned by any method and are counted as ``not_yet_observable``.  An entity correctly recovered at
+    the new place is not penalised.
     """
 
     checked = validate_memory(memory_after, copy=False)  # read only
@@ -1274,8 +1297,8 @@ def false_retract_rate(
 ) -> dict[str, Any]:
     """Share of RETRACT decisions whose object was still in place.
 
-    白话：输入存在标签与存在决定，输出被撤回的实体中真值仍在原处的比例；身份含糊
-    的撤回不进分母，只计数。例如撤回了三个，一个其实还在，假撤回率 1/3。
+    "In place" is the existence label ``present``.  Retracts of ambiguous identity leave the denominator
+    and are counted (three retracts, one object still in place: 1/3).
     """
 
     _require(set(decisions) == set(existence), "decisions_differ_from_existence_candidates")
@@ -1296,9 +1319,11 @@ def false_retract_rate_in_scope(
 ) -> dict[str, Any]:
     """false_retract_rate without the candidates labelled present by rule for out-of-scope objects (ruling 80-5 (b)).
 
-    白话：输入同 false_retract_rate，输出只算"节点范围内"候选的假撤回率。墙、门、窗、房间、天花板和运行时生成物
-    按规则一律记 present，撤回它们在原列里算假撤回，但节点指标从不计它们；这一列把它们剔出分母，与节点范围一致。
-    例如撤回了 10 个，其中 7 个是墙，另外 3 个里 1 个其实还在，原列 8/10，这一列 1/3。它不替代原列，也不进主门。
+    Walls, doors, windows, rooms, ceilings and objects spawned after the reload are labelled present by
+    rule, so retracting them counts as a false retract in ``false_retract_rate`` although the node metric
+    never scores them; this secondary column leaves them out, matching the node scope (10 retracts, 7 of
+    them walls, 1 of the other 3 still in place: 8/10 in the main column, 1/3 here).  It does not replace
+    the main column and is not in the main gate.
     """
 
     _require(set(decisions) == set(existence), "decisions_differ_from_existence_candidates")
@@ -1312,14 +1337,14 @@ def identity_continuity(
 ) -> dict[str, Any]:
     """Share of moved objects whose first labelled re-observation kept a pre-move entity id.
 
-    白话：输入本帧首次重见的被搬动物体及其色块、搬动前承载该物体的全部实体 ID，
-    以及学生分配，输出保住原身份的比例。判定时刻是搬动后第一次带标签的重见，看
-    的是当时的分配（BIND/REACTIVATE 到搬动前任一承载实体即算保住）；此后共享去重
-    把新实体折进旧实体（canonical_of）不予承认，因为那是无学习的共享规则。裁决
-    102-0（2026-10-02）起分母是全部重见事件（events，与臂无关），搬动前没有任何
-    实体承载的物体记“没接回”并单独计数；只数有承载实体的那部分（judged）是裁决
-    之前的条件定义，留作诊断列。例如 4 个重见事件、3 个有承载实体、接回 1 个：
-    本列 1/4，条件列 1/3。它只看被搬动且重见的物体。
+    ``reobserved`` maps each moved object first re-observed this frame to its fragment;
+    ``carriers_before_move`` lists every entity that carried the object before the move.  The event is
+    judged on this frame's assignment: a BIND/REACTIVATE to any pre-move carrier keeps the identity; a
+    later ``canonical_of`` folding by the shared dedup is not credited (ruling M).  Since ruling 102-0
+    (2026-10-02) the denominator is every re-observation event (``events``, the same for every arm), and
+    an object without a pre-move carrier counts as not kept (``no_prior_carrier``); the pre-ruling
+    conditional definition over ``judged`` (events with a carrier) is the diagnostic column (4 events, 3
+    with a carrier, 1 kept: 1/4 here, 1/3 conditional).
     """
 
     kept = 0
@@ -1358,10 +1383,13 @@ def retrieval_success(
 ) -> dict[str, Any]:
     """Ruling 102-5: retrieval success of the events of one frame.
 
-    白话：输入这一帧提交后的记忆、这一帧要考的被搬动物体及其查询向量（评价器用私有标签从搬动前的色块描述子算出，方法看不到）、
-    物体此刻的真值与证据映射，输出考了几个、成功几个、候选为空几个。每个事件在记忆里全部 active／dormant 实体中按
-    descriptor_mean 的余弦取最像的一个（并列取 entity_id 小者），它的多数身份就是这个物体、且按节点主列的地点规则在物体此刻的
-    位置，就算成功。例如只学关联的方法在旧位置留着杯子的陈旧实体、在新位置又新建了一个，旧实体更像查询，就会被拿错，记失败。
+    ``queries`` maps each moved object evaluated this frame to its query vector (built by the evaluator
+    from private labels and the pre-move fragment descriptors; never seen by the method).  Each event
+    retrieves the active or dormant entity with the highest ``descriptor_mean`` cosine (ties to the
+    smaller entity_id); it succeeds when that entity's majority identity is the object and it passes the
+    node primary place test at the object's current place.  An association-only method that keeps a
+    stale mug entity at the old place and births a new one at the new place fails whenever the stale
+    entity is the closer match.
     """
 
     candidates = [entity for entity in memory_after["entities"] if entity["state"] in present_states]
@@ -1400,9 +1428,9 @@ def retrieval_success_block(*, successes: int, events: int, no_query: int, empty
 def identity_continuity_blocks(*, kept: int, judged: int, no_prior_carrier: int) -> dict[str, dict[str, Any]]:
     """The two report blocks of an episode from its summed counts: identity_continuity (ruling 102-0) and the conditional column.
 
-    白话：输入一条 episode 累计的接回数、有承载实体的事件数与没有承载实体的事件数，输出两块报告：主列
-    identity_continuity＝接回数 ÷ 全部重见事件数（各臂同一批事件），诊断列 identity_continuity_conditional＝
-    接回数 ÷ 有承载实体的事件数（裁决之前的定义）。没有事件时值为 None，不填 0。
+    ``identity_continuity`` = kept / all re-observation events (the same events for every arm);
+    ``identity_continuity_conditional`` = kept / events with a pre-move carrier (the pre-ruling
+    definition).  Without events the value is None, never 0.
     """
 
     for name, value in (("kept", kept), ("judged", judged), ("no_prior_carrier", no_prior_carrier)):
@@ -1424,10 +1452,9 @@ def object_memory_correct(
 ) -> bool:
     """Is the memory's state for one intervened object correct?
 
-    白话：输入提交后的记忆、历史证据映射、一个被干预物体的身份和干预类型，输出记
-    忆对它是否正确。移走：旧位置附近没有任何该身份的在记忆里实体；新增：新位置附
-    近有一个；搬动：旧位置附近没有且新位置附近有。例如杯子搬走后旧实体仍 active
-    在旧位置，记忆不正确。它不看身份是否连续，那由身份连续率负责。
+    "Near" is within delta_moved_m of an in-memory entity of the object's identity.  Removed: nothing near
+    the old place; added: one near the new place; moved: nothing near the old place and one near the new
+    place.  Identity continuity is not checked here (``identity_continuity`` does).
     """
 
     checked = validate_memory(memory_after, copy=False)  # read only
@@ -1455,11 +1482,11 @@ def object_memory_correct(
 def episode_recovery_latency(frames: Sequence[Mapping[str, Mapping[str, bool]]]) -> dict[str, Any]:
     """Frames from first post-intervention observability to memory correctness.
 
-    白话：输入逐帧、逐物体的两个布尔量（干预处本帧对方法是否可观察、记忆对它是否
-    正确），输出每个物体从干预后第一次可观察到记忆正确所经过的帧数。起点是第一次
-    可观察的帧而不是干预发生的帧：看不见的时候方法不可能反应。例如杯子在第 10 帧
-    可观察、第 13 帧记忆才正确，延迟 3；到 episode 结束都不正确记为未恢复，单独列
-    出、不进平均；从未可观察的物体也单独列出。它不评价没有干预的物体。
+    Each frame gives two flags per intervened object: ``observable`` (the intervention place is
+    observable to the method) and ``correct`` (``object_memory_correct``).  The latency starts at the
+    first observable frame, not the intervention frame, since the method cannot react to what it cannot
+    see (observable at frame 10, correct at frame 13: latency 3).  Objects never correct are listed as
+    unrecovered and kept out of the mean; objects never observable are listed separately.
     """
 
     first_observable: dict[str, int] = {}
@@ -1492,10 +1519,9 @@ def episode_recovery_latency(frames: Sequence[Mapping[str, Mapping[str, bool]]])
 def contamination_auc(contamination_series: Sequence[float]) -> dict[str, Any]:
     """Area under the per-frame contamination fraction, trapezoid rule, unit-normalised.
 
-    白话：输入逐帧的污染占比（evaluate_frame 的 contamination_fraction），输出它对
-    帧数的梯形积分再除以帧数减一，即归一化的曲线下面积，落在 [0,1]。一次错误若
-    持续十帧，面积就是十帧的累加，因此"错得久"比"错一下就改"分高。单帧序列取
-    该帧的值。它不区分错误类型，那由三分解负责。
+    The input is ``evaluate_frame``'s ``contamination_fraction`` per frame; the trapezoid integral over
+    frames is divided by (frames - 1), so the area lies in [0, 1] and an error that persists for ten
+    frames weighs ten frames.  A one-frame series returns that frame's value.
     """
 
     values = [_ratio(value, "contamination_fraction_invalid") for value in contamination_series]
@@ -1557,7 +1583,7 @@ def micro_average(
 
 
 # --------------------------------------------------------------------------
-# 5. house-level paired bootstrap, the strongest control and the main gate
+# 5. house-level paired bootstrap, the strongest control and the superseded S0-04 main_gate check
 # --------------------------------------------------------------------------
 
 def undefined_houses(
@@ -1566,14 +1592,14 @@ def undefined_houses(
 ) -> list[str]:
     """Houses whose metric is undefined (``None``) for any applicable reported arm.
 
-    白话：输入每个 house 上各臂的某项指标值和本表要报告的全部臂，输出该指标在任一
-    臂上"没法算"（值为 None，例如这个 house 里没有一件被搬走后重访过的物体）的
-    house 清单。这份清单按指标算一次、对所有臂一并生效（D-224-X 裁决 X2），配对
-    bootstrap 与最强对照选取都必须传入同一份，主表报告有效 house 数。缺臂仍然是错
-    误而不是"未定义"。它不填补、不猜值。
-    按构造就没法算的臂（例如从不撤回的臂之于假撤回率）以 ``not_applicable`` 传入，
-    它们不参与清单计算、也不进入这项指标的任何配对，表里报"不适用"；否则三个从不
-    撤回的臂会让每个 house 都被排除，整列对谁都报不出来（复审修订，LOG-225）。
+    A value is None when the metric cannot be computed in that house (e.g. no removed object whose old
+    place was revisited).  The list is computed once per metric and applies to every arm (D-224-X ruling
+    X2); the paired bootstrap and the strongest-control choice must receive the same list, and the table
+    reports the effective house count.  A missing arm is an error, not "undefined"; nothing is imputed.
+    Arms for which the metric is undefined by construction (e.g. never-retracting arms for the
+    false-retract rate) are passed as ``not_applicable``: they do not enter the list or any pairing of
+    the metric and are reported as not applicable; otherwise the three never-retracting arms would
+    exclude every house (review revision, LOG-225).
     """
 
     skipped = {str(item) for item in not_applicable}
@@ -1595,13 +1621,18 @@ def paired_house_bootstrap(
     confidence: float = CONFIDENCE_ONE_SIDED, excluded_houses: Sequence[str] = (),
     not_applicable: Sequence[str] = (),
 ) -> dict[str, Any]:
-    """One-sided lower bound on the paired house-level advantage of ``arm``.
+    """One-sided lower bound on the paired house-level advantage of ``arm`` (houses resampled, no seed level).
 
-    白话：输入每个 house 上两臂的指标值，输出配对差的均值和单侧下界；house 是配对
-    与重采样的单位。direction 为 higher 时差取臂减对照，lower 时取对照减臂，因此下
-    界大于零永远表示臂更好。某个 house 缺了任一臂就拒绝而不是跳过，否则配对被悄悄
-    打破。例如 100 个 house 上 VSMT 的残留率平均低 0.08、下界 0.03，则本项过门。
-    它不做多重比较校正，那在 S3-01 冻结。
+    The house is the pairing and resampling unit.  The difference is arm - control for ``higher`` and
+    control - arm for ``lower``, so a positive bound always favours ``arm``.  A house missing either arm
+    is refused, not skipped, so the pairing cannot break silently.  No multiplicity correction is applied
+    here; the S3 gate's is the fixed sequence (``fixed_sequence``, ruling 102-2).
+
+    Current role: this is not the S3 gate, which is ``two_level_lower_bound`` plus the 82-1 condition
+    (``gate_metric``, ``primary_gate``, ruling 102-3).  ``gate_metric`` calls it on the per-house
+    seed-mean advantages to report ``lower_bound_house_only_sensitivity`` beside the two-level bound;
+    ``ablation_report`` also calls it, but only the tests call ``ablation_report`` (S3-05 compared the
+    ablations with ``gate_metric``, ruling 107-4).
 
     Undefined values (D-224-X ruling X2).  A house can legitimately have no
     judged object for a metric, and then its value is ``None``.  Such a
@@ -1688,7 +1719,11 @@ def strongest_control(
 
 
 def main_gate(bounds: Mapping[str, float]) -> dict[str, Any]:
-    """Both main-gate metrics must show a positive one-sided lower bound."""
+    """Both main-gate metrics must show a positive one-sided lower bound.
+
+    The S0-04 gate check written before rulings 99 / 102 (no seed level, no 82-1 condition).  Superseded by
+    ``primary_gate`` and kept beside it; no entry point calls it, only the tests.
+    """
 
     verdict = {}
     for metric, _direction in MAIN_GATE:
@@ -1718,8 +1753,8 @@ def exclusion_over_runs(per_house: Mapping[str, Mapping[str, Any]], *, runs: Seq
                         not_applicable: Sequence[str] = ()) -> list[str]:
     """Ruling 102-3: the one exclusion list of a metric over every run (X2 extended to seeds); a missing run is an error.
 
-    白话：输入每个 house 上每次运行（学习臂的每个种子、每个规则臂）的某项指标值，输出该指标的排除清单：只要有一次运行
-    在这个 house 上不可算，这个 house 就对所有臂、所有检验一并排除。缺一次运行不是“不可算”，而是错误。
+    The runs are each learned arm at each seed and each rule arm once; a house where any run's value is
+    undefined is excluded for every arm and every test.
     """
 
     return undefined_houses(per_house, arms=list(runs), not_applicable=not_applicable)
@@ -1755,9 +1790,12 @@ def two_level_lower_bound(matrix: Sequence[Sequence[float]], *, seed: int, itera
                           confidence: float = CONFIDENCE_ONE_SIDED) -> float:
     """One-sided lower bound of the mean advantage by two-level resampling (ruling 102-3).
 
-    白话：每一次抽样先有放回地抽种子编号，再有放回地抽 house，所有抽中的种子都用这同一批 house，算抽中 house × 抽中种子上
-    配对差的均值；抽 10,000 次，取第 floor(0.05 × 次数) 小的那个作单侧 95% 下界。它同时把“换一批 house”和“换一次训练”
-    两种随机性放进区间；五个种子时覆盖率没有理论保证，S3-01 用零效应校准核验过（results/vsmt_lean_s3_01_planning_6c57903.json）。
+    Each draw resamples the seed indices with replacement, then the houses with replacement; every drawn
+    seed uses the same drawn houses, and the statistic is the mean paired difference over drawn houses x
+    drawn seeds.  Over 10,000 draws the floor(0.05 x iterations)-th smallest is the one-sided 95% bound.
+    The interval thus covers both house sampling and training randomness; with five seeds its coverage
+    has no theoretical guarantee and was checked by the S3-01 null calibration
+    (results/vsmt_lean_s3_01_planning_6c57903.json).
     """
 
     _int(iterations, "bootstrap_iterations_invalid", minimum=1)
@@ -1799,9 +1837,11 @@ def gate_metric(
 ) -> dict[str, Any]:
     """One metric of one comparison: two-level lower bound plus 82-1; passed only when both hold and all five seeds exist.
 
-    白话：输入每个 house 每次运行的指标值、排除清单、比较的两臂与方向，输出这一项的读数：有效 house 数、种子平均后的
-    平均优势、5 个按种子配对的 house 均值差、82-1 是否成立、两级重采样下界（主检验）与只按 house 重采样的下界（敏感性），
-    以及是否成立（下界大于 0 且 82-1 成立）。任何一臂少一个种子的运行，这一项记“不可判”，不删掉坏种子后照算。
+    The reading holds the effective house count, the seed-averaged mean advantage, the five seed-paired
+    house-mean gaps, whether 82-1 holds, the two-level lower bound (the test) and the house-only lower bound
+    (``paired_house_bootstrap`` on the per-house seed means, a sensitivity reading), and ``passed`` (bound
+    above 0 and 82-1).  A missing seed run of either arm makes the item not evaluable; the seed is never
+    dropped.
     """
 
     excluded = {str(h) for h in excluded_houses}
@@ -1886,9 +1926,10 @@ def original_gate(
 def fixed_sequence(primary_by_front_end: Mapping[str, Mapping[str, Any]]) -> dict[str, Any]:
     """Ruling 102-2: the three steps over the two front ends; a step is tested only when every earlier step passed.
 
-    白话：输入两套前端各自的首要检验结果，输出三步的判定：第一步实例分割两项都成立才看第二步（SAM2 的 Missing 残留率），
-    第二步成立才看第三步（SAM2 的身份连续率）；没走到的步骤记“未检验”，只报差值与区间。三步都成立才可以说“跨两种分割
-    都成立”。
+    Step 2 (SAM 2.1 Missing residual rate) is tested only when step 1 (instance segmentation, both metrics)
+    passed, and step 3 (SAM 2.1 identity continuity) only when step 2 passed; a step not reached is marked
+    untested and reported with its difference and interval only.  "Holds across both segmentations"
+    requires all three steps.
     """
 
     steps: list[dict[str, Any]] = []
@@ -1914,7 +1955,9 @@ def ablation_report(
     """VSMT-lean against each ablation with the same paired bootstrap; reported, never gated.
 
     An ablation for which the metric is not applicable by construction gets a
-    ``not_applicable`` row instead of a bootstrap.
+    ``not_applicable`` row instead of a bootstrap.  Only the tests call this
+    function; S3-05 compared the ablations with ``gate_metric`` (ruling 107-4,
+    ``lean_s3_05.front_statistics``).
     """
 
     skipped = {str(item) for item in not_applicable}
@@ -1938,10 +1981,13 @@ def ablation_report(
 def nuisance_probe(records: Sequence[Mapping[str, Any]], *, field: str, label: str) -> dict[str, Any]:
     """Leave-one-out majority-per-value accuracy of a nuisance field vs. majority.
 
-    白话：输入一批只含元数据与标签的记录，输出用某个元数据字段（路径、seed、帧号、
-    house 序号）去猜标签能达到的留一法准确率，以及只猜多数类的准确率。前者若明
-    显高于后者，说明答案从元数据漏出来了。例如帧号能猜出撤回标签，就说明干预总在
-    固定帧发生。它不设阈值，阈值在合同里待冻结。
+    The records hold metadata and labels only.  The probe guesses each label from one metadata field (path,
+    seed, frame index, house index) by leave-one-out majority per field value; an accuracy clearly above
+    the majority-class accuracy means labels leak through metadata (e.g. a frame index that predicts the
+    retract label means interventions happen at fixed frames).  This function applies no threshold; the
+    threshold is frozen in the contract as ``NUISANCE_MAXIMUM_ADVANTAGE`` = 0.05 (D-224-S1 ruling 68),
+    judged over the pooled rows of one split (``NUISANCE_SCOPE_RULE``; applied in
+    ``ops/vsmt/s3_03_manifest.py``).
     """
 
     _require(field in NUISANCE_FIELDS, "nuisance_field_unknown")
@@ -1979,9 +2025,11 @@ def nuisance_probe_from_counts(label_counts: Mapping[str, int], groups: Mapping[
                                label: str) -> dict[str, Any]:
     """``nuisance_probe`` from its count tables (ruling 104-2): the same guesses, ties and numbers without keeping the rows.
 
-    白话：留一法里，同一个字段取值、同一个标签的行猜出来的东西都一样（去掉自己以后的那张表一样），所以命中数只取决于
-    “字段取值 × 标签”的计数表和标签总计数。输入就是这两张表（键都已转成字符串，与原函数一致），输出与原函数逐位相同的
-    结果。例如一整条 split 几百万行，只需要每个 house 序号、每个帧号下各标签的个数。它不设阈值。
+    Under leave-one-out, rows with the same field value and label make the same guess (their tables minus
+    themselves are equal), so the hits depend only on the field-value x label counts and the label totals.
+    The inputs are these two tables (keys already strings, as in ``nuisance_probe``); the output is
+    identical to ``nuisance_probe``'s.  A split of millions of rows needs only the label counts per house
+    index and per frame index.  It applies no threshold.
     """
 
     _require(field in NUISANCE_FIELDS, "nuisance_field_unknown")
@@ -2166,10 +2214,11 @@ def _lookup(contract: Mapping[str, Any], path: str) -> Any:
 def validate_teacher_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
     """Check that the S0-04 machine contract agrees with this implementation.
 
-    白话：输入合同 JSON，输出同样内容的副本，并在任何一条声称与实现不符时拒绝。
-    合同里的每一个布尔值都必须在实现登记的清单里且取值一致：翻转任何一条、少一
-    条、或加一条实现不认识的，都拒绝。指标清单、状态集合、规则字符串和已冻结常
-    量按字节比对；待冻结数值必须为 null；授权位必须全 false。
+    Returns a copy of the contract; every boolean leaf must be in ``EXPECTED_BOOLEAN_CLAIMS`` with the same
+    value (a flipped, missing or unknown claim is rejected; the authorization bits are all false).  Metric
+    lists, state sets, rule strings and frozen constants are compared exactly, and the values frozen by
+    rulings (``FROZEN_VALUES_BY_RULING``) must match; the paths that must still be null
+    (``NULL_POLICY_PATHS``) are none since ruling 102-3.
     """
 
     _require(type(contract) is dict, "contract_not_object")

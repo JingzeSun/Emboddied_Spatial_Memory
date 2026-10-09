@@ -1,12 +1,17 @@
 """S3-01 (ruling 102-8): the three S3 manifests, derived from the split S1-02a froze.
 
-白话：S3 要在生成任何正式数据之前，把 test、validation、train 三份 house 名单写死。输入是 S1-02a 冻结的划分参数（seed
-20260920、validation 50、test 100）与 ProcTHOR-10K 0.1.2 的 house 池（train-00000 到 train-09999），输出三份互斥名单：
-test 与 validation 就是划分本身的前两份（成员早已固定）；train 按裁决 102-8 取 train 块第 100～399 位共 300 个——
-第 0～49 位是 S1 的开发 house，第 50～99 位是裁决 81 的确认集，两者都不进 S3，S3 的 train 与开发、确认过程完全分开。
-例如确认集名单可以由同一函数逐项重算出来（第 50～99 位），与登记文件 `lean_ruling81_confirmation_houses.json` 一致。
-它不生成任何数据、不读任何 house 内容，也不改 S1-02a 合同：那里的 `train_houses` 值槽按“train 块前缀”设计，裁决 102-8 改取
-第 100～399 位，所以那个值槽保持 null，S3 的 train 以本模块和登记清单为准。
+This module implements stage S3-01's house lists, fixed before any formal data is generated.  Input: the S1-02a
+``split_freeze`` (seed 20260920, validation 50, test 100) and the ProcTHOR-10K 0.1.2 house pool (train-00000 to
+train-09999).  Output: three disjoint lists.  Test (100) and validation (50) are the split's first two parts, whose
+membership was fixed long before; the S3 train is positions 100-399 of the train block (300 houses, ruling 102-8).
+Positions 0-49 (S1 development houses) and 50-99 (the ruling-81 confirmation set) stay out of S3, so S3 training is
+separate from development and confirmation; the confirmation block recomputes item by item to the registry
+``configs/vsmt/lean_ruling81_confirmation_houses.json``.
+
+No data is generated and no house is read.  The S1-02a contract is not changed: its ``train_houses`` slot was
+designed as a train-block prefix, ruling 102-8 takes positions 100-399 instead, so the slot stays null and the S3
+train list is defined by this module and the written manifest (``configs/vsmt/lean_s3_01_manifests.json``, by
+``ops/vsmt/s3_01_manifests.py``).
 """
 
 from __future__ import annotations

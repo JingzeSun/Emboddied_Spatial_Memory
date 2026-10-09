@@ -1,17 +1,21 @@
 """D-224 / S0-01: the VSMT-lean entity memory core.
 
 This module is the only place where entity records are created, versioned,
-closed or reopened.  It is deliberately self-contained: the D-210..D-223
-``GraphRevision`` path is bound to the place scaffold, five relation-edge
-types, ``graph_hash`` and the unified-graph lifecycle, so narrowing it would
-drag all of that back in.  Only pure helpers that would otherwise gain a
-second numeric definition are reused (canonical JSON, deep clone, cosine,
-centroid distance, AABB, opaque IDs).
+closed or reopened.  It is deliberately self-contained: the archived
+D-210..D-223 ``GraphRevision`` path (removed from ``main`` after the tag
+``paper-v1``) was bound to the place scaffold, five relation-edge types,
+``graph_hash`` and the unified-graph lifecycle, so narrowing it would have
+dragged all of that back in.  Only pure helpers that would otherwise gain a
+second numeric definition are reused: canonical JSON and deep clone from
+``cpmt.hashing``; cosine, centroid distance and opaque IDs from
+``vsmt.lean_geometry``.
 
-白话：这个模块解决"实体档案怎样被合法地改并留底"。输入是一份旧记忆和本帧
-的程序，输出是新记忆、逐实体版本链和本帧审计记录；任何一步非法则整帧回滚，
-旧记忆逐字节不变。例如 REACTIVATE 一个未关闭的活动实体是非法的，整帧不生效。
-它不做关联判断（那是分配层），不读 private/teacher/future，也不是旧统一图执行器。
+Input: a sealed memory and one frame program; output: the new sealed memory
+with its per-entity version chains and the frame's transaction-log record.
+Any illegal atom (e.g. REACTIVATE of an active entity) rolls back the whole
+frame and leaves the old memory byte-identical.  The module makes no
+association decision (the assignment layer does) and reads no private,
+teacher or future data.
 
 Scope, restated so it cannot drift:
 
@@ -25,7 +29,9 @@ Scope, restated so it cannot drift:
   copies them into provenance and never re-derives them.
 * Every numeric policy value (dormancy count, dedup thresholds) must be
   passed in explicitly.  There are no defaults, so an unfrozen value cannot
-  silently become an experiment constant.
+  silently become an experiment constant.  The values frozen by D-224-S1
+  rulings 67, 68 and 77 are ``DORMANCY_MISSED_OPPORTUNITY_LIMIT`` and
+  ``SHARED_DEDUP``; callers pass them.
 """
 
 from __future__ import annotations
@@ -119,8 +125,9 @@ FRAGMENT_FIELDS = frozenset({
 
 #: Fields a version record snapshots when it is opened.  Descriptors are
 #: deliberately excluded: the audit needs "where did memory think it was",
-#: not "what did it look like", and a 384-d vector per version would make the
-#: stored memory grow linearly with frame count.
+#: not "what did it look like", and a descriptor per version (128-d: the shared
+#: ReID projection of DINOv2 ViT-B/14, METHOD section 5) would make the stored
+#: memory grow linearly with frame count.
 #:
 #: The snapshot is the entity *as of the moment that version opened* and is
 #: deliberately never re-synced afterwards.  A ``NOOP`` bumps the live
@@ -310,8 +317,7 @@ def seal_memory(memory: Mapping[str, Any]) -> dict[str, Any]:
 def empty_memory(*, episode_id: str) -> dict[str, Any]:
     """Return the sealed t=0 memory for one episode.
 
-    白话：输入一个 episode 标识，输出一份没有任何实体的初始记忆；tick 从 0 开始，
-    第一帧提交后为 1。它不代表任何观测，也不分配 entity_id。
+    It has no entity and represents no observation; the tick is 0 and becomes 1 when the first frame commits.
     """
 
     memory = {
@@ -519,10 +525,9 @@ def validate_memory(memory: Mapping[str, Any], *, verify_digest: bool = True, co
     first tenth, 8.7 s in its last, with the entity count flat).  The checks and the digest are unchanged; a caller
     that mutates what it gets must keep the default.
 
-    白话：输入一份记忆，输出同样内容的副本，并在任何字段、状态机或版本链不合法时
-    抛错。例如一个实体同时有两个未关闭的版本会被拒绝。它不判断记忆内容在现实中
-    是否正确，只判断结构合法。同一个已验证过、摘要未变的记忆对象再次传入时直接
-    返回副本（工程缓存，见上）。
+    The checks are structural only -- fields, state machine, version chains, digest (e.g. an entity with two open
+    versions is refused); whether the content is true of the scene is not judged.  A memory object validated before
+    with an unchanged digest is returned without the walk (``_VALIDATED_MEMORIES``).
     """
 
     global _VALIDATED_PARTS, _VALIDATED_ITEMS
@@ -667,9 +672,8 @@ def _validate_fragment(fragment: Any, *, descriptor_length: int | None) -> dict[
 def expand_program(program: Mapping[str, Any]) -> dict[str, Any]:
     """Expand ``REPLACE`` into its ``RETRACT`` + ``BIRTH`` components.
 
-    白话：输入可能含 REPLACE 的帧程序，输出只含五个原子的等价程序，并在每个展开
-    分量上记下它来自哪一个复合操作。例如一个 REPLACE 展开成先关闭旧实体、再从
-    同一 fragment 新建实体两步。它不判断这两半是否都合法，那由 apply_program 检查。
+    Each component records its composite (``REPLACE#<index>``) and source index.  Whether both halves are legal is
+    checked by ``apply_program``, not here.
     """
 
     _require(type(program) is dict, "program_not_object")
@@ -888,9 +892,9 @@ def apply_program(
 ) -> dict[str, Any]:
     """Apply one frame program atomically and return the new sealed memory.
 
-    白话：输入旧记忆和本帧程序，输出新记忆；任何一个原子不合法则整笔失败，调用者
-    手里的旧记忆逐字节不变。例如程序里两个 fragment 都想绑到同一个实体，整帧拒绝。
-    它不选择该做哪个原子（那是分配层），不读 teacher/private/future。
+    Any illegal atom fails the whole frame and leaves the caller's memory byte-identical (e.g. two fragments bound to
+    one entity: ``entity_used_twice_in_frame``).  The atoms are chosen by the assignment layer; this function reads no
+    teacher, private or future data.
 
     ``dormancy_missed_opportunity_limit`` and every ``dedup`` value must be
     supplied explicitly; there is no default, because an unfrozen policy value
@@ -1033,7 +1037,7 @@ def apply_program(
 
     working["tick"] = tick
 
-    # ---- shared deterministic maintenance, identical for all five arms ----
+    # ---- shared deterministic maintenance, identical for all arms ----
     for entity_id, entity in list(by_id.items()):  # the entities dormancy will change
         if entity["state"] == "active" and int(entity["missed_opportunity_count"]) >= limit:
             own(entity_id)
@@ -1063,8 +1067,8 @@ def _apply_dormancy(
 ) -> list[dict[str, Any]]:
     """Move active entities past the missed-opportunity limit to ``dormant``.
 
-    白话：连续"应可见却没匹配"达到登记次数的活动实体转为 dormant，档案不删；任何
-    一次匹配会把计数清零，因此不会因偶发漏检就休眠。它不是 RETRACT，也不需要负证据。
+    The record is kept, and any match resets the count (``_attach_fragment``), so only consecutive misses lead here.
+    Dormancy is not RETRACT and needs no evidence of absence.
     """
 
     changes: list[dict[str, Any]] = []
@@ -1149,12 +1153,8 @@ def _dedup_pair_candidates(entities: Sequence[Mapping[str, Any]], policy: Mappin
     drops a pair when numpy's cosine is below the minimum or its distance above the maximum by more
     than ``DEDUP_PREFILTER_MARGIN``, which float rounding cannot reach; every surviving pair is decided
     by the unchanged scalar tests, in the unchanged order, so the folds and the digests are the same.
-    Rows of unequal width, or with a norm too small for a safe division, keep every pair.
-
-    白话：去重原来每隔 10 帧把所有 active/dormant 实体两两用纯 Python 比一遍，实体越积越多，
-    每帧摊到的开销就随帧数平方增长。这里先用矩阵运算把"余弦明显低于门槛或距离明显超过上限"的
-    对排除掉，余量 1e-6 远大于浮点误差；留下的少数对仍由原来的标量函数逐一判定，所以合并结果
-    逐字节不变。它不改变去重规则，也不是新的阈值。
+    Rows of unequal width, or with a norm too small for a safe division, keep every pair.  The dedup rule and its
+    thresholds are unchanged.
     """
 
     count = len(entities)
@@ -1189,12 +1189,12 @@ def _apply_dedup(
 ) -> list[dict[str, Any]]:
     """Fold duplicate active or dormant entities, deterministically and identically for all arms.
 
-    白话：每隔登记的帧数，把外观、位置和包围盒都足够接近的一对实体（active 或 dormant，
-    裁决 76 (2)(a)；retracted 不参加）合并成一条记录，保留较早建立的身份并保存两边证据；
-    合并后的位置和框取两者中较晚被看到的那一条（同一帧看到的两条取并框、质心按观测数
-    加权），任一方 active 则合并结果为 active，否则仍为 dormant。它是五个方法逐字节共用的确定性规则，
-    不是学习决定；canonical 取首版本最早、并列取 ID 字典序最小，使身份连续率以最早
-    建立的身份为准。
+    Every ``period_ticks`` frames, pairs of active or dormant entities (ruling 76 (2)(a); retracted entities do not take
+    part) that pass the cosine, centroid-distance and box-IoU tests are folded, highest cosine first.  The canonical
+    record is the one whose first version opened earliest (ties: the smaller ``entity_id``), so identity continuity
+    follows the earliest identity.  The survivor keeps the evidence of both records, takes the geometry of the more
+    recently observed one (same tick: the union box and the observation-count-weighted centroid) and is active if
+    either record was, dormant otherwise.  All arms run this rule byte-identically; it is not a learned decision.
 
     What happens to the folded record (D-224-X ruling X6).  The folded
     entity's id goes into the canonical's ``canonical_of`` and every one of
@@ -1343,9 +1343,8 @@ def entity_tokens(
 ) -> list[dict[str, Any]]:
     """Serialize memory as one fixed-field token per entity (D-224-G).
 
-    白话：输入当前记忆，输出每个实体一行、字段顺序固定的 token，供下游世界模型或
-    规划器消费。例如对象中心世界模型可以只读这些 token 做状态转移预测。它不含
-    house ID、实例 ID、teacher 或任何私有量，也不是首篇的实验对象。
+    The rows (``ENTITY_TOKEN_FIELDS`` order) are for a downstream world model or planner.  They carry no house ID,
+    instance ID, teacher or private value, and they are not an experimental subject of the paper (METHOD section 3).
     """
 
     validate_memory(memory, copy=False)
@@ -1384,9 +1383,8 @@ def entity_tokens(
 def frame_delta(memory: Mapping[str, Any], *, tick: int | None = None) -> dict[str, Any]:
     """Return the sparse residual for one committed frame (D-224-G).
 
-    白话：输入记忆和一个帧号，输出该帧只改动了哪些实体、各自被哪个原子改动，以及
-    共享维护造成的休眠与去重。例如一帧里只有一个 BIND 和一个 BIRTH 时，残差只列
-    这两个实体。它让世界模型不必每帧重算整份记忆。
+    It lists the entities the frame changed and by which atom (NOOP excluded), the dormancy and dedup changes of the
+    shared maintenance, and the folded entities, so a world model need not re-read the whole memory each frame.
     """
 
     validate_memory(memory, copy=False)
@@ -1430,9 +1428,9 @@ def frame_delta(memory: Mapping[str, Any], *, tick: int | None = None) -> dict[s
 def validate_entity_memory_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
     """Check that the S0-01 machine contract agrees with this implementation.
 
-    白话：输入 S0-01 机器合同，输出同一份合同的副本，并在原子集合、状态机、token
-    字段顺序或授权位与本实现不一致时抛错。例如合同里多出一个第六原子会被拒绝。
-    它不检查那些仍为 null 的数值，只检查结构与本实现同值。
+    Returns a copy of the contract.  Raises when the atoms (e.g. a sixth atom), composites, states, state machine, token
+    field order, version record, entity-box rule, dedup rule or authorization bits disagree with this module, or when a
+    shared dormancy / dedup value is neither null and registered as open nor equal to the frozen constant.
     """
 
     _require(type(contract) is dict, "contract_not_object")
@@ -1509,7 +1507,8 @@ def validate_entity_memory_contract(contract: Mapping[str, Any]) -> dict[str, An
     # A registered value is either still open, and then it must say so in
     # policy_values_without_defaults, or frozen, and then it must have left that
     # list and equal the constant this implementation binds (D-224-S1 ruling 24;
-    # the five values were frozen by ruling 67 on 2026-09-24).
+    # the five values were frozen by ruling 67 on 2026-09-24, the dedup values
+    # re-frozen by rulings 68 and 77).
     open_values = contract["policy_values_without_defaults"]
     frozen = {
         ("shared_dormancy", "dormancy_missed_opportunity_limit", "dormancy_missed_opportunity_limit"): DORMANCY_MISSED_OPPORTUNITY_LIMIT,
