@@ -10,6 +10,8 @@
 
 ## 当前看板
 
+**2026-10-09: code review for readers (LOG-315)** — L0 runs again (src/ equals the freeze); tag `paper-v1` marks the state that produced the paper; METHOD Section 13 maps every paper component to code; earlier-direction code, six one-off scripts and `ops/remote/` left `main`; comments translated. Reproduce from `paper-v1`.
+
 **2026-10-08 补记：S4 编译通过、LLM-op 附表补齐（LOG-311）**——E1 在 B1 只读导出（0 个问题）：LLM-op 那条 episode 在长度、色块密度与多数臂的节点 F1 上不反常，规则臂在这条上同样几乎全错撤；METHOD 追加两处更正；MiKTeX 编译 0 处溢出、12 页，正文与参考文献超 RA-L 上限约 2 页。
 
 **2026-10-08 补记：S4 论文英文稿 v0 已写出（LOG-310）**——`paper/`，RA-L 格式、未编译；主张按裁决 113 的措辞，表与图由脚本从已提交导出生成，参考文献逐条核实，独立复核的必改与应改已改；缺图 1、LLM-op 附表（E1）、作者与发布链接。
@@ -6073,3 +6075,41 @@ D1～D3 只调用冻结的 `lean_s3_05`／`lean_teacher` 函数；D4、D6、D8 �
   - T3 `Jsun0632/vsmt-lean-s3-train`：1,113 项、189.37 GiB（train 的 raw／几何／instance cache／sam2 cache），cache 条目对 S3-02 导出无差异，清单 `8a23fa7a…`，verify 通过，revision `d0396685929460b65496883b6007df5f6f23c0c9`。
   - README 的“论文所用的 HF revision”表补齐 T2、T3 两行；四个仓库的卡片已于 20:04 换成裁决 114 的正式卡片（只加 README 与许可文件，不动数据，上表 revision 仍是数据 revision）。
 - 机器：发布完成后 B1 关机（不释放）。B1 上仍有不在 HF 的东西：S3-07 的 3RScan 派生数据与运行根（按裁决 114-3 不能公开）、各阶段的完整运行日志；AutoDL 连续关机 15 天会释放实例，释放前须确认不再需要重跑 S3-07。
+
+### LOG-315: Code review for readers — L0 restored, tag `paper-v1`, code map, earlier-direction code removed from `main`, comments translated (2026-10-09, Sydney)
+
+**Request and approval.** The user asked for a review of the whole code base from the point of view of a reader who wants to match the paper to the code, for a code map, and for the archiving of scripts that serve only server operations, with every change to `src/`, `ops/` or `configs/` ruled on first. After a read-only review and a plan with five rulings, the user approved all recommendations: 「全按推荐，开始实施。顺带也把之前DATA.md的提交也处理一下吧，都已经吧3RSCAN弄完了」 ("all as recommended, start; also deal with the earlier DATA.md change, 3RScan is done").
+
+**Found before any change (read-only).**
+
+1. The L0 command of the README (`ops/vsmt/s3_06_reanalysis.py run`) was refused on `main` with exit code 2 since the merge `8e0be28` (2026-10-08), which put `src/vsmt/lean_hf_release.py` into `src/` after the freeze; the last `main` commit on which it ran was `30f91d3`.
+2. The full test suite had failed on `main` since `2b50a12` (2026-10-08): 1,877 tests, 1 failure, 6 skipped. `test_every_root_reading_entry_calls_the_guard` found that `ops/vsmt/s4_llm_op_context.py` takes `--cache-root` without the ruling-103 test-seal guard. Deterministic (a text check), not the laptop's CPU.
+3. The S3-05 code check (`lean_s3_04.verify_freeze`) holds only at the freeze commit `dea8c20` and the run commit `8d58475`: by Git content, `main` differed from the receipt by 11 added files (S3-06 reanalysis, S3-05R release and fetch, S4 context exporter) and no changed file. (On this laptop the working-tree digests also differ by line endings; Git content does not.)
+4. `src/vsmt/__init__.py` and `src/cpmt/__init__.py` imported 26 earlier-direction modules and the CPMT executor, so importing any `lean_*` module loaded 45 modules, `graph_ops` and `cpmt.executor` among them. METHOD Section 13 and the README stated the boundary only at source level.
+5. Besides `cpmt.hashing`, `l1_entities`, `l1_structures`, `shared_frontend_core` and `vm04_public_visibility`, the current code also needs `l1_masks`, `vm04_observation_runner`, `ops/vsmt/vm04_two_house_worker.py`, four `vm04_*` contracts and one schema.
+6. File names do not give roles: `ops/vsmt/lean_s1_02a_pilot.py` is the S3-02 data generator, `lean_s2_05_node_audit.py` the audit runner of S3-03 and S3-05, and `ruling82_seed_analysis.py`, `ruling88_probes.py`, `ruling89_probes.py`, `ruling89_train.py`, `ruling95_reading.py` are imported or run by S2-06 and S3-03.
+7. Review by a sub-agent acting as a first-time reader (228 files: 31 core method, 68 reproduction entry points and their dependencies, 21 operations or one-off analyses, 108 earlier directions): every method component, metric, statistic, arm, table and figure of the paper was located in code, except Fig. 4(c) and Section V-F, whose 3RScan code is on branch `s3-07-impl`. Main readability problems: stale docstrings (`lean_model` described the recipe registered before ruling 89 and labelled the paper's schedule, clipping and prior correction "pending"; the node audit described itself as a diagnostic for ruling 70; "five arms", "seven metrics", AABB-grid visibility in several modules); stale statements in METHOD Sections 5, 7 and 13 (`SharedMemoryWrapper` and `CommonPostUpdateAudit` do not exist; the front end does not import `d223_f01_production_reader.py`); Chinese text in 28 of 28 `lean_*` modules (796 lines) and 43 of 49 `ops` Python files (611 lines); six `lean_*` modules over 1,000 lines.
+8. Outside the scope of this task, recorded and not changed: the ELU-P persistence hazard is fitted per object and frame over all frames (`lean_development.EluPCounter`) but subtracted only on frames in which the entity should be visible and is unmatched (`lean_arms.elu_p_existence`); the rule is registered and frozen, and the test has been read. The paper's "at least one point in 64" is exact only for entities whose latest evidence has one fragment; the code applies a ratio of 1/64 over all tested surface points.
+
+**Changes (single-responsibility commits).**
+
+| Commit | Change |
+|---|---|
+| `3b39bd4` | `src/vsmt/lean_hf_release.py` moved to `ops/vsmt/` (five import lines); `src/` and `configs/` equal `dea8c20` again (ruling 1) |
+| `5c82a02` | `s4_llm_op_context.py` calls the seal guard on what it reads (the S3-03 run root and `<cache root>/validation`, not the cache root, whose sealed `test/` child would refuse the documented command); two tests (ruling 3) |
+| `7cec16b` | `docs/DATA.md` translated; Sections 9 and 10 brought up to date (S3-02 counts, the 3RScan check as run); replaces the uncommitted 2026-10-03 note, which is a subset of the 2026-10-07 notes on `s3-07-impl` (`21ce79d`) |
+| tag `paper-v1` | annotated, on `7cec16b`: the state that produced the manuscript |
+| `8434b99` | removed from `main`: 50 `src` modules of earlier directions, 5 VM-04 `ops` scripts, 42 contracts, 48 test modules, `experiments/`, 12 schemas, 1 fixture; package `__init__` files emptied; three tests moved from live reference implementations to recorded values (ruling 2, L2) |
+| `5c84fde` | removed the six one-off scripts of rulings 93–97 and their two tests (ruling 2) |
+| `37ec280` | `ops/remote/` untracked and ignored; the files stay in the maintainer's checkout (ruling 4) |
+| `b9c8d0a`, `6a27d17`, `e52c295` | comments and docstrings of `src/` (27 modules), `ops/` (45 files) and four tests translated and corrected; scripts' docstrings now state their current role (ruling 5) |
+| `72176d3`, `ac89107` | METHOD Section 13 code map (every name checked against the code) and dated corrections in Sections 5 and 7; README and REPRODUCE point every reproduction step to `paper-v1` and name the scripts behind four committed files; new `src/`, `tests/`, `data/`, `outputs/` READMEs |
+
+**Verification.**
+
+- L0 on `5c82a02` (code identical to `paper-v1`): exit 0, D1 replay equal, the 19 reading keys of D2–D8 identical to the committed `vsmt_lean_s3_06_reanalysis_cd3ee83.json` (only commit, environment, inputs list and times differ); also on a clone before R1 was committed (57 s, 8 workers, Windows; the committed export was computed on Linux).
+- Full suite: before 1,877 tests, 1 failure; after R2 1,879, OK (6 skipped); after the removal (`8434b99`) 1,365, OK (3 skipped); after the removal of the ruling-93–97 scripts and the comment pass (`e52c295`) 1,360, OK (3 skipped); the five tests removed with those scripts account for the difference.
+- Comment pass: for every edited Python file the syntax tree with docstrings removed equals `5c82a02`, and every edited shell file equals it without full-line comments (script check); the source text of `camera_pose` in the generator, which `s3_02_manifest` compares across commits, is unchanged. Chinese lines: `src/` 790 → 7, `ops/` 609 → 23, tests 15 → 6; what remains is verbatim user quotes and string literals (for example `plain_language_zh` values), which are data.
+- The paper is unchanged; `results/` is unchanged.
+
+**Not done.** `s3-07-impl` is still not merged; no code licence chosen; the long functions and modules are documented, not split; the `plain_language_zh` fields and Chinese error messages are string literals and stay as they are.
