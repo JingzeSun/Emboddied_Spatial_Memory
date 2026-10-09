@@ -127,5 +127,33 @@ class MainTests(unittest.TestCase):
         self.assertEqual(code, ctx.EXIT_REFUSED)
 
 
+class SealGuardTests(unittest.TestCase):
+    """The guard covers the validation directory it reads, so a sealed test root beside it does not refuse the run."""
+
+    def setUp(self) -> None:
+        if str(ROOT / "src") not in sys.path:
+            sys.path.insert(0, str(ROOT / "src"))
+        from vsmt import lean_test_seal
+
+        self.seal = lean_test_seal
+        self.tmp = tempfile.TemporaryDirectory()
+        self.cache_root = Path(self.tmp.name) / "cache"
+        (self.cache_root / "validation").mkdir(parents=True)
+
+    def tearDown(self) -> None:
+        self.tmp.cleanup()
+
+    def test_a_sealed_test_root_beside_validation_does_not_refuse(self) -> None:
+        self.seal.write_marker(self.cache_root / "test", kind="instance_cache", state=self.seal.STATE_PENDING)
+        self.assertIsNotNone(self.seal.refusal([self.cache_root], reader="x"))  # the parent itself is covered
+        self.assertIsNone(ctx.sealed_refusal([self.cache_root / "validation"]))
+
+    def test_a_marker_on_the_read_directory_refuses(self) -> None:
+        self.seal.write_marker(self.cache_root / "validation", kind="instance_cache", state=self.seal.STATE_PENDING)
+        refusal = ctx.sealed_refusal([self.cache_root / "validation"])
+        self.assertIsNotNone(refusal)
+        self.assertIn("s4-llm-op-context", refusal)
+
+
 if __name__ == "__main__":
     unittest.main()

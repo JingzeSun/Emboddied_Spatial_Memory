@@ -196,6 +196,20 @@ def front_context(front: str, run_root: Path, cache_root: Path, freeze: Mapping[
     }
 
 
+def sealed_refusal(paths: Sequence[Path]) -> str | None:
+    """The test-seal guard (ruling 103) on what this script reads: the S3-03 run root and ``<cache root>/validation``.
+
+    The guard is given the validation directory, not the cache root named on the command line: a marker in a directory
+    directly below a path also covers that path, and the cache root is the parent of the sealed test root.
+    """
+
+    if str(ROOT / "src") not in sys.path:
+        sys.path.insert(0, str(ROOT / "src"))
+    from vsmt import lean_test_seal
+
+    return lean_test_seal.refusal(paths, reader="s4-llm-op-context")
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="S4 E1: read-only context for the LLM-op appendix table")
     parser.add_argument("--run-root", required=True, type=Path)
@@ -214,6 +228,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     missing = [front for front in FRONTS if front not in cache_roots]
     if missing:
         print(f"refused: no --cache-root for {missing}", file=sys.stderr)
+        return EXIT_REFUSED
+    refusal = sealed_refusal([args.run_root, *(Path(cache_roots[front]) / "validation" for front in FRONTS)])
+    if refusal:
+        print(f"refused: {refusal}", file=sys.stderr)
         return EXIT_REFUSED
     head = git("rev-parse", "HEAD").strip()
     out_dir = args.out_dir if args.out_dir.is_absolute() else ROOT / args.out_dir
