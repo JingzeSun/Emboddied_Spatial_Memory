@@ -1,246 +1,289 @@
-# VSMT-lean 数据与观测合同（D-224）
+# VSMT-lean data and observation contract (D-224)
 
-本文件只定义 VSMT-lean 的数据来源、划分、生成规则、三种读取面、字段、标签与评价文件。旧 VM-04 各版数据协议、D-210 地点路线、SH/R4 物理数据合同已随分支 `archive/pre-d224-unified-graph` 归档。全部内容为 **proposed**：未生成任何 episode，未下载任何新资产；数值凡写"null"者在 S0 登记规则、在 S1/S3 按规则选择。
+> This file defines only the data of VSMT-lean (the lean version of Versioned Structural Memory Transactions, i.e. versioned entity-lifecycle transactions; decision D-224): sources, splits, generation rules, the three read surfaces, fields, labels, evaluation files and leakage checks, and the external-validation data of stage S3-07. The data protocols of the earlier VM-04 versions, the D-210 place route and the SH/R4 physical data contracts are archived with the branch `archive/pre-d224-unified-graph`.
+>
+> Status: implemented and in use. The formal ProcTHOR data were generated in S3-02 and released on Hugging Face, the test split was read once in S3-05, and the 3RScan external check (S3-07) has been run (Sections 9 and 10). At registration all content was **proposed**: no episode had been generated and no new asset downloaded; for every value written as "null", S0 registered the rule and S1/S3 selected the value by that rule. Sections keep their registration-time wording; later changes are given as dated rulings and corrections, and frozen values are in the contracts `configs/vsmt/lean_*.json`. Rulings are recorded in [DECISIONS.md](DECISIONS.md), run evidence (LOG-n) in [EXECUTE.md](../EXECUTE.md), stage IDs (S0-01 to S4) in [PLAN.md](PLAN.md), and the method in [METHOD.md](METHOD.md).
+>
+> Note (2026-10-09, decision D-224-DOC): this file was translated from Chinese; the original is under tag `docs-zh-2026-10-09`.
 
-## 一、来源与划分
+## 1. Sources and splits
 
-来源是 ProcTHOR-10K 作者 `train` 分区的 house，经 AI2-THOR 5.0.0 CloudRendering 渲染。它解决"手工路线太少、没有外部锚点"的问题；输入是作者分区的完整 house 清单，输出是按 house 互斥的三个 manifest。例如某个 house 落入 test 后，它的任何帧不得出现在 train 或 validation。它不复用旧 12 槽路线，不使用 3RScan 或真实数据。
+The source is the houses of the authors' `train` partition of ProcTHOR-10K, rendered with AI2-THOR 5.0.0 CloudRendering. It addresses the shortage of hand-made routes and the lack of an external anchor. The input is the complete house list of the authors' partition; the output is three manifests that are disjoint by house: once a house falls into test, none of its frames may appear in train or validation. The old 12-slot route is not reused, and neither 3RScan nor real data is used (3RScan enters only the external check of Section 10).
 
-| 项 | 规则 |
+| Item | Rule |
 |---|---|
-| 划分 | 对 house ID 与登记 seed 的哈希取前缀排序；**先** 100 个入 test、随后 50 个入 validation、再 300 个入 train（proposed；D-224-X 裁决 X6 把分配顺序改为 test→validation→train，这样 S3-01 按成品率下调 train 时 test 与 validation 成员一个都不变）。代价是 seed 与 test/validation 规模必须在 S1-02a 第一条 episode 生成前冻结，此后只允许 train 下调；S1 的 50 个开发 house 就是 train 块的前 50 个 |
-| 小试 | S1 只取 train 前缀前 50 个 house |
-| 互斥 | 按 house；同一 house 只生成一条 episode |
-| 失败 | 生成失败的 house 保留 receipt，不替换、不补样 |
+| Split | Houses are sorted by the prefix of the hash of the house ID and the registered seed; **first** 100 go to test, then 50 to validation, then 300 to train (proposed; D-224-X ruling X6 changed the assignment order to test→validation→train, so that when S3-01 lowers train according to the yield, no test or validation member changes). The cost is that the seed and the test/validation sizes must be frozen before the first S1-02a episode is generated, after which train may only be lowered; the 50 S1 development houses are the first 50 of the train block |
+| Pilot | S1 takes only the first 50 houses of the train prefix |
+| Disjointness | By house; one episode per house |
+| Failure | A house whose generation fails keeps its receipt; it is neither replaced nor resampled |
 
-## 二、路线与干预生成
+## 2. Routes and intervention generation
 
-**覆盖式重访路线** 解决"干预后的物体必须有机会被重新看见"的问题。输入是 house 的可达位置（生成器专用构造信息，不进入任何方法），输出是执行前登记的完整动作序列。例如路线先经过客厅、厨房，中途在卧室停留，再返回客厅与厨房。它不给方法暴露可达图，不保证每个物体都被看见。
+The **coverage-and-revisit route** ensures that an object changed by an intervention has a chance to be seen again. Its input is the reachable positions of the house (construction information used only by the generator, never entering any method); its output is the complete action sequence, registered before execution. For example, the route first passes the living room and the kitchen, stops in the bedroom, and returns to the living room and the kitchen. It does not expose the reachability graph to any method and does not guarantee that every object is seen.
 
-| 项 | 规则 |
+| Item | Rule |
 |---|---|
-| 动作 | 平移 0.25 m、转身 90°、俯仰 30°；`snapToGrid=true`、`forceAction=false`、`gridSize=0.25`、`rotateStepDegrees=90` |
-| 渲染 | 224×224、垂直 FOV 90°、depth 与 instance segmentation 开启 |
-| 路线 | 覆盖式行走，保证每个受干预容器在干预后至少重访一次；动作总数上限 `maximum_actions`＝4000（裁决 40，2026-09-21；原 2000 记 superseded）是**范围边界**而不是科学预算：需要更多步数才能完成覆盖与重访的 house 不在数据集范围内，记构造失败并计入成品率，执行中不截断 |
-| 关键帧 | 每个保存的公开观察都是关键帧（沿用 `every_saved_public_observation`） |
+| Actions | Move 0.25 m, turn 90°, pitch 30°; `snapToGrid=true`, `forceAction=false`, `gridSize=0.25`, `rotateStepDegrees=90` |
+| Rendering | 224×224, vertical field of view 90°, depth and instance segmentation enabled |
+| Route | Coverage walk that revisits every intervened container at least once after the intervention; the action cap `maximum_actions` = 4000 (ruling 40, 2026-09-21; the original 2000 is recorded as superseded) is a **scope boundary**, not a scientific budget: a house that needs more steps to complete coverage and revisit is outside the dataset, is recorded as a construction failure and counts against the yield; execution is never truncated |
+| Keyframes | Every saved public observation is a keyframe (as in `every_saved_public_observation`) |
 
-**不可观测窗口干预** 解决"记忆必须在看不见时被世界改变"的问题。输入是当前视锥与已登记的可动物体，输出是干预日志。例如机器人在卧室时，客厅的杯子被移走、椅子被搬到厨房。它只在涉及容器不在当前视锥内时执行，判定沿用 D-199～D-204 的公开可见性机制；它不在视野内瞬移物体。
+**Unobserved-window interventions** make the world change while the memory cannot observe it. Input: the current view frustum and the registered movable objects; output: the intervention log. For example, while the robot is in the bedroom, the cup in the living room is removed and a chair is moved to the kitchen. An intervention is executed only when the containers involved are outside the current view frustum, decided with the public visibility mechanism of D-199 to D-204; objects are never teleported within view.
 
-| 项 | 规则 |
+| Item | Rule |
 |---|---|
-| 数量 | 每 episode 至多 10 件可动物体（proposed） |
-| 类型 | `remove`：移出场景；`move`：搬到同 house 另一可用容器；`add`：从该 house 自有物体池新增到可用容器 |
-| 窗口 | 涉及的源/目标容器均不在当前视锥内；窗口起止帧写入 provenance |
-| 失败 | 干预执行失败保留前缀，整条 episode 记 construction failure，不换物体、不换 house |
+| Number | At most 10 movable objects per episode (proposed) |
+| Kinds | `remove`: taken out of the scene; `move`: moved to another available container in the same house; `add`: added from the house's own object pool to an available container |
+| Window | The source and target containers involved are all outside the current view frustum; the window's start and end frames are written to provenance |
+| Failure | If an intervention fails to execute, the prefix is kept and the whole episode is recorded as a construction failure; neither the object nor the house is changed |
 
-### 设计提案 R1：覆盖式重访路线规划（proposed，未实现，待审）
+**Correction (2026-10-09, recorded in EXECUTE LOG-310, item 2; the tables above are left unchanged)**: the frozen S0-02 contract `configs/vsmt/lean_s0_intervention_data_v3.json` caps interventions at `maximum_interventions_per_episode` = 6 (D-224-S1 rulings 23/24, see the re-review below), and ruling 53 (2026-09-23) defines the window as the last `window_frames` = 30 frames of the transition, with `minimum_window_frames` = 20 as its lower bound; a transition shorter than the window fails the house instead of shortening the window. This supersedes the whole-transition window of Revision 1 below.
 
-**为什么不能盲规划。** `forceAction=false` 意味着撞墙的动作会如实失败，因此路线必须先拿到可达集再规划，否则一条登记好的动作序列会在执行中半途报废。可达集是**构造期信息**，写进 provenance 面，不进 public 面，方法永远看不到它。
+### Design proposal R1: coverage-and-revisit route planning (proposed, not implemented, pending review)
 
-**第一步，可达图。** 向模拟器取可达位置，吸附到 0.25 m 网格，相邻格（相距 0.25 m）连边，得到四邻接移动图。
+**Why the route cannot be planned blind.** With `forceAction=false`, an action into a wall fails as it would physically, so the route must be planned on the reachable set; otherwise a registered action sequence breaks off during execution. The reachable set is **construction-time information**: it is written to the provenance surface, not to the public surface, and no method ever sees it.
 
-**第二步，"覆盖"到底指什么** —— 这是本提案最关键的一处选择：
+**Step 1: reachability graph.** Query the simulator for reachable positions, snap them to the 0.25 m grid and connect adjacent cells (0.25 m apart), giving a 4-connected movement graph.
 
-| 口径 | 含义 | 评价 |
+**Step 2: what "coverage" means.** This is the most important choice of the proposal:
+
+| Definition | Meaning | Assessment |
 |---|---|---|
-| **A（推荐）** | 每个合格容器在干预前被观察到至少一次、干预后至少一次 | 正是论文需要的性质：记忆先见过，之后有机会改正。可判定、可计数 |
-| B | 走遍所有可达格 | 一个 house 常有数千格，2000 步走不完；而且**没有任何主张需要空间遍历** |
+| **A (recommended)** | Every eligible container is observed at least once before the intervention and at least once after | Exactly the property the paper needs: the memory has seen the container and later has a chance to correct itself. Decidable and countable |
+| B | Visit every reachable cell | A house often has thousands of cells and 2000 steps do not suffice; moreover, **no claim requires spatial traversal** |
 
-选 A 等于把"覆盖"定义成对**实体**的覆盖而不是对**空间**的覆盖。
+Choosing A defines coverage over **entities** rather than over **space**.
 
-**第三步，视点选择。** 对每个合格容器，取满足以下条件的可达格：与容器质心的水平距离落在 `[d_min, d_max]`（null，待冻结），且容器中心能落进 90° 视锥。确定性取距离最小者，并列取网格序最小者。
+**Step 3: viewpoint selection.** For every eligible container, take the reachable cells whose horizontal distance to the container centroid lies in `[d_min, d_max]` (null, to be frozen) and from which the container centre falls inside the 90° view frustum. Take the nearest one deterministically; ties go to the smallest grid order.
 
-**第四步，巡游。** 从起始位姿出发的确定性最近邻巡游，并列按网格序。**不做 2-opt** —— 局部搜索的迭代顺序会让结果依赖实现细节，而路线必须是 (house, 冻结参数) 的纯函数。
+**Step 4: tour.** A deterministic nearest-neighbour tour from the start pose, ties broken by grid order. **No 2-opt**: the iteration order of a local search would make the result depend on implementation details, whereas the route must be a pure function of (house, frozen parameters).
 
-**路线结构。**
+**Route structure.**
 
 ```text
-起始 → 扫掠一：逐个走到合格容器视点并转向注视
-     → 过渡段：走到与待干预容器互不可见的区域
-     → 【干预窗口：全部干预在此执行】
-     → 扫掠二：重访被干预容器的视点
-     → 结束
+start → sweep 1: walk to each eligible container's viewpoint and turn to look at it
+      → transition: walk to a region from which the containers to be intervened on are not visible
+      → [intervention window: all interventions are executed here]
+      → sweep 2: revisit the viewpoints of the intervened containers
+      → end
 ```
 
-**格间路径。** 可达图上的 BFS 最短路（并列按网格序），再编码为动作：先转向目标格方向，再 `MoveAhead`。不使用 `MoveLeft/Right/Back` 平移——保持朝向平移会让同一段路在不同朝向下产生完全不同的观察序列，而编码规则越简单越可复算。
+**Paths between cells.** Breadth-first search (BFS) shortest path on the reachability graph (ties by grid order), encoded as actions: first turn towards the target cell, then `MoveAhead`. `MoveLeft/Right/Back` are not used: moving while keeping the heading would produce completely different observation sequences for the same path under different headings, and the simpler the encoding rule, the easier it is to recompute.
 
-**预算。** 2000 步约等于 500 m 纯平移；ProcTHOR house 跨度约 10–20 m，两遍扫掠加转向后预算宽松。触顶记构造失败，不截断。
+**Budget.** 2000 steps are about 500 m of pure translation; a ProcTHOR house spans about 10–20 m, so two sweeps with turns leave ample budget. Reaching the cap is a construction failure, not a truncation.
 
-**它不保证什么。** 不保证每个物体被看见（只保证合格容器）；不保证视点真的看得清（几何上落进视锥 ≠ SAM 能分割出来，这要到 S1-04 的 IoU 诊断才知道）；不向任何方法暴露可达图。
+**What it does not guarantee.** That every object is seen (only eligible containers are); that a viewpoint gives a clear view (falling geometrically inside the frustum does not mean that SAM (Segment Anything Model) can segment the object, which only the intersection-over-union (IoU) diagnostics of S1-04 can show). It exposes the reachability graph to no method.
 
-### 设计提案 I1：干预选择（proposed，未实现，待审）
+### Design proposal I1: intervention selection (proposed, not implemented, pending review)
 
-**先穷举再抽样，不做顺序重试。**
+**Enumerate first, then sample; no sequential retries.**
 
-1. **合格物体**：可拾取、位于某容器内或其上、在扫掠一中被观察到、且不是 agent 自身或结构件。
-2. **合格容器**：持有至少一个合格物体（`remove`/`move` 的源），或有空位（`move`/`add` 的目标）。
-3. **穷举可行三元组** `(物体, 类型, 窗口)`：逐个检查该窗口内所有相关容器是否**逐帧**不可见，得到可行集合 F。
-4. **抽样**：用 `RNG(sha256(冻结 seed, house_id))` 从 F 中无放回抽取至多 `maximum_interventions_per_episode` 个，同一物体至多入选一次。
+1. **Eligible objects**: pickupable, inside or on some container, observed during sweep 1, and neither the agent itself nor a structural element.
+2. **Eligible containers**: hold at least one eligible object (source of `remove`/`move`) or have free space (target of `move`/`add`).
+3. **Enumerate the feasible triples** `(object, kind, window)`: check for each triple that all containers involved are invisible **in every frame** of the window, giving the feasible set F.
+4. **Sampling**: with the random number generator (RNG) `RNG(sha256(frozen seed, house_id))`, draw without replacement at most `maximum_interventions_per_episode` triples from F, each object at most once.
 
-**为什么必须先穷举。** 顺序抽样加失败重抽会系统性偏向"容易藏起来的位置"上的物体——那等于按可藏性挑样本。先穷举则每个可行干预入选概率相同，而 `|F|` 本身就是一个诚实的成品率诊断量，可以直接写进回执。
+**Why enumeration must come first.** Sequential sampling with redraws on failure systematically favours objects in easily hidden places, i.e. it selects samples by hideability. With enumeration first, every feasible intervention has the same probability of selection, and `|F|` itself is an honest yield diagnostic that can be written directly into the receipt.
 
-**RNG 不引入新种子**：它由已冻结的划分 seed 与 house_id 派生，因此整条 episode 仍是 (house, 冻结参数) 的纯函数。
+**The RNG introduces no new seed**: it is derived from the frozen split seed and `house_id`, so the whole episode remains a pure function of (house, frozen parameters).
 
-**已知风险，如实登记。** ProcTHOR 多为开放式布局，"所有相关容器逐帧不可见"可能很难满足。若 `|F|` 经常为 0，成品率会很低——**那时触发的是规模裁决，不是放宽窗口条件**。窗口条件是这批数据的科学前提，放宽它等于换一个更容易的问题。
+**Known risk, registered as such.** ProcTHOR layouts are mostly open-plan, so "all containers involved invisible in every frame" may be hard to satisfy. If `|F|` is often 0, the yield will be low; **that triggers a scale ruling, not a relaxation of the window condition**. The window condition is the scientific premise of this data; relaxing it would amount to switching to an easier problem.
 
-### 三项待裁决（阻塞实现）
+### Three items awaiting ruling (blocking implementation)
 
-| # | 事项 | 可选口径 |
+| # | Item | Options |
 |---|---|---|
-| 1 | 覆盖口径 | **A：对合格容器覆盖**（推荐）／ B：走遍可达格（预算不够且无主张需要） |
-| 2 | `add` 的物体从哪来 | (a) 用本 episode 早先 `remove` 掉的物体——与 remove 耦合；(b) 复制一个已有物体——出现两个同款，身份判定变难，**可能正是想要的压力，也可能是噪声**；(c) 用 house 里尚未被观察到的物体——它没有"之前的记忆"，此时 BIRTH 才是正确答案 |
-| 3 | 视点距离 `[d_min, d_max]` | 需给定；太近看不全容器，太远 fragment 太小 |
+| 1 | Coverage definition | **A: coverage of eligible containers** (recommended) / B: visit every reachable cell (budget insufficient, and no claim needs it) |
+| 2 | Where `add` objects come from | (a) an object `remove`d earlier in the same episode, which couples `add` with `remove`; (b) a copy of an existing object: two identical objects appear and identity decisions get harder, **possibly exactly the desired pressure, possibly noise**; (c) an object of the house not yet observed: it has no earlier memory, and BIRTH is then the correct answer |
+| 3 | Viewpoint distance `[d_min, d_max]` | Must be given; too close and the container is not fully seen, too far and fragments are too small |
 
-另有两个数值待冻结：`maximum_interventions_per_episode`、`minimum_yield`；`maximum_actions` 已由用户定为 2000，与这两个一并冻结以免再触发一次版本级联。
+Two further values are to be frozen: `maximum_interventions_per_episode` and `minimum_yield`; `maximum_actions` was set to 2000 by the user and is frozen together with these two, to avoid triggering another version cascade.
 
-### 复审修订（2026-09-20，换模型后重审 R1／I1；proposed，待用户裁决）
+### Re-review revisions (2026-09-20, R1/I1 re-reviewed after a model switch; proposed, awaiting the user's ruling)
 
-用户对 R1／I1 的初裁为：覆盖用 A；`add` 用 (b)；`[d_min, d_max]`=[0.75, 2.5]；`maximum_interventions_per_episode`=6；`minimum_yield`=0.6。重审后，这些裁决**大体成立**，但原提案有五处会改变数据语义的漏洞，另有四处工程风险。以下逐条给出问题、后果与修订建议；未经用户批准前，全部为 proposed。
+The user's initial rulings on R1/I1: coverage A; `add` option (b); `[d_min, d_max]` = [0.75, 2.5]; `maximum_interventions_per_episode` = 6; `minimum_yield` = 0.6. On re-review these rulings **largely hold**, but the original proposal has five gaps that would change the semantics of the data and four engineering risks. Each item below gives the problem, its consequence and the proposed revision; all are proposed until approved by the user.
 
-**修订一：干预窗口必须是整段过渡，且有最小长度——否则"面壁一帧"就能满足条件。** 原提案只要求"涉及容器在窗口内逐帧不可见"，没有规定窗口长度。一个偷懒的规划器只要让 agent 转身面壁一帧、把所有干预一次做完、再转回来，就逐帧满足了条件。这在标签上没错。**更正（LOG-233）**：本条最初以"dormancy 永远不触发"为由，那是把机制说反了——S0-01 的休眠按"应可见却未匹配"的次数累计，而窗口内被干预容器本就不可见、不产生应可见事件，休眠累计发生在扫掠二重访空容器时，与窗口长短无关。真正的理由有两条：其一，对照臂 ELU-P 的 `persistence_log_decay_per_tick` 按 tick 衰减，窗口长短直接决定它遗忘多少，这是全部臂共见的数据分布参数，必须登记并在回执里报告分布，否则对照的行为取决于一个没写下来的量；其二，一帧过渡使路线结构退化为扫掠二紧接扫掠一，与修订五要防的"转移 ⇒ 变化"先验纠缠。修订：窗口＝扫掠一最后一个视点到扫掠二第一个视点之间的**整段过渡**，其全部帧都必须满足不可见；新增登记值 `minimum_window_frames`（null，待冻结；工程下限，建议 20 帧≈5 m 行程），窗口短于它记 `intervention_window_unavailable`；回执记录每条 episode 的窗口帧数。它与 dormancy 上限无关。
+**Revision 1: the intervention window must be the whole transition and have a minimum length; otherwise facing a wall for one frame satisfies the condition.** The original proposal only required the containers involved to be invisible in every frame of the window, without fixing the window length. A lazy planner could turn the agent to face a wall for one frame, execute all interventions at once and turn back, satisfying the condition frame by frame; the labels would still be correct. **Correction (LOG-233)**: this item was first motivated by "dormancy would never trigger", which inverts the mechanism: the S0-01 dormancy counts "should be visible but not matched" events; the intervened containers are invisible during the window and produce no such events, and dormancy accumulates when sweep 2 revisits emptied containers, independently of the window length. There are two actual reasons. First, the control arm ELU-P (METHOD Section 9) decays per tick through `persistence_log_decay_per_tick`, so the window length directly determines how much it forgets; this is a data-distribution parameter seen by all arms and must be registered, with its distribution reported in the receipt, or the control's behaviour would depend on an unrecorded quantity. Second, a one-frame transition degenerates the route structure into sweep 2 directly following sweep 1, which is entangled with the "transition ⇒ change" prior that Revision 5 guards against. Revision: the window is the **whole transition** from the last viewpoint of sweep 1 to the first viewpoint of sweep 2, and all its frames must satisfy invisibility; a new registered value `minimum_window_frames` (null, to be frozen; an engineering lower bound, 20 frames ≈ 5 m of travel suggested), with shorter windows recorded as `intervention_window_unavailable`; the receipt records the window length of every episode. It is unrelated to the dormancy limit.
 
-**修订二：`move` 必须在扫掠二同时重访源与目标，重访顺序是一个带标签的选择。** 原提案写"重访被干预容器"，对 `move` 含糊。若只重访源容器，记忆只能得出"没了"→ RETRACT，永远没有机会 REACTIVATE，身份连续率在被搬动物体上就没有任何正例。修订：`move` 的源与目标视点都进扫掠二。**顺序不是无关紧要的**：先源后目标，记忆先看到缺席（RETRACT 或 NOOP）、再在目标处重见（REACTIVATE 或 BIND 到 dormant）；先目标后源，物体在旧实体仍活动时出现在别处，记忆要判 BIND（搬动）还是 BIRTH（新物）。两种顺序考的是不同能力。建议：每个 `move` 的重访顺序由派生 RNG 决定，使数据集两种情形都有，而不是只考一种。
+**Revision 2: for `move`, sweep 2 must revisit both source and target, and the revisit order is a labelled choice.** The original proposal says "revisit the intervened containers", which is ambiguous for `move`. If only the source is revisited, the memory can only conclude "gone" → RETRACT and never has a chance to REACTIVATE, so identity continuity has no positive case on moved objects. Revision: both the source and the target viewpoints of a `move` enter sweep 2. **The order matters**: source first, the memory first sees the absence (RETRACT or NOOP) and then sees the object again at the target (REACTIVATE, or BIND to the dormant entity); target first, the object appears elsewhere while its old entity is still active, and the memory must decide between BIND (moved) and BIRTH (new object). The two orders test different abilities. Proposal: the revisit order of each `move` is decided by a derived RNG, so that the dataset contains both cases rather than testing only one.
 
-**修订三：可行集 F 必须对共享窗口联合计算，不是逐三元组独立计算。** 原 I1 逐个三元组判窗口可行，但一条 episode 只有一个窗口，6 个干预最多牵涉 12 个容器，它们必须在**同一段**过渡里全部不可见。修订：先定过渡段，算出该段内始终不可见的容器集合 U，则 F＝所有相关容器都落在 U 内的三元组；再从 F 抽至多 6 个。实际入选数往往小于 6，回执记 `|U|`、`|F|` 与实际数。pilot 阶段每条 episode 一个窗口；是否允许多窗口留到 S1-02b 看数据再裁。
+**Revision 3: the feasible set F must be computed jointly for the shared window, not independently per triple.** The original I1 judges window feasibility per triple, but an episode has only one window, and 6 interventions involve up to 12 containers, all of which must be invisible within **the same** transition. Revision: first fix the transition and compute the set U of containers that stay invisible throughout it; F is then the set of triples whose containers all lie in U; at most 6 are drawn from F. The number actually selected is often below 6; the receipt records `|U|`, `|F|` and the actual number. In the pilot each episode has one window; whether to allow several windows is ruled after the S1-02b data are seen.
 
-**修订四："在扫掠一中被观察到"必须用像素阈值定义，且这一条顺带解决 d_max 的问题。** 若"观察到"只按几何（落进视锥）判定，一个 3 像素的边角也算见过，可前端根本不会为它生成 fragment，记忆里就没有这个实体——干预它就是干预一个从未存在的东西。修订：合格物体在扫掠一至少一帧中的**可见像素 ≥ 196**，与 D-215 冻结的 SAM proposal 下限同源，用私有 instance segmentation 在构造期判定（写 provenance，不进 public）。这条同时回应 `d_max`=2.5：按 224 px／90° 竖直视场算，每度约 2.5 px，一个 10 cm 的物体在 2.5 m 处只占约 5.7 px（面积约 33 px²，远低于 196），在 1.0 m 处约 14 px（约 204 px²，刚过线），在 0.75 m 处约 19 px（约 361 px²）；30 cm 的物体在 2.5 m 处约 17 px（约 292 px²）尚可。所以 2.5 m 只对大件成立。但 R1 本来就取**最近**的合格视点，2.5 只是搜索上限，实际距离多接近 0.75；再加 196 px 门槛自校正——小物体在远视点自动不合格。因此**保留 [0.75, 2.5]**，但必须写明它是搜索范围而非目标距离，并加像素门槛。
+**Revision 4: "observed during sweep 1" must be defined by a pixel threshold, which also settles `d_max`.** If "observed" is decided only geometrically (inside the frustum), a 3-pixel corner counts as seen, yet the front end would never produce a fragment for it and the memory would have no such entity; intervening on it would intervene on something that never existed. Revision: an eligible object has **≥ 196 visible pixels** in at least one frame of sweep 1, the same threshold as the SAM proposal minimum frozen by D-215, decided at construction time from the private instance segmentation (written to provenance, not to public). This also answers `d_max` = 2.5: at 224 px over a 90° vertical field of view, one degree is about 2.5 px; a 10 cm object at 2.5 m covers only about 5.7 px (area about 33 px², far below 196), at 1.0 m about 14 px (about 204 px², just above the threshold), and at 0.75 m about 19 px (about 361 px²); a 30 cm object at 2.5 m covers about 17 px (about 292 px²), which is acceptable. So 2.5 m holds only for large objects. But R1 takes the **nearest** eligible viewpoint anyway: 2.5 is only the search limit and actual distances are mostly near 0.75, and the 196 px threshold is self-correcting, since small objects automatically fail at distant viewpoints. Therefore **[0.75, 2.5] is kept**, stated as a search range rather than a target distance, together with the pixel threshold.
 
-**修订五：加入无干预的空过渡，否则"长途转移 ⇒ 有变化"成为数据集结构捷径，且假撤回率无内容。** 路线结构固定为"扫掠一→过渡→扫掠二"，若每段过渡后都有变化，学习臂可以学到"离开一段时间后，回来就该改记忆"这个与观测无关的先验。五臂共享同一数据，对比仍公平，但它污染"记忆修订能力"的解释。修订：每条 episode 以登记概率 `p_null_window`（null，待冻结，建议 0.2）执行**零干预**的过渡，路线不变；这类 episode 正是假撤回率的真正考题（什么都没变，记忆不该撤回任何东西）。成品率在**非空**episode 上计算，空 episode 按设计成功。
+**Revision 5: add empty transitions without interventions; otherwise "long transition ⇒ change" becomes a structural shortcut of the dataset and the false-retract rate has no content.** The route structure is fixed as sweep 1 → transition → sweep 2; if every transition is followed by changes, the learned arms can acquire the observation-independent prior "after being away for a while, revise the memory on return". All five arms share the same data, so the comparison stays fair, but the prior contaminates the interpretation as memory-revision ability. Revision: each episode executes a **zero-intervention** transition with the registered probability `p_null_window` (null, to be frozen; 0.2 suggested), with the route unchanged; such episodes are the real test of the false-retract rate (nothing changed, so the memory should retract nothing). Yield is computed on **non-empty** episodes; empty episodes succeed by design.
 
-**修订六：6 个干预 × 全有或全无的失败规则，会把成品率乘成很低。** S0-02 规定任一干预执行失败整条 episode 记构造失败。AI2-THOR 的 `PutObject` 会因目标容器空间不够而失败；6 个干预里只要一个放不下就废掉整条。修订建议（二选一，需裁）：(i) 在枚举 F 时用模拟器的容器可放置查询预筛，把放不下的三元组从 F 剔除，保持全有或全无；(ii) 改规则为"单个干预失败记入回执并计数，episode 继续"——这动 S0-02 已审语义，须另开版本。推荐 (i)。
+**Revision 6: 6 interventions × an all-or-nothing failure rule multiply the yield down.** S0-02 records the whole episode as a construction failure if any intervention fails. AI2-THOR's `PutObject` fails when the target container lacks space; one of 6 interventions not fitting voids the whole episode. Proposed revision (one of two, to be ruled): (i) pre-filter with the simulator's receptacle-placement query while enumerating F, removing triples that do not fit, and keep all-or-nothing; (ii) change the rule to "a failed single intervention is recorded and counted in the receipt, and the episode continues", which changes reviewed S0-02 semantics and needs a new version. (i) is recommended.
 
-**修订七：视点选择必须同时定俯仰。** 原提案只说"转向注视"。地面容器与台面容器需要不同俯仰（0°、−30°、+30° 三档），视点＝(格点, 朝向, 俯仰) 三元组，取使容器中心落进视锥且距离最小者。
+**Revision 7: viewpoint selection must also fix the pitch.** The original proposal only says "turn to look at it". Floor-level and countertop containers need different pitches (three levels: 0°, −30°, +30°); a viewpoint is a triple (cell, heading, pitch), and the nearest one that puts the container centre inside the frustum is taken.
 
-**修订八：`add`=(b) 依赖模拟器能复制已有物体，签名未验。** 服务器上 AI2-THOR 5.0.0 的构建 DLL 含 `CreateObject／SpawnAsset` 字样，Python 客户端不封装但动作按字符串透传，应可用；**冻结 (b) 之前须在 pilot 前用一次只读的动作签名探测确认**，若该构建不支持，(b) 不可选。另记 (b) 的语义后果：复制件与原件描述子几乎相同，且原件仍在原位，正确答案是 BIRTH；这会抬高 S0-04 X1 的 `identity_ambiguous` 比例与压低 S1-04 的分离度——这是想要的压力，但要在诊断里单列复制件。
+**Revision 8: `add` = (b) depends on the simulator being able to copy an existing object; the action signature is unverified.** The AI2-THOR 5.0.0 build DLL on the server contains the strings `CreateObject`/`SpawnAsset`; the Python client does not wrap them, but actions are passed through by name, so they should be usable. **Before (b) is frozen, a read-only action-signature probe before the pilot must confirm it**; if the build does not support it, (b) is unavailable. Semantic consequence of (b): the copy and the original have nearly identical descriptors and the original stays in place, so the correct answer is BIRTH; this raises the share of `identity_ambiguous` in S0-04 X1 and lowers the separation measured in S1-04. This is the desired pressure, but copies must be reported separately in the diagnostics.
 
-**修订九：`minimum_yield`=0.6 需要精确定义，且不在 pilot 上判。** 定义为**house 级**：一条非空 episode 至少成功执行一个干预即成功；成品率＝成功数／非空计划数。0.6 在 4 条 pilot 上没有分辨力（一败 0.75、两败 0.5），**该门只在 S1-02b 的 50 条上判**；pilot 只记录 `|U|`、`|F|`、实际干预数与失败原因分布，用于判断 0.6 是否现实。
+**Revision 9: `minimum_yield` = 0.6 needs a precise definition and is not judged on the pilot.** Defined **per house**: a non-empty episode succeeds if at least one intervention executes successfully; yield = successes / planned non-empty episodes. On the 4 pilot episodes 0.6 has no resolution (one failure gives 0.75, two give 0.5), so **the gate is judged only on the 50 episodes of S1-02b**; the pilot only records `|U|`, `|F|`, the actual number of interventions and the distribution of failure reasons, to judge whether 0.6 is realistic.
 
-**修订十（小项）。** 派生 RNG 加用途标签（`sha256(seed, house_id, "intervention")`／`"revisit_order"`／`"null_window"`），避免同一随机流被复用；起始位姿取 house 自带的 `metadata.agent`（ProcTHOR 每个 house 都登记了位置、朝向与 30° 初始俯仰）；可达集写入 provenance，使路线可在模拟器漂移时仍按记录复算。
+**Revision 10 (minor).** Derived RNGs carry a purpose tag (`sha256(seed, house_id, "intervention")` / `"revisit_order"` / `"null_window"`) so that no random stream is reused; the start pose is the house's own `metadata.agent` (every ProcTHOR house registers a position, a heading and an initial pitch of 30°); the reachable set is written to provenance so that the route can be recomputed from the record if the simulator drifts.
 
-**复审后需一并冻结的登记值**（三项旧的加三项新的）：
+**Registered values to be frozen together after the re-review** (three existing and three new):
 
-| 值 | 用户初裁 | 复审建议 |
+| Value | User's initial ruling | Re-review recommendation |
 |---|---|---|
-| `maximum_actions` | 2000 | 维持 |
-| `maximum_interventions_per_episode` | 6 | 维持，作为上限；实际数按联合窗口 |
-| `minimum_yield` | 0.6 | 维持，按 house 级、非空 episode、S1-02b 才判 |
-| `viewpoint_distance_m` | [0.75, 2.5] | 维持，写明为搜索范围；加 196 px 门槛 |
-| `minimum_window_frames` | — | **新增**，工程下限，建议 20；理由是 ELU-P 的按 tick 衰减与路线结构，不是 dormancy |
-| `p_null_window` | — | **新增**，建议 0.2 |
+| `maximum_actions` | 2000 | Keep |
+| `maximum_interventions_per_episode` | 6 | Keep, as an upper bound; the actual number follows the joint window |
+| `minimum_yield` | 0.6 | Keep; per house, on non-empty episodes, judged only at S1-02b |
+| `viewpoint_distance_m` | [0.75, 2.5] | Keep, stated as a search range; add the 196 px threshold |
+| `minimum_window_frames` | — | **New**, engineering lower bound, 20 suggested; the reason is ELU-P's per-tick decay and the route structure, not dormancy |
+| `p_null_window` | — | **New**, 0.2 suggested |
 
-**复审后维持的裁决**：覆盖口径 A；`add`=(b)（以动作签名探测为前提）；`move` 重访顺序随机（新）。
+**Rulings kept after the re-review**: coverage definition A; `add` = (b) (conditional on the action-signature probe); random `move` revisit order (new).
 
-### S1-02b 实测后修订（2026-09-20，proposed，待裁决 25～32；LOG-236／237）
+### Revisions after the S1-02b run (2026-09-20, proposed, awaiting rulings 25 to 32; LOG-236/237)
 
-白话：46 个 house 真跑了一遍，非空成品率 0.378，门（0.6）没过；更严重的是事后审计发现 **87 个"成功执行"的 `add` 没有一个进入私有真值**——`SpawnAsset` 造出来的复制件在 RGB／深度里能渲染，却永远不进实例分割，所以 teacher 看不到它，标签会说"什么都没发生"。下面每条都已写成代码、默认关闭，并在四个曾失败的 house 上做过 smoke（LOG-237）；开不开由用户裁。
+The S1-02b run of 46 houses reached a non-empty yield of 0.378, below the 0.6 gate, and none of the 87 `add` interventions that executed successfully entered the private truth (row 30). Each revision below is implemented in code, disabled by default, and smoke-tested on four houses that had failed (LOG-237); whether to enable it is the user's ruling.
 
-| 编号 | 实测问题 | 修订（proposed） | 证据 | 不等于什么 |
+| No. | Observed problem | Revision (proposed) | Evidence | Does not mean |
 |---|---|---|---|---|
-| 25 | 门未过，按风险表触发规模裁决；且现有 14 条非空 episode 的 `add` 在私有真值里全部缺失 | 修好下面各条后，在**新提交**下把全部 50 条（含 pilot 4 条）按同一 seed 重生成到新输出根；旧运行整份保留为"门未过＋真值缺失"记录 | LOG-236／237 | 不是只重跑失败的 house，也不是下调 house 数 |
-| 26 | `remove` 用 `RemoveFromScene` 时 Unity 在生成元数据阶段抛 NullReferenceException，客户端 100 s 超时；7/7 次、换新控制器仍复现 | `remove` 改用 `DisableObject`；物体仍留在模拟器元数据里但 `visible=false`，实例掩码键整个消失；provenance 记 `executor` | 探测 B；六轮 smoke 里 **23/23 个 remove 在扫掠二 0 像素、扫掠一 ≥202 像素** | 不是物理删除；不改 public/private 字段 |
-| 27 | `MoveAhead` 被椅子／门／自家复制件挡住（7 个 house）：可达格只保证能站，不保证相邻两格之间能走 | 被拒绝的格间边加入黑名单并写 provenance，从真实位姿重算剩余路点；上限 32 次 | smoke 中 00406 的椅子边 `[39,30]-[39,31]` 两段各绕行 1 次后成功；06453 扫掠二绕行 1 次 | 不是随机重试，不改 BFS＋先转后进的路线规则 |
-| 28 | `PlaceObjectAtPoint` 只试第一个预筛点 | **被 31 取代**：多试几个点仍不够（8 点、32 点各 4/4 house 失败），因为"有生成点"既不保证放得下也不保证看得见 | smoke `36bcc06`／`d09178b` | — |
-| 29 | 成功 episode 里 81 个干预全是 `add`：F 按三元组均匀抽，add 占九成 | 抽样改为**先类型后三元组**（`--stratify-by-kind`） | 单元测试：同一 F 上均匀抽 add 占 >80%，分层后 <60%；smoke 中四个 house 的样本为 remove／add／move 混合 | 不是按可藏性挑样本，不动 U／F 的定义 |
-| 30 | `SpawnAsset` 复制件渲染但**永不进入实例分割**，`Initialize` 也救不回；现有数据 87/87 个 add 私有真值缺失 | `add` 改为**搬运一个从未被渲染过（至今 0 像素）的真实物体**到 U 容器（`--add-source unseen_existing`，PlaceObjectAtPoint）；对记忆仍是 BIRTH，且实例分割能登记 | 探测 `results/vsmt_lean_s1_add_visibility_probe_v1.json`；23 个成功 house 里 19 个有 ≥1 个未见小物体（中位约 4）；dry-run smoke 里 3/3 个 add 在扫掠二 ≥204 像素 | 不再是"复制件"——(b) 想要的同描述子身份歧义压力随之消失，只有 9/23 house 有"未见但同资产"的天然复制件 |
-| 31 | 预筛只看"容器有生成点"：放不下（抽屉柜、垃圾桶）或放下了看不见（马桶内、桌子远侧）都算可行，执行时整条作废 | **窗口内 dry-run**：对每个 (物体, U 目的容器) 对真的放一次（最多 32 个均匀间隔点）、瞬移到该容器的重访视点用私有渲染偷看（≥196 像素）、再 `TeleportObject` 放回；只有成功对进 F 并记住那个点；表写 provenance（试了几点、最好像素、放回偏移） | smoke `e240076`：4/4 house 成功，13/13 个干预在扫掠二可辨；dry-run 46／1／28／68 对中可行 2／0／11／26；放回偏移 ≤7 cm，3 次放回报失败已改为重试＋失败即整条作废 | 偷看帧不进 public、不计入观察序列；窗口内容器本就不可见 |
-| 32 | 同一容器放两次，后一次可能被前一次挡住 | dry-run 模式下抽样限制**每个目的容器至多一次放置**（remove 不限） | 单元测试 | 不限制 remove |
+| 25 | Gate not passed, which triggers a scale ruling per the risk table; moreover, the `add` interventions of all 14 existing non-empty episodes are missing from the private truth | After the items below are fixed, regenerate all 50 episodes (including the 4 pilot episodes) with the same seed under a **new commit** into a new output root; keep the old run in full as the record "gate not passed + truth missing" | LOG-236/237 | Not re-running only the failed houses, and not lowering the house count |
+| 26 | With `RemoveFromScene`, Unity throws a NullReferenceException while generating metadata and the client times out after 100 s; reproduced 7/7 times, also with a fresh controller | `remove` uses `DisableObject`; the object stays in the simulator metadata with `visible=false` and its instance-mask key disappears entirely; provenance records `executor` | Probe B; in six smoke rounds **23/23 removes have 0 pixels in sweep 2 and ≥202 pixels in sweep 1** | Not a physical deletion; public/private fields unchanged |
+| 27 | `MoveAhead` blocked by chairs, doors or the house's own copies (7 houses): a reachable cell only guarantees that the agent can stand there, not that it can move between two adjacent cells | Rejected cell-to-cell edges are blacklisted and written to provenance, and the remaining waypoints are replanned from the true pose; at most 32 times | In smoke, the chair edge `[39,30]-[39,31]` of 00406 succeeded after one detour in each of two segments; 06453 needed one detour in sweep 2 | Not a random retry; the BFS + turn-then-advance route rule is unchanged |
+| 28 | `PlaceObjectAtPoint` tries only the first pre-filtered point | **Superseded by 31**: trying more points is still insufficient (with 8 and with 32 points, 4/4 houses failed), because having a spawn point guarantees neither that the object fits nor that it is visible | smoke `36bcc06`/`d09178b` | — |
+| 29 | All 81 interventions in the successful episodes are `add`: F is sampled uniformly over triples, and `add` makes up nine tenths of it | Sample **kind first, then triple** (`--stratify-by-kind`) | Unit test: uniform sampling on the same F gives >80% `add`, stratified sampling <60%; in smoke the samples of the four houses mix remove/add/move | Not selecting samples by hideability; the definitions of U/F are unchanged |
+| 30 | `SpawnAsset` copies render but **never enter the instance segmentation**, and `Initialize` does not recover them; in the existing data 87/87 `add` interventions are missing from the private truth | `add` instead **moves a real object that has never been rendered (0 pixels so far)** into a U container (`--add-source unseen_existing`, `PlaceObjectAtPoint`); for the memory it is still a BIRTH, and the instance segmentation registers it | Probe `results/vsmt_lean_s1_add_visibility_probe_v1.json`; 19 of 23 successful houses have ≥1 unseen small object (median about 4); in the dry-run smoke 3/3 adds have ≥204 pixels in sweep 2 | No longer a copy: the same-descriptor identity-ambiguity pressure intended by (b) disappears; only 9/23 houses have natural "unseen but same asset" copies |
+| 31 | The pre-filter only checks that the container has spawn points: objects that do not fit (chests of drawers, bins) or that fit but cannot be seen (inside a toilet, on the far side of a table) count as feasible, and the whole episode is voided at execution | **In-window dry run**: for every (object, U target container) pair, actually place the object once (up to 32 evenly spaced points), teleport to that container's revisit viewpoint and peek with a private rendering (≥196 pixels), then put the object back with `TeleportObject`; only successful pairs enter F, with the point remembered; the table goes to provenance (points tried, best pixel count, put-back offset) | smoke `e240076`: 4/4 houses succeeded, 13/13 interventions identifiable in sweep 2; of 46/1/28/68 dry-run pairs, 2/0/11/26 feasible; put-back offset ≤7 cm; the 3 put-backs that reported failure now retry, and a failure voids the whole episode | Peek frames do not enter public and are not counted in the observation sequence; the containers are invisible during the window anyway |
+| 32 | Placing twice into one container: the second placement may be blocked by the first | In dry-run mode, sampling allows **at most one placement per target container** (no limit for remove) | Unit test | No limit on remove |
 
-另有 3 个 house 触到 2000 步上限、2 个 U＝0，按合同就是构造失败，不建议为它们改值。**注意 dry-run 的代价**：可行的放置对明显减少（例如 00406 只剩 2 对），episode 的干预数会低于 6；这是"只造可辨的干预"的代价，不是 bug。
+In addition, 3 houses hit the 2000-step cap and 2 had U = 0; under the contract these are construction failures, and no value change is recommended for them. **Cost of the dry run**: the feasible placement pairs drop markedly (e.g. only 2 pairs remain in 00406), and episodes get fewer than 6 interventions; this is the cost of creating only identifiable interventions, not a bug.
 
-**裁决 25～32 已于 2026-09-20 批准并落地**（DECISIONS D-224-S1 补充裁决 25～32；规则文已就地写入 S0-02 v3）。重生成结果见 LOG-238：S1-02b 非空成品率 0.556，门 0.6 仍未过，但 78/78 个干预在扫掠二可辨；dry-run 把 S1-02b 墙钟从 21 分钟拉到 72 分钟，把 9 个 house 的可行集压成空。
+**Rulings 25 to 32 were approved and implemented on 2026-09-20** (DECISIONS D-224-S1 supplementary rulings 25 to 32; the rule text is written in place into S0-02 v3). Regeneration results in LOG-238: S1-02b non-empty yield 0.556, still below the 0.6 gate, but 78/78 interventions identifiable in sweep 2; the dry run raised the S1-02b wall-clock time from 21 to 72 minutes and emptied the feasible set of 9 houses.
 
-### 第二次重生成后修订（2026-09-21，裁决 33～38 已批准；LOG-238／239）
+### Revisions after the second regeneration (2026-09-21, rulings 33 to 38 approved; LOG-238/239)
 
-白话：`4bff1a8` 的 50 条核对下来有三件事比"门没过"更要紧。第一，扫掠二只重访被干预的容器，20 条非空 episode 重访了 44 个容器、44 个全变，"被重访 ⇒ 有变化"是 100% 的结构捷径；空窗口 episode 没有扫掠二，也从不经过可行性和触顶检查，于是大房子（99 个容器、扫掠一 1915 步）和开放小户型只以空窗口身份存活，"房子很大或很开阔 ⇒ 没变化"也成了捷径。第二，容器可见性主体从"最后一次站在视点格上的那一帧"封印，而 972/1521 个容器在那一帧里是 0 像素——几个容器共用一个视点格时只有最后一个朝向对，或者 agent 后来路过了那个格子；只有 411 个容器能封印，U 总数 188，且偏向放进去看不见的抽屉门板。第三，move 因此只有 11 个（源先重访 7 个），而 identity_continuity 与 REACTIVATE 正例只来自 move，主张一没有统计力。
+Findings on the 50 episodes generated at `4bff1a8`. Sweep 2 revisited only intervened containers (44 containers in 20 non-empty episodes, all 44 changed), so "revisited ⇒ changed" was a 100% structural shortcut; null-window episodes had no sweep 2 and skipped the feasibility and cap checks, so large houses (99 containers, 1915 sweep-1 steps) and open small layouts survived only as null-window episodes, which made "large or open house ⇒ no change" a shortcut as well. Container visibility was sealed from the last frame in which the agent stood on the viewpoint cell, in which 972 of 1521 containers had 0 pixels (when several containers share a viewpoint cell only the last heading is right, or the agent later passed that cell), so only 411 containers could be sealed and U totalled 188, biased towards drawer fronts that hide placed objects. Consequently there were only 11 moves (7 with the source revisited first), while identity continuity (`identity_continuity`) and REACTIVATE positives come only from moves, leaving claim one without statistical power.
 
-| 编号 | 问题 | 修订（已批准并落地） | 不等于什么 |
+| No. | Problem | Revision (approved and implemented) | Does not mean |
 |---|---|---|---|
-| 33 | 门未过；且 `4bff1a8` 数据带扫掠二捷径 | 修完下面各条后在新提交下第三次重生成全部 50 条 | 不是拿 0.556 的数据进 S1-03 |
-| 34 | 扫掠二只重访被干预容器；空窗口无扫掠二、不经可行性检查 | **双生控制**：每个被干预容器配一个对照容器，优先从 U 减被干预集合里抽、必须持有 ≥1 个扫掠一里看见过的合格物体，U 不够才从 U 外补并登记数目；变与不变按派生 RNG 交错。空窗口 episode 走同一流程（U、dry-run、抽样、对照、路线、触顶）只跳过执行，按同样规则失败，仍不进成品率 | 不是重访全部容器；对照不从过渡段里看见过的容器或空容器里抽 |
-| 35 | 视点帧 0 像素，U 极小且偏向抽屉 | 容器可见性主体从扫掠一中像素最多的帧封印，≥512 像素才封印。只读重算：可封印 411 → 1332，U 188 → 670，11 个可行集空的 house 里 8 个仅靠 remove 就非空 | 不改 512 像素或 196 像素阈值 |
-| 36 | move 太少 | S3-01 train 块 move ≥120、源先重访 ≥60，不达标触发规模裁决；S1 只报告数字 | 不改抽样规则，不补样 |
-| 37 | `is_null_window(seed, house_id)` 由公开量决定，目录名就是 house id | 空窗口抽签混入仓库外的私有盐，provenance 只登记盐的 sha256；runner 拒绝仓库内的盐路径 | 其他抽签不加盐 |
-| 38 | 合格物体像素在代码里累计到过渡段结束，合同写的是扫掠一 | 合格物体只数扫掠一帧；未见物体数到窗口前每一帧；`coverage_definition` 改写并新增 `revisit_set` 段 | — |
+| 33 | Gate not passed, and the `4bff1a8` data carry the sweep-2 shortcut | After the items below are fixed, regenerate all 50 episodes a third time under a new commit | Not taking the 0.556 data into S1-03 |
+| 34 | Sweep 2 revisits only intervened containers; null-window episodes have no sweep 2 and skip the feasibility check | **Twin controls**: every intervened container is paired with a control container, drawn preferably from U minus the intervened set, which must hold ≥1 eligible object seen in sweep 1; only if U is insufficient are controls taken from outside U, with their number registered; changed and unchanged revisits are interleaved by a derived RNG. Null-window episodes go through the same procedure (U, dry run, sampling, controls, route, cap) and skip only the execution; they fail by the same rules and still do not enter the yield | Not revisiting all containers; controls are not drawn from containers seen during the transition or from empty containers |
+| 35 | 0 pixels in the viewpoint frame; U very small and biased towards drawers | The container visibility subject is sealed from the sweep-1 frame with the most pixels, and only with ≥512 pixels. Read-only recomputation: sealable 411 → 1332, U 188 → 670; of the 11 houses with an empty feasible set, 8 become non-empty through remove alone | The 512-pixel and 196-pixel thresholds are unchanged |
+| 36 | Too few moves | The S3-01 train block needs ≥120 moves and ≥60 with the source revisited first; otherwise a scale ruling is triggered; S1 only reports the numbers | Sampling rules unchanged; no samples added |
+| 37 | `is_null_window(seed, house_id)` is determined by public quantities, and the directory name is the house ID | The null-window draw mixes in a private salt kept outside the repository; provenance registers only the salt's sha256; the runner rejects salt paths inside the repository | Other draws are not salted |
+| 38 | The code accumulated eligible-object pixels until the end of the transition, whereas the contract says sweep 1 | Eligible objects count only sweep-1 frames; unseen objects count every frame before the window; `coverage_definition` is rewritten and a `revisit_set` block added | — |
 
-**裁决 39／40／41（2026-09-21）**：dry-run 每个候选物体只随机测 U 里至多 8 个目的容器（S1 的 50 条无上限生成；回执记 pairs_tested／pairs_total／比值估计）；`maximum_actions` 2000 → 4000 作范围边界；对照规则不变、U 内／U 外比例如实报告且 U 外对照单列为较弱对照（第三次重生成里 145 个对照只有 16 个来自 U，结构性原因见 DECISIONS）。
+**Rulings 39/40/41 (2026-09-21)**: the dry run tests, for each candidate object, at most 8 randomly chosen target containers in U (the 50 S1 episodes were generated without this cap; the receipt records pairs_tested / pairs_total / the ratio estimate); `maximum_actions` 2000 → 4000 as a scope boundary; the control rule is unchanged, the in-U/out-of-U ratio is reported as it is, and out-of-U controls are reported separately as weaker controls (in the third regeneration only 16 of 145 controls came from U; the structural reason is in DECISIONS).
 
-附带的机制修正（不改规则）：被挡边割开视点格时在连通分量内重选最近合格视点；执行放置失败时重新取当前生成点逐点偷看、尝试表失败也写进 provenance；Floor 不再算容器；触顶错误带步数。仍留在范围声明里的限制：需要超过 4000 步才能完成覆盖与重访的 house 不在数据集范围内（裁决 40 把上限从 2000 调到 4000 并写明为范围边界，S1 只重生成触顶失败的 house）；`add` 的物体来自未见池（多为冰箱与抽屉内容物），BIRTH 结果须按物体类型单列；重访视点与扫掠一视点相同，未变物体的 BIND 偏易。
+Accompanying mechanism fixes (rules unchanged): when blocked edges cut off a viewpoint cell, the nearest eligible viewpoint is reselected within the connected component; when an executed placement fails, the current spawn points are fetched again and peeked one by one, and failed attempt tables are also written to provenance; `Floor` no longer counts as a container; cap errors carry the step count. Limitations that remain in the scope statement: houses that need more than 4000 steps to complete coverage and revisit are outside the dataset (ruling 40 raised the cap from 2000 to 4000 as a scope boundary, and S1 regenerated only the houses that had failed at the cap); `add` objects come from the unseen pool (mostly fridge and drawer contents), so BIRTH results must be reported separately by object type; revisit viewpoints equal the sweep-1 viewpoints, which makes BIND of unchanged objects easier.
 
-## 三、三种读取面
+## 3. The three read surfaces
 
-| 面 | 内容 | 谁可读 |
+| Surface | Content | Who may read |
 |---|---|---|
-| `public` | 逐帧 RGB `uint8[224,224,3]`、米制 depth `float32[224,224]`、内参、以观测 0 为原点的因果相对位姿、关键帧间动作摘要、frame digest | 前端 reader、五个方法、候选/特征计算 |
-| `private` | 逐帧 instance-mask stack、模拟器对象 ID 到稳定私有实体 ID 的映射、逐对象世界位置（x/y/z）与可见像素数、干预日志、由此派生的逐帧"已不在原处"标签与 fragment 主导实例 ID；**逐帧记录没有旋转与包围盒**（2026-09-22 服务器核实），整物体真值盒由下面的私有几何补充表提供（裁决 45） | 封存后的 teacher 与评价器；实例分割前端的 cache 生成器（裁决 72）只读下面列出的五项 |
-| `provenance` | append-only 动作与干预 journal、单调时钟、setup 记录 | 只有审计 |
+| `public` | Per-frame RGB colour image `uint8[224,224,3]`, metric depth `float32[224,224]`, intrinsics, causal relative pose with observation 0 as origin, action summary between keyframes, frame digest | Front-end reader, the five methods, candidate and feature computation |
+| `private` | Per-frame instance-mask stack, mapping from simulator object IDs to stable private entity IDs, per-object world position (x/y/z) and visible pixel count, intervention log, and the per-frame "no longer in place" labels and fragment dominant instance IDs derived from them; **the per-frame records carry no rotation and no bounding box** (checked on the server, 2026-09-22); whole-object truth boxes come from the private geometry supplement below (ruling 45) | The sealed teacher and the evaluator; the cache generator of the instance-segmentation front end (ruling 72) reads only the five items listed below |
+| `provenance` | Append-only action and intervention journal, monotonic clock, setup records | Audit only |
 
-白话：public 是机器人自己能拿到的东西，private 是只有上帝视角才知道的答案，provenance 是操作流水。任何 candidate/model reader 不得挂载 private 与 provenance；违反即整批失败。
+No candidate or model reader may mount `private` or `provenance`; a violation fails the whole batch.
 
-### 实例分割前端读私有面的边界（裁决 72，2026-09-25）
+### Boundary of the instance-segmentation front end's reads of the private surface (ruling 72, 2026-09-25)
 
-主表的色块来自模拟器实例分割，所以 S1-03 cache 生成器在 `--mask-source simulator_instance_masks` 下要读私有面，这是前端的定义，不是泄漏。它**只读五项**：私有逐帧记录的 `observation_index` 与 `frame_digest`（必须等于公开帧的帧号与摘要，否则整条 episode 失败）、`instance_mask_path`（必须是 private 目录里的文件名）、`object_id_to_entity_id` 的**标签值集合**，以及实例图 `NNNN.instance.png` 的像素。每个登记标签的像素区域变成一张匿名布尔 mask，按 mask 摘要排序后与 SAM 色块走同一准入（≥196 像素、每帧 ≤64、超过即构造失败）、同一 DINOv2 描述子、同一深度几何与体积。**不读、也不写进 cache 的**：标签值本身、对象 ID、对象类型、`object_poses`、`object_visibility`、真值盒、ID 映射本身、干预日志与整个 provenance 面。例如一帧里模拟器标了沙发（标签 1）、墙（标签 2）、杯子（标签 3），cache 里就是三个匿名色块，下游不知道哪个是沙发，也不知道它们在别的帧叫什么。它**不等于**把身份告诉方法：跨帧是不是同一个实体仍由方法从外观与位置判断。一个 cache 根只存一种来源；非 SAM2 来源写进 episode 封印（SAM2 封印保持原字节），S2-04／S2-05 入口必须声明来源并拒绝另一来源的 cache。SAM2 前端（`--mask-source sam2`）不读私有面，作鲁棒性附录。
+The fragments of the main table come from the simulator's instance segmentation, so the S1-03 cache generator under `--mask-source simulator_instance_masks` reads the private surface; this is the definition of the front end, not a leak. It **reads only five items**: `observation_index` and `frame_digest` of the private per-frame record (which must equal the frame index and digest of the public frame, or the whole episode fails), `instance_mask_path` (which must be a file name in the private directory), the **set of label values** of `object_id_to_entity_id`, and the pixels of the instance image `NNNN.instance.png`. The pixel region of each registered label becomes an anonymous boolean mask; after sorting by mask digest these masks go through the same admission as SAM fragments (≥196 pixels, ≤64 per frame, construction failure when exceeded), the same DINOv2 descriptor, and the same depth geometry and volumes. **Neither read nor written into the cache**: the label values themselves, object IDs, object types, `object_poses`, `object_visibility`, truth boxes, the ID mapping itself, the intervention log and the whole provenance surface. For example, if the simulator labels a sofa (label 1), a wall (label 2) and a cup (label 3) in a frame, the cache holds three anonymous fragments; downstream code does not know which is the sofa or what the fragments are called in other frames. This does **not** tell the methods identities: whether fragments in different frames are the same entity is still decided by the method from appearance and position. A cache root stores one source only; non-SAM2 sources are written into the episode seal (SAM2 seals keep their original bytes), and the S2-04/S2-05 entry points must declare the source and reject caches of the other source. The SAM2 front end (`--mask-source sam2`) does not read the private surface and serves the robustness appendix (promoted to the second main table by ruling 83-3).
 
-### 私有几何补充表 `object_geometry.json`（裁决 45，2026-09-22）
+### Private geometry supplement `object_geometry.json` (ruling 45, 2026-09-22)
 
-白话：它解决"评价器和 S1-04 诊断要真值整物体包围盒，而逐帧私有记录只有 x/y/z"这个缺口。输入是同一 house 在模拟器里的一次重载（house 自带的 agent 起始位姿、任何动作之前）；输出是每条 episode 一份表，每个物体一行：`object_id`、`asset_id`、`object_type`、`pickupable`、`receptacle`、`initial_position_world_m`、`initial_rotation_degrees`、`initial_aabb_center_world_m`、`initial_aabb_size_m`，外加观测 0 的相机世界位置 `episode_origin_world_m`（把世界坐标换到 public 位姿所用的 episode 系）。例如一把椅子初始盒中心 (3.1, 0.45, 2.0)、尺寸 (0.5, 0.9, 0.5)；第 t 帧私有记录说它在 (5.6, 0.45, 2.0)，那么第 t 帧的真值盒就是初始盒平移 (2.5, 0, 0) 再减去原点。它**不等于**逐帧真值：move/add 由 `PlaceObjectAtPoint` 执行、保持朝向，但放置后的物理沉降没有记录，是登记的残差；工具用未干预物体的位置漂移和帧 0 私有 mask 反投影点落在盒内的比例来报告这个残差。它由 S1-04 的重载工具在生成之后写到 S1-04 输出根下，不由 episode runner 写，不改已生成的三面文件，部署 reader 永远读不到。把各可见帧反投影点并起来的"观测集合盒"只是代理量，只在 S1-04 报告里作对照列。
+It fills the gap between the whole-object truth bounding boxes needed by the evaluator and the S1-04 diagnostics and the per-frame private records, which hold only x/y/z. Input: one reload of the same house in the simulator (at the house's own agent start pose, before any action). Output: one table per episode with one row per object: `object_id`, `asset_id`, `object_type`, `pickupable`, `receptacle`, `initial_position_world_m`, `initial_rotation_degrees`, `initial_aabb_center_world_m`, `initial_aabb_size_m`, plus `episode_origin_world_m`, the camera world position at observation 0 (which maps world coordinates into the episode frame of the public poses). Example: a chair with initial box centre (3.1, 0.45, 2.0) and size (0.5, 0.9, 0.5) is at (5.6, 0.45, 2.0) according to the private record of frame t; its truth box at frame t is the initial box translated by (2.5, 0, 0), minus the origin. It is **not** per-frame truth: `move`/`add` are executed by `PlaceObjectAtPoint`, which keeps the orientation, but physical settling after placement is not recorded and is a registered residual; the tool reports this residual through the position drift of non-intervened objects and the share of back-projected points of the frame-0 private masks that fall inside the box. The table is written after generation by the S1-04 reload tool under the S1-04 output root, not by the episode runner; it does not modify the three already generated surface files, and deployment readers can never read it. The "observation-set box" formed by the union of back-projected points over the visible frames is only a proxy and appears only as a comparison column in the S1-04 report.
 
-## 四、位姿与动作摘要
+## 4. Poses and action summaries
 
-公开位姿是以观测 0 为原点、由已注册动作推算的因果相对位姿；真值世界位姿只进 private。关键帧间动作摘要记录两帧之间已完成动作的步数、动作直方图与名义位移，不记录逐步动作列表。它解决"逐动作太长而模型输入膨胀"的问题；它不是里程计创新，也不把未来动作回灌。
+The public pose is a causal relative pose with observation 0 as origin, computed from the registered actions; true world poses go only into private. The action summary between keyframes records the number of completed actions between the two frames, the action histogram and the nominal displacement, not the step-by-step action list. It keeps the model input from growing with per-action detail; it is not an odometry contribution and does not feed future actions back.
 
-`relative_pose.quaternion_xyzw` 的约定是相机→世界旋转 Ry(yaw)·Rx(+pitch)，`cameraHorizon` 为正即低头，相机前向量的 y 分量为负；`position_m` 是世界位置减观测 0 相机位置。**裁决 49（2026-09-22，LOG-242 第三节）**：S1-02 生成器在 `c222c51`、`a397d16` 两个提交下写出的四元数把俯仰角符号写反（相机抬头 30°），已生成文件不改；所有用位姿反投影的读者（S1-03 cache、S1-04 几何残差与代理盒）按 S1-03 合同 `public_pose_correction` 登记的提交表在读取时翻回符号，不在表内的提交拒绝。以后按修好的编码器生成的数据登记到 `correct_encoder_since_code_commits` 后照原样读。
+Convention of `relative_pose.quaternion_xyzw`: camera-to-world rotation Ry(yaw)·Rx(+pitch); a positive `cameraHorizon` means looking down, and the y component of the camera forward vector is then negative; `position_m` is the world position minus the camera position at observation 0. **Ruling 49 (2026-09-22, LOG-242 section 3)**: the quaternions written by the S1-02 generator at commits `c222c51` and `a397d16` have the pitch sign inverted (camera looking up 30°); the generated files are not changed; every reader that back-projects with the pose (S1-03 cache, S1-04 geometric residuals and proxy boxes) flips the sign back at read time according to the commit table registered in the S1-03 contract `public_pose_correction`, and rejects commits not in the table. Data generated later with the fixed encoder are registered in `correct_encoder_since_code_commits` and read as they are.
 
-## 五、共享 cache 字段
+## 5. Shared cache fields
 
-| 字段 | 内容 |
+| Field | Content |
 |---|---|
-| `fragments[]` | `fragment_id`（packet-local 匿名）、mask 像素数、深度有效率、三维点数、质心、AABB、描述子（ViT-S/14 384 维；S1 另存 ViT-B/14 768 维，S1-05 后只保留选中的一套） |
-| `free_space` | 可靠深度射线穿过的体素集合与可靠性门 |
-| `visibility` | 视锥内、深度表面之前的体素集合 |
-| `surfaces[]` | 几何派生的水平支撑面 ID 与范围，供共享 `supported_by` 规则 |
-| `frame_seal`、`episode_seal` | 逐帧与逐 episode 封印摘要 |
+| `fragments[]` | `fragment_id` (packet-local, anonymous), mask pixel count, valid-depth ratio, number of 3D points, centroid, axis-aligned bounding box (AABB), descriptor (ViT-S/14, 384 dimensions; S1 additionally stores ViT-B/14, 768 dimensions; after S1-05 only the selected set is kept: ViT-B/14 with the shared re-identification (ReID) projection, LOG-245, LOG-261) |
+| `free_space` | Set of voxels traversed by reliable depth rays, and the reliability gate |
+| `visibility` | Set of voxels inside the view frustum and in front of the depth surface |
+| `surfaces[]` | IDs and extents of geometrically derived horizontal supporting surfaces, for the shared `supported_by` rule |
+| `frame_seal`, `episode_seal` | Per-frame and per-episode seal digests |
 
-五个方法读取同一 cache 的等字节 clone；cache 不含 house ID、场景名、对象 ID、标签值、位姿或真值盒。SAM2 来源的 cache 不含任何 private 派生量；实例分割来源（裁决 72，主表）的 cache 只含私有实例图的 mask 像素几何（经匿名化、按摘要排序，见第三节），episode 封印写明来源。
+The five methods read byte-identical clones of the same cache; the cache contains no house ID, scene name, object ID, label value, pose or truth box. A SAM2-sourced cache contains no private-derived quantity; an instance-segmentation-sourced cache (ruling 72, main table) contains only the mask pixel geometry of the private instance images (anonymized and sorted by digest, see Section 3), and the episode seal names the source.
 
-## 六、标签与封存文件
+## 6. Labels and sealed files
 
-| 文件 | 内容 | 生成时刻 |
+| File | Content | Written |
 |---|---|---|
-| `recall_seal.json` | 每帧每个 fragment 的召回实体列表与顺序、BIRTH 列、digest | private 打开前 |
-| `feature_matrix.npz` | 关联头、存在头、新建头的特征矩阵与列顺序、digest | private 打开前 |
-| `labels.npz` | 逐 fragment 目标列（哪个实体或 BIRTH）、逐实体"已不在"标签、`recall_miss` 标记 | 封存后 |
+| `recall_seal.json` | Per frame and fragment, the list and order of recalled entities, the BIRTH column, digest | Before private is opened |
+| `feature_matrix.npz` | Feature matrices and column order of the association, existence and birth heads, digest | Before private is opened |
+| `labels.npz` | Per-fragment target column (which entity, or BIRTH), per-entity "no longer present" label, `recall_miss` flag | After sealing |
 
-标签定义（D-224-LQ 裁决 N、P、Q）：fragment 的主导实例按实例 mask 重叠占比判定，分母是 fragment 全部像素；主导实例等于实体证据的严格多数实例为关联正例；实体对应实例已被 `remove`、或其当前质心离实体记住的质心超过 `δ_moved`（proposed 0.5 m，合同内为 null）为"已不在"正例，只对 `active` 与 `dormant` 候选给出；正确实体不在召回集合记 `recall_miss`。修改任何 private 文件而保持 public 不变时，`recall_seal` 与 `feature_matrix` 逐字节不变。同一帧内判定为同一物体、目标又是同一实体的多个 fragment，只有物体上像素最多的那个保留目标，其余记 `duplicate_of_labelled`（不进损失、不记任何错误类、单独计数；D-224-X 裁决 X1）；为此 teacher 的逐 fragment 私有输入除重叠表外还带公开的 `pixel_count`。
+Label definitions (D-224-LQ rulings N, P, Q): a fragment's dominant instance is determined by the share of instance-mask overlap, with all pixels of the fragment as the denominator; a fragment whose dominant instance equals the strict-majority instance of an entity's evidence is an association positive; an entity whose instance has been `remove`d, or whose instance's current centroid lies more than `δ_moved` (proposed 0.5 m; null in the contract) from the centroid remembered by the entity, is a "no longer present" positive, given only for `active` and `dormant` candidates; a correct entity missing from the recall set is recorded as `recall_miss`. When any private file is modified while public stays unchanged, `recall_seal` and `feature_matrix` remain byte-identical. When several fragments in one frame are judged to be the same object and target the same entity, only the one with the most pixels on the object keeps the target, and the others are recorded as `duplicate_of_labelled` (excluded from the loss, counted in no error class, counted separately; D-224-X ruling X1); for this, the teacher's per-fragment private input carries the public `pixel_count` in addition to the overlap table.
 
-## 七、评价文件
+## 7. Evaluation files
 
-| 粒度 | 内容 |
+| Granularity | Content |
 |---|---|
-| 逐帧 | 真值物体表（所有能被实体证据解析到的私有物体，各带 `present` 与 `in_scope` 标志，在场且自 episode 开始至少可观察过一次者为范围内；范围规则由评价器套用，裁决 Q 与 D-224-X 裁决 X6）、仍在记忆里（`active` 或 `dormant`；裁决 L）的实体框、最大权匹配（3D IoU 0.3）、每个真值物体的 Stable/Appeared/Missing/Moved 状态、已移走/搬动物体的原位置与原位置是否已对方法可观察、MRR 分子分母、污染占比、范围外实体数（解析到在场但范围外物体的实体，不进精确率分母；复审修订，LOG-225） |
-| 逐实体 | 是否假撤回、身份是否连续（搬动前承载实体列表与首次带标签重见的分配；裁决 M）、恢复延迟（自干预处首次可观察帧起；裁决 O） |
-| 逐 episode | contamination AUC、活动实体数、生命周期版本数（不含 BIND 版本；裁决 X6）、每帧运行时间、峰值内存、三分解计数（含 `duplicate_of_labelled` 计数） |
-| 逐 house | 上述量的聚合，供配对 bootstrap；某项指标在任一臂上为 null 的 house 在该指标上对所有臂一并排除并计数，绝不填补（裁决 X2） |
+| Per frame | Truth object table (all private objects that entity evidence can resolve to, each with `present` and `in_scope` flags; an object is in scope if it is present and has been observable at least once since the start of the episode; the scope rule is applied by the evaluator, ruling Q and D-224-X ruling X6), boxes of the entities still in memory (`active` or `dormant`; ruling L), maximum-weight matching (3D IoU 0.3), Stable/Appeared/Missing/Moved state of every truth object, original position of removed or moved objects and whether it has become observable to the method, numerator and denominator of the Missing residual rate (MRR), contamination share, number of out-of-scope entities (entities resolving to present but out-of-scope objects, excluded from the precision denominator; re-review revision, LOG-225) |
+| Per entity | Whether falsely retracted, whether the identity is continuous (list of carrier entities before the move and the assignment at the first labelled re-observation; ruling M), recovery latency (from the first frame at which the intervention site is observable; ruling O) |
+| Per episode | Contamination area under the curve (AUC), number of active entities, number of lifecycle versions (excluding BIND versions; ruling X6), runtime per frame, peak memory, counts of the three-way error decomposition (including the `duplicate_of_labelled` count) |
+| Per house | Aggregates of the above for the paired bootstrap; a house on which a metric is null for any arm is excluded on that metric for all arms and counted, never imputed (ruling X2) |
 
-## 八、强制泄漏检查
+## 8. Mandatory leakage checks
 
-1. 部署 reader 白名单只含 `public` 与 cache；`private`、`provenance`、house ID、场景名不进入任何方法值。
-2. `recall_seal` 与 `feature_matrix` 的 digest 在 `labels.npz` 生成前写入；teacher 只读 digest 指向的文件。
-3. 私有扰动检查：换干预日志、对象 ID 或 ID 映射后，公开产物与未训练 logits 逐字节不变；SAM2 来源下换 instance map 同样不变。实例分割来源下 instance map 的**像素几何**是登记的前端输入，换几何会改变 cache，但只重排标签值（把沙发从 1 改成 7）必须逐字节不变（裁决 72，测试钉住）。
-4. nuisance probe：只用路径、seed、帧号、house 序号不得预测任何标签。
-5. test manifest 生成后封存，S3-05 只读一次。
+1. The deployment-reader whitelist contains only `public` and the cache; `private`, `provenance`, house IDs and scene names enter no method value.
+2. The digests of `recall_seal` and `feature_matrix` are written before `labels.npz` is generated; the teacher reads only the files those digests point to.
+3. Private perturbation check: after changing the intervention log, object IDs or the ID mapping, the public products and the untrained logits remain byte-identical; with the SAM2 source, changing the instance map leaves them unchanged as well. With the instance-segmentation source, the **pixel geometry** of the instance map is a registered front-end input, so changing it changes the cache, but merely permuting label values (the sofa from 1 to 7) must leave everything byte-identical (ruling 72, pinned by a test).
+4. Nuisance probe: path, seed, frame index and house index alone must not predict any label.
+5. The test manifest is sealed after generation and read only once, in S3-05.
 
-## 九、状态
+## 9. Status
 
-当前没有生成任何 episode、cache、标签或评价文件；SAM 2.1 与 DINOv2 ViT-B/14 资产尚未下载；所有数值待 S0 登记。
+Status at registration (S0): no episode, cache, label or evaluation file had been generated; the SAM 2.1 and DINOv2 ViT-B/14 assets had not been downloaded; all values awaited S0 registration.
 
-## 十、外部验证数据源（裁决 83-4，planned，待调研）
+Status on 2026-10-09 (implemented and verified; details in [PLAN.md](PLAN.md) and [EXECUTE.md](../EXECUTE.md)):
 
-| 项 | 内容 |
+- **Contracts and assets.** The values left proposed or null above are frozen in the S0 contracts (`configs/vsmt/lean_s0_*.json`; the intervention rules in `lean_s0_intervention_data_v3.json`); the split seed 20260920 and the sizes validation 50 and test 100 were frozen on 2026-09-20, before the first S1-02a episode. The front-end assets (SAM 2.1 and DINOv2) are registered by digest in S1-01 and were checked byte for byte before S3-02.
+- **Development data (S1, S2).** The 50 development houses (positions 0–49 of the train block: 4 pilot and 46 further houses) were generated at `5f9aa71` and accepted on 2026-09-23: 39 of 50 succeeded, non-empty yield 28/37 = 0.757 (LOG-243 (cont. 4)). The S1-03 caches, the S1-04 diagnostics (39/39) and the S2-05 development table (seven arms on 39 episodes, LOG-270) were built on them. Positions 50–99 form the confirmation set of ruling 81 (`configs/vsmt/lean_ruling81_confirmation_houses.json`).
+- **Formal data (S3-01, S3-02).** S3-01 froze the lists (ruling 102-8, `configs/vsmt/lean_s3_01_manifests.json`): test 100, validation 50 and train 300 (positions 100–399 of the train block). S3-02 (completed 2026-10-04, LOG-303) attempted all 450 houses and generated 252 train, 43 validation and 87 test episodes (13 test houses failed, 10 of them for lack of a feasible window); the ruling-36 check passed (391 moves, 246 with the source revisited first); both caches are complete (the SAM 2.1 cache failed by contract with `proposal_overflow` on 3 train and 2 test episodes). The 87 test episodes contain 101,317 frames and 359 changed objects (139 of them moved); 22 test episodes have no change; SAM 2.1 outputs exist for 85. Generation commands: [REPRODUCE.md Section 5](REPRODUCE.md#5-s3-02-formal-data-ruling-103).
+- **Test.** Sealed after generation and read once, in S3-05 (`8d58475`, LOG-306).
+- **Release.** Raw episodes, geometry tables and both caches are on Hugging Face as layers T1 (validation and test inputs) and T3 (training inputs), with the training and audit records in T2 and the results and weights in T0 (S3-05R, LOG-312, LOG-314); revisions, manifests and download: [REPRODUCE.md Section 3](REPRODUCE.md#3-data-and-weights-on-hugging-face-s3-05r). Regenerating the same episodes from ProcTHOR-10K requires the private salt of ruling 37, which is not released.
+- **External data.** Section 10.
+
+## 10. External validation data: 3RScan (S3-07)
+
+Status: registered by ruling 83-4 (2026-09-29; planned at registration); scope fixed by ruling 111 (approved 2026-10-07) and its amendments 1 to 3 (2026-10-07), which are recorded in docs/DECISIONS.md on branch `s3-07-impl` only; implemented on that branch (not merged into `main`); conversion and caches run on 2026-10-07, audits on 2026-10-08 at commit `aa94373`; exports committed on `main` (`fffeb8d`); readings in EXECUTE LOG-309 and in the paper (section "External check on 3RScan"). The check is descriptive only and never part of the gate.
+
+| Item | Content |
 |---|---|
-| 首选来源 | 3RScan：同一真实室内场景相隔一段时间的多次 RGB-D 重扫描，带实例级标注与物体变化（搬动、移除、新增）；DSG（arXiv 2609.00619）用其中 5 对做真实数据评价 |
-| 待调研 | 许可证是否允许本项目使用与发布派生结果；重扫描对的物体变化标注能否转成本项目私有真值表（`object_geometry`、在场／缺席、搬动前后位置）；深度、内参与位姿能否喂给 S1-03 的 SAM 2.1 前端；序列长度与本项目 episode 的对应 |
-| 读取边界 | 与 ProcTHOR 数据同一套三面读取：公开面只含 RGB-D、内参、位姿；私有面只给评价器；不生成训练记录、不选参 |
-| 备选 | 自采一段带若干次搬动的 RGB-D 序列（SAM 2.1 前端），真值靠人工标注，规模小、只作定性与少量定量 |
-| 不做 | 真实机器人闭环、导航或操作 |
+| Source | 3RScan (Wald et al., ICCV 2019, the RIO paper): real indoor scenes scanned repeatedly with a handheld Tango phone, minutes to months apart, with instance-level mesh annotations and annotated object changes (moved, removed, added). For comparison, DSG (Liao et al., arXiv 2609.00619) evaluates on only 5 rescan pairs (1,866 keyframes), with ground-truth poses and ground-truth instance masks |
+| Data used | The official validation split in full (ruling 111-1 (a)): 47 scenes, 110 rescans, 157 scans. The test split is unusable (its rescans are released without change annotations), and the train split is not used. Each (reference scan, rescan) pair forms one episode: 110 episodes, 61,406 frames per front end; the statistical unit is the scene, since the episodes of one scene share the reference scan. Inclusion is mechanical only; exclusions are recorded, never replaced. Usable in the instance column: 108 episodes (59,292 frames) in 46 scenes; the other 2 failed the frozen cache rule `fragment_depth_support_insufficient`, and one of them was the only episode of its scene |
+| Episode | Frame order: every reference-scan frame (by frame number), then every rescan frame; no subsampling or frame selection. Window: zero frames between the scans, written as the degenerate window `[n_ref − 1, n_ref − 1]` (the frozen evaluator reads only its end); the real interval (minutes to months) is not converted into ticks, so ELU-P's per-tick decay is zero across it. Poses: the reference scan's own camera-to-world poses; rescan poses left-multiplied by the scene's alignment matrix from `3RScan.json` (rescan to reference); axes converted as below; positions relative to the camera at observation 0. The alignment is an offline global registration checked manually, i.e. a known-pose assumption comparable to ProcTHOR's exact poses, not a causal pose. `action_summary` is a registered constant (`HandheldScanFrame`); it enters only `frame_digest`, and no method reads it. Episode ID `3rscan-<reference scan ID>-<rescan ID>`; the house ID is the reference scan ID; the receipt's `code_commit` is the converter commit |
+| Public frames | The frozen D-223 front end reads RGB, depth and the instance image on one 224×224 grid with one set of intrinsics and neither rotates, crops nor scales, so the converter does so: raw 960×540 colour frames are turned clockwise by 90°, the centred 540×540 square (rows 210–749) is cropped and area-averaged (PIL `BOX`) to 224×224; intrinsics are derived per scan through the turn, crop and scaling, with pixel centres on integers (c″ = (c′ + 0.5)·224/540 − 0.5, the convention under which ProcTHOR has cx = 111.5); the field of view is about 34°–39° and differs per scan (ProcTHOR: 90°); it is recorded and never adjusted. Axes: the world swap W exchanges y and z (3RScan +Z up → project +Y up), the camera flip is S = diag(1, −1, 1) (OpenCV y down → y up), and the rotation is R′ = W·R·Qᵀ·S with Q the camera turn of the upright image (det +1); positions and truth-box centres are multiplied by W. Depth (ruling 111-5 (a)): axial depth of the scan's own annotated mesh rendered at the target camera (the same mesh and camera as the instance image; no hit → 0, invalid under the frozen range [0.05, 20] m); the 224×172 sensor depth is a converter diagnostic only. `frame_digest` is recomputed with the generator's formula; `object_geometry.json`, `interventions.json`, `window_verdicts.json` and the receipt follow the existing schemas; all 110 converted episodes pass the frozen read entry points (reader check) |
+| Instance masks | Per frame, CPU ray casting of the scan's own annotated mesh `labels.instances.annotated.v2.ply` at the target camera gives a 16-bit image of `objectId` (0 = no hit or unannotated; the label is that of the hit face's nearest vertex), computed with fixed-order float64 arithmetic without BLAS. The masks enter through the frozen read path of `simulator_instance_masks`, whose name is kept (ruling 111-4 (a)); in S3-07 that name means "rendered from the annotated mesh", and the per-source ReID head and ELU-P values are those of the instance column. These masks and the truth below are **proxy truth** (manual mesh annotation and offline registration), not sensor-level ground truth |
+| Private truth (ruling 111-3, amendment 2) | Objects are the instances in the reference and rescan `semseg.v2.json`. Initial box: the reference oriented bounding box (OBB) after the axis swap, made axis-aligned (objects present only in the rescan take the aligned rescan annotation); boxes never rotate (the frozen truth-box rule). Per-frame `object_poses` hold the reference box centre on reference frames and the aligned rescan box centre on rescan frames; "observable" keeps the frozen 196 pixels. Classes: official `removed` → `remove`; absent from the rescan annotation and not listed, with a rescan mesh vertex within 0.5 m (`coverage_radius_m`) of the reference box centre → `remove_unlisted` (a remove row); absent and not covered → `not_rescanned` (no row; the object stays present at its reference position); only in the rescan → `add`; `rigid` failing the place rule of the node primary column (δ_moved 0.5 m, box pad 0.25 m) → `move`, otherwise `small_rigid` (no row); `rigid` named in an `ambiguity` entry → `ambiguous_rigid` (no row); `nonrigid` and displacements absent from every change list (`unlisted_displacement`) → no row. NYU40 (the 40-class NYU Depth v2 label set) classes 1, 2, 8, 9 and 22 map to the frozen structural prefixes `wall`, `room`, `door`, `window` and `Ceiling_room`, and changes of structural objects are ignored. OBBs with non-finite values or magnitudes above 1e4 m are dropped (`obb_invalid`). Every class is counted |
+| Conversion counts | Formal conversion (episode root `s3-07-4e7a206`), 110/110 pairs: `remove` 386 (87 from the official list, 299 unlisted), `add` 186, `move` 36; `not_rescanned` 568, `small_rigid` 249, `ambiguous_rigid` 85, `nonrigid` 53, `unlisted_displacement` 82, structural changes 262; official removals still annotated in the rescan in 10 pairs; 2 invalid OBBs (ruling 111 record on `s3-07-impl`) |
+| Frozen front end | Instance column: 108 of 110 episodes usable. SAM 2.1 column: 3 of 110 usable; the other 107 failed `fragment_depth_support_insufficient`. The frozen rule fails an episode when any fragment of ≥196 pixels has fewer than max(32, 25% of its pixels) valid depth points, and SAM 2.1 segments RGB regions that the mesh does not cover (windows, door openings, mirrors, far walls), where the rendered depth is 0. Per ruling 111 amendment 3 (a), the SAM 2.1 column is reported as not computable and enters the failure and not-applicable lists; the public frames and the front end are unchanged, and nothing was rerun |
+| Run | Audits at `aa94373` (freeze `dea8c20`, S3-04 receipt `4fd08d4f…`) on B1, w4 and w5: the 25 runs of the receipt's `test_runs` on each of the 108 episodes, 2,700 jobs, 0 failures. Admission checks: E1 (`check`): the code differs from the freeze only in the new S3-07 files and in two registered files, the S1-03 contract (converter commits appended to `public_pose_correction.correct_encoder_since_code_commits`) and `ops/vsmt/lean_s1_03_cache.py` (episode directory globs `procthor10k-*` and `3rscan-*`), so the method code is unchanged; E2: the caches of two S3-02 train episodes rebuilt on the GPU host are bit-identical to the S3-02 seals; E3: 100 validation audits rerun on the audit hosts equal those of S3-03 field by field. Statistics: scenes pooled from their episodes (ratio metrics by summed counts, per-frame metrics by the episode mean, recovery latency over the pooled objects); VSMT-lean against every other arm: seed-paired difference with the two-level 90% interval of S3-05 and the 82-1 reading; reported only |
+| Role | Descriptive corroboration with the arms, configurations, weights, ReID head and ELU-P values frozen at S3-04. Nothing is trained, selected or tuned on 3RScan, and the conversion constants were fixed from official material and geometry checks only, never from method outputs. Not part of the primary gate or the fixed-sequence test; LLM-op (the large-language-model operator arm) and VSMT-lean-ctx are not run; no real-robot closed loop, navigation or manipulation, and no claim of sensor robustness. It is not new training data and does not change the S3 splits |
+| Read boundary | The same three read surfaces as the ProcTHOR data: public holds only RGB-D (colour and depth), intrinsics and poses; private is read only by the evaluator; no training records are produced and nothing is selected |
+| Licence and redistribution | 3RScan is used under the terms of use of TUM (Technical University of Munich), signed by the user: non-commercial research and education only; colleagues and collaborators may access the data only after agreeing to the terms; German law. The CC BY-NC-SA 4.0 notice appears only in the header comment of the official download script; the terms and the access form name no Creative Commons licence and say nothing explicit about derived data. Position: no 3RScan-derived bytes (frames, rendered instance maps, caches, private truth tables, audit records) are released in this repository or on Hugging Face; only the metric exports `results/vsmt_lean_s3_07_*_aa94373.json` are public. Reproduction requires 3RScan access granted by TUM ([REPRODUCE.md Section 10](REPRODUCE.md#10-s3-07-external-check-on-3rscan)) |
+| Code | Branch `s3-07-impl`, not merged into `main`: `src/vsmt/lean_s3_07_3rscan.py` (parsing, axes and image turn, target intrinsics, change classification, structural mapping, `frame_digest`), `src/vsmt/lean_s3_07_episode.py` (pair conversion), `src/vsmt/lean_s3_07_render.py` (ray casting), `src/vsmt/lean_s3_07.py` (scene-pooled statistics); entry points `ops/vsmt/s3_07_render.py`, `ops/vsmt/s3_07_convert.py`, `ops/vsmt/s3_07_manifest.py` and `ops/vsmt/s3_07_external.sh`; contract `configs/vsmt/lean_s3_07_3rscan_v1.json`; tests `tests/test_vsmt_lean_s3_07_*.py` |
+| Outputs | On `main`: `results/vsmt_lean_s3_07_{check,e3,handover,inputs,jobs,manifest,merged_instance,statistics}_aa94373.json`. On `s3-07-impl`: the sample-check report `results/vsmt_lean_s3_07_sample_d05f337.json` and the E2 pre-check `results/vsmt_lean_s3_07_e2_precheck_dea8c20.json` |
 
-白话：这一节回答“外部验证用什么数据”。输入是公开的真实重扫描数据与它们的变化标注，输出是能被本项目评价器直接读的私有真值表和能被前端直接读的公开帧。它不是新的训练数据，也不改变 S3 的划分。
+**3RScan facts used by the conversion.** Sources: the 2026-10-03 documentation survey, the 2026-10-07 read-only check of official material, community readers and code, and the S3-07 sample check at `d05f337` (one validation scene with its 3 rescans); superseded and moot items are omitted.
+
+| Item | Fact | Basis |
+|---|---|---|
+| Size and split | 1,482 scans of 478 scenes, about 363,000 frames (about 245 per scan on average); official split train 385 scenes / 793 rescans, validation 47 / 110 (157 scans), test 46 / 101 (test rescans come with meshes and sequences only, without change annotations); 3,289 instance changes involving 1,947 objects, with displacements from centimetres to metres; scan intervals of minutes to months, without per-scan timestamps | RIO paper (Table 2, Section 3.1); download script; issue #8; the downloaded `3RScan.json` (validation: 47 scenes, 110 rescans) |
+| Files per scan | `sequence.zip` with `frame-NNNNNN.color.jpg` (960×540), `.depth.pgm` (224×172, 16-bit millimetres, 0 = invalid), `.pose.txt` (4×4 RGB-camera-to-world, metres) and `_info.txt` (colour and depth intrinsics; registered to each other, differing only in resolution); `mesh.refined.v2.obj`; `labels.instances.annotated.v2.ply` (per vertex `objectId`, consistent across the scans of a scene, `globalId` (a class ID, not an instance), `NYU40`, `Eigen13`, `RIO27`); `semseg.v2.json` (per instance a label and an OBB with `centroid`, `axesLengths`, `normalizedAxes`). Meshes are +Z up, in metres. No per-frame 2D instance images are provided | README; FAQ; issue #13 |
+| Intrinsics | The depth intrinsics are the colour intrinsics scaled by 224/960 and 172/540, so depth and colour share the field of view and pixels are not square; intrinsics differ per scan (one example: colour fx 756.832, fy 756.026, cx 492.889, cy 270.419; depth fx 176.594, fy 240.808, cx 114.613, cy 85.7915; identity extrinsics; another scan: fx = fy = 877.5). Field of view for these two: 64.8°/57.4° horizontal, 39.3°/34.2° vertical; about 34°–39° after the square crop | Former `sequence.cc` comment (removed by PR #5); FAQ; ObjectsCanMove `initialDetection.py`; computed from the intrinsics |
+| Image orientation | Raw frames are stored landscape with the scene lying sideways; the official `rio_renderer` turns every output clockwise by 90°, and 3DSSG uses `np.rot90(img, 3)`. Sample check (ruling 111 amendment 1, median roll cosine per scan): clockwise 0.919–0.996, no turn 0.06–0.40 | `renderer.cc`; 3DSSG; `results/vsmt_lean_s3_07_sample_d05f337.json` |
+| Alignment `transform` | Per rescan in `3RScan.json`: 16 numbers, column-major, rescan to reference. The FAQ gives the translation in millimetres, whereas the official `rio_lib`, SceneGraphFusion and sgaligner apply it in metres; the sample check found metres (median nearest-vertex distance of unchanged objects 0.042–0.056 m read as metres, 0.26–0.71 m read as millimetres); validation translations span 0.08–6.0 (median 0.87) | FAQ; `data.cc`, `rio.cc`, `sequence.cc`; sample check; the downloaded `3RScan.json` |
+| OBB axes | `normalizedAxes` are stored as rows (median containment of the object's own mesh vertices 1.00 read as rows, 0.50–0.80 read as columns) | Sample check |
+| `rigid` | Direction reference to rescan (the README states the opposite; a comment in `data.cc` corrects it and the code inverts the transform); fields `instance_reference`, `instance_rescan`, `symmetry` (0 = none; the other integer codes are undocumented) and `transform`, whose coordinate frame is undocumented (unverified); the converter uses `rigid` only to identify moved instances and takes positions from the rescan's own annotation. Validation: 390 entries, instance IDs consistent between scans | README; `data.cc`; `rio.cc`; the downloaded `3RScan.json` |
+| `ambiguity` | Scene-level list of lists; each entry has `instance_source`, `instance_target` and `transform` (instances whose correspondence is not unique); present in 19 of the 47 validation scenes; all 79 entries are readable | README; the downloaded `3RScan.json`; sample check |
+| Other change lists | Validation has 96 `removed` and 54 `nonrigid` entries; there is no `added` field (new objects are the IDs present only in the rescan); change annotations are incomplete (Adam et al., arXiv 2312.01148, Section 4); rescans are often partial (77 of the 99 pairs converted at `d12707f` have fewer annotated objects in the rescan than in the reference), which corrects the 2026-10-03 note that the whole room is rescanned and every old place is seen again | README; ObjectsCanMove `create_GTchanges.py`; ruling 111 amendment 2 |
+| Sensor depth | Calibrated and median-filtered Tango depth; 3RScan does not name the device (224×172 matches the pmd time-of-flight (ToF) sensor of the Phab 2 Pro: an inference, unverified); the official FAQ suggests rendering depth from the mesh when sensor depth is poor, and RIO10 uses rendered depth. Sample scene: median absolute difference between mesh and sensor depth 0.8–0.9 cm, 91%–93% of pixels within 5 cm, 96%–98% valid sensor pixels | RIO supplementary material; FAQ; RIO10 paper; S3-07 render sample at `c0f350a` |
+| Official renderer | `rio_renderer` (C++/OpenGL) needs a GLFW window, has no headless path and renders only at the colour resolution; several issues report all-black output. S3-07 uses CPU ray casting instead | `CMakeLists.txt`; `renderer.cc`; issues #21, #23, #24, #28 |
+| Download | `3RScan.json` 3,155,995 bytes; the four file types (`sequence.zip`, OBJ, annotated PLY, `semseg.v2.json`; no textures) of the 157 validation scans: 8.5 GB, 38,659 frames (1 to 1,281 per scan, median 155; one scan with a single frame is converted as is) | Download of 2026-10-07 (ruling 111 record) |
+
+The research notes of 2026-10-03 and 2026-10-07 are preserved on branch `s3-07-impl` (commit `21ce79d`, Section 10 of docs/DATA.md), and the Chinese version of this document before translation under tag `docs-zh-2026-10-09`.
