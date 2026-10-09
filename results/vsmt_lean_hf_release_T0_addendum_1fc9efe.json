@@ -1,0 +1,52 @@
+{
+ "stage": "vsmt.lean.s3_05r.addendum.v1",
+ "revision": "1fc9efe87f990ce0e9cacced7187eda5d97e139b",
+ "commit_title": "Add the instance-mask ReID head and the ruling-37 salt",
+ "manifest_addendum": {
+  "schema_version": "vsmt-lean-hf-release-addendum-v1",
+  "repo": "Jsun0632/vsmt-lean",
+  "repo_type": "model",
+  "parent_revision": "72a7259f024f2d5d9b1f0265c22edca30f05c7d4",
+  "paper_revision": "0b2ce7f8bb5de862fd500f10b23e55ba4eebf372",
+  "added_utc": "2026-10-09T09:16:37Z",
+  "decision": "D-224-REPRO rulings R2 and R5 (a), approved by the user on 2026-10-09",
+  "items": [
+   {
+    "path_in_repo": "reid/reid_head_vitb14_oracle_caa50c7.json",
+    "restore_path": "vsmt_private/lean-s1-04-diagnostics-oracle-caa50c7/reid_head_vitb14.json",
+    "kind": "file",
+    "bytes": 2129144,
+    "sha256": "27bf6a10767f68c3b7aef6e76f91e48c9bea8de6750cfb8620e16e0c388217e0",
+    "payload_sha256": "5cea91cf77901f1eb38e5942ee12a2afbe14e11ba1475bd2957e1cbfe3659a88",
+    "source": "/root/autodl-tmp/vsmt_private/lean-s1-04-diagnostics-oracle-caa50c7/reid_head_vitb14.json",
+    "role": "ReID projection head of the instance-mask front end; the file the S3-04 freeze receipt recorded"
+   },
+   {
+    "path_in_repo": "inputs/null_window_salt.txt",
+    "restore_path": "vsmt_private/null_window_salt.txt",
+    "kind": "file",
+    "bytes": 65,
+    "sha256": "0f18ef0bd793b2d9e58c8f172b3587898a19b8f8e7d226caaff5e4d8b8f714fe",
+    "stripped_text_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+    "source": "/root/autodl-tmp/vsmt_private/null_window_salt.txt",
+    "role": "private salt of ruling 37 (no-change draw), published after the test split was read"
+   }
+  ]
+ },
+ "uploaded_from": "B1 (/root/autodl-tmp/hf-venv), 2026-10-09 17:16 CST",
+ "verify": {
+  "method": "downloaded at the new revision on a separate machine (Windows laptop, huggingface_hub 2.2.0): file size and SHA-256 of both items, the ReID head's payload digest, the salt's stripped-text digest, the card bytes; the file list differs from the parent revision only by the three added files; MANIFEST.json equals the paper revision's",
+  "items_equal": true,
+  "payload_sha256_equal": true,
+  "stripped_text_sha256_equal": true,
+  "card_equal": true,
+  "added_files": [
+   "MANIFEST_ADDENDUM.json",
+   "inputs/null_window_salt.txt",
+   "reid/reid_head_vitb14_oracle_caa50c7.json"
+  ],
+  "removed_files": [],
+  "manifest_json_unchanged_since_paper_revision": true,
+  "note": "the check on B1 itself failed in hf_hub_download (an httpx decoder error of that environment) after the commit had succeeded"
+ }
+}

@@ -10,7 +10,7 @@ tags:
 # VSMT-lean S3 results and weights (T0)
 
 Results and weights of the VSMT-lean S3 experiments: the round-1 association/existence heads of every learned arm and seed
-for both front ends (`weights/<front>/<arm>.tar`), the ReID projection head (`reid/`), the S3-04 freeze directory
+for both front ends (`weights/<front>/<arm>.tar`), the ReID projection heads (`reid/`), the S3-04 freeze directory
 (`s3-04-dea8c20/`) and all experiment exports (`exports/`, including the S3-05 and S3-07 statistics).
 
 ## Licence
@@ -31,6 +31,20 @@ python ops/vsmt/hf_fetch.py --repo Jsun0632/vsmt-lean --repo-type model --revisi
 
 Each episode directory is one deterministic, uncompressed tar (members sorted by path, mtime 0, owner 0/0, modes 644/755,
 GNU format), so the same directory always gives the same bytes. 
+## Added after the paper's revision (2026-10-09)
+
+The paper cites revision `0b2ce7f8bb5d`. One later commit adds three files and changes no earlier file:
+
+- `reid/reid_head_vitb14_oracle_caa50c7.json`: the ReID projection head of the instance-mask front end (payload digest
+  `5cea91cf…`, file SHA-256 `27bf6a10…`, the file the S3-04 freeze receipt recorded), used by every instance-mask run
+  of S3-03 to S3-05. Restore path: `vsmt_private/lean-s1-04-diagnostics-oracle-caa50c7/reid_head_vitb14.json`.
+- `inputs/null_window_salt.txt`: the private salt of ruling 37, which decided the no-change draw of every generated
+  episode (SHA-256 of its stripped text `8f4eae85…`); published after the test split was read, so that the data can be
+  regenerated from ProcTHOR-10K. New data generated for other purposes should use a new salt. Restore path:
+  `vsmt_private/null_window_salt.txt` (the generator refuses a salt file inside the code repository).
+- `MANIFEST_ADDENDUM.json`: both files with their sizes, SHA-256 and restore paths. `reproduce/fetch_extras.py` in the
+  code repository downloads them at a pinned revision and checks them.
+
 ## Upstream licences and notices
 
 - Frames, depth, poses and ground truth were rendered with AI2-THOR 5.0.0 (Copyright 2021 Allen Institute for AI,
