@@ -33,15 +33,25 @@ DATA = Path(os.environ["VSMT_DATA"]) if os.environ.get("VSMT_DATA") else None
 FRAMES = int(os.environ.get("VSMT_PARITY_FRAMES", "60"))
 
 
-def episode() -> HfEpisode:
+def episode(front: str = "sam2") -> HfEpisode:
     return HfEpisode(DATA / "vsmt_outputs/s3-02-3f6ef1d/validation" / EPISODE,
-                     DATA / "vsmt_caches/s3-02-sam2-3f6ef1d/validation" / EPISODE)
+                     DATA / f"vsmt_caches/s3-02-{front}-3f6ef1d/validation" / EPISODE)
 
 
 @unittest.skipUnless(DATA and (DATA / "vsmt_caches/s3-02-sam2-3f6ef1d/validation" / EPISODE).is_dir(),
                      "VSMT_DATA with the parity episode is not set")
 class ParityTests(unittest.TestCase):
     def test_cache_replay_equals_the_audit_runners_reading_path(self) -> None:
+        self.check_replay("sam2")
+
+    def test_instance_mask_replay_with_the_released_head(self) -> None:
+        """The instance-mask front end, with the ReID head of the T0 addendum (``reproduce/fetch_extras.py``)."""
+
+        if not (DATA / "vsmt_caches/s3-02-instance-3f6ef1d/validation" / EPISODE).is_dir():
+            self.skipTest("the instance-mask cache of the parity episode is not restored")
+        self.check_replay("instance")
+
+    def check_replay(self, front: str) -> None:
         ops = str(_repo.REPO_ROOT / "ops" / "vsmt")
         if ops not in sys.path:
             sys.path.insert(0, ops)
@@ -56,8 +66,9 @@ class ParityTests(unittest.TestCase):
         self.assertEqual(missing, [])
         self.assertEqual(lr.validate_policy(policy), frozen_policy())
 
-        weights = load_pretrained("sam2", 7, restored_root=DATA)
-        ep = episode()
+        weights = load_pretrained(front, 7, restored_root=DATA)
+        ep = episode(front)
+        self.assertEqual(ep.mask_source, weights.mask_source)
         reader = s2_04.episode_depth_reader(ep.raw_dir, ep.cache_dir)
 
         def frames():

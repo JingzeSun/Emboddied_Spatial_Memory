@@ -1,8 +1,9 @@
-"""The trained VSMT-lean cost heads and the shared ReID head, from Hugging Face layer T0 at the revision the paper cites.
+"""The trained VSMT-lean cost heads and the shared ReID heads, from Hugging Face layer T0.
 
-Every file is checked twice: the downloaded file against the T0 release manifest (``results/vsmt_lean_hf_release_T0_*``)
-and the extracted weights against the digest that the S3-04 freeze receipt (``results/vsmt_lean_s3_04_freeze_*``)
-recorded for the file that ran on test.  The existence threshold ``tau_r`` is the one S3-04 selected on validation for
+The cost heads and the SAM 2.1 ReID head come from the revision the paper cites; the instance-mask ReID head was added
+in a later revision (``results/vsmt_lean_hf_release_T0_addendum_1fc9efe.json``).  Every file is checked twice: the
+downloaded file against the release record (``results/vsmt_lean_hf_release_T0_*``) and the extracted weights against the
+digest that the S3-04 freeze receipt (``results/vsmt_lean_s3_04_freeze_*``) recorded for the file that ran on test.  The existence threshold ``tau_r`` is the one S3-04 selected on validation for
 that front end.  Nothing here is trained or tuned.
 """
 
@@ -20,14 +21,15 @@ from . import _repo
 T0_REPOSITORY = "Jsun0632/vsmt-lean"
 T0_REVISION = "0b2ce7f8bb5de862fd500f10b23e55ba4eebf372"
 T0_MANIFEST = _repo.RESULTS_DIR / "vsmt_lean_hf_release_T0_2d179b9.json"
+T0_ADDENDUM = _repo.RESULTS_DIR / "vsmt_lean_hf_release_T0_addendum_1fc9efe.json"
 FREEZE_RECEIPT = _repo.RESULTS_DIR / "vsmt_lean_s3_04_freeze_dea8c20.json"
 
 #: Front end -> the mask source the frozen code names it by.
 MASK_SOURCES = {"sam2": "sam2", "instance": "simulator_instance_masks"}
 SEEDS = (7, 19, 31, 43, 59)
 ARM = "VSMT-lean"
-#: The ReID head released per front end.  The instance-mask head (5cea91cf...) is not in any Hugging Face layer.
-REID_HEAD_FILES = {"sam2": "reid/reid_head_vitb14_154776d.json"}
+#: The ReID head released per front end (the instance-mask head is in the T0 addendum).
+REID_HEAD_FILES = {"sam2": "reid/reid_head_vitb14_154776d.json", "instance": "reid/reid_head_vitb14_oracle_caa50c7.json"}
 
 
 class WeightsError(ValueError):
@@ -62,9 +64,15 @@ def _sha256(path: Path) -> str:
 
 
 def _manifest_row(path_in_repo: str) -> dict[str, Any]:
-    rows = [row for row in _repo.load_json(T0_MANIFEST)["items"] if row["path_in_repo"] == path_in_repo]
+    """The release record of a T0 file, with the revision to download it at (the paper's, or the addendum's)."""
+
+    rows = [{**row, "revision": T0_REVISION} for row in _repo.load_json(T0_MANIFEST)["items"]
+            if row["path_in_repo"] == path_in_repo]
+    addendum = _repo.load_json(T0_ADDENDUM)
+    rows += [{**row, "revision": addendum["revision"]} for row in addendum["manifest_addendum"]["items"]
+             if row["path_in_repo"] == path_in_repo]
     if len(rows) != 1:
-        raise WeightsError(f"{path_in_repo} is not in the T0 release manifest")
+        raise WeightsError(f"{path_in_repo} is not in the T0 release records")
     return rows[0]
 
 
@@ -95,7 +103,7 @@ def _download(path_in_repo: str, cache_dir: Path) -> Path:
         return cached
     from huggingface_hub import hf_hub_download
 
-    local = Path(hf_hub_download(repo_id=T0_REPOSITORY, repo_type="model", filename=path_in_repo, revision=T0_REVISION,
+    local = Path(hf_hub_download(repo_id=T0_REPOSITORY, repo_type="model", filename=path_in_repo, revision=row["revision"],
                                  local_dir=str(cache_dir / "t0")))
     if local.stat().st_size != row["bytes"] or _sha256(local) != row["sha256"]:
         raise WeightsError(f"{path_in_repo} does not match the T0 release manifest")
@@ -117,9 +125,9 @@ def load_pretrained(front_end: str = "sam2", seed: int = 7, *, cache_dir: Path |
                     restored_root: Path | None = None, reid_head_path: Path | None = None) -> PretrainedWeights:
     """The VSMT-lean weights of one front end and seed, downloaded once and digest-checked.
 
-    ``restored_root`` reuses files already restored by ``ops/vsmt/hf_fetch.py --dest <root>`` (their server-layout paths
-    under that root) instead of downloading.  ``reid_head_path`` supplies the instance-mask ReID head, which is not
-    released; it must still have the digest the freeze receipt recorded.
+    ``restored_root`` reuses files already restored by ``ops/vsmt/hf_fetch.py --dest <root>`` or
+    ``reproduce/fetch_extras.py --dest <root>`` (their server-layout paths under that root) instead of downloading.
+    ``reid_head_path`` supplies a ReID head file directly; it must still have the digest the freeze receipt recorded.
     """
 
     if front_end not in MASK_SOURCES:
@@ -150,10 +158,9 @@ def load_pretrained(front_end: str = "sam2", seed: int = 7, *, cache_dir: Path |
         reid_row = _manifest_row(REID_HEAD_FILES[front_end])
         reid_file = (Path(restored_root) / reid_row["restore_path"] if restored_root is not None
                      else _download(REID_HEAD_FILES[front_end], cache_dir))
-        reid_source = f"{T0_REPOSITORY}@{T0_REVISION[:12]}:{REID_HEAD_FILES[front_end]}"
-    else:
-        raise WeightsError("the instance-mask ReID head is not released on Hugging Face; pass reid_head_path "
-                           "or use front_end='sam2'")
+        reid_source = f"{T0_REPOSITORY}@{reid_row['revision'][:12]}:{REID_HEAD_FILES[front_end]}"
+    else:  # pragma: no cover - every front end has a released head
+        raise WeightsError(f"no released ReID head for {front_end}")
     reid_name = "lean-s1-04-diagnostics-oracle-caa50c7/reid_head_vitb14.json" if front_end == "instance" \
         else "exports/reid_head_vitb14_154776d.json"
     if _sha256(reid_file) != _frozen_digest(reid_name):
