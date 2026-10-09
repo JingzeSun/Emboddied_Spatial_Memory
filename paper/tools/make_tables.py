@@ -1,14 +1,19 @@
 #!/usr/bin/env python3
 """S4: the paper's data tables, generated from the committed results so that no table number is copied by hand.
 
-白话：论文正文里有两张数据表，都由这个脚本从 ``results/`` 里已提交的导出排出，写成 ``paper/tables/*.tex``：
-- ``main.tex``：test 主表，两套前端 × 九个臂 × 九项指标，加已恢复／未恢复的变化物体数；列按“它回答哪个问题”分组。数取自 S3-05 统计
-  （均值、种子标准差、每列保留的 house 数）与 S3-06 复算（恢复计数）。例如 VSMT-lean 的节点 F1 取自
-  ``vsmt_lean_s3_05_statistics_8d58475.json`` 的 ``fronts.instance.main_table.node_prf1.VSMT-lean``。
-- ``llm_op.tex``：LLM-op 小表，LLM-op 与其他各臂（S3-04 冻结配置）在同一条 validation episode 上的节点 F1 与假撤回率，
-  以及这条 episode 在该臂全部 validation 里的百分位；数取自 S4 E1 导出 ``vsmt_lean_s4_llm_op_context_2b50a12.json``。
-它不计算任何新的统计量，只排版。主门检验、逐指标比较与外部验证改由 ``make_figures.py`` 画成图；原附录里的选参、三分解与规模表
-不再进论文（RA-L 的 8 页含附录），其数在正文里引用，全表留在已提交的导出与 README 的论文索引里。
+Writes the two data tables of the paper to ``paper/tables/*.tex``:
+- ``main.tex`` (Table II): the test results of both front ends, nine arms and nine metrics, plus the counts of changed
+  objects recovered and not recovered; columns are grouped by the question each answers. Values come from the S3-05
+  statistics (means, seed standard deviations, houses kept per column) and the S3-06 reanalysis (recovery counts);
+  e.g. VSMT-lean's node F1 is ``fronts.instance.main_table.node_prf1.VSMT-lean`` in
+  ``vsmt_lean_s3_05_statistics_8d58475.json``.
+- ``llm_op.tex`` (Table III): node F1 and false-retract rate of LLM-op and of every other arm (S3-04 frozen
+  configurations) on the same validation episode, with the episode's percentile among the arm's validation episodes,
+  from the S4 E1 export ``vsmt_lean_s4_llm_op_context_2b50a12.json``.
+No statistic is computed here; the script only typesets. The gate, the per-metric comparisons and the external check
+are drawn as figures by ``make_figures.py``; the selection, decomposition and size tables of the first draft are no
+longer in the paper (RA-L counts appendices within the 8 pages) and remain in the committed exports
+(docs/REPRODUCE.md, section 2).
 
 Usage (repository root): python paper/tools/make_tables.py
 """

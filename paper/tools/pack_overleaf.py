@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """S4: pack the paper sources for an Overleaf upload into paper/build/vsmt_overleaf.zip.
 
-白话：把 Overleaf 编译所需的源文件打成一个 zip：``main.tex``、``refs.bib``、``sections/*.tex``、``tables/*.tex``、
-``figures/*.pdf`` 与两张 TikZ 图 ``figures/{overview,method}.tex``。在 Overleaf 用 New Project → Upload Project 上传即可；
-默认编出匿名初投稿版，把 ``main.tex`` 顶部的 ``\\finalversionfalse`` 改成 ``\\finalversiontrue`` 就是正式版。
-输入是 ``paper/`` 下已生成的源文件（先跑 make_tables.py、make_figures.py）；输出是 zip 与文件清单。它不编译、不改源文件，
-zip 里的时间戳固定为源文件的修改时间，成员按路径排序。例如表格改了就重跑本脚本再上传。
+The zip holds everything Overleaf needs: ``main.tex``, ``refs.bib``, ``sections/*.tex``, ``tables/*.tex``,
+``figures/*.pdf`` and the two TikZ figures ``figures/{overview,method}.tex``. Upload it with New Project → Upload
+Project; it builds the anonymous review version by default, and changing ``\\finalversionfalse`` to
+``\\finalversiontrue`` at the top of ``main.tex`` builds the final version. Run make_tables.py and make_figures.py
+first. The script does not compile or modify sources; zip members are sorted by path and keep the sources'
+modification times.
 
 Usage (repository root): python paper/tools/pack_overleaf.py
 """

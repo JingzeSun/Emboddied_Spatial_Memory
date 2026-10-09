@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 """S4: the paper's data figures, drawn from the committed results.
 
-白话：画论文里的数据图，每个数都直接取自 ``results/`` 里已提交的导出，不算新的统计量，也不做事后亚组挑选。
-- ``gate.pdf``：主门固定顺序三步（对同配方 AssocOnly）与原主门（对最强规则臂，只报告）的点图。点是五个种子平均的优势，横线是两级
-  重采样的双侧 90% 区间（左端就是检验用的单侧 95% 下界），竖短线是五个种子各自的配对差。例如 SAM 2.1 身份连续率那一行的区间跨过 0，
-  五个种子只有一个在 0 右边，所以第三步不成立。
-- ``comparisons.pdf``：VSMT-lean 对其余八个臂、七项指标的优势，三格（ProcTHOR 实例分割、ProcTHOR SAM 2.1、3RScan 实例分割），
-  格子按双侧 90% 区间着色：区间整个在 0 右边（VSMT-lean 更好）、整个在 0 左边（对方更好）或跨 0。它是描述性的，不是检验；
-  它取代了原附录的两张逐指标区间表与 3RScan 表。
-输入：S3-05 统计、S3-06 复算（区间）、S3-07 外部验证统计；输出：``paper/figures/*.pdf``。它不等于新的分析：所有区间都是导出里已有的数。
-图 1（概览）与图 2（单帧流程）是 TikZ 手绘，不含数据，在 ``paper/figures/overview.tex``、``method.tex``。
+Every plotted value is taken from the committed exports in ``results/``; no new statistic and no post-hoc subgroup.
+- ``gate.pdf`` (Fig. 3): the three fixed-order steps of the primary hypothesis (against the same-recipe AssocOnly) and
+  the original gate (against the strongest rule-based arm, reported only) as a dot plot. Dots are the seed-averaged
+  advantages, bars the two-level two-sided 90% intervals (whose left end is the one-sided 95% lower bound used by the
+  test), ticks the five per-seed paired differences.
+- ``comparisons.pdf`` (Fig. 4): VSMT-lean's advantage over the other eight arms on seven metrics in three panels
+  (ProcTHOR instance masks, ProcTHOR SAM 2.1, 3RScan instance masks), each cell shaded by its two-sided 90% interval
+  (entirely above zero, entirely below zero, or including zero). Descriptive, not a test.
+Inputs: S3-05 statistics, S3-06 reanalysis (intervals), S3-07 external-check statistics; outputs: ``paper/figures/*.pdf``.
+Figs. 1 and 2 are TikZ drawings without data, in ``paper/figures/overview.tex`` and ``method.tex``.
 
 Usage (repository root): python paper/tools/make_figures.py [--png]   (--png also writes PNG previews, not committed)
 """

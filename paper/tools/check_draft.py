@@ -1,18 +1,24 @@
 #!/usr/bin/env python3
 """S4: static checks of the LaTeX draft that need no TeX installation.
 
-白话：编译之前先把最容易出的错查出来。输入是 ``paper/main.tex``、它 ``\\input`` 的各节、表格与 TikZ 图、``paper/refs.bib``；
-输出是问题清单，没有问题时退出码 0。查四类：
-1. 结构：``\\input`` 的文件存在、``\\ref`` 都有 ``\\label``、``\\cite`` 键都在 bib、花括号配平、标签不重复；
-2. RA-L 规定：每张图和表都有编号标签，并且在正文（图表环境之外）至少被引用一次；
-3. 裁决 113 与 S4 写作要求的措辞：不得出现 robust、outperform、state of the art、non-inferior、等价说法（comparable、
-   on par、equivalent、no difference 等）、速度与下游任务的说法；含 ELU-P 的句子不得把它的低残留写成“代价”；
-4. 必须出现的句子：摘要里的三句（SAM 2.1 身份连续率没有提高、ELU-P 残留率更低而撤回的多是仍在原处的物体、节点 F1 只报差值）
-   和实例分割主张旁的两条限定（分割近乎理想、推断对象是 5 个种子的训练程序）；方法或协议节里的三项披露（主门修订的时点、
-   固定检验顺序的设计时点、身份连续率按共同事件定义）；LLM-op 小表在正文里，表题或表注写明 validation、每前端 1 条、描述性、
-   无显著性检验。
-例如某节写了 ``\\ref{tab:gate}`` 而没有 ``\\label{tab:gate}``，或摘要里删掉了 “does not improve” 那一句，都会列出来。
-它不等于编译通过：版面、页数与溢出由 ``build.sh`` 检查；措辞是否在裁决 113 的边界内仍要逐句复核，这里只拦明显的违规。
+Reads ``paper/main.tex``, the sections, tables and TikZ figures it inputs, and ``paper/refs.bib``; prints the problems
+found and exits with 0 when there are none. Four groups of checks:
+1. Structure: every ``\\input`` file exists, every ``\\ref`` has a ``\\label``, every ``\\cite`` key is in the
+   bibliography, braces balance, labels are unique.
+2. RA-L rules: every figure and table carries a label and is referenced at least once in the running text (outside
+   the float environments).
+3. Wording required by ruling 113 and the S4 writing rules: no "robust", "outperform", "state of the art",
+   "non-inferior", no equivalence phrases ("comparable", "on par", "equivalent", "no difference", ...), no speed or
+   downstream-task claims, and no sentence presenting ELU-P's lower residual rate as a "cost".
+4. Required sentences: the three abstract statements (SAM 2.1 identity continuity does not improve; ELU-P's lower
+   residual rate comes with retractions of objects still in place; node F1 as a difference only) and the two
+   qualifiers next to the instance-mask claim (near-ideal segmentation; the inference target is the training
+   procedure with five seeds); the three disclosures in the method or protocol sections (timing of the gate revision,
+   design timing of the fixed testing order, identity continuity over common events); the LLM-op table in the main
+   text, with a caption or note stating validation, one episode per front end, descriptive, no significance test.
+Passing these checks is not a successful build: layout, page count and overfull boxes are checked by ``build.sh``,
+and whether the wording stays within ruling 113 still needs a sentence-by-sentence review; this script only catches
+clear violations.
 
 Usage (repository root): python paper/tools/check_draft.py
 """
