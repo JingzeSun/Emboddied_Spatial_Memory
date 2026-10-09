@@ -3,7 +3,20 @@
 Code, configurations, result exports and paper source for the manuscript *Versioned Lifecycle Transactions for
 Object-Level Spatial Memory: A Pre-Registered Evaluation Under Unobserved Changes* (under review).
 Weights and data: [Hugging Face, Jsun0632](https://huggingface.co/Jsun0632) ·
-Reproduction guide: [docs/REPRODUCE.md](docs/REPRODUCE.md) · Paper source: [paper/](paper/)
+Reproduction guide: [docs/REPRODUCE.md](docs/REPRODUCE.md) · Memory plug-in: [docs/PLUGIN.md](docs/PLUGIN.md) ·
+Paper source: [paper/](paper/)
+
+## Start here
+
+| I want to … | Go to |
+|---|---|
+| see the main results | [Main results](#main-results) below |
+| reproduce the paper's test results (CPU, about 3 minutes, no download) | `uv run python reproduce/paper.py` · [docs/REPRODUCE.md](docs/REPRODUCE.md) |
+| check what my machine lacks for a reproduction level | `uv run python reproduce/check_env.py --level L0` (`L1`, `L2`, `L3`, `full`, `plugin`) |
+| re-run the evaluation from the released data | `uv run python reproduce/l1_eval.py` · [docs/REPRODUCE.md, section 1](docs/REPRODUCE.md#1-reproduction-levels-and-determinism) |
+| regenerate the data and retrain, stage by stage | [docs/REPRODUCE.md, section 11](docs/REPRODUCE.md#11-full-pipeline-from-procthor-10k) |
+| use the memory on my own RGB-D stream (robot, dataset) | [docs/PLUGIN.md](docs/PLUGIN.md) · package [`vsmt_memory/`](vsmt_memory/) |
+| understand the method, data and admissible claims | [docs/METHOD.md](docs/METHOD.md) · [docs/DATA.md](docs/DATA.md) |
 
 ## Overview
 
@@ -29,7 +42,8 @@ Each frame, a frozen front end (simulator instance masks or SAM 2.1, with RGB-D 
 turns the image into anonymous mask fragments. Recall proposes candidate entities per fragment; one rectangular
 Hungarian assignment decides `BIND`, `REACTIVATE` or `BIRTH`; an existence head decides `RETRACT` or `NOOP` for every
 unmatched entity that should be visible; and the executor applies the whole program to a copy of the previous memory,
-all or nothing. The only learned components are three small MLP cost heads (association, birth, existence; 54,787
+all or nothing. Apart from a ReID projection of the DINOv2 descriptors that every compared method shares (trained once
+per front end), the only learned components are three small MLP cost heads (association, birth, existence; 54,787
 parameters in total), trained in two rounds of DAgger (dataset aggregation) on hindsight labels derived from the
 simulator's instance ground truth. Candidate sets and feature tables are sealed (hashed and recorded) before any
 ground-truth file is opened, so the hindsight teacher can label candidates but never add, remove or reorder them; no
@@ -46,7 +60,10 @@ and the test was run once.
 
 ## Main results
 
-Test split, read once: 87 ProcTHOR houses (85 with SAM 2.1 outputs). The inference target is the training procedure
+Test split, read once: 87 of the 100 test houses produced usable episodes (85 with SAM 2.1 outputs;
+[docs/DATA.md, section 9](docs/DATA.md#9-status)). Each mean is taken after the registered per-metric exclusion of
+houses on which the metric is undefined for any main-table run (every arm and seed): 62 houses for MRR and 58 for IdC
+with instance masks, 61 and 56 with SAM 2.1. The inference target is the training procedure
 (five seeds). The primary hypothesis was tested in a fixed order against the same-recipe `AssocOnly` ablation.
 "Lower bound" is the one-sided 95% lower bound of VSMT-lean's advantage from a two-level (seeds and houses) bootstrap.
 MRR (Missing residual rate) is the share of removed or moved objects that still have an entity (a *stale entity*) at
@@ -83,14 +100,14 @@ Python 3.11 or 3.12 with [uv](https://docs.astral.sh/uv/):
 
 ```bash
 uv sync
-uv pip install matplotlib huggingface_hub
+uv pip install matplotlib==3.10.8 huggingface_hub pillow
 ```
 
 `uv sync` installs the core dependencies (`numpy`, `torch`), which cover the memory, the cost heads, the evaluator,
 the statistics and the recomputation of all statistics from `results/`; `matplotlib` is needed for the paper figures
-and `huggingface_hub` for downloads. Run the commands below with `uv run` or inside the activated `.venv`. Data
+(3.10.8 wrote the committed ones byte for byte), `huggingface_hub` for downloads and `pillow` for the memory plug-in. Run the commands below with `uv run` or inside the activated `.venv`. Data
 generation runs AI2-THOR in a separate Python 3.9 simulator environment on the servers
-(`$AUTODL/vsmt-envs/simulator-py39`, see [docs/REPRODUCE.md](docs/REPRODUCE.md#5-s3-02-formal-data-ruling-103)).
+(`$AUTODL/vsmt-envs/simulator-py39`, see [docs/REPRODUCE.md, section 11](docs/REPRODUCE.md#11-full-pipeline-from-procthor-10k)).
 Building the paper needs MiKTeX or TeX Live.
 
 Run the test suite from the repository root:
@@ -101,8 +118,11 @@ PYTHONPATH=src uv run python -m unittest discover -s tests -t tests -p "test_*.p
 
 ## Data and weights
 
-All data and weights behind the paper's results are on Hugging Face in four independently downloadable layers; the
-paper cites these revisions.
+The data and weights behind the paper's results are on Hugging Face in four independently downloadable layers; the
+paper cites these revisions. Two inputs are not released: the ReID head of the instance-mask front end (`5cea91cf…`),
+so from the release alone only the SAM 2.1 audits can be re-run, and the private salt of ruling 37, which the data
+generator needs (neither is needed to recompute the statistics)
+([docs/REPRODUCE.md, section 1](docs/REPRODUCE.md#1-reproduction-levels-and-determinism)).
 
 | Layer | Repository | Content | Revision |
 |---|---|---|---|
@@ -123,7 +143,14 @@ Full revisions, manifests and verification are described in
 ## Reproducing the paper
 
 Every statistic, table and data figure can be recomputed from the committed exports on a CPU, without downloading any
-data. Run the commands from a checkout of the tag `paper-v1`, the state of the repository that produced the paper
+data. From `main`, one command does it in a temporary worktree of the tag `paper-v1` (created in the system's
+temporary directory and removed afterwards) and checks every output against the committed files:
+
+```bash
+uv run python reproduce/paper.py
+```
+
+By hand, run the commands from a checkout of the tag `paper-v1`, the state of the repository that produced the paper
 (the recomputation refuses to run unless `src/` and `configs/` equal the frozen commit `dea8c20`, which holds at the
 tag but not on `main`, where comments were translated and earlier code removed):
 
@@ -137,7 +164,8 @@ bash paper/tools/build.sh
 
 The first command recomputes the test statistics and checks them value for value against the committed test export
 (stage S3-05) before computing anything else. The further reproduction levels re-run the evaluation (T1), inspect
-training (T2), retrain (T3) or regenerate everything from ProcTHOR-10K; [docs/REPRODUCE.md](docs/REPRODUCE.md) gives
+training (T2), or regenerate the data and retrain (T3 holds the training inputs, but the drivers need the data
+regenerated, see section 1 of the guide); [docs/REPRODUCE.md](docs/REPRODUCE.md) gives
 the commands, inputs, stop conditions and the determinism boundary of every stage (weights are bit-identical for the
 same commit and thread count, verified on Intel AVX-512 with MKL).
 
@@ -152,6 +180,8 @@ same commit and thread count, verified on Intel AVX-512 with MKL).
 | `tests/` | unit and contract tests |
 | `schemas/` | one JSON schema of an earlier direction, read by the tests of `vm04_observation_runner` |
 | `results/` | committed result exports with manifests and digests (the source of every number in the paper) |
+| `reproduce/` | one-command reproduction entry points (L0, L1) and the environment check |
+| `vsmt_memory/` | the memory as a plug-in for an RGB-D stream, with examples and tests ([docs/PLUGIN.md](docs/PLUGIN.md)) |
 | `paper/` | LaTeX source of the paper and the scripts that generate its tables and figures |
 | `docs/` | method, data, reproduction guide, plan and decisions |
 | `data/`, `outputs/` | local data and large server outputs (not tracked) |
@@ -173,6 +203,7 @@ paths under the tag. The retained code behaves identically, and the `lean_*` con
 | [docs/METHOD.md](docs/METHOD.md) | method specification, arms, metrics, statistics and the admissible claims |
 | [docs/DATA.md](docs/DATA.md) | data sources, splits, interventions, fields and leakage checks |
 | [docs/REPRODUCE.md](docs/REPRODUCE.md) | stage-by-stage reproduction and the paper results index |
+| [docs/PLUGIN.md](docs/PLUGIN.md) | using the memory on another RGB-D stream: inputs, outputs, weights, verification |
 | [paper/README.md](paper/README.md) | building the paper and its checks |
 
 Project records:

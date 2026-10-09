@@ -142,7 +142,8 @@ D-059 further authorizes reviewing real data first and then fully rebuilding a n
 ## File roles and protection
 
 - README.md is the public entry point: overview, results summary, installation, data and weights, citation.
-- docs/REPRODUCE.md holds the stage-by-stage reproduction commands: S2-06, S3-02 to S3-05, the S3-05R release and download, LLM-op, and the paper results index.
+- docs/REPRODUCE.md holds the stage-by-stage reproduction commands: S2-06, S3-02 to S3-05, the S3-05R release and download, LLM-op, the full pipeline from ProcTHOR-10K, and the paper results index.
+- `reproduce/` holds the reproduction entry points (L0 `paper.py`, L1 `l1_eval.py`, `check_env.py`) and `vsmt_memory/` the memory plug-in documented in docs/PLUGIN.md; both run from `main`, create their own worktrees of `paper-v1` or `8d58475` where frozen code must run, and never change `src/`, `ops/` or `configs/`.
 - Working rules live in this file; the full plan, the stages and the current pointer only in docs/PLAN.md; the method and its terminology only in docs/METHOD.md; data sources/fields only in docs/DATA.md.
 - Experimental results, substantive architecture changes, failures that must be kept and claim evidence go only into EXECUTE.md; its top dashboard may be updated. Important method/budget/process changes are appended to docs/DECISIONS.md; ordinary discussion does not create a LOG entry or decision for every round.
 - A new conversation first reads the current pointer in docs/PLAN.md, then the EXECUTE dashboard and the latest LOG. Do not create separate handoff, STATUS, TODO, weekly-report, confirmation-table or glossary files; the exception is a standalone external deliverable the user needs.
