@@ -777,9 +777,10 @@ class TestMachineContract(unittest.TestCase):
 class TestReviewRegressions(unittest.TestCase):
     """One test per defect the 2026-09-19 S0-03 review found.
 
-    白话：这些用例把那次评审的每个反例钉住，防止同样的问题再回来。输入是构造好的
-    小矩阵、空帧或被篡改的合同，输出是通过或拒绝；例如代价变换改回 −log sigmoid
-    时会有用例失败。它们不证明特征有用，只证明已修的缺口不会无声复发。
+    Each counterexample of that review is pinned so the defect cannot return. Inputs are
+    small constructed matrices, empty frames or tampered contracts; outputs are pass or
+    refusal (e.g. reverting the cost transform to -log sigmoid fails a test). They do not
+    show that the features are useful, only that a fixed gap does not silently reopen.
     """
 
     def test_the_solver_returns_the_lexicographically_smallest_optimum(self) -> None:

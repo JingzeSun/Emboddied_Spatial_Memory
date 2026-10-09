@@ -35,8 +35,9 @@ class FakeEvent:
 class FakeController:
     """Replays a scripted list of (action_success, resulting position) for TeleportObject.
 
-    白话：假控制器不启动模拟器，只按脚本回答"这次放回报告成功没有、物体最后停在哪"。
-    它让"报告成功但其实没放回"这种情况可以在本地复现。
+    No simulator is started: the script answers "did the revert report success, and where did
+    the object end up", so a revert that reports success without restoring the object can be
+    reproduced locally.
     """
 
     def __init__(self, script, object_id="Egg|1"):

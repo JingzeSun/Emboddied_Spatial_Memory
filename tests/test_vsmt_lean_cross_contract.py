@@ -47,7 +47,7 @@ CONTRACTS = {
     "S0-05": ("lean_s0_arms_v2.json", lean_arms, lean_arms.validate_arms_contract),
 }
 
-#: The reviewed v1 contracts, frozen by content (D-224-X: 追加 v2 不改已审字节).
+#: The reviewed v1 contracts, frozen by content (D-224-X: a v2 is appended; reviewed bytes are never changed).
 #: Digests are taken over LF-normalised bytes so they mean the same thing on
 #: every platform.  .gitattributes stores every .json with LF, so a Windows
 #: working tree can hold CRLF while the repository and every Linux checkout
@@ -416,7 +416,7 @@ FROZEN_RULE_SHA256 = {
     # boolean, which the config digest-shape guard rightly refused; renaming it to
     # no_new_seal_because_the_frame_seal_already_binds_every_mask_digest changes no rule.
     # 03bfd56d -> 2a17546f.
-    # Re-pinned 2026-09-23 when the ruling-53 regeneration (LOG-243 续四) was accepted: its
+    # Re-pinned 2026-09-23 when the ruling-53 regeneration (LOG-243 sequel four) was accepted: its
     # generator commit 5f9aa71 leaves the camera_pose encoder of 7c10d2c untouched, so it joins
     # correct_encoder_since_code_commits and the 39 succeeded episodes are read as written.
     # 2a17546f -> c7318cd5.
@@ -521,7 +521,7 @@ FROZEN_RULE_SHA256 = {
 #: value ever disappears from the record.
 FROZEN_VALUES: dict[str, dict[str, Any]] = {
     "S0-01": {
-        # D-224-S1 ruling 67 (2026-09-24, 原话「S2-05 审过；裁决 67 八个值全按推荐」): the shared dormancy
+        # D-224-S1 ruling 67 (2026-09-24, user: 「S2-05 审过；裁决 67 八个值全按推荐」): the shared dormancy
         # and dedup values every arm runs with; a conservative dedup (all three must hold) so the
         # development passes rarely merge; the calibration pass may supersede them by ruling 68.
         "dormancy_missed_opportunity_limit": 3,

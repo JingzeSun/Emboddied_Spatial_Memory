@@ -1,7 +1,8 @@
-"""Tests for ops/vsmt/s4_llm_op_context.py (S4 E1, the read-only context for the LLM-op appendix table).
+"""Tests for ops/vsmt/s4_llm_op_context.py (S4 E1, the read-only context rows of the LLM-op table, paper Table III).
 
-白话：用两条假 validation episode、九个臂的假合并审计和假 cache 回执，检查脚本按冻结配置读对文件、学习臂先取种子均值、
-百分位按“低于的比例加一半相等的比例”算、与读数导出的均值对不上时报问题、缺前端时拒绝运行。
+With two fake validation episodes, fake merged audits of the nine arms and fake cache receipts: the script reads the files of
+the frozen configurations, averages learned arms over seeds first, computes the percentile as the share below plus half the
+share equal, reports a problem when a mean does not match the reading export, and refuses to run with a front end missing.
 """
 
 from __future__ import annotations
