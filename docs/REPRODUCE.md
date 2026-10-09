@@ -6,6 +6,10 @@ committed result files back to data generation. The method is specified in [METH
 
 Conventions used below:
 
+- Code version: run every command from a checkout of the tag `paper-v1`, the state that produced the paper. On `main`,
+  comments and docstrings were later translated and the code of earlier project directions removed (the retained
+  code is otherwise unchanged); the stage drivers compare the code against the digests recorded by earlier steps, and
+  the L0 recomputation requires `src/` and `configs/` to equal the frozen commit `dea8c20`, which holds at the tag.
 - Server paths assume `AUTODL=/root/autodl-tmp` and the server clone `/root/Emboddied_Spatial_Memory` (the misspelling
   is the actual directory name; do not correct it).
 - Every server stage runs in a clean, detached worktree of a reviewed commit and is resumable: running `all` again
@@ -79,9 +83,11 @@ The provenance of each stage: S3-05 run `8d58475`, frozen at `dea8c20` (receipt 
 
 **Recompute the statistics (L0).** CPU only; it does not read any test root or connect to a server. Run it from the
 repository root on a commit whose `src/`, `ops/`, `configs/` and inputs have no uncommitted changes, whose inputs are
-tracked by git, and whose `src/` and `configs/` equal the frozen commit `dea8c20`:
+tracked by git, and whose `src/` and `configs/` equal the frozen commit `dea8c20`, such as the tag `paper-v1`
+(on `main` it refuses with exit code 2):
 
 ```bash
+git checkout paper-v1
 python ops/vsmt/s3_06_reanalysis.py run --workers 8
 ```
 
@@ -102,6 +108,16 @@ favours VSMT-lean.
 | Inputs (read only) | Outputs |
 |---|---|
 | `vsmt_lean_s3_05_*_8d58475.json` (seven files, each checked against the S3-05 manifest), `vsmt_lean_s3_04_{freeze,manifest}_dea8c20.json` | D1 recomputation check, D2 all metrics of VSMT-lean against AssocOnly, D3 two-sided 90% intervals, D4 event and denominator counts, D5 per-house paired differences, D6 decomposition shares, D7 size and cost, D8 consistency checks; the paper index |
+
+**Scripts behind other committed files.** These scripts are not stage drivers, but the paper relies on what they wrote;
+each reads only committed files unless stated otherwise:
+
+| Script | Writes | Reads |
+|---|---|---|
+| `ops/vsmt/s3_01_manifests.py` | `configs/vsmt/lean_s3_01_manifests.json`: the test (100), validation (50) and train (positions 100–399) house lists (ruling 102-8) | the frozen split in `configs/vsmt/lean_s1_02a_pilot_v2.json`, the confirmation list `configs/vsmt/lean_ruling81_confirmation_houses.json` |
+| `ops/vsmt/s3_01_planning.py` | `results/vsmt_lean_s3_01_planning_6c57903.json`: event denominators, null calibration and power (paper Section IV-D) | the committed development and confirmation audits |
+| `ops/vsmt/lean_s1_05_select_descriptor.py` | `results/vsmt_lean_s1_05_descriptor_freeze_154776d.json` (SAM 2.1) and `..._oracle_caa50c7.json` (instance masks): the descriptor choice of ruling 47 | the committed S1-04 reports and contracts |
+| `ops/vsmt/s4_llm_op_context.py` | `results/vsmt_lean_s4_llm_op_context_2b50a12.json`: the other arms on the LLM-op episode (Table III) | the S3-03 run root and the validation caches on the server, the committed freeze, readings and LLM-op exports |
 
 **Rebuild the paper.** From the repository root (MiKTeX or TeX Live):
 
@@ -433,6 +449,9 @@ was committed, `check` stops and test stays sealed. It runs once and tunes nothi
 Preconditions: the S3-04 receipt has been pulled, committed to `results/` and pushed (106-5), and the project owner has
 confirmed and given the release key (the first 12 characters of the receipt digest); a detached worktree on B1 whose
 `src/`, `ops/` and `configs/` equal the freeze commit and whose `results/` contains the receipt.
+The receipt fingerprints every tracked file in `src/`, `ops/` and `configs/`, so the code check holds only for the
+freeze commit `dea8c20` and the run commit `8d58475` (same code); later commits, `paper-v1` included, add files to
+`ops/` (the reanalysis and release scripts) and are reported as different.
 
 ```bash
 cd /root/autodl-tmp/vsmt_worktrees/s3-05-<commit>

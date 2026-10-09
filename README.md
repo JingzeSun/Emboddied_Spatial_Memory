@@ -123,9 +123,12 @@ Full revisions, manifests and verification are described in
 ## Reproducing the paper
 
 Every statistic, table and data figure can be recomputed from the committed exports on a CPU, without downloading any
-data:
+data. Run the commands from a checkout of the tag `paper-v1`, the state of the repository that produced the paper
+(the recomputation refuses to run unless `src/` and `configs/` equal the frozen commit `dea8c20`, which holds at the
+tag but not on `main`, where comments were translated and earlier code removed):
 
 ```bash
+git checkout paper-v1
 uv run python ops/vsmt/s3_06_reanalysis.py run --workers 8
 uv run python paper/tools/make_tables.py
 uv run python paper/tools/make_figures.py
@@ -142,19 +145,25 @@ same commit and thread count, verified on Intel AVX-512 with MKL).
 
 | Path | Content |
 |---|---|
-| `src/vsmt/lean_*.py` | core implementation: entity memory and executor; features, recall and assignment; front-end caches; compared arms; cost heads; runner; teacher and evaluator; statistics |
-| `ops/vsmt/` | server entry points of every stage (data generation, caches, training and selection, freeze, test, reanalysis, release) |
-| `configs/vsmt/lean_*.json` | versioned machine-readable contracts; rule digests are pinned by cross-contract tests |
+| `src/vsmt/lean_*.py` | the method and its evaluation: entity memory and executor; front-end cache; recall, features, seals and assignment; cost heads; per-frame loop; arms; teacher, metrics and statistics; data-generation rules; stage logic (training recipe, freeze, test statistics, test seal) |
+| `src/vsmt/` (other modules), `src/cpmt/hashing.py` | helpers from earlier project directions that the current code still uses (fragment geometry, DINOv2 pooling, free space and visibility; canonical JSON and hashing) |
+| `ops/vsmt/` | stage entry points: data generation, caches, training and selection, freeze, test, reanalysis, LLM-op, release |
+| `configs/vsmt/` | versioned machine-readable contracts (`lean_*.json`) and four contracts of earlier directions that current code or tests still read (front-end assets and the observation runner); rule digests are pinned by cross-contract tests |
 | `tests/` | unit and contract tests |
 | `results/` | committed result exports with manifests and digests (the source of every number in the paper) |
 | `paper/` | LaTeX source of the paper and the scripts that generate its tables and figures |
 | `docs/` | method, data, reproduction guide, plan and decisions |
-| `data/`, `outputs/` | source and split lists; large server outputs (not tracked) |
-| `src/cpmt/`, non-`lean` modules in `src/vsmt/`, `experiments/`, `schemas/`, `docs/source/` | code and material from earlier project directions, kept for provenance; current code imports only `cpmt.hashing` and the front-end, visibility and episode-construction helpers in `src/vsmt/` (such as `shared_frontend_core`, `vm04_*` and `l1_*`) |
+| `data/`, `outputs/` | local data and large server outputs (not tracked) |
 
-The code and configuration files are frozen: the S3-04 freeze receipt fingerprints every tracked file in `src/`,
-`ops/` and `configs/`, and S3-05 rechecks those fingerprints. Comments inside these files are therefore left as they
-were at the freeze, partly in Chinese.
+[docs/METHOD.md](docs/METHOD.md) section 13 maps every component of the paper to a file and function. Several stage
+scripts keep the names of the stage that introduced them (for example `ops/vsmt/lean_s1_02a_pilot.py` is the data
+generator and `ops/vsmt/lean_s2_05_node_audit.py` the audit runner of S3-03 and S3-05); the code map lists them.
+
+The tag `paper-v1` is the state that produced the paper. On `main`, comments and docstrings were translated to English
+after the tag (syntax trees otherwise unchanged; the two package `__init__.py` files no longer import anything), and
+the code of earlier project directions (the CPMT executor, the unified graph, place layer and structure estimators,
+their contracts, tests and fixtures) and six one-off development scripts were removed; they remain at their original
+paths under the tag. The retained code behaves identically, and the `lean_*` contracts and all results are unchanged.
 
 ## Documentation
 
@@ -178,14 +187,17 @@ Project records:
 later entries are in English. The Chinese versions of the other documents are preserved under the tag
 `docs-zh-2026-10-09`.
 
-## Branches
+## Tags and branches
 
+- `paper-v1` (tag): the code, configurations, results and paper source that produced the manuscript; use it for every
+  reproduction step.
 - `main`: current work; `s1-02a-runner` mirrors `main` for the servers.
-- `s3-07-impl`: the 3RScan conversion, rendering and external-check driver (not yet merged into `main`).
+- `s3-07-impl`: the 3RScan conversion, rendering and external-check driver (not merged into `main`).
 - `archive/pre-d224-unified-graph`: documents of the unified-graph and eight-atom directions, superseded by decision
   D-224.
 - `archive/cpmt-m1-20260917`, `archive/spatial-world-model-20260917`: snapshots taken before the CPMT/M1 and
   spatial-world-model code left `main` (commit `d7159ba`).
+- `docs-zh-2026-10-09` (tag): the Chinese versions of the documents before their translation.
 
 ## Licence
 
