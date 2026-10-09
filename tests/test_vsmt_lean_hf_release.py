@@ -13,7 +13,7 @@ for item in (ROOT / "src", ROOT / "ops" / "vsmt"):
     if str(item) not in sys.path:
         sys.path.insert(0, str(item))
 
-from vsmt import lean_hf_release as hf  # noqa: E402
+import lean_hf_release as hf  # noqa: E402
 from vsmt import lean_test_seal as ts  # noqa: E402
 
 

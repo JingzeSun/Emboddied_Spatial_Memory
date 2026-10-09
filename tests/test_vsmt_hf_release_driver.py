@@ -14,7 +14,7 @@ for item in (ROOT / "src", ROOT / "ops" / "vsmt"):
         sys.path.insert(0, str(item))
 
 import hf_release as driver  # noqa: E402
-from vsmt import lean_hf_release as hf  # noqa: E402
+import lean_hf_release as hf  # noqa: E402
 from vsmt import lean_test_seal as ts  # noqa: E402
 
 TAG = "3f6ef1d"

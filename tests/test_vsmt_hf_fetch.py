@@ -19,7 +19,7 @@ import hf_release as driver  # noqa: E402
 import test_vsmt_hf_release_driver as driver_tests  # noqa: E402  (module import: its tests are not collected twice)
 
 ROOTS = driver_tests.ROOTS
-from vsmt import lean_hf_release as hf  # noqa: E402
+import lean_hf_release as hf  # noqa: E402
 from vsmt import lean_test_seal as ts  # noqa: E402
 
 

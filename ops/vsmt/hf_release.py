@@ -29,7 +29,7 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT / "src") not in sys.path:
     sys.path.insert(0, str(ROOT / "src"))
 
-from vsmt import lean_hf_release as hf  # noqa: E402
+import lean_hf_release as hf  # noqa: E402
 
 DEFAULT_BASE = "/root/autodl-tmp"
 SEAL_EXPORT = "vsmt_outputs/exports/vsmt_lean_s3_02_test_seal_3f6ef1d.json"
