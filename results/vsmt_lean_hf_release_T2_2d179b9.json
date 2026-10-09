@@ -1,0 +1,470 @@
+{
+ "code_commit": "2d179b97a57d194f7384363ae3f72d7446ae40aa",
+ "counts": {
+  "bytes": 30325051892,
+  "items": 33
+ },
+ "items": [
+  {
+   "bytes": 329,
+   "commit_ref": "93ebb0e5c9e859588a9aa918500a51d431e7bed0",
+   "kind": "file",
+   "path_in_repo": "s3-03-run/_root/adopt_calibration.json",
+   "repo": "Jsun0632/vsmt-lean-s3-records",
+   "repo_type": "dataset",
+   "restore_path": "vsmt_private/s3-03-run/adopt_calibration.json",
+   "sha256": "d82d68333ab9a583abbb070b0c17e78fb043c6952d96aed97eab7be332f433c8",
+   "source": "/root/autodl-tmp/vsmt_private/s3-03-run/adopt_calibration.json",
+   "uploaded_utc": "2026-10-08T11:02:07Z"
+  },
+  {
+   "bytes": 9026,
+   "commit_ref": "93ebb0e5c9e859588a9aa918500a51d431e7bed0",
+   "kind": "file",
+   "path_in_repo": "s3-03-run/_root/grid_reading.json",
+   "repo": "Jsun0632/vsmt-lean-s3-records",
+   "repo_type": "dataset",
+   "restore_path": "vsmt_private/s3-03-run/grid_reading.json",
+   "sha256": "572b79e4cf42607d0d7e8139026de99deb34e586a0d7bc275db2339b52857a95",
+   "source": "/root/autodl-tmp/vsmt_private/s3-03-run/grid_reading.json",
+   "uploaded_utc": "2026-10-08T11:02:07Z"
+  },
+  {
+   "bytes": 53391,
+   "commit_ref": "93ebb0e5c9e859588a9aa918500a51d431e7bed0",
+   "kind": "file",
+   "path_in_repo": "s3-03-run/_root/inputs-0c085db.json",
+   "repo": "Jsun0632/vsmt-lean-s3-records",
+   "repo_type": "dataset",
+   "restore_path": "vsmt_private/s3-03-run/inputs-0c085db.json",
+   "sha256": "3867ca0f3b15df09252c668139c108d9270973d1d461589be72280e8c9d45ace",
+   "source": "/root/autodl-tmp/vsmt_private/s3-03-run/inputs-0c085db.json",
+   "uploaded_utc": "2026-10-08T11:02:07Z"
+  },
+  {
+   "bytes": 147740,
+   "commit_ref": "93ebb0e5c9e859588a9aa918500a51d431e7bed0",
+   "kind": "file",
+   "path_in_repo": "s3-03-run/_root/inputs-24df324.json",
+   "repo": "Jsun0632/vsmt-lean-s3-records",
+   "repo_type": "dataset",
+   "restore_path": "vsmt_private/s3-03-run/inputs-24df324.json",
+   "sha256": "5e804ca1b1a64247c7b4c964b5cea9d556897320d5bfa24aae05c6a264360022",
+   "source": "/root/autodl-tmp/vsmt_private/s3-03-run/inputs-24df324.json",
+   "uploaded_utc": "2026-10-08T11:02:07Z"
+  },
+  {
+   "bytes": 53242,
+   "commit_ref": "93ebb0e5c9e859588a9aa918500a51d431e7bed0",
+   "kind": "file",
+   "path_in_repo": "s3-03-run/_root/inputs-5a9fd94.json",
+   "repo": "Jsun0632/vsmt-lean-s3-records",
+   "repo_type": "dataset",
+   "restore_path": "vsmt_private/s3-03-run/inputs-5a9fd94.json",
+   "sha256": "006a9d1c899bc6f74d6d997addfd23c59584f295fb12a8daebba63a69e0a1861",
+   "source": "/root/autodl-tmp/vsmt_private/s3-03-run/inputs-5a9fd94.json",
+   "uploaded_utc": "2026-10-08T11:02:07Z"
+  },
+  {
+   "bytes": 53242,
+   "commit_ref": "93ebb0e5c9e859588a9aa918500a51d431e7bed0",
+   "kind": "file",
+   "path_in_repo": "s3-03-run/_root/inputs-5c9ec8d.json",
+   "repo": "Jsun0632/vsmt-lean-s3-records",
+   "repo_type": "dataset",
+   "restore_path": "vsmt_private/s3-03-run/inputs-5c9ec8d.json",
+   "sha256": "751f54cb6b45ca07ba27078b0b0e92bdb7174acced43af49dffef98e5fc911f3",
+   "source": "/root/autodl-tmp/vsmt_private/s3-03-run/inputs-5c9ec8d.json",
+   "uploaded_utc": "2026-10-08T11:02:07Z"
+  },
+  {
+   "bytes": 53244,
+   "commit_ref": "93ebb0e5c9e859588a9aa918500a51d431e7bed0",
+   "kind": "file",
+   "path_in_repo": "s3-03-run/_root/inputs-6a31c8e.json",
+   "repo": "Jsun0632/vsmt-lean-s3-records",
+   "repo_type": "dataset",
+   "restore_path": "vsmt_private/s3-03-run/inputs-6a31c8e.json",
+   "sha256": "dfb7ea8c20165baffcf699363fcf8ff07e96d192a00d5c01ef6fe337b2e612d2",
+   "source": "/root/autodl-tmp/vsmt_private/s3-03-run/inputs-6a31c8e.json",
+   "uploaded_utc": "2026-10-08T11:02:07Z"
+  },
+  {
+   "bytes": 53244,
+   "commit_ref": "93ebb0e5c9e859588a9aa918500a51d431e7bed0",
+   "kind": "file",
+   "path_in_repo": "s3-03-run/_root/inputs-9a2b81a.json",
+   "repo": "Jsun0632/vsmt-lean-s3-records",
+   "repo_type": "dataset",
+   "restore_path": "vsmt_private/s3-03-run/inputs-9a2b81a.json",
+   "sha256": "b98449755d639b02615459bff9041ba03b6fd1d4a4fb156b2bd70fc76a4922b5",
+   "source": "/root/autodl-tmp/vsmt_private/s3-03-run/inputs-9a2b81a.json",
+   "uploaded_utc": "2026-10-08T11:02:07Z"
+  },
+  {
+   "bytes": 53242,
+   "commit_ref": "93ebb0e5c9e859588a9aa918500a51d431e7bed0",
+   "kind": "file",
+   "path_in_repo": "s3-03-run/_root/inputs.json",
+   "repo": "Jsun0632/vsmt-lean-s3-records",
+   "repo_type": "dataset",
+   "restore_path": "vsmt_private/s3-03-run/inputs.json",
+   "sha256": "006a9d1c899bc6f74d6d997addfd23c59584f295fb12a8daebba63a69e0a1861",
+   "source": "/root/autodl-tmp/vsmt_private/s3-03-run/inputs.json",
+   "uploaded_utc": "2026-10-08T11:02:07Z"
+  },
+  {
+   "bytes": 282,
+   "commit_ref": "d86f9069ef103b5285bd3b00d31b39c9a2c09adb",
+   "kind": "file",
+   "path_in_repo": "s3-03-run/_root/memory_classes.json",
+   "repo": "Jsun0632/vsmt-lean-s3-records",
+   "repo_type": "dataset",
+   "restore_path": "vsmt_private/s3-03-run/memory_classes.json",
+   "sha256": "7295b0cc6828e32b743cc711a99f1d6a9d085a6cb725e41ca4b217e5e1c27667",
+   "source": "/root/autodl-tmp/vsmt_private/s3-03-run/memory_classes.json",
+   "uploaded_utc": "2026-10-08T11:24:41Z"
+  },
+  {
+   "bytes": 1076,
+   "commit_ref": "d86f9069ef103b5285bd3b00d31b39c9a2c09adb",
+   "kind": "file",
+   "path_in_repo": "s3-03-run/_root/pool.json",
+   "repo": "Jsun0632/vsmt-lean-s3-records",
+   "repo_type": "dataset",
+   "restore_path": "vsmt_private/s3-03-run/pool.json",
+   "sha256": "845c48e5b4fa8880e7f9c8314d9a6b216515918083fed42f1416595b719359c9",
+   "source": "/root/autodl-tmp/vsmt_private/s3-03-run/pool.json",
+   "uploaded_utc": "2026-10-08T11:24:41Z"
+  },
+  {
+   "bytes": 8,
+   "commit_ref": "d86f9069ef103b5285bd3b00d31b39c9a2c09adb",
+   "kind": "file",
+   "path_in_repo": "s3-03-run/_root/run_tag",
+   "repo": "Jsun0632/vsmt-lean-s3-records",
+   "repo_type": "dataset",
+   "restore_path": "vsmt_private/s3-03-run/run_tag",
+   "sha256": "336d7f86876eb3cb888dc315d8b6fc700fa1ca7f1d00475929bfe1ba3cdf8fef",
+   "source": "/root/autodl-tmp/vsmt_private/s3-03-run/run_tag",
+   "uploaded_utc": "2026-10-08T11:24:41Z"
+  },
+  {
+   "bytes": 1822,
+   "commit_ref": "7653f4b1dc80f578d7806b9d7b2cf9c02bd25037",
+   "kind": "file",
+   "path_in_repo": "s3-03-run/_root/train_threads.json",
+   "repo": "Jsun0632/vsmt-lean-s3-records",
+   "repo_type": "dataset",
+   "restore_path": "vsmt_private/s3-03-run/train_threads.json",
+   "sha256": "34c9b971806ebed438a0a25e6cf6c56212e1e8fb1b39a6d193711b2a0ebc7741",
+   "source": "/root/autodl-tmp/vsmt_private/s3-03-run/train_threads.json",
+   "uploaded_utc": "2026-10-08T11:48:28Z"
+  },
+  {
+   "bytes": 2120,
+   "commit_ref": "7653f4b1dc80f578d7806b9d7b2cf9c02bd25037",
+   "kind": "file",
+   "path_in_repo": "s3-03-run/_root/train_timing.json",
+   "repo": "Jsun0632/vsmt-lean-s3-records",
+   "repo_type": "dataset",
+   "restore_path": "vsmt_private/s3-03-run/train_timing.json",
+   "sha256": "d13537faf1a1f241fd86847f14eee4b3b28adff54531191d6d7fcca3efa64271",
+   "source": "/root/autodl-tmp/vsmt_private/s3-03-run/train_timing.json",
+   "uploaded_utc": "2026-10-08T11:48:28Z"
+  },
+  {
+   "bytes": 1991,
+   "commit_ref": "7653f4b1dc80f578d7806b9d7b2cf9c02bd25037",
+   "kind": "file",
+   "path_in_repo": "s3-03-run/_root/workers.json",
+   "repo": "Jsun0632/vsmt-lean-s3-records",
+   "repo_type": "dataset",
+   "restore_path": "vsmt_private/s3-03-run/workers.json",
+   "sha256": "9ba86735fb2711c69acf403e5f828307d889135eb8a560995de4fddffe6c0fad",
+   "source": "/root/autodl-tmp/vsmt_private/s3-03-run/workers.json",
+   "uploaded_utc": "2026-10-08T11:48:28Z"
+  },
+  {
+   "bytes": 10801489920,
+   "commit_ref": "80a36d7834224aa1be11466f03b10fe6da58cc75",
+   "kind": "tar",
+   "path_in_repo": "s3-03-run/instance.tar",
+   "repo": "Jsun0632/vsmt-lean-s3-records",
+   "repo_type": "dataset",
+   "restore_path": "vsmt_private/s3-03-run/instance",
+   "sha256": "163f475e6ee70b611cfd939cdf13e69a58876234a9448b398cced2582e5a6496",
+   "source": "/root/autodl-tmp/vsmt_private/s3-03-run/instance",
+   "tree": {
+    "bytes": 10780160030,
+    "files": 14450,
+    "sha256": "491a52fa4308e79ac10a0398ec5cf75850d8228351270710c4427de650a82a32"
+   },
+   "uploaded_utc": "2026-10-08T11:23:58Z"
+  },
+  {
+   "bytes": 10240,
+   "commit_ref": "d86f9069ef103b5285bd3b00d31b39c9a2c09adb",
+   "kind": "tar",
+   "path_in_repo": "s3-03-run/interrupted.tar",
+   "repo": "Jsun0632/vsmt-lean-s3-records",
+   "repo_type": "dataset",
+   "restore_path": "vsmt_private/s3-03-run/interrupted",
+   "sha256": "8983ae78dbbd146fcdbe9594a177931d99450756201c0be63978a8c638bae501",
+   "source": "/root/autodl-tmp/vsmt_private/s3-03-run/interrupted",
+   "tree": {
+    "bytes": 0,
+    "files": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+   },
+   "uploaded_utc": "2026-10-08T11:24:41Z"
+  },
+  {
+   "bytes": 33996800,
+   "commit_ref": "d86f9069ef103b5285bd3b00d31b39c9a2c09adb",
+   "kind": "tar",
+   "path_in_repo": "s3-03-run/jobs.tar",
+   "repo": "Jsun0632/vsmt-lean-s3-records",
+   "repo_type": "dataset",
+   "restore_path": "vsmt_private/s3-03-run/jobs",
+   "sha256": "15c141756fdaa19e9070c55577daa4599ee1038e181a5887da9dac9af30d48aa",
+   "source": "/root/autodl-tmp/vsmt_private/s3-03-run/jobs",
+   "tree": {
+    "bytes": 22616356,
+    "files": 14066,
+    "sha256": "b0145bc8cc3ef91890a5271479d4595a7104382b0edba30143c812b7ef2240b9"
+   },
+   "uploaded_utc": "2026-10-08T11:24:41Z"
+  },
+  {
+   "bytes": 14947696640,
+   "commit_ref": "631a93ef46adaf725897ba2daeecaca6ec970cac",
+   "kind": "tar",
+   "path_in_repo": "s3-03-run/sam2.tar",
+   "repo": "Jsun0632/vsmt-lean-s3-records",
+   "repo_type": "dataset",
+   "restore_path": "vsmt_private/s3-03-run/sam2",
+   "sha256": "0ffacfbecabe661b8036ecf0dd59bcd209e7303405d5b4af57dd4851e17c7c85",
+   "source": "/root/autodl-tmp/vsmt_private/s3-03-run/sam2",
+   "tree": {
+    "bytes": 14926338439,
+    "files": 14444,
+    "sha256": "77a14452e91d17292ca943f2e871910744f16f6297fd6b702211f3c37bc10b2a"
+   },
+   "uploaded_utc": "2026-10-08T11:46:37Z"
+  },
+  {
+   "bytes": 4486051840,
+   "commit_ref": "7653f4b1dc80f578d7806b9d7b2cf9c02bd25037",
+   "kind": "tar",
+   "path_in_repo": "s3-03-run/set-aside-latebinding-20261004.tar",
+   "repo": "Jsun0632/vsmt-lean-s3-records",
+   "repo_type": "dataset",
+   "restore_path": "vsmt_private/s3-03-run/set-aside-latebinding-20261004",
+   "sha256": "d25fef0905fecfe9d7e835df908fee9df011444b0a0b16f3448e223777a3923f",
+   "source": "/root/autodl-tmp/vsmt_private/s3-03-run/set-aside-latebinding-20261004",
+   "tree": {
+    "bytes": 4483905273,
+    "files": 1835,
+    "sha256": "a4f2b809ef8c81fcfd129e5c6cc6343d0e33a14645eceb9e6e8959c18574cc8b"
+   },
+   "uploaded_utc": "2026-10-08T11:48:28Z"
+  },
+  {
+   "bytes": 501,
+   "commit_ref": "7653f4b1dc80f578d7806b9d7b2cf9c02bd25037",
+   "kind": "file",
+   "path_in_repo": "s3-05-run/_root/check.json",
+   "repo": "Jsun0632/vsmt-lean-s3-records",
+   "repo_type": "dataset",
+   "restore_path": "vsmt_private/s3-05-run/check.json",
+   "sha256": "f7dac1b11b8a33eaae874edb403d61dd3170f336b48f8c0c8527a4a8df2bb980",
+   "source": "/root/autodl-tmp/vsmt_private/s3-05-run/check.json",
+   "uploaded_utc": "2026-10-08T11:48:28Z"
+  },
+  {
+   "bytes": 470,
+   "commit_ref": "7653f4b1dc80f578d7806b9d7b2cf9c02bd25037",
+   "kind": "file",
+   "path_in_repo": "s3-05-run/_root/export.json",
+   "repo": "Jsun0632/vsmt-lean-s3-records",
+   "repo_type": "dataset",
+   "restore_path": "vsmt_private/s3-05-run/export.json",
+   "sha256": "5747a264f6d3841ba7dcb4d8d812d1ef4b556a2d4b685aea6d4ae7250434b0f6",
+   "source": "/root/autodl-tmp/vsmt_private/s3-05-run/export.json",
+   "uploaded_utc": "2026-10-08T11:48:28Z"
+  },
+  {
+   "bytes": 16321,
+   "commit_ref": "7653f4b1dc80f578d7806b9d7b2cf9c02bd25037",
+   "kind": "file",
+   "path_in_repo": "s3-05-run/_root/inputs.json",
+   "repo": "Jsun0632/vsmt-lean-s3-records",
+   "repo_type": "dataset",
+   "restore_path": "vsmt_private/s3-05-run/inputs.json",
+   "sha256": "054051113b420d23e6a7a373422ce07c781799533213c1dc8761ca036c798e2b",
+   "source": "/root/autodl-tmp/vsmt_private/s3-05-run/inputs.json",
+   "uploaded_utc": "2026-10-08T11:48:28Z"
+  },
+  {
+   "bytes": 85,
+   "commit_ref": "7653f4b1dc80f578d7806b9d7b2cf9c02bd25037",
+   "kind": "file",
+   "path_in_repo": "s3-05-run/_root/memory_classes.json",
+   "repo": "Jsun0632/vsmt-lean-s3-records",
+   "repo_type": "dataset",
+   "restore_path": "vsmt_private/s3-05-run/memory_classes.json",
+   "sha256": "693ea27f76469653bfebffd70cc96830fc2d41f28ff44a5f7fe0b48a4a3dce33",
+   "source": "/root/autodl-tmp/vsmt_private/s3-05-run/memory_classes.json",
+   "uploaded_utc": "2026-10-08T11:48:28Z"
+  },
+  {
+   "bytes": 5813,
+   "commit_ref": "7653f4b1dc80f578d7806b9d7b2cf9c02bd25037",
+   "kind": "file",
+   "path_in_repo": "s3-05-run/_root/merge.json",
+   "repo": "Jsun0632/vsmt-lean-s3-records",
+   "repo_type": "dataset",
+   "restore_path": "vsmt_private/s3-05-run/merge.json",
+   "sha256": "32228389c5df23a0f458681ba2f006f1e0acf35295447da3aa5ed098a5509023",
+   "source": "/root/autodl-tmp/vsmt_private/s3-05-run/merge.json",
+   "uploaded_utc": "2026-10-08T11:48:28Z"
+  },
+  {
+   "bytes": 401,
+   "commit_ref": "7653f4b1dc80f578d7806b9d7b2cf9c02bd25037",
+   "kind": "file",
+   "path_in_repo": "s3-05-run/_root/pool.json",
+   "repo": "Jsun0632/vsmt-lean-s3-records",
+   "repo_type": "dataset",
+   "restore_path": "vsmt_private/s3-05-run/pool.json",
+   "sha256": "e8364acb305bd31f5d45a3c60d647af82731328b316166a56ab6caa246db4ed5",
+   "source": "/root/autodl-tmp/vsmt_private/s3-05-run/pool.json",
+   "uploaded_utc": "2026-10-08T11:48:28Z"
+  },
+  {
+   "bytes": 288215,
+   "commit_ref": "7653f4b1dc80f578d7806b9d7b2cf9c02bd25037",
+   "kind": "file",
+   "path_in_repo": "s3-05-run/_root/statistics.json",
+   "repo": "Jsun0632/vsmt-lean-s3-records",
+   "repo_type": "dataset",
+   "restore_path": "vsmt_private/s3-05-run/statistics.json",
+   "sha256": "e90764796fd1501090d18695426a97193e51b6f0630ad922ee4ce184429d3688",
+   "source": "/root/autodl-tmp/vsmt_private/s3-05-run/statistics.json",
+   "uploaded_utc": "2026-10-08T11:48:28Z"
+  },
+  {
+   "bytes": 241,
+   "commit_ref": "7653f4b1dc80f578d7806b9d7b2cf9c02bd25037",
+   "kind": "file",
+   "path_in_repo": "s3-05-run/_root/stats.json",
+   "repo": "Jsun0632/vsmt-lean-s3-records",
+   "repo_type": "dataset",
+   "restore_path": "vsmt_private/s3-05-run/stats.json",
+   "sha256": "5e84eaa4677243e6ede9e254b9353621053e9e9cb5d081de61d03ad6edff088e",
+   "source": "/root/autodl-tmp/vsmt_private/s3-05-run/stats.json",
+   "uploaded_utc": "2026-10-08T11:48:28Z"
+  },
+  {
+   "bytes": 569,
+   "commit_ref": "7653f4b1dc80f578d7806b9d7b2cf9c02bd25037",
+   "kind": "file",
+   "path_in_repo": "s3-05-run/_root/unseal.json",
+   "repo": "Jsun0632/vsmt-lean-s3-records",
+   "repo_type": "dataset",
+   "restore_path": "vsmt_private/s3-05-run/unseal.json",
+   "sha256": "b3c5ac4be0a57f31fe408c060a1ff30b30bacc7b508da420f5d8c7262189129c",
+   "source": "/root/autodl-tmp/vsmt_private/s3-05-run/unseal.json",
+   "uploaded_utc": "2026-10-08T11:48:28Z"
+  },
+  {
+   "bytes": 557,
+   "commit_ref": "7653f4b1dc80f578d7806b9d7b2cf9c02bd25037",
+   "kind": "file",
+   "path_in_repo": "s3-05-run/_root/workers.json",
+   "repo": "Jsun0632/vsmt-lean-s3-records",
+   "repo_type": "dataset",
+   "restore_path": "vsmt_private/s3-05-run/workers.json",
+   "sha256": "e2f6e913126aa4eb28382909d5ae6aa8785296f7644704c29c2d8e08457e11c8",
+   "source": "/root/autodl-tmp/vsmt_private/s3-05-run/workers.json",
+   "uploaded_utc": "2026-10-08T11:48:28Z"
+  },
+  {
+   "bytes": 17879040,
+   "commit_ref": "7653f4b1dc80f578d7806b9d7b2cf9c02bd25037",
+   "kind": "tar",
+   "path_in_repo": "s3-05-run/instance.tar",
+   "repo": "Jsun0632/vsmt-lean-s3-records",
+   "repo_type": "dataset",
+   "restore_path": "vsmt_private/s3-05-run/instance",
+   "sha256": "98636f69079faaa4d8b58a07cc0107859f343ceb84f5371628b3a1de7ac5bee8",
+   "source": "/root/autodl-tmp/vsmt_private/s3-05-run/instance",
+   "tree": {
+    "bytes": 13929416,
+    "files": 2200,
+    "sha256": "cf23aa0c2b03173e4d580b434fa7977f3649607a3ebc2117d70d3447698ac492"
+   },
+   "uploaded_utc": "2026-10-08T11:48:28Z"
+  },
+  {
+   "bytes": 19650560,
+   "commit_ref": "7653f4b1dc80f578d7806b9d7b2cf9c02bd25037",
+   "kind": "tar",
+   "path_in_repo": "s3-05-run/jobs.tar",
+   "repo": "Jsun0632/vsmt-lean-s3-records",
+   "repo_type": "dataset",
+   "restore_path": "vsmt_private/s3-05-run/jobs",
+   "sha256": "812d91fcddacc6f26957949b2b3b4e74cdf5a487b5fd55d5dfa62d576c65841d",
+   "source": "/root/autodl-tmp/vsmt_private/s3-05-run/jobs",
+   "tree": {
+    "bytes": 12356753,
+    "files": 8600,
+    "sha256": "c517102152c34058a53890867978c5fe2d0690244cb0205d1e81377b52db5709"
+   },
+   "uploaded_utc": "2026-10-08T11:48:28Z"
+  },
+  {
+   "bytes": 17479680,
+   "commit_ref": "7653f4b1dc80f578d7806b9d7b2cf9c02bd25037",
+   "kind": "tar",
+   "path_in_repo": "s3-05-run/sam2.tar",
+   "repo": "Jsun0632/vsmt-lean-s3-records",
+   "repo_type": "dataset",
+   "restore_path": "vsmt_private/s3-05-run/sam2",
+   "sha256": "3ad82e6842acaa8ea01f49cc07c2d42f1d2d3b3127a7fb3b94db291859b23867",
+   "source": "/root/autodl-tmp/vsmt_private/s3-05-run/sam2",
+   "tree": {
+    "bytes": 13593104,
+    "files": 2150,
+    "sha256": "075c2b14d35f5b9ce377ea912c4e98b46ae64bf2900075434571b449762c8a38"
+   },
+   "uploaded_utc": "2026-10-08T11:48:28Z"
+  }
+ ],
+ "manifest_sha256": "6937dda28d021e109a04b360fa49fa37a4f88a3d5855a7cf2e1c8d07fe23399b",
+ "problems": [],
+ "repos": [
+  [
+   "Jsun0632/vsmt-lean-s3-records",
+   "dataset"
+  ]
+ ],
+ "restore_base": "/root/autodl-tmp",
+ "rule": "each item is a deterministic tar of one directory (members sorted, mtime 0, owner 0/0, modes 644/755, GNU format) or one file; sha256 is of the uploaded bytes; tree is the S3-02 seal digest of the directory (relative path, size and sha256 of every file)",
+ "stage": "vsmt.lean.s3_05r.hf_release.v1",
+ "tier": "T2",
+ "verify": {
+  "items": 33,
+  "manifest_sha256": "6937dda28d021e109a04b360fa49fa37a4f88a3d5855a7cf2e1c8d07fe23399b",
+  "pass": true,
+  "problems": [],
+  "revisions": {
+   "Jsun0632/vsmt-lean-s3-records": "1d45b57add4a89f4586a4b128a0cc7d1a81721c8"
+  },
+  "stage": "vsmt.lean.s3_05r.hf_release.v1",
+  "tier": "T2",
+  "written_utc": "2026-10-08T11:48:35Z"
+ },
+ "written_utc": "2026-10-08T11:48:29Z"
+}

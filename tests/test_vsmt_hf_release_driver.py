@@ -108,6 +108,29 @@ class DriverTest(unittest.TestCase):
         report = driver.verify_tier("T1", state=self.state, uploader=hub)
         self.assertEqual(report["problems"], ["remote_differs:test/raw/procthor10k-0.1.2-train-00001.tar"])
 
+    def test_cards_upload_the_card_and_the_licence_per_repo(self):
+        hub = FakeHub()
+        cards = self.base / "cards"
+        write(cards / "README_T1.md", "---\nlicense: cc-by-4.0\nviewer: false\n---\n# T1\n")
+        write(cards / driver.LICENSE_FILE, "Apache License")
+        hub.ensure_repo("Jsun0632/vsmt-lean-s3-eval", "dataset")
+        refs = driver.upload_cards("T1", uploader=hub, staging=self.staging, cards_dir=cards)
+        self.assertEqual(len(refs), 1)
+        self.assertEqual(sorted(hub.repos[("Jsun0632/vsmt-lean-s3-eval", "dataset")]), ["LICENSE-APACHE-2.0", "README.md"])
+        with self.assertRaisesRegex(hf.ReleaseError, "cards_missing:T2"):
+            driver.upload_cards("T2", uploader=hub, staging=self.staging, cards_dir=cards)
+
+    def test_the_committed_cards_carry_the_ruling_114_licences(self):
+        for tier, licence in (("T0", "apache-2.0"), ("T1", "cc-by-4.0"), ("T2", "cc-by-4.0"), ("T3", "cc-by-4.0")):
+            text = (driver.CARDS_DIR / f"README_{tier}.md").read_text(encoding="utf-8")
+            self.assertIn(f"license: {licence}", text.split("---")[1])
+            self.assertIn("No 3RScan data is redistributed", text)
+            self.assertNotIn("Unity authoriz", text)
+            if tier != "T0":
+                self.assertIn("viewer: false", text.split("---")[1])
+        self.assertEqual(hf.file_sha256(driver.CARDS_DIR / driver.LICENSE_FILE),
+                         "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30")  # the apache.org text
+
     def test_stops_when_the_disk_is_short(self):
         hub = FakeHub()
         code = driver.run_tier("T1", base=str(self.base), state=self.state, staging=self.staging, batch_bytes=10 ** 9, uploader=hub,

@@ -273,7 +273,7 @@ python ops/vsmt/hf_fetch.py --repo Jsun0632/vsmt-lean-s3-eval --repo-type datase
   - 本仓库与 HF 都**不再分发任何 3RScan 数据**（扫描、由标注网格渲染的实例图、真值与特征）。3RScan 的使用条款只许非商业研究，也不允许转发。
   - 复现 S3-07 需要先向 TUM 申请 3RScan 访问，再用分支 `s3-07-impl` 上的 `ops/vsmt/s3_07_*.py` 重建（该分支尚未并入 main）。
   - 公开的只有我们算出的指标导出（`results/vsmt_lean_s3_07_*_aa94373.json`）。
-- 4 个 HF 仓库目前是临时卡片（`license: other`，上游条款审核中）。按裁决 114 换成正式许可与上游声明（含 Apache-2.0 全文），之后论文与本节再写死 revision。
+- 4 个 HF 仓库已换成裁决 114 的正式卡片（2026-10-08 20:04，T0 `apache-2.0`，T1～T3 `cc-by-4.0`，附上游声明与 `LICENSE-APACHE-2.0` 全文、3RScan 不再分发声明）；卡片只新增 `README.md` 与许可文件，上表的数据 revision 不变。
 
 **论文所用的 HF revision（2026-10-08 写入）。** 白话：论文引用的是逐文件核对过的那一次提交，下载时用 `--revision` 指定它，拿到的文件与仓库里已提交的发布清单逐一对得上。这些 revision 之后的提交只改卡片（`README.md`），没有改任何数据文件。
 
@@ -281,8 +281,8 @@ python ops/vsmt/hf_fetch.py --repo Jsun0632/vsmt-lean-s3-eval --repo-type datase
 |---|---|---|---|
 | T0 结果与权重 | `Jsun0632/vsmt-lean`（model） | `0b2ce7f8bb5de862fd500f10b23e55ba4eebf372` | `results/vsmt_lean_hf_release_T0_2d179b9.json` 的 `verify`：699 项，`pass` |
 | T1 评估输入 | `Jsun0632/vsmt-lean-s3-eval`（dataset） | `1bb81d27554d3795439172c418dc1416bff0c56e` | `results/vsmt_lean_hf_release_T1_2d179b9.json` 的 `verify`：582 项，`pass` |
-| T2 训练与审计记录 | `Jsun0632/vsmt-lean-s3-records`（dataset） | 上传中；核对通过后由发布会话补上 | 待 `vsmt_lean_hf_release_T2_<提交>.json` |
-| T3 训练输入 | `Jsun0632/vsmt-lean-s3-train`（dataset） | 上传中；核对通过后由发布会话补上 | 待 `vsmt_lean_hf_release_T3_<提交>.json` |
+| T2 训练与审计记录 | `Jsun0632/vsmt-lean-s3-records`（dataset） | `1d45b57add4a89f4586a4b128a0cc7d1a81721c8` | `results/vsmt_lean_hf_release_T2_2d179b9.json` 的 `verify`：33 项，`pass` |
+| T3 训练输入 | `Jsun0632/vsmt-lean-s3-train`（dataset） | `d0396685929460b65496883b6007df5f6f23c0c9` | `results/vsmt_lean_hf_release_T3_2d179b9.json` 的 `verify`：1,113 项，`pass` |
 
 例如只取 validation 的实例分割 cache：
 

@@ -230,6 +230,35 @@ def verify_tier(tier: str, *, state: Path, uploader: Any) -> dict[str, Any]:
     return report
 
 
+CARDS_DIR = ROOT / "ops" / "vsmt" / "hf_cards"
+LICENSE_FILE = "LICENSE-APACHE-2.0"
+
+
+def upload_cards(tier: str, *, uploader: Any, staging: Path, cards_dir: Path = CARDS_DIR) -> list[str]:
+    """Ruling 114: the tier's card (README.md, licence metadata, upstream notices, the 3RScan statement) and the Apache-2.0
+    text, one commit per repo; returns the commit refs. Data files are not touched."""
+
+    repos = sorted({(g.repo, g.repo_type) for g in hf.tiers(DEFAULT_BASE)[tier]})
+    card, licence = cards_dir / f"README_{tier}.md", cards_dir / LICENSE_FILE
+    hf._require(card.is_file() and licence.is_file(), f"cards_missing:{tier}")
+    refs = []
+    for repo, repo_type in repos:
+        folder = staging / "cards" / repo.replace("/", "__")
+        shutil.rmtree(folder, ignore_errors=True)
+        folder.mkdir(parents=True)
+        shutil.copyfile(card, folder / "README.md")
+        shutil.copyfile(licence, folder / LICENSE_FILE)
+        refs.append(uploader.upload(repo, repo_type, folder, f"S3-05R {tier}: card and Apache-2.0 notice (ruling 114)"))
+        shutil.rmtree(folder, ignore_errors=True)
+    return refs
+
+
+def cmd_cards(args: argparse.Namespace) -> int:
+    refs = upload_cards(args.tier, uploader=HubUploader(), staging=Path(args.staging))
+    say(f"cards {args.tier}: {refs}")
+    return 0
+
+
 def cmd_run(args: argparse.Namespace) -> int:
     return run_tier(args.tier, base=args.base, state=Path(args.state_dir), staging=Path(args.staging),
                     batch_bytes=int(args.batch_gib * 2 ** 30), uploader=HubUploader())
@@ -259,13 +288,14 @@ def cmd_status(args: argparse.Namespace) -> int:
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     sub = parser.add_subparsers(dest="step", required=True)
-    for name, handler in (("plan", cmd_plan), ("run", cmd_run), ("verify", cmd_verify), ("status", cmd_status)):
+    for name, handler in (("plan", cmd_plan), ("run", cmd_run), ("verify", cmd_verify), ("status", cmd_status), ("cards", cmd_cards)):
         p = sub.add_parser(name)
         p.add_argument("--tier", required=True, choices=["T0", "T1", "T2", "T3"])
         p.add_argument("--state-dir", required=True)
         p.add_argument("--base", default=DEFAULT_BASE)
-        if name == "run":
+        if name in ("run", "cards"):
             p.add_argument("--staging", required=True)
+        if name == "run":
             p.add_argument("--batch-gib", type=float, default=20.0)
         if name == "verify":
             p.add_argument("--export-dir", default=None)

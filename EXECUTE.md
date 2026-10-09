@@ -6057,3 +6057,13 @@ D1～D3 只调用冻结的 `lean_s3_05`／`lean_teacher` 函数；D4、D6、D8 �
   - 裁决或用户已定：标题保留 “Pre-Registered”（LOG-311 第 5 项；摘要已写 “registered internally”）；节点 F1 只报差值（不写“区间在 ±0.01 内”，那是等价说法）。
   - 摘要现约 290 词（数字计入），比第一轮长约 25 词，主要是审稿人要求的平衡句；RA-L 若限 250 词，投稿前需再压。
 - 下一步：用户审稿；推送 `430d4d2`、`6eaa7a5`、`6d5ddf3` 与文档提交到 origin 的 `main` 与 `s1-02a-runner`（问用户）；投稿前在 Overleaf 上确认版本开关（默认匿名版）。
+
+### LOG-314：S3-05R 发布完成——T2（训练与审计记录）、T3（训练输入）上传 Hugging Face 并逐文件核对通过，四层全部公开；B1 关机（2026-10-08 19:01 ～ 23:54 CST）
+
+- 白话：别人现在可以不重跑数据生成就重训（T3）、核查训练与审计过程（T2）、重跑评测（T1）或只重算统计（T0）。输入是 B1 上的 S3-03／S3-05 运行根与 train 的四类输入，输出是两个公开数据集仓库和 `results/vsmt_lean_hf_release_T2_2d179b9.json`、`..._T3_2d179b9.json` 两份清单。例如 T3 每条 cache episode 上传前都与 S3-02 cache 导出核对。它不改任何结果。
+- 运行：用户 2026-10-08「T2 T3 都传」；私有额度已满，两个仓库直接建为公开；B1 worktree `hf-2d179b9`（发布代码 = main `1033211`），xet、每批 5 GiB，`vsmt_private/hf_retry2.sh` 在上传错误后自动续传（T2 一次 xet 网络错误，续传 1 次）。
+- 结果：
+  - T2 `Jsun0632/vsmt-lean-s3-records`：33 项、28.24 GiB（S3-03、S3-05 运行根每个顶层目录一个 tar，外加根顶层文件；租用工作机的 hosts 目录不发布），清单 `6937dda2…`，verify 通过，revision `1d45b57add4a89f4586a4b128a0cc7d1a81721c8`。
+  - T3 `Jsun0632/vsmt-lean-s3-train`：1,113 项、189.37 GiB（train 的 raw／几何／instance cache／sam2 cache），cache 条目对 S3-02 导出无差异，清单 `8a23fa7a…`，verify 通过，revision `d0396685929460b65496883b6007df5f6f23c0c9`。
+  - README 的“论文所用的 HF revision”表补齐 T2、T3 两行；四个仓库的卡片已于 20:04 换成裁决 114 的正式卡片（只加 README 与许可文件，不动数据，上表 revision 仍是数据 revision）。
+- 机器：发布完成后 B1 关机（不释放）。B1 上仍有不在 HF 的东西：S3-07 的 3RScan 派生数据与运行根（按裁决 114-3 不能公开）、各阶段的完整运行日志；AutoDL 连续关机 15 天会释放实例，释放前须确认不再需要重跑 S3-07。
