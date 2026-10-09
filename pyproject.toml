@@ -1,7 +1,7 @@
 [project]
 name = "embodied-spatial-memory"
 version = "0.1.0"
-description = "CPMT contracts, development experiments, and the single-room visual pilot"
+description = "VSMT-lean: versioned entity-lifecycle transactions for object-level spatial memory"
 requires-python = ">=3.11,<3.13"
 dependencies = [
   "numpy>=2.0,<3",

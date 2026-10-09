@@ -1,0 +1,24 @@
+cff-version: 1.2.0
+message: "If you use this code, the data or the results, please cite the paper below."
+title: "VSMT-lean: Versioned Lifecycle Transactions for Object-Level Spatial Memory"
+type: software
+authors:
+  - family-names: Sun
+    given-names: Jingze
+    affiliation: The University of Sydney
+repository-code: "https://github.com/JingzeSun/VSMT"
+url: "https://huggingface.co/Jsun0632"
+keywords:
+  - object-level memory
+  - semantic mapping
+  - long-term autonomy
+  - embodied AI
+preferred-citation:
+  type: unpublished
+  title: "Versioned Lifecycle Transactions for Object-Level Spatial Memory: A Pre-Registered Evaluation Under Unobserved Changes"
+  authors:
+    - family-names: Sun
+      given-names: Jingze
+      affiliation: The University of Sydney
+  year: 2026
+  notes: "Manuscript under review"
