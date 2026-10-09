@@ -94,6 +94,16 @@ from vsmt.l1_structures import materialize_public_surfaces  # noqa: E402
 
 CONTRACT_PATH = ROOT / "configs" / "vsmt" / "lean_s1_03_frontend_cache_v1.json"
 D223_CONTRACT_PATH = ROOT / "configs" / "vsmt" / "vm04_d223_f01_production_reader_v1.json"
+#: Episode directory names the generator scans under an episode root: ProcTHOR episodes (S1/S3) and, since ruling 111-7 (a),
+#: the 3RScan episodes of S3-07 (``3rscan-<reference>-<rescan>``, written by ops/vsmt/s3_07_convert.py in the same three-plane layout).
+EPISODE_DIRECTORY_GLOBS = ("procthor10k-*", "3rscan-*")
+
+
+def episode_directories(root: Path) -> list[Path]:
+    """The episode directories directly under ``root``, every registered name pattern, sorted by name."""
+
+    found = {directory.name: directory for pattern in EPISODE_DIRECTORY_GLOBS for directory in Path(root).glob(pattern)}
+    return [found[name] for name in sorted(found)]
 D215_CONTRACT_PATH = ROOT / "configs" / "vsmt" / "vm04_d215_frontend_freeze_v1.json"
 ASSET_REGISTRY_PATH = ROOT / "configs" / "vsmt" / "lean_s1_assets_capacity_v2.json"
 
@@ -467,7 +477,7 @@ def recovery_plan(cache_root: Path) -> dict[str, list[str]]:
     """
 
     kept_succeeded, kept_failed, run = [], [], []
-    for receipt_path in sorted(cache_root.glob("procthor10k-*/receipt.json")):
+    for receipt_path in sorted(d / "receipt.json" for d in episode_directories(cache_root) if (d / "receipt.json").exists()):
         cache_dir = receipt_path.parent
         if json.loads(receipt_path.read_text(encoding="utf-8")).get("status") != "succeeded":
             continue
@@ -492,7 +502,7 @@ def recover_masks_main(args: Any, *, contract: dict[str, Any], assets: dict[str,
         print(f"cache root does not exist: {cache_root}; refusing")
         return 2
     roots = {directory.name: directory for root in args.episode_roots.split(",")
-             for directory in sorted(Path(root).glob("procthor10k-*"))}
+             for directory in episode_directories(Path(root))}
     planned = recovery_plan(cache_root)
     tasks = []
     kept: list[dict[str, Any]] = []
@@ -1123,7 +1133,7 @@ def main() -> int:
     frame_counts: dict[str, int] = {}
     skipped_no_recovered_masks: list[dict[str, Any]] = []
     for root in args.episode_roots.split(","):
-        for directory in sorted(Path(root).glob("procthor10k-*")):
+        for directory in episode_directories(Path(root)):
             receipt_path = directory / "receipt.json"
             if not receipt_path.exists():
                 continue

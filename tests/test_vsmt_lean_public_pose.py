@@ -38,6 +38,10 @@ CORRECTED_53 = "5f9aa71d9328e0a1d065c61c2bc7ef54a11a468c"
 CORRECTED_CONFIRM = "2339baa96c123a7676e129881d270bfab252573c"
 # the S3-02 generation (ruling 103-3): same camera_pose encoder, registered 2026-10-03 before the run
 CORRECTED_S3 = "3f6ef1dda3873d81df1225fed42a42ceca4f5a9e"
+# the S3-07 3RScan converter (ruling 111-7): its own pose encoder (upright, axes swapped, orthonormal), registered 2026-10-07
+CORRECTED_S3_07 = "d12707f360b84dad0edc46d9347ee417be0cea18"
+# the reconversion under amendment 2 of ruling 111 (truth rules only; the pose encoder is the same), registered 2026-10-07
+CORRECTED_S3_07_A2 = "4e7a20627fda16dbad64d6e0e42be7945fd64352"
 CALIBRATION = {"fx": 112.0, "fy": 112.0, "cx": 111.5, "cy": 111.5}
 
 
@@ -112,7 +116,8 @@ class PolicyTests(unittest.TestCase):
         self.assertEqual(self.policy["applies_to_s1_02_code_commits"],
                          [DEFECTIVE, "a397d16b93d202cf50b849a87cbfbb55e5ca06c0"])
         # the ruling-50 regeneration's generator commit, registered once its data existed
-        self.assertEqual(self.policy["correct_encoder_since_code_commits"], [CORRECTED, CORRECTED_53, CORRECTED_CONFIRM, CORRECTED_S3])
+        self.assertEqual(self.policy["correct_encoder_since_code_commits"],
+                         [CORRECTED, CORRECTED_53, CORRECTED_CONFIRM, CORRECTED_S3, CORRECTED_S3_07, CORRECTED_S3_07_A2])
         self.assertEqual(set(self.policy["applies_to_s1_02_code_commits"]) & set(self.policy["correct_encoder_since_code_commits"]), set())
         self.assertEqual(self.policy["rule"], pp.CORRECTION_RULE)
         fc.validate_contract(json.loads(S1_03_CONTRACT_PATH.read_text(encoding="utf-8")))

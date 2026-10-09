@@ -1,0 +1,112 @@
+{
+ "schema_version": "vsmt-lean-s3-07-3rscan-v1",
+ "stage_id": "vsmt.lean.s3_07.3rscan.v1",
+ "ruling": "111",
+ "ruling_text": "user 2026-10-07: 「毕竟这个只是对照，我需要确认一下你111的推荐是按照只是小范围作为论文冲RA-L/SCI二区论文佐证外部真实数据集的来看，还是正规的训练呢，还是说这个是数据集的量决定的问题，如果是符合作证条件的待裁 111 全按推荐」 -- the condition holds (external real-data corroboration, no training, size set by the data); all recommended options",
+ "plain_language_zh": "白话：这份合同登记 S3-07 怎样把 3RScan 的参考扫描与重扫描转成本项目 episode 的三面文件。输入是 3RScan validation 划分的扫描文件（彩色帧、相机位姿、内参、标注网格、实例 OBB、变化项），输出是冻结读入口能直接读的公开帧、私有真值表、干预日志与窗口。例如一帧原始 960×540 的侧躺彩色图，顺时针转正、取中间 540×540、缩到 224×224；它的位姿从 3RScan 世界（+Z 朝上）换到本项目世界（+Y 朝上）。数值常数与 src/vsmt/lean_s3_07_3rscan.py 逐项相同（validate_contract 双向核对）。它不改任何冻结的方法、前端或评价代码；sample_check 的四个槽在小样本核对前为 null，为 null 时正式转换被拒。",
+ "scope": {
+  "dataset": "3RScan (Wald et al., ICCV 2019), official validation split",
+  "scenes": 47,
+  "pairs": 110,
+  "statistical_unit": "scene (reference scan); the pairs of one scene share its reference sweep",
+  "episode": "reference scan frames then one rescan's frames, all frames, no subsampling",
+  "not_used": ["test rescans (no change annotation is released)", "train split (ruling 111-1 (a))"],
+  "terms": "3RScan terms of use signed by the user; derived frames, caches and private tables are never published (DATA section 10)"
+ },
+ "camera": {
+  "raw_color_size_wh": [960, 540],
+  "image_rotation": "clockwise_90",
+  "target_size": 224,
+  "rgb_resample": "PIL.Image.Resampling.BOX",
+  "intrinsics_rule": "per scan from its own colour intrinsics: turn clockwise (fx' = fy, fy' = fx, cx' = (H - 1) - cy, cy' = cx), crop the centred square (rows 210-749 of the upright 540 x 960 frame), scale by 224 / 540 with pixel centres on integers (c'' = (c' + 0.5) k - 0.5, f'' = k f')",
+  "field_of_view": "about 34-39 degrees and different per scan (ProcTHOR: 90 degrees); recorded per episode, never adjusted"
+ },
+ "axes": {
+  "world": [[1, 0, 0], [0, 0, 1], [0, 1, 0]],
+  "camera": [[1, 0, 0], [0, -1, 0], [0, 0, 1]],
+  "upright": [[0, -1, 0], [1, 0, 0], [0, 0, 1]],
+  "rule": "camera-to-world rotation R' = world . R . upright^T . camera, position t' = world . t; world swaps y and z (3RScan +Z up -> project +Y up) and camera flips y (OpenCV y down -> D-223 y up), both mirrors, so det R' = +1; the raw pose and alignment rotations are made exactly orthonormal once (Gram-Schmidt in a fixed order, no BLAS or LAPACK, the same bits on every host) before the swap and turn, which are exact; truth positions and box corners are multiplied by world as well"
+ },
+ "depth": {
+  "source": "annotated_mesh_render",
+  "invalid_value_m": 0.0,
+  "frozen_valid_range_m": [0.05, 20.0],
+  "rule": "ruling 111-5 (a): axial depth of the scan's own annotated mesh rendered at the target camera (same mesh and camera as the instance image); no hit -> 0.0 m (invalid under the frozen range)",
+  "sensor_depth": "diagnostic only: the 224 x 172 sensor depth nearest-sampled onto the target grid through the registered intrinsics; the conversion report gives the share of frames that would fail the frozen depth-support rule and the median mesh-minus-sensor depth; no method runs on it"
+ },
+ "render": {
+  "mesh": "labels.instances.annotated.v2.ply",
+  "raster_near_m": 0.001,
+  "label_rule": "nearest_vertex_of_the_hit_face",
+  "coverage_rule": "pixel_centre_ray_first_hit; ties to the smaller face index",
+  "background_label": 0,
+  "method": "faces with every vertex at least raster_near_m in front are rasterised with pixel-centre coverage and a depth buffer; faces crossing the camera plane are intersected ray by ray (Moller-Trumbore); the result is the first hit of the ray through each pixel centre; the hit's label is the objectId of the face corner nearest to the hit point (ruling 111-4)",
+  "frame": "each scan is rendered in its own frame with its own poses; the alignment is not needed for rendering",
+  "outputs": "per frame NNNNNN.instance.png (uint16 objectId, 0 = no hit or unannotated) and NNNNNN.depth.npy (float32 axial metres, 0.0 = no hit) at the 224 x 224 target camera",
+  "determinism": "element-wise float64 arithmetic in a fixed order, no BLAS or LAPACK: the same bits on every host"
+ },
+ "alignment": {
+  "layout": "column_major",
+  "direction": "rescan_to_reference",
+  "rule": "a rescan frame's pose is left-multiplied by its scene entry's transform; its annotated boxes likewise; the episode then expresses everything relative to observation 0 (the first reference frame)"
+ },
+ "truth": {
+  "nyu40_structural_prefix": {"1": "wall", "2": "room", "8": "door", "9": "window", "22": "Ceiling_room"},
+  "delta_moved_m": 0.5,
+  "node_box_pad_m": 0.25,
+  "label_mapping_sha256": "c564b5dd04535936bd7b26ff42b62cd8e48843684ffc07fbba5d41dd1b8b821a",
+  "label_mapping_source": "3RScan.v2 Semantic Classes - Mapping.csv, the copy in ShunChengWu/3DSSG files/ (the official sheet could not be fetched on 2026-10-07; compared with it before conversion); not committed to this repository",
+  "object_key": "<prefix>|<objectId>: structural NYU40 classes take the evaluator's prefix (out of the node scope), every other object its label as one token (obj_ in front if the token would read as a structural prefix)",
+  "boxes": "initial box = the reference annotation's OBB corners after the axes swap, axis-aligned; objects only in the rescan take the aligned rescan annotation; per-frame object_poses: reference frames the reference box centre, rescan frames the aligned rescan box centre; boxes never rotate (frozen truth box, registered residual)",
+  "changes": {
+   "remove": "in the reference and in the official removed list: a remove row; a residual annotation of it in the rescan does not override the list (amendment 2), its rescan-to-reference vertex ratio is recorded under residual_annotations",
+   "remove_unlisted": "in the reference, absent from the rescan annotation, not in the removed list, and the rescan covered its place (a rescan mesh vertex within coverage_radius_m of the reference OBB centre): a remove row, counted on its own (change lists are not exhaustive)",
+   "not_rescanned": "in the reference, absent from the rescan annotation, not in the removed list, and the rescan did not reach its place: no row, the object stays present at its reference position, counted (amendment 2; 3RScan rescans are often partial)",
+   "add": "only in the rescan annotation: an add row, point = the rescan box centre",
+   "move": "rigid and the old centroid fails the node-column place rule against the new box (lean_teacher.place_holds, delta 0.5 m, pad 0.25 m): a move row, point = the rescan box centre",
+   "small_rigid": "rigid and the place rule holds: no row, counted",
+   "ambiguous_rigid": "rigid and named in the scene's or the rescan's ambiguity entry: no row, counted (ruling 111-3 ambiguity (a))",
+   "nonrigid": "no row, position follows the rescan annotation, counted",
+   "unlisted_displacement": "in no change list but the place rule fails: no row, counted",
+   "structural_change_ignored": "any change of a structural object: no row, counted",
+   "conflict": "a contradictory entry (a rigid instance missing, an id used twice) refuses the pair; a removed object still annotated in the rescan is not a refusal since amendment 2",
+   "obb_invalid": "an OBB with a non-finite value, a magnitude above obb_sanity_max_abs_m or a negative length is annotation garbage: the object is left out of that scan and counted (amendment 2)"
+  },
+  "coverage_radius_m": 0.5,
+  "obb_sanity_max_abs_m": 10000.0,
+  "amendment_2": "approved 2026-10-07 (user: 「待裁 111 修订二全按推荐」) after the formal conversion at d12707f: 756 unlisted absences against 56 official removals, only 306 of them within 0.5 m of a rescan vertex (official removals all within 0.22 m); 10 official removals still annotated in the rescan (residual ratios 0.004 to 1.86, named in the receipts); one OBB centred at 1e290 m",
+  "window": "degenerate [n_ref - 1, n_ref - 1]: zero frames between the scans; the frozen evaluator reads only the end",
+  "nature": "proxy truth from manual mesh annotation and offline registration, not sensor-level ground truth"
+ },
+ "public": {
+  "action_summary": {"action": "HandheldScanFrame", "success": true},
+  "episode_prefix": "3rscan-",
+  "episode_id": "3rscan-<reference scan id>-<rescan id>; house id = the reference scan id; receipt code_commit = the converter commit",
+  "frame_digest": "sha256 of canonical JSON over {rgb: sha256 of the 224x224x3 uint8 bytes, depth: sha256 of the 224x224 float32 bytes, observation_index, relative_pose, action_summary} (the S1-02 generator's formula)",
+  "mask_source_meaning": "simulator_instance_masks in S3-07 means the annotated mesh rendered at the target camera (ruling 111-4 (a)); the name is not changed because the per-source ReID head, ELU-P values and FRONTS maps are frozen"
+ },
+ "sample_check": {
+  "alignment_translation_unit": "m",
+  "obb_axes_layout": "rows",
+  "image_rotation_confirmed": true,
+  "ambiguity_structure_confirmed": true
+ },
+ "sample_check_record": {
+  "report": "results/vsmt_lean_s3_07_sample_d05f337.json",
+  "report_sha256": "3810c2a2a9c2f811d1f0482c9ceed6770204528eebd3adfe9cae65bc0fcb9f95",
+  "code_commit": "d05f337",
+  "sample_scans": ["095821f7-e2c2-2de1-9568-b9ce59920e29", "2e369567-e133-204c-909a-c5da44bb58df", "095821f9-e2c2-2de1-9707-8f735cd1c148", "095821fb-e2c2-2de1-94df-20f2cb423bcb"],
+  "readings": "unit: median nearest-vertex distance of unchanged objects 0.042-0.056 m read as metres against 0.26-0.71 m as millimetres; OBB: median containment 1.00 as rows against 0.50-0.80 as columns; roll: clockwise median cosine 0.919-0.996, no turn 0.06-0.40, counterclockwise and half turn their negatives; ambiguity: 79 entries over the 47 validation scenes, all read by instance_source / instance_target"
+ },
+ "sample_check_rules": {
+  "alignment_translation_unit": "align the rescan mesh to the reference mesh under m and under mm; take the unit with the smaller median nearest-vertex distance over objects in no change list; stop if both exceed 0.10 m",
+  "obb_axes_layout": "rows or columns: the layout whose OBB contains more of the object's own annotated mesh vertices (median over objects); stop if neither contains at least 95%",
+  "image_rotation_confirmed": "amendment 1 of ruling 111 (approved 2026-10-07, user: 「待裁 111 修订一取 (a)」): per sample scan, the median roll cosine (lean_s3_07_3rscan.image_roll_cosine: the image up axis against world up projected onto the image plane; frames looking within about 12 degrees of straight up or down not judged) is at least cos 45 deg under the clockwise turn and the largest of the four candidate turns (turned_rotation); every sample scan must pass, otherwise stop and report, never pick another direction. The approved wording (up axis within 45 deg of world +Z on 95% of frames) mixes in the camera pitch: on the 2026-10-07 preview of the sample scene (cameras about 55 deg down) the right turn read about 0.5",
+  "ambiguity_structure_confirmed": "the ambiguity value names instances under instance_source / instance_target as ambiguity_ids reads them"
+ },
+ "authorization": {
+  "formal_conversion": true,
+  "opened_by": "the registration commit of 2026-10-07 (ruling 111-7, 111-8 step 7; user: 「授权改合同正式位和对应测试」): the four sample slots registered at e388540, the S3-04 freeze receipt dea8c20 pushed and merged (origin/main 8d58475)",
+  "rule": "opened by a registration commit after the sample check fills sample_check and after the S3-04 receipt is pushed (ruling 111-7, 111-8); the converter commit is then appended to the S1-03 pose policy by a second registration commit before any cache or audit reads the converted episodes"
+ }
+}
