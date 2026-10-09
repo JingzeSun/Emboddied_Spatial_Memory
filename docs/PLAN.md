@@ -604,7 +604,7 @@ Either cap changes `feasible_set_size` from "how many feasible interventions thi
 
 **S4 progress addendum 6 (2026-10-09, appended, LOG-317)**: LOG-316 pushed (`307932d`); rulings R2 (a) and R5 (a) executed: the instance-mask ReID head and the ruling-37 salt are in T0 revision `1fc9efe8`, verified, with `reproduce/fetch_extras.py`, the plug-in's instance-mask front end and updated docs. B1 powered off. Open: pushing these commits (awaiting the user); merging `s3-07-impl`.
 
-**S4 progress addendum 7 (2026-10-09, appended, LOG-318)**: LOG-317 pushed (`7f929e9`); `s3-07-impl` merged into `main` (`21e0d6e`, full suite 1,423 OK) with REPRODUCE section 10 in English; README section on using the VSMT memory. Open: pushing (awaiting the user); translating the comments of the merged S3-07 code (optional).
+**S4 progress addendum 7 (2026-10-09, appended, LOG-318)**: LOG-317 pushed (`7f929e9`); `s3-07-impl` merged into `main` (`21e0d6e`, full suite 1,423 OK) with REPRODUCE section 10 in English; README section on using the VSMT memory. Open: pushing (awaiting the user). The comments of the merged S3-07 code were translated the same day (LOG-318).
 
 ## 8. Timeline and recent actions
 

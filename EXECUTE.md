@@ -6277,3 +6277,10 @@ METHOD code map, DATA section 10, PLAN status, and the README's note that the me
 and keeps partly Chinese comments (about 100 lines in 7 files, 14 of them plain-language passages). `4ce6b91`: README
 section "Use the VSMT memory in your own system" (install, a minimal loop over an RGB-D stream with a ROS-style pose,
 inputs and outputs, examples, scope, link to docs/PLUGIN.md), with the "Start here" row pointing to it.
+
+**Translation (same day, at the user's request 「翻译 S3-07 代码的注释」).** The Chinese docstring passages of the 7 merged
+S3-07 files (13 docstrings and 1 comment, about 100 lines) are now English, as in LOG-315: for every Python file the
+syntax tree with docstrings removed equals the merge's, and the shell entry differs only in comment lines; the user's
+verbatim approvals stay in Chinese with an English gloss; one stale example in `classify_changes` (a removal still
+annotated in the rescan, which amendment 2 records as `remove`, was named as a refusal) and the "planned" notes on the
+renderer and converter were corrected. Full suite after the change: 1,423 tests, OK (3 skipped).

@@ -237,7 +237,7 @@ the code of earlier project directions (the CPMT executor, the unified graph, pl
 their contracts, tests and fixtures) and six one-off development scripts were removed; they remain at their original
 paths under the tag. The retained code behaves identically, and the `lean_*` contracts and all results are unchanged.
 The S3-07 code (3RScan check) was merged into `main` afterwards (`21e0d6e`) as it ran; it is not in `paper-v1`, and its
-comments are partly in Chinese.
+docstrings were then translated in the same way (syntax trees unchanged).
 
 ## Documentation
 
