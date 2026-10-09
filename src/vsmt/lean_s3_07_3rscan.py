@@ -1,17 +1,24 @@
 """S3-07 (ruling 111, 2026-10-07): 3RScan scans read into this project's public and private planes, as pure functions.
 
-白话：裁决 111 把 S3-07 写定为“把 3RScan validation 的参考扫描与重扫描转成本项目 episode 的三面文件，再用 S3-04 冻结的臂去跑”。
-这个模块只放转换里可以单独测试的计算，不读写文件、不渲染、不跑任何方法：
-  * 解析：``_info.txt``（内参与尺寸）、``frame-NNNNNN.pose.txt``（相机到世界）、``3RScan.json`` 的对齐矩阵与变化项、
-    ``semseg.v2.json`` 的实例与 OBB、官方标签映射表（标签 -> NYU40 编号）；
-  * 相机：原始帧顺时针转 90° 旋正、取短边中心正方形、缩到 224；内参跟着推；目标像素反查原始像素（传感器深度诊断用）；
-  * 换轴：3RScan 世界 +Z 朝上、OpenCV 相机（y 向下）-> 本项目世界 +Y 朝上、相机 y 向上（D-223 反投影的约定）；
-  * 真值：私有键（结构件按 NYU40 映射到冻结评价器排除的五个前缀）、物体盒、逐类变化分类（111-3）、退化窗口；
-  * 公开帧摘要：与 S1-02 生成器同一公式（S2-04 与 node audit 会从字节重算）。
-输入是 3RScan 文件的文本或已解析的字典与数组，输出是本项目要写的值。例如一把椅子在参考扫描里中心 (2.0, 1.0, 0.4)（+Z 朝上），
-换到本项目世界是 (2.0, 0.4, 1.0)；重扫描里它被挪到 1.2 m 外、且不在 ambiguity 里，记 ``move``，point 是重扫描盒中心。
-它不是渲染器（实例图与网格深度在 ``ops/vsmt/s3_07_render.py``，planned），不写 episode（``ops/vsmt/s3_07_convert.py``，planned），
-也不改任何冻结的读入口；标 ★ 的口径要在小样本上核对后才在合同里登记，登记前 ``blocking_null_slots`` 会挡住正式转换。
+Ruling 111 fixes S3-07 as: convert the reference scans and rescans of 3RScan validation into this project's three-plane
+episodes, then run the arms frozen by S3-04 on them. This module holds the parts of the conversion that can be tested on
+their own; it reads and writes no file, renders nothing and runs no method:
+  * parsing: ``_info.txt`` (intrinsics and sizes), ``frame-NNNNNN.pose.txt`` (camera to world), the alignment matrices
+    and change entries of ``3RScan.json``, the instances and OBBs of ``semseg.v2.json``, the official label sheet
+    (label -> NYU40 id);
+  * camera: the original frame turned 90 degrees clockwise to upright, the centred square of the short side, scaled to
+    224; the intrinsics follow; target pixels map back to original pixels (for the sensor-depth diagnostic);
+  * axes: 3RScan world +Z up with an OpenCV camera (y down) -> this project's world +Y up with a y-up camera (the
+    convention of the D-223 back-projection);
+  * truth: private keys (structural parts mapped through NYU40 to the five prefixes the frozen evaluator excludes),
+    object boxes, the per-class change classification (111-3) and the degenerate window;
+  * public frame digest: the same formula as the S1-02 generator (S2-04 and the node audit recompute it from the bytes).
+Input: the text of 3RScan files or parsed dictionaries and arrays; output: the values this project writes. Example: a
+chair centred at (2.0, 1.0, 0.4) in a reference scan (+Z up) is at (2.0, 0.4, 1.0) in the project world; moved by 1.2 m
+in the rescan and not under ``ambiguity``, it is recorded as ``move`` with the rescan box centre as its point.
+It is not the renderer (``lean_s3_07_render`` and ``ops/vsmt/s3_07_render.py``), does not write episodes
+(``ops/vsmt/s3_07_convert.py``) and changes no frozen reader. The rules marked with a star were registered in the
+contract after the sample check; until then ``blocking_null_slots`` blocked the formal conversion.
 """
 
 from __future__ import annotations
@@ -74,7 +81,7 @@ SCAN_ID = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]
 SAMPLE_CHECK_SLOTS = ("alignment_translation_unit", "obb_axes_layout", "image_rotation_confirmed", "ambiguity_structure_confirmed")
 #: ruling 111-3: per-object outcomes of the change classification (only the first four become intervention rows);
 #: ``remove_unlisted`` = in the reference, absent from the rescan's own annotation, missing from the official ``removed`` list
-#: (111-3: "参考有、重扫描没有" is a removal; change lists are not exhaustive, so it is counted on its own)
+#: (111-3: an object "in the reference, not in the rescan" is a removal; change lists are not exhaustive, so it is counted on its own)
 CHANGE_OUTCOMES = ("remove", "remove_unlisted", "not_rescanned", "move", "add", "small_rigid", "ambiguous_rigid", "nonrigid",
                    "unlisted_displacement", "structural_change_ignored")
 #: amendment 2 of ruling 111 (2026-10-07): an object absent from the rescan annotation and not in the official removed list is a
@@ -117,8 +124,9 @@ def load_contract(path: Path = CONTRACT_PATH) -> dict[str, Any]:
 def validate_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
     """The S3-07 contract must state exactly the constants this module computes with (one source of truth, checked both ways).
 
-    白话：合同是登记给人看的记录，模块里的常数是真正参与计算的值；两者逐项比对，不一致就拒绝，免得合同写一套、代码算另一套。
-    样本核对的四个槽可以是 null（登记前），但写了值就必须是允许的取值。
+    The contract is the registered record for readers; the constants here are what the computation uses. They are compared
+    item by item and any difference is refused, so the contract and the code cannot diverge. The four sample-check slots
+    may be null (before registration), but a value that is set must be an allowed one.
     """
 
     _require(isinstance(contract, Mapping), "contract_not_object")
@@ -178,8 +186,9 @@ def _intrinsics_from_matrix(values: Sequence[float], code: str) -> dict[str, flo
 def parse_info(text: str) -> dict[str, Any]:
     """``_info.txt`` -> sizes, depth shift, colour and depth intrinsics (row-major 4 x 4: fx=[0], cx=[2], fy=[5], cy=[6]).
 
-    白话：每次扫描的 ``_info.txt`` 一行一个 ``键 = 值``。这里取彩色与深度两套内参和尺寸；两套外参必须是单位阵（彩色与深度
-    已配准、同一光心），否则拒绝，因为后面把深度直接搬到彩色的目标相机上。
+    ``_info.txt`` holds one ``key = value`` per line. Both intrinsics and the sizes are read; both extrinsics must be the
+    identity (colour and depth registered, one optical centre), otherwise the file is refused, because the depth is later
+    used at the colour camera's target.
     """
 
     entries: dict[str, str] = {}
@@ -242,9 +251,11 @@ def affine(matrix: np.ndarray, points: Any) -> np.ndarray:
 def orthonormal_rotation(rotation: np.ndarray) -> tuple[np.ndarray, float]:
     """An exact rotation from a near-orthonormal one (Gram-Schmidt on the columns, fixed order) and the largest entry moved.
 
-    白话：3RScan 的位姿是文本，小数位有限，旋转矩阵只近似正交；冻结的四元数编码要求严格正交。这里按列做 Gram–Schmidt（第一列归一，
-    第二列去掉第一列分量再归一，第三列取前两列叉积），全部是逐元素运算，任何主机上逐位相同（SVD 走 LAPACK，换 CPU 可能差末位）。
-    改动量报出来（转换报告记最大值）；偏离正交超过 ``RIGID_TOLERANCE`` 的矩阵在读入时就已被拒。
+    3RScan poses are text with limited decimals, so their rotations are only nearly orthonormal, while the frozen quaternion
+    encoding requires an exact rotation. Gram-Schmidt on the columns (normalise the first; remove its component from the
+    second and normalise; the third is their cross product) uses element-wise arithmetic only and is bit-identical on every
+    host (an SVD goes through LAPACK and can differ in the last bits). The change is returned (the conversion report keeps
+    the largest); matrices farther from orthonormal than ``RIGID_TOLERANCE`` were already refused when read.
     """
 
     r = np.asarray(rotation, dtype=np.float64)
@@ -299,8 +310,9 @@ def alignment_matrix(values: Sequence[float], *, unit: str | None) -> np.ndarray
 def parse_label_mapping(csv_text: str) -> dict[str, int]:
     """The official 3RScan class sheet (``3RScan.v2 Semantic Classes - Mapping.csv``) -> label -> NYU40 id.
 
-    白话：表的第一行是说明、第二行是表头（Global ID、Label、NYU40 编号与名称……）。这里只取“标签 -> NYU40 编号”，同名标签出现
-    两次就拒绝。文件本身不进仓库（第三方表格），转换时按合同登记的 sha256 核对后再读。
+    The sheet's first row is a note and the second the header (Global ID, Label, NYU40 id and name, ...). Only
+    "label -> NYU40 id" is kept; a label that appears twice is refused. The file is third-party and not in the repository;
+    the conversion reads it after checking the SHA-256 registered in the contract.
     """
 
     rows = list(csv.reader(io.StringIO(csv_text)))
@@ -553,9 +565,12 @@ ROLL_CANDIDATE_TURNS = ("clockwise_90", "none", "counterclockwise_90", "half_tur
 def image_roll_cosine(rotation: np.ndarray) -> float:
     """Cosine of the image's roll: the target image's up axis against world up projected onto the image plane (★ sample check).
 
-    白话：判断“转正之后画面是不是正的”，要看滚转而不是俯仰。把世界向上方向投影到图像平面上，和图像的上方向比：转对了接近 1，
-    差 90° 接近 0，转反了接近 -1；相机低头多少都不影响它。相机几乎正对天花板或地面时滚转没有定义，返回 NaN、不参与判断。
-    它不是“图像上方向与世界向上的夹角”——那个量混进了俯仰，手持扫描低头 55° 时转对了也只有约 0.5（2026-10-07 小样本预演）。
+    Whether the turned image is upright is a question of roll, not pitch. World up is projected onto the image plane and
+    compared with the image's up axis: about 1 when the turn is right, about 0 at 90 degrees off, about -1 when reversed,
+    whatever the camera's pitch. When the camera faces the ceiling or the floor almost squarely, roll is undefined and NaN
+    is returned (left out of the decision). It is not the angle between the image's up axis and world up, which mixes in
+    pitch: for a hand-held scan looking down 55 degrees that is only about 0.5 even when the turn is right (2026-10-07
+    sample rehearsal).
     """
 
     r = np.asarray(rotation, dtype=np.float64)
@@ -660,14 +675,19 @@ def classify_changes(reference: Mapping[int, Mapping[str, Any]], rescan: Mapping
     reference object whether the rescan mesh reached its place (``COVERAGE_RADIUS_M``; None = every place covered, the pre-amendment
     reading); ``residual_ratio`` gives, for an official removal still annotated in the rescan, its rescan-to-reference vertex ratio.
 
-    白话：输入两次扫描的物体盒与官方变化项，输出每个物体的归类和要写进干预日志的行。规则：官方 ``removed`` 里的记 remove（重扫描里
-    仍有残留标注也以官方表为准，残留比例记录在 ``residual_annotations``）；不在官方表、重扫描标注里也没有的，重扫描扫到过它的位置
-    （参考盒中心 0.5 m 内有重扫描顶点）才记 remove_unlisted，没扫到记 not_rescanned、物体按参考位置继续在场（修订二）；只在重扫描里出现记 add（point 是重扫描
-    盒中心）；rigid 用节点主列同一把尺子（``lean_teacher.place_holds``：旧质心离新质心不超过 δ_moved，或落在新盒外扩 0.25 m 内）——
-    不成立记 move，成立只计 small_rigid；ambiguity 里的实例 rigid 不记 move（对应不唯一），移除照记；nonrigid 只计数；不在任何列表里
-    却超出地点规则的只计 unlisted_displacement；结构件的任何变化都不进干预日志，只计 structural_change_ignored。变化项自相矛盾（例如
-    “移除”的物体在重扫描标注里还在）就拒绝整对，不猜。例如椅子挪 1.2 m 记 move，挪 0.1 m 记 small_rigid；它不判断方法对错，也不看
-    任何方法输出。
+    Rules: an official ``removed`` entry is ``remove`` (a residual annotation in the rescan does not override the official
+    list; its ratio is kept in ``residual_annotations``); an object in neither the official list nor the rescan annotation
+    is ``remove_unlisted`` only if the rescan reached its place (a rescan vertex within 0.5 m of the reference box centre),
+    otherwise ``not_rescanned`` and the object stays present at its reference place (amendment 2); an object only in the
+    rescan is ``add`` (point = rescan box centre); ``rigid`` uses the rule of the node primary column
+    (``lean_teacher.place_holds``: old centroid within delta_moved of the new one, or inside the new box enlarged by
+    0.25 m) -- ``move`` when it fails, otherwise only counted as ``small_rigid``; a rigid instance under ``ambiguity`` is
+    not a ``move`` (the correspondence is not unique), while removals are still recorded; ``nonrigid`` is only counted; an
+    object outside every list that fails the place rule is only counted as ``unlisted_displacement``; changes of
+    structural parts never enter the intervention log and are counted as ``structural_change_ignored``. Inconsistent
+    change entries (an instance listed twice, a rigid instance missing from a scan) refuse the whole pair rather than
+    guess. Example: a chair moved 1.2 m is ``move``, moved 0.1 m ``small_rigid``. It judges no method and reads no method
+    output.
     """
 
     structural_ids = {int(v) for v in structural}

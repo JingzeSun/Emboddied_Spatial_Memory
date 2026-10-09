@@ -4,13 +4,16 @@ Usage (GPU host of S3-07, frozen frontend environment; CPU only):
     python ops/vsmt/s3_07_render.py --scans-root /root/autodl-tmp/3rscan/scans --meta /root/autodl-tmp/3rscan/meta/3RScan.json \\
         --out-root /root/autodl-tmp/s3_07_render-<commit>-sample --purpose sample --workers 4 --worker-basis "<evidence>"
 
-白话：对每次扫描，读 ``sequence.zip`` 里的 ``_info.txt``（彩色内参）与逐帧位姿、读标注网格 PLY，按 ``lean_s3_07_render.render`` 逐帧画出
-目标相机下的 16 位实例图与米制深度，写 ``<out>/<scan>/frame-NNNNNN.instance.png`` 与 ``.depth.npy``，最后写该扫描的
-``receipt.json``（逐帧输出摘要、网格 sha256、目标内参、计数、耗时、提交）。``--purpose sample`` 只画登记的小样本场景（validation
-按参考扫描 ID 排序的第 1 个场景及其重扫描），输出根必须以 ``-sample`` 结尾，供小样本核对（111-8 ④）看网格深度与传感器深度的一致性；
-``--purpose formal`` 画全部 validation 扫描，合同 ``authorization.formal_conversion`` 打开、样本槽全部填写之后才允许，checkout 必须干净。
-续跑：成功的扫描保留；没有回执的扫描（中断）清掉重画；失败的扫描保留现场、不重画（只记录）。它不读传感器深度、不读变化标注，
-不写 episode（那是 ``s3_07_convert.py``，planned）。
+For each scan: reads ``_info.txt`` (colour intrinsics) and the per-frame poses from ``sequence.zip`` and the annotated mesh
+PLY, draws each frame's 16-bit instance image and metric depth at the target camera with ``lean_s3_07_render.render``,
+writes ``<out>/<scan>/frame-NNNNNN.instance.png`` and ``.depth.npy``, and finally the scan's ``receipt.json`` (per-frame
+output digests, mesh SHA-256, target intrinsics, counts, time, commit). ``--purpose sample`` draws only the registered
+sample scene (the first validation scene by reference-scan ID and its rescans) into a root ending in ``-sample``, for the
+sample check (111-8 step 4) of mesh against sensor depth; ``--purpose formal`` draws every validation scan and requires
+the contract's ``authorization.formal_conversion`` open, every sample slot filled and a clean checkout. Resuming:
+succeeded scans are kept; scans without a receipt (interrupted) are cleared and redrawn; failed scans are kept as they
+are and only recorded. It reads no sensor depth and no change annotation and writes no episode (``s3_07_convert.py``
+does).
 """
 
 from __future__ import annotations

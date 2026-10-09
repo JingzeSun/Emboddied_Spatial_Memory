@@ -8,22 +8,32 @@ Usage (GPU host of S3-07, frozen frontend environment; CPU only):
         [--slots-from <sample-check report>] [--resume]
     python ops/vsmt/s3_07_convert.py reader-check --out-root <episodes root> --geometry-root <geometry root> --report <json>
 
-白话：
-  * ``sample-check``（111-5 与修订一）：在登记的小样本场景（validation 按参考扫描 ID 排序的第 1 个场景及其重扫描）上按已批准的口径
-    判定合同的四个样本槽——平移单位（未变物体对齐后的中位最近点距离，两种读法都超过 0.10 m 即停）、OBB 轴的排布（物体自己的标注
-    顶点落在 OBB 内的中位比例，都不到 95% 即停）、旋正（每次扫描的滚转余弦中位数，顺时针 ≥ cos 45° 且四种转法里最大）、ambiguity
-    结构（validation 每个场景的 ambiguity 都能按 instance_source／instance_target 读出）。只看几何与标注，不跑任何方法，输出一份 JSON；
-    登记由随后的登记提交写进合同。
-  * ``convert``：每对“参考扫描＋一次重扫描”一个 worker，写 ``<out>/3rscan-<ref>-<rescan>/{public,private,provenance}`` 与
-    ``receipt.json``（最后写），``<geometry>/<episode>/object_geometry.json``；公开帧是旋正裁方缩放后的 RGB、渲染深度、目标内参、
-    换轴后相对观测 0 的位姿与帧摘要；私有帧是渲染实例图、标签到私有键、可见像素数与盒中心；干预日志与退化窗口按 111-2／111-3。
-    逐帧诊断（每帧 >64 个色块、网格深度与传感器深度下的深度支撑不足帧、传感器深度有效率与网格减传感器的中位差）进回执，只报告。
-    ``--purpose sample`` 只转换小样本场景的几对，根目录必须以 ``-sample`` 结尾，可以用 ``--slots-from`` 读样本核对的取值（仅此用途）；
-    ``--purpose formal`` 要合同 ``authorization.formal_conversion`` 打开、四个样本槽登记、checkout 干净，取值只认合同。
-  * ``reader-check``：用冻结的读入口逐帧回读转换结果——``read_public_frame`` 与 S2-04 的帧摘要重算、``instance_frame_masks`` 与
-    ``admit_proposals``、几何表校验、``EpisodeTruthTracker`` 与 ``TruthTableBuilder``、窗口前后被干预物体在场、位姿解码
-    （位姿登记表在内存里临时加上转换器提交，只用于这次回读，冻结合同不改）。任何一条不过就记在该 episode 上。
-续跑：成功的 episode 保留；没有回执的（中断）清掉重做；失败的保留现场不重做。它不训练、不跑方法、不读 test。
+Subcommands:
+  * ``sample-check`` (111-5 and amendment 1): decides the contract's four sample slots on the registered sample scene (the
+    first validation scene by reference-scan ID, with its rescans) under the approved rules -- translation unit (median
+    nearest-point distance of unchanged objects after alignment; stop if both readings exceed 0.10 m), OBB axis order
+    (median share of an object's own annotated vertices inside its OBB; stop if both are below 95%), image turn (per-scan
+    median roll cosine, clockwise >= cos 45 degrees and the largest of the four turns), ambiguity structure (every
+    validation scene's ``ambiguity`` readable as instance_source / instance_target). Geometry and annotations only, no
+    method; writes one JSON, and the registration commit then writes the slots into the contract.
+  * ``convert``: one worker per (reference scan, rescan) pair, writing ``<out>/3rscan-<ref>-<rescan>/{public,private,
+    provenance}`` and ``receipt.json`` (last), and ``<geometry>/<episode>/object_geometry.json``. Public frames hold the
+    turned, cropped and scaled RGB, the rendered depth, the target intrinsics, the pose relative to observation 0 in the
+    project axes and the frame digest; private frames the rendered instance image, the label-to-private-key map, visible
+    pixel counts and box centres; intervention log and degenerate window per 111-2 / 111-3. Per-frame diagnostics
+    (frames with more than 64 fragments, frames with insufficient depth support under mesh and under sensor depth, the
+    sensor depth's valid share and the median mesh-minus-sensor difference) go into the receipt, reported only.
+    ``--purpose sample`` converts only the sample scene's pairs into a root ending in ``-sample`` and may take the slot
+    values from ``--slots-from`` (for this purpose only); ``--purpose formal`` requires the contract's
+    ``authorization.formal_conversion`` open, the four slots registered and a clean checkout, and takes values from the
+    contract only.
+  * ``reader-check``: reads every converted frame back through the frozen readers -- ``read_public_frame`` and the S2-04
+    frame-digest recomputation, ``instance_frame_masks`` and ``admit_proposals``, the geometry-table validation,
+    ``EpisodeTruthTracker`` and ``TruthTableBuilder``, presence of the intervened objects before and after the window,
+    and pose decoding (the converter commit is added to the pose registry in memory for this read only; the frozen
+    contract is not changed). Any failure is recorded on that episode.
+Resuming: succeeded episodes are kept; episodes without a receipt (interrupted) are cleared and redone; failed ones are
+kept as they are and not redone. It trains nothing, runs no method and reads no test data.
 """
 
 from __future__ import annotations

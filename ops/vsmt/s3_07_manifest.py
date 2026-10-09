@@ -1,19 +1,28 @@
 #!/usr/bin/env python3
 """S3-07 (ruling 111, 2026-10-07): the external validation on 3RScan -- the steps of ``ops/vsmt/s3_07_external.sh``.
 
-白话：S3-07 把 S3-04 冻结回执钉住的臂、配置与权重，原样跑在转换好的 3RScan validation episode 上，只报告、不判门。两段、两类主机：
-  * GPU 段（与 S3-02 同型号的 RTX 5090 主机）：``check``（E1 代码差异白名单、回执已提交、转换器提交已登记进位姿表、cache 生成器
-    认 ``3rscan-*`` 目录、合同正式位已开且四个样本槽已登记）→ ``render``（标注网格渲染）→ ``convert``（三面 episode 与几何表）→
-    ``reader-check``（冻结读入口回读）→ ``cache``（两套前端的 S1-03 cache，构造失败按冻结原因码照记）→ ``e2``（在本提交上重建 S3-02
-    两条最小 train episode 的两套 cache，封印与已提交的 S3-02 导出逐位相同）→ ``handoff``（每个根的树摘要与可用 episode 清单）；
-  * 审计段（B1＋准入的工作机）：``check`` → ``receive``（复制过来的各根树摘要与交接单逐项相同）→ ``inputs``（运行输入：各根、
-    ReID 头、每套前端可用 episode）→ ``e3``（在本提交上重跑回执 ``probe_episodes`` 上的 G4 探针审计，与 S3-03 的原审计逐字节相同；
-    工作机用 ``remote_hosts.py admit --kinds audit --reference-run-root <S3-03 运行根>``）→ ``run``（作业池：每条 episode 上回执
-    ``test_runs`` 的每个运行一个作业，node audit 只算指标、不带 ``--manifest-split``；崩溃同输入重跑一次，再失败记数据失败；退出码 2
-    是拒绝，停整趟）→ ``merge`` → ``stats``（``lean_s3_07``：按场景合并、只报告）→ ``export``。
-输入是冻结回执、S3-03 运行根（权重与 ReID 头）与 3RScan 的转换产物；输出是两套前端的外部验证表、比较区间、失败与不适用清单。
-例如回执之后 ``src/`` 里改了一个不在白名单里的文件，check 以 3 停下；某条 episode 的 SAM2 cache 因 ``proposal_overflow`` 失败，它
-从该前端的可用清单里去掉并记进失败清单，不换 episode。它不选参、不训练、不读 test、不进主门，也不改任何冻结函数。
+S3-07 runs the arms, configurations and weights pinned by the S3-04 freeze receipt, unchanged, on the converted 3RScan
+validation episodes; reported only, no gate. Two phases on two kinds of host:
+  * GPU phase (an RTX 5090 host as in S3-02): ``check`` (E1 code-difference allow list, receipt committed, converter
+    commit registered in the pose registry, cache generator reads ``3rscan-*`` directories, contract's formal bit open
+    and four sample slots registered) -> ``render`` (annotated-mesh rendering) -> ``convert`` (three-plane episodes and
+    geometry tables) -> ``reader-check`` (read back through the frozen readers) -> ``cache`` (S1-03 caches of both front
+    ends; construction failures recorded with the frozen reason codes) -> ``e2`` (the two smallest S3-02 train
+    episodes' caches rebuilt at this commit, seals equal to the committed S3-02 exports) -> ``handoff`` (tree digests of
+    every root and the usable episodes);
+  * audit phase (B1 and admitted workers): ``check`` -> ``receive`` (copied roots equal the hand-over digests) ->
+    ``inputs`` (run inputs: roots, ReID heads, usable episodes per front end) -> ``e3`` (the receipt's G4 probe audits on
+    ``probe_episodes`` rerun at this commit, byte for byte against S3-03; workers admitted with ``remote_hosts.py admit
+    --kinds audit --reference-run-root <S3-03 run root>``) -> ``run`` (job pool: one job per test run of the receipt and
+    episode; node audit metrics only, without ``--manifest-split``; a crash is rerun once with the same inputs, a second
+    failure is a data failure; exit code 2 is a refusal and stops the run) -> ``merge`` -> ``stats`` (``lean_s3_07``:
+    pooled by scene, reported only) -> ``export``.
+Inputs: the freeze receipt, the S3-03 run root (weights and ReID heads) and the 3RScan conversion outputs; outputs: each
+front end's external-validation table, comparison intervals, failure and not-applicable lists. Example: a file in
+``src/`` changed after the receipt and outside the allow list stops ``check`` with exit code 3; an episode whose SAM 2.1
+cache fails with ``proposal_overflow`` leaves that front end's usable list and enters the failure list, and is not
+replaced. It selects nothing, trains nothing, reads no test data, is not part of the gate and changes no frozen
+function.
 """
 
 from __future__ import annotations

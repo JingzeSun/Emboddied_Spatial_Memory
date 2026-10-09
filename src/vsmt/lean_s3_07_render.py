@@ -1,13 +1,17 @@
 """S3-07 (rulings 111-4, 111-5): a scan's annotated mesh rendered at the 224 x 224 target camera -- instance image and depth.
 
-白话：实例列的色块与两列共用的深度都从这里来。输入是一次扫描自己的标注网格（``labels.instances.annotated.v2.ply``：顶点、三角面、
-逐顶点 ``objectId``）、该帧的原始相机位姿和目标相机内参；输出是 224×224 的 16 位实例图（像素值＝``objectId``，0＝没打到网格或
-打到未标注处）与米制轴向深度（没打到记 0.0，在冻结的 [0.05, 20] m 之外即无效）。结果等于“从相机光心穿过每个像素中心发一条射线，
-取最近的交点”：完全在相机前方的三角面用像素中心覆盖加深度缓冲做光栅化（与逐像素求交同一结果，快得多），跨过相机平面的少数面
-逐面对全部像素做精确的射线–三角求交（Möller–Trumbore）；交点的标签取该三角面三个顶点里离交点最近的那个（裁决 111-4）。例如一张
-面向相机、离相机 2 m 的桌面，打到它的像素深度都是 2 m、标签都是桌子的 objectId。全部是逐元素的 float64 运算，不走 BLAS，换主机
-逐位相同；并列（同一像素、同一深度）取面编号小者。它不读传感器深度、不读另一次扫描、不读变化标注；它不是真值物体表（那由转换器
-从 OBB 写），也不是 SAM 2.1 的色块。
+The fragments of the instance column and the depth of both columns come from here. Input: one scan's own annotated mesh
+(``labels.instances.annotated.v2.ply``: vertices, triangles, per-vertex ``objectId``), the frame's original camera pose
+and the target intrinsics; output: a 224 x 224 16-bit instance image (pixel = ``objectId``; 0 = no mesh hit or an
+unannotated hit) and metric axial depth (0.0 without a hit; outside the frozen [0.05, 20] m it is invalid). The result
+equals casting a ray from the optical centre through every pixel centre and taking the nearest hit: triangles entirely
+in front of the camera are rasterised with pixel-centre coverage and a depth buffer (the same result as per-pixel
+intersection, much faster), and the few triangles crossing the camera plane are intersected exactly with every pixel ray
+(Moller-Trumbore); a hit takes the label of the triangle's vertex nearest to it (ruling 111-4). Example: a table top
+facing the camera 2 m away gives depth 2 m and the table's ``objectId`` on every pixel that hits it. All arithmetic is
+element-wise float64 without BLAS, so hosts agree bit for bit; ties (same pixel, same depth) go to the lower face index.
+It reads no sensor depth, no other scan and no change annotation; it is not the truth object table (the converter writes
+that from the OBBs) and not the SAM 2.1 fragments.
 """
 
 from __future__ import annotations

@@ -1,5 +1,6 @@
 #!/bin/bash
-# S3-07: the external validation on 3RScan (ruling 111, user 2026-10-07: 「待裁 111 全按推荐」; amendment 1: 「待裁 111 修订一取 (a)」).
+# S3-07: the external validation on 3RScan (ruling 111, user 2026-10-07: 「待裁 111 全按推荐」, "all of draft 111 as
+# recommended"; amendment 1: 「待裁 111 修订一取 (a)」, "amendment 1 of draft 111, option (a)").
 #
 # Two phases on two kinds of host, from a clean detached worktree of the S3-07 run commit (its src/, ops/ and configs/ differ from
 # the frozen commit only by the S3-07 files and the registration edits; results/ holds the S3-04 freeze receipt):

@@ -1,15 +1,21 @@
 """S3-07 (ruling 111-8 step 4): one (reference, rescan) pair assembled into the files the frozen readers read, as pure functions.
 
-白话：转换器（``ops/vsmt/s3_07_convert.py``）对每一对“参考扫描＋一次重扫描”要写出与 ProcTHOR episode 同样格式的三面文件；
-这个模块把其中的计算写成纯函数，不读写文件：
-  * ``plan_pair``：两次扫描的物体键、物体盒（对齐后、换轴后）、111-3 的变化分类、干预日志行、几何表行；
-  * ``public_record`` / ``private_record``：一帧的公开记录（含帧摘要）与私有记录（实例标签到私有键、可见像素数、物体位置）；
-  * ``geometry_table`` / ``window_record``：几何补充表（冻结的 ``validate_geometry_table`` 逐键核对）与退化窗口；
-  * ``frame_diagnostics``：一帧在实例列上会不会撞冻结前端的两条整条失败规则（每帧 >64 个色块、色块深度支撑不足），
-    分别按网格深度与传感器深度算——传感器深度只作诊断；
-  * 小样本核对（111-5 与修订一）：平移单位（几何残差）、OBB 轴的排布（顶点包含率）、旋正（滚转中位数）、ambiguity 结构。
-输入是已经解析好的扫描内容（``lean_s3_07_3rscan`` 的输出）与渲染结果，输出是要写进文件的字典与数组。例如参考扫描 203 帧、重扫描
-174 帧的一对，输出 377 条公开记录与私有记录、窗口 [202, 202]、几张移除与搬动的干预行和一张几何表。它不渲染、不跑方法、不读 test。
+The converter (``ops/vsmt/s3_07_convert.py``) writes, for every (reference scan, rescan) pair, the three planes of an
+episode in the ProcTHOR format; this module holds the computations as pure functions that read and write no file:
+  * ``plan_pair``: object keys and boxes of both scans (aligned, axes swapped), the change classification of 111-3, the
+    intervention-log rows and the geometry-table rows;
+  * ``public_record`` / ``private_record``: a frame's public record (with its frame digest) and private record (instance
+    labels to private keys, visible pixel counts, object positions);
+  * ``geometry_table`` / ``window_record``: the geometry supplement (checked key by key by the frozen
+    ``validate_geometry_table``) and the degenerate window;
+  * ``frame_diagnostics``: whether a frame would trip either whole-episode failure rule of the frozen front end on the
+    instance column (more than 64 fragments, insufficient fragment depth support), with mesh and with sensor depth --
+    the sensor depth is a diagnostic only;
+  * sample checks (111-5 and amendment 1): translation unit (geometric residual), OBB axis order (vertex containment),
+    image turn (median roll), ambiguity structure.
+Input: parsed scan contents (``lean_s3_07_3rscan``) and render outputs; output: the dictionaries and arrays to write.
+Example: a pair with 203 reference and 174 rescan frames gives 377 public and private records, the window [202, 202], a
+few removal and move rows and one geometry table. It does not render, run a method or read test data.
 """
 
 from __future__ import annotations

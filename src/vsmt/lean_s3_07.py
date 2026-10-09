@@ -1,19 +1,26 @@
 """S3-07 (ruling 111-6): the external-validation statistics on 3RScan, pooled by scene, reported only, from the frozen functions.
 
-白话：S3-07 跑完之后每套前端每个运行都有一份逐 episode 的审计结果，这个模块把它们装成“场景 × 运行”的表再算统计。一个场景
-（参考扫描）配几次重扫描就有几条 episode，它们共用同一段参考扫掠，不独立，所以统计单位是场景（裁决 111-1）：
-  * 合并：比值类指标（Missing 残留率、假撤回率两列、身份连续率两列、检索成功率）把分子分母跨该场景的 episode 求和再求比；逐帧类
-    （节点 P／R／F1 两列、contamination AUC、规模与成本）按 episode 取均值；恢复延迟把各 episode 的物体并起来再取均值；某个 episode
-    的值不可算，这个场景在该指标上就不可算（None），之后按冻结规则排除；
-  * 排除清单：``lean_teacher.exclusion_over_runs``——一项指标在任一主表运行上不可算的场景，对所有臂一并排除并计数；
-  * 主表：每个臂每项指标在该指标清单内场景上的均值，学习臂另给逐种子与 5 个种子的均值 ± 标准差；
-  * 比较：VSMT-lean 对 AssocOnly、每个消融与每个规则臂，每项指标用与 S3-05 相同的按种子配对矩阵（``lean_teacher.seed_paired_matrix``）、
-    同一两级重采样（``lean_s3_05.two_level_interval``，同一 bootstrap 种子）给出差值与 90% 区间，并给 82-1 读数——**只报告，不判门，
-    没有“通过”字样**；
-  * 三分解合计、规模与成本、缺失的运行（审计失败）逐条列出；表头写明“3RScan validation、n＝有效场景数、代理真值、冻结配置、不进主门”；
-    不适用项（主门与固定顺序检验、LLM-op、选参与训练相关量、test 封存与读取记录、SAM 2.1 的“跨分割成立”结论）列出而不计算。
-输入是合并审计的逐 episode 行与可用 episode 名单；输出是一份统计。例如某个场景有 3 条 episode、每条各 2 个身份连续事件，场景的
-身份连续率就是 6 个事件里接回的比例，而不是 3 个比例的平均。它不读任何数据文件、不改任何冻结函数、不读 test、不选任何东西。
+After S3-07 every run of every front end has per-episode audit results; this module arranges them as a scene x run table
+and computes the statistics. A scene (one reference scan) yields one episode per rescan; these share the reference sweep
+and are not independent, so the statistical unit is the scene (ruling 111-1):
+  * pooling: ratio metrics (Missing residual rate, both false-retract columns, both identity-continuity columns,
+    retrieval success) sum numerators and denominators over the scene's episodes; per-frame metrics (both node P/R/F1
+    columns, contamination AUC, size and cost) take the episode mean; recovery latency pools the objects of all its
+    episodes; if one episode's value is undefined, the scene's value is None and the frozen exclusion rule applies;
+  * exclusion list: ``lean_teacher.exclusion_over_runs`` -- a scene on which a metric is undefined for any main-table run
+    is excluded for every arm and counted;
+  * main table: each arm's mean over the scenes on that metric's list; learned arms also per seed and as mean +- standard
+    deviation over the 5 seeds;
+  * comparisons: VSMT-lean against AssocOnly, every ablation and every rule arm, per metric, with the seed-paired matrix
+    of S3-05 (``lean_teacher.seed_paired_matrix``) and the same two-level resampling (``lean_s3_05.two_level_interval``,
+    same bootstrap seed): difference, 90% interval and the 82-1 reading -- reported only, no gate, no "pass";
+  * decomposition totals, size and cost, and missing runs (failed audits) are listed; the header states "3RScan
+    validation, n = usable scenes, proxy truth, frozen configurations, not part of the primary gate"; items that do not
+    apply (primary gate and fixed-sequence test, LLM-op, selection and training quantities, test seal and read record,
+    the SAM 2.1 conclusion "holds across segmenters") are listed and not computed.
+Input: the per-episode rows of the merged audits and the usable episode lists; output: one statistics record. Example:
+for a scene with 3 episodes of 2 identity events each, identity continuity is the share of the 6 events re-attached, not
+the mean of 3 shares. It reads no data file, changes no frozen function, reads no test data and selects nothing.
 """
 
 from __future__ import annotations
