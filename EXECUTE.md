@@ -10,6 +10,8 @@
 
 ## 当前看板
 
+**2026-10-09: s3-07-impl merged into main (LOG-318)** — the S3-07 code is on `main` (`21e0d6e`; not in `paper-v1`); 1,423 tests OK; README has its own section on using the VSMT memory.
+
 **2026-10-09: instance-mask ReID head and ruling-37 salt released (LOG-317)** — T0 revision `1fc9efe8` adds both (paper revision unchanged); `reproduce/fetch_extras.py` restores them; the instance-mask probe audit re-run with the released head equals the server's in metrics and decomposition.
 
 **2026-10-09: reproduction entry points and memory plug-in (LOG-316)** — `reproduce/paper.py` recomputes every test statistic and rebuilds Tables II–III and Figures 3–4 in one command (2–3 min, all equal); `reproduce/l1_eval.py` re-runs frozen audits (test only with an explicit post-publication acknowledgement); `vsmt_memory/` runs the memory on any RGB-D stream (bit-identical to the frozen audit entry in one environment); README routes readers; Apache-2.0 licence. Open: salt and instance-mask ReID head (rulings).
@@ -6245,3 +6247,33 @@ PLUGIN no longer describe the two inputs as unreleased (the outside-rerun pin ed
 new heads); this record.
 
 **Not changed.** The revision the paper cites (`0b2ce7f8`) and every earlier T0 file; `src/`, `configs/`, `tests/`.
+
+### LOG-318: Branch s3-07-impl merged into main; README section on using the VSMT memory (2026-10-09, Sydney)
+
+**Requests.** The user, 2026-10-09: 「把 s3-07-impl 合入 main」 ("merge s3-07-impl into main"); and, reading the README
+alone, one could not tell how to reuse the VSMT memory, so it should have its own heading on how to run and embed it
+(the compared arms TAF, LOW and the others are other authors' mechanisms and are not offered as reusable modes).
+
+**Merge (`21e0d6e`, parents `7f929e9` and `aa94373`).** The branch held 31 commits (ruling 111 and its amendments 1–3,
+the S3-07 implementation, two registration commits and the run records) with 25 files changed since `8d58475`. All
+imports of the new modules exist on `main` after the removal of earlier-direction code (LOG-315). Changes to existing
+code are the two that ruling 111-7 registered: `configs/vsmt/lean_s1_03_frontend_cache_v1.json` lists the converter
+commits `d12707f` and `4e7a206` in `correct_encoder_since_code_commits` (S1-03 rule digest re-pinned in
+`tests/test_vsmt_lean_cross_contract.py` and `tests/test_vsmt_lean_public_pose.py`), and `ops/vsmt/lean_s1_03_cache.py`
+scans `3rscan-*` episode directories as well. New: `src/vsmt/lean_s3_07*.py` (4), `ops/vsmt/s3_07_*` (4), the S3-07
+contract, 6 test modules, `results/vsmt_lean_s3_07_e2_precheck_dea8c20.json` and
+`results/vsmt_lean_s3_07_sample_d05f337.json`. DECISIONS gains the branch's ruling-111 records (2026-10-07, Chinese,
+unedited). Conflicts in README.md, docs/DATA.md and docs/PLAN.md were resolved with `main`'s English versions, which
+already recorded S3-07 as run; the branch's Chinese run instructions became REPRODUCE section 10 in English (`f1a4fc9`).
+The merge was made in a separate worktree and `main` fast-forwarded to it.
+
+**Verification.** Full suite on the merge: 1,423 tests, OK (3 skipped), 63 more than before the merge (the S3-07
+tests); `vsmt_memory/tests` and `reproduce/tests` OK. The data-dependent plug-in parity tests were skipped because the
+local data root had been deleted; the merge changes nothing they read except the list of registered commits.
+`paper-v1` is unchanged, so L0 is unaffected.
+
+**Documentation.** `f1a4fc9`: REPRODUCE section 10 (preconditions, GPU and audit phases, sample check, E2 pre-check),
+METHOD code map, DATA section 10, PLAN status, and the README's note that the merged S3-07 code is not in `paper-v1`
+and keeps partly Chinese comments (about 100 lines in 7 files, 14 of them plain-language passages). `4ce6b91`: README
+section "Use the VSMT memory in your own system" (install, a minimal loop over an RGB-D stream with a ROS-style pose,
+inputs and outputs, examples, scope, link to docs/PLUGIN.md), with the "Start here" row pointing to it.
