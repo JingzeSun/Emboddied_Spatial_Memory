@@ -8,6 +8,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import check_env  # noqa: E402
+import fetch_extras  # noqa: E402
 import l1_eval  # noqa: E402
 import paper  # noqa: E402
 from _common import REPO_ROOT, load_json  # noqa: E402
@@ -59,6 +60,37 @@ class L1EntryTests(unittest.TestCase):
 
     def test_test_scope_needs_the_acknowledgement(self) -> None:
         self.assertEqual(l1_eval.main(["--data-root", str(REPO_ROOT / "nonexistent"), "--scope", "test"]), 2)
+
+
+class FetchExtrasTests(unittest.TestCase):
+    def test_the_record_lists_both_released_inputs(self) -> None:
+        record = load_json(fetch_extras.RECORD)
+        paths = sorted(item["path_in_repo"] for item in record["manifest_addendum"]["items"])
+        self.assertEqual(paths, sorted(fetch_extras.NAMES.values()))
+        self.assertEqual(len(record["revision"]), 40)
+
+    def test_local_copies_are_checked_by_every_digest(self) -> None:
+        import hashlib
+        import json
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as directory:
+            salt = Path(directory) / "salt.txt"
+            salt.write_bytes(b"abc\n")
+            item = {"bytes": 4, "sha256": hashlib.sha256(b"abc\n").hexdigest(),
+                    "stripped_text_sha256": hashlib.sha256(b"abc").hexdigest()}
+            self.assertEqual(fetch_extras.item_problems(item, salt), [])
+            salt.write_bytes(b"abd\n")
+            self.assertEqual(fetch_extras.item_problems(item, salt), ["file digest differs", "stripped-text digest differs"])
+            head = Path(directory) / "head.json"
+            head.write_text(json.dumps({"sha256": "x"}), encoding="utf-8")
+            data = head.read_bytes()
+            item = {"bytes": len(data), "sha256": hashlib.sha256(data).hexdigest(), "payload_sha256": "y"}
+            self.assertEqual(fetch_extras.item_problems(item, head), ["payload digest differs"])
+            self.assertEqual(fetch_extras.item_problems(item, Path(directory) / "missing"), ["missing"])
+
+    def test_a_destination_inside_the_repository_is_refused(self) -> None:
+        self.assertEqual(fetch_extras.main(["--dest", str(REPO_ROOT / "outputs")]), 2)
 
 
 class EnvironmentCheckTests(unittest.TestCase):

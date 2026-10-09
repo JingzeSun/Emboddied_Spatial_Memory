@@ -161,9 +161,9 @@ def check(levels: set[str], root: Path, deep: bool) -> list[Row]:
         rows += layer_rows("L1", "T1", root, ("test/",), deep, required=False)
         instance = root / INSTANCE_REID
         present = instance.exists() and sha256(instance) == INSTANCE_REID_SHA256
-        rows.append(Row("L1", "instance-mask ReID head (5cea91cf...)", present, "" if present else
-                        "not released on Hugging Face", "" if present else
-                        "the instance-mask table cannot be re-run from the release; SAM 2.1 can", required=False))
+        rows.append(Row("L1", "instance-mask ReID head (5cea91cf..., T0 addendum)", present, "" if present else
+                        "missing (needed for --front instance)", "" if present else
+                        f"python reproduce/fetch_extras.py --dest {root} --only reid", required=False))
     if "L2" in levels:
         rows += layer_rows("L2", "T2", root, ("",), deep)
         rows.append(Row("L2", "T2 restored apart from T0", False, "T2 restores whole S3-03 run roots, inside which T0 "
@@ -216,8 +216,8 @@ def check(levels: set[str], root: Path, deep: bool) -> list[Row]:
         salt_ok = salt.exists() and hashlib.sha256(salt.read_text(encoding="utf-8").strip().encode("utf-8")).hexdigest() == pinned
         rows.append(Row("full", "salt matching the generator's S3_SALT_SHA256 ($SALT_FILE)", salt_ok,
                         f"pinned {pinned[:12]}" + ("" if salt.exists() else "; file missing"),
-                        "the paper's salt (ruling 37) is not released: write your own and re-pin S3_SALT_SHA256 "
-                        "(docs/REPRODUCE.md section 11, outside rerun)"))
+                        f"python reproduce/fetch_extras.py --dest {autodl} --only salt (the paper's salt, released in "
+                        "the T0 addendum); or write your own and re-pin S3_SALT_SHA256 (docs/REPRODUCE.md section 11)"))
         assets = Path(os.environ.get("ASSETS_JSON", str(autodl / "vsmt_private/s103_assets.json")))
         problems: list[str] = []
         if assets.exists():
@@ -236,9 +236,10 @@ def check(levels: set[str], root: Path, deep: bool) -> list[Row]:
                         "dinov2_vits14_checkpoint and dinov2_vitb14_checkpoint to paths (docs/REPRODUCE.md section 11)"))
         for name, variable, relative, source_name, fix in (
                 ("SAM 2.1 ReID head", "SAM2_REID", "vsmt_private/exports/reid_head_vitb14_154776d.json", "sam2",
-                 "released in T0 (reid/); or your own S1-04 head, re-pinned (docs/REPRODUCE.md section 11)"),
+                 f"python ops/vsmt/hf_fetch.py --repo Jsun0632/vsmt-lean --repo-type model --revision "
+                 f"0b2ce7f8bb5de862fd500f10b23e55ba4eebf372 --select reid/ --dest {autodl}"),
                 ("instance-mask ReID head", "INSTANCE_REID", INSTANCE_REID, "simulator_instance_masks",
-                 "not released: train it in S1-04 and re-pin it (docs/REPRODUCE.md section 11, outside rerun)")):
+                 f"python reproduce/fetch_extras.py --dest {autodl} --only reid (T0 addendum)")):
             head = Path(os.environ.get(variable, str(autodl / relative)))
             expected = pinned_reid_sha256(source_name)
             try:

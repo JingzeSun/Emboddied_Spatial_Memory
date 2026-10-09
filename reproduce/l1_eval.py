@@ -25,7 +25,7 @@ Scopes:
 Bit identity is expected only on the hardware and library versions of the original run (Linux, Intel Xeon with
 AVX-512, torch 2.8.0, numpy 2.3.2); elsewhere a few near-tie decisions can differ (docs/REPRODUCE.md, section 1), so
 the report separates metric differences from differences in the error decomposition and the seal chain.  The
-instance-mask ReID head is not released; ``--front instance`` needs it under ``--data-root`` at its server path.
+instance-mask ReID head is in the T0 addendum; ``reproduce/fetch_extras.py --dest <data root>`` restores it.
 
 Outputs (``outputs/reproduce/l1-<front>-<scope>-<time>/``, not tracked): the audits, ``comparison.json`` and, for test,
 ``REPRODUCTION_READ.json``.  Exit codes: 0 all audits ran and every metric equals the paper's; 3 a difference or a
@@ -115,8 +115,8 @@ def task_list(args: argparse.Namespace, receipt: dict[str, Any], tree: Path, out
     episodes = episodes[: args.episodes] if args.episodes else episodes
     reid = root / REID_HEADS[front]
     if not reid.exists():
-        raise Refusal(f"ReID head missing: {reid}" + (" (the instance-mask head is not released on Hugging Face)"
-                                                     if front == "instance" else ""))
+        raise Refusal(f"ReID head missing: {reid}" + (" (restore it with reproduce/fetch_extras.py --only reid)"
+                                                     if front == "instance" else " (restore reid/ of T0 with hf_fetch.py)"))
     tasks = []
     for run in runs:
         heads = heads_file(receipt, front, run, root)
