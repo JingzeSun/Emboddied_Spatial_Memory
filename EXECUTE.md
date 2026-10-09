@@ -1,4 +1,10 @@
-# 实验记录与证据
+# Experiment Log and Evidence
+
+> **Language.** This file records actual results, failures and claim evidence; the stage plan is in
+> [docs/PLAN.md](docs/PLAN.md). Entries up to LOG-314 and the dashboard notes up to 2026-10-08 are the original
+> records, written in Chinese, and are kept unedited (decision D-224-DOC); new entries are written in English. The
+> README summarizes the results, and [docs/REPRODUCE.md](docs/REPRODUCE.md) maps every number in the paper to its
+> result file.
 
 本文件只维护实际结果、失败和主张证据；阶段计划与下一步见 [docs/PLAN.md](docs/PLAN.md)。新实验、实质架构实现或需保留的失败追加 LOG，普通讨论和文档整理不新增实验 LOG。
 

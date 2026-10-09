@@ -1,4 +1,9 @@
-# 当前研究决策日志
+# Research Decision Log
+
+> **Language.** This file records important research, budget and process decisions (rulings) and their history.
+> Entries written before 2026-10-09 are the original records in Chinese and are kept unedited; new entries are
+> written in English (decision D-224-DOC at the end of this file). Accepted decisions are changed only by appending a
+> new entry, never by rewriting an old one.
 
 > 本文件记录重要研究/预算/流程决策及其历史状态，不是日常实验日志。普通进度、对话和导师反馈只写 [EXECUTE.md](../EXECUTE.md)。较早原始理由见 `archive/pre_execution_v2_2026-08-28/06_decision_log.md`。
 >
@@ -3238,3 +3243,32 @@
   - 白话：LLM-op 原来打算放在附录里讲一段、列一张表；RA-L 不允许把附录放到 8 页之外，所以改成正文一句话加一张小表，表注交代原来附录那段的要点。它仍然只是一个描述性的个案，不进主表，也不支持任何主张。
 - **原附录 A～E 的处理（同日，同一任务说明的第 3 条：附录压进 8 页之内，或删掉、改为指向代码仓库里的文档；主文必须自足）**：附录全部并入 8 页正文或删去。去向：两张逐指标区间表与 3RScan 表合成一张取舍矩阵图（图 4）；主门表改为点图（图 3）；逐 house 图删去，SAM 2.1 身份连续率的逐 house 计数写在结果节；选参、三分解与规模改为正文文字；复现一节并入结论节；全表与逐项数留在已提交的导出与根目录 README 的论文索引里（新旧编号对应写在 `paper/README.md` 第二轮一节）。PLAN 第七节 S4 进展补记一、二里“附录投稿时移到补充材料”“正文放不下的表移补充材料”的设想不再成立（RA-L 不收），原文不改，由本条取代。
   - 影响：没有数字变化；README 的论文索引与 `results/vsmt_lean_s3_06_paper_index_154043e.json` 仍按第一轮编号。
+
+## D-224-DOC: Documentation language and repository presentation (2026-10-09; append-only section)
+
+- **Request.** The user, 2026-10-09: 「然后既然别人要看我的GIT，目前中文指令太多太杂了，把他们改成英文吧」 ("since other
+  people will read my Git, there are too many, too scattered Chinese instructions; change them to English");
+  「翻译按方案 2，打标签」 ("translate under option 2, and tag"); 「例如之前那些白话：XXX之类的删掉，还是用一个子AGENT去看是否又觉得CHILDISH的地方」
+  ("delete the earlier plain-language passages such as '白话：XXX', and have a subagent look for anything that reads
+  as childish"); 「然后按照那些规范级的论文项目的要求，去更新全部的这些文件」 ("then update all these files to the standard
+  of exemplary research-paper repositories"); 「然后你的COMMIT也最好尽量像专业人士用英语写吧」 ("and write the commits in
+  English, as a professional would").
+- **Decision (option 2).**
+  - Written in English and reorganized as a research-paper repository: `README.md` (public entry: overview, results
+    within the claim scope of ruling 113, installation, data and weights, reproduction, structure, licence,
+    citation); new `docs/REPRODUCE.md` (the stage-by-stage reproduction instructions, moved out of the README, and the
+    paper results index mapped to the current numbering of the paper); `AGENTS.md`; `docs/METHOD.md`; `docs/PLAN.md`;
+    `docs/DATA.md` (after the uncommitted 2026-10-03 S3-07 research note in the working tree is resolved);
+    `paper/README.md` and the comments of `paper/tools/`; new `CITATION.cff`; the `pyproject.toml` description.
+  - Plain-language ("白话") passages are deleted, and the AGENTS.md rule that required them is removed. Abbreviations
+    are still defined at first use, and implemented / verified / planned status is still stated.
+  - Not translated: EXECUTE.md and docs/DECISIONS.md entries written before 2026-10-09 (historical records containing
+    the user's verbatim approvals; accepted decisions change only by appending); `src/`, `ops/` and `configs/` (the
+    S3-04 freeze code digest covers every tracked file in these directories, `CODE_DIRECTORIES` in
+    `src/vsmt/lean_s3_04.py`, and S3-05 rechecks it); `tests/` (inside the source hash, see AGENTS.md); `results/`
+    (committed exports); `docs/source/` (source material).
+  - The Chinese originals are preserved under the annotated tag `docs-zh-2026-10-09` (commit 93f8f17).
+  - From this date, new documentation and new EXECUTE and DECISIONS entries are written in English; replies to the
+    user remain in Chinese; commit messages follow the "Commit messages" rule of AGENTS.md.
+- **Effect.** No number, claim, rule, contract or code changes; the paper is unaffected. In this repository the
+  workspace-level rule that documentation is mainly in Chinese no longer applies.
