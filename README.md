@@ -150,6 +150,7 @@ same commit and thread count, verified on Intel AVX-512 with MKL).
 | `ops/vsmt/` | stage entry points: data generation, caches, training and selection, freeze, test, reanalysis, LLM-op, release |
 | `configs/vsmt/` | versioned machine-readable contracts (`lean_*.json`) and four contracts of earlier directions that current code or tests still read (front-end assets and the observation runner); rule digests are pinned by cross-contract tests |
 | `tests/` | unit and contract tests |
+| `schemas/` | one JSON schema of an earlier direction, read by the tests of `vm04_observation_runner` |
 | `results/` | committed result exports with manifests and digests (the source of every number in the paper) |
 | `paper/` | LaTeX source of the paper and the scripts that generate its tables and figures |
 | `docs/` | method, data, reproduction guide, plan and decisions |
@@ -190,7 +191,8 @@ later entries are in English. The Chinese versions of the other documents are pr
 ## Tags and branches
 
 - `paper-v1` (tag): the code, configurations, results and paper source that produced the manuscript; use it for every
-  reproduction step.
+  reproduction step. Only re-checking the S3-04 freeze receipt needs the freeze commit `dea8c20` itself (the receipt
+  fingerprints every file in `src/`, `ops/` and `configs/`, and later commits add scripts to `ops/`).
 - `main`: current work; `s1-02a-runner` mirrors `main` for the servers.
 - `s3-07-impl`: the 3RScan conversion, rendering and external-check driver (not merged into `main`).
 - `archive/pre-d224-unified-graph`: documents of the unified-graph and eight-atom directions, superseded by decision

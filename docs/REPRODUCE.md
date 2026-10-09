@@ -10,6 +10,7 @@ Conventions used below:
   comments and docstrings were later translated and the code of earlier project directions removed (the retained
   code is otherwise unchanged); the stage drivers compare the code against the digests recorded by earlier steps, and
   the L0 recomputation requires `src/` and `configs/` to equal the frozen commit `dea8c20`, which holds at the tag.
+  The one exception is the S3-04 freeze check, which holds only at `dea8c20` itself (section 8).
 - Server paths assume `AUTODL=/root/autodl-tmp` and the server clone `/root/Emboddied_Spatial_Memory` (the misspelling
   is the actual directory name; do not correct it).
 - Every server stage runs in a clean, detached worktree of a reviewed commit and is resumable: running `all` again
@@ -469,11 +470,11 @@ bash ops/vsmt/s3_05_test.sh status
 | export | `$AUTODL/vsmt_outputs/exports/vsmt_lean_s3_05_*_<commit>.json` and the run manifest |
 
 **Worker hosts (107-3).** Test data can be copied to worker hosts only after unsealing:
-`remote_hosts.py setup --run-root $AUTODL/vsmt_private/s3-05-run --kinds test`, with the code worktree synchronised to
+`remote_hosts.py setup --run-root $AUTODL/vsmt_private/s3-05-run --name <host> --address <address> --port <port> --kinds test`, with the code worktree synchronised to
 the freeze commit. The run copied B1 → w4 and B1 → w5 directly, per the machine revision of ruling 107 (2026-10-07);
 the w4 → w1 relay of 107-3 (`--relay-from w4 --relay-key <key on w4 that can log in to w1>`) was not used, and placing
 that key on w4 requires the project owner's consent.
-`admit --kinds test --reference-run-root $AUTODL/vsmt_private/s3-03-run` checks test file by file against the seal on
+`remote_hosts.py admit --run-root $AUTODL/vsmt_private/s3-05-run --name <host> --address <address> --port <port> --kinds test --reference-run-root $AUTODL/vsmt_private/s3-03-run` checks test file by file against the seal on
 the worker host (recorded in the read record) and reruns S3-03 validation audits on the freeze commit for a
 bit-for-bit comparison (test is not read). The job pool reads `<run root>/hosts/` every 30 seconds.
 
