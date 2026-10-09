@@ -203,6 +203,7 @@ later entries are in English. The Chinese versions of the other documents are pr
 
 ## Licence
 
+- Code and configurations: Apache-2.0 ([LICENSE](LICENSE)). The paper text and figures in `paper/` are not covered.
 - Weights (T0): Apache-2.0. Data (T1–T3) and result exports: CC-BY-4.0 for this project's contributions; the upstream
   material they contain (AI2-THOR renderings of ProcTHOR-10K houses; SAM 2.1 and DINOv2 features) remains under
   Apache-2.0.
