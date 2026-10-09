@@ -1,6 +1,6 @@
 # Reproducing VSMT-lean
 
-This document gives the commands, inputs, stop points and outputs for every stage behind the paper, from the
+This document gives the commands, inputs, stop conditions and outputs for every stage behind the paper, from the
 committed result files back to data generation. The method is specified in [METHOD.md](METHOD.md), the data in
 [DATA.md](DATA.md); results and failures are logged in [EXECUTE.md](../EXECUTE.md).
 
@@ -11,7 +11,12 @@ Conventions used below:
 - Every server stage runs in a clean, detached worktree of a reviewed commit and is resumable: running `all` again
   continues from the last completed step. A step refuses to reuse its output if the code changed after it completed,
   except for the files listed for that stage.
-- `<commit>` is the reviewed commit; `<tag>` is the commit of the first `check` of a run.
+- `<commit>` is the reviewed commit; `<tag>` is the short hash of the commit on which a run's first `check` ran; it
+  suffixes the run's output names (it is not a Git tag).
+- An *audit* is one closed-loop evaluation of an arm configuration and head set on one episode; it writes per-episode
+  metrics.
+- "The project owner" is the maintainer who reviews code and approves stage transitions; the release key and the
+  contract switches below are issued by the owner.
 
 ## Contents
 
@@ -23,7 +28,7 @@ Conventions used below:
 6. [S3-03: training and selection readings](#6-s3-03-training-and-selection-readings-ruling-104)
 7. [S3-04: freeze after validation](#7-s3-04-freeze-after-validation-ruling-106)
 8. [S3-05: one-time test run](#8-s3-05-one-time-test-run-ruling-107)
-9. [LLM-op appendix arm](#9-llm-op-appendix-arm-ruling-105)
+9. [LLM-op arm](#9-llm-op-arm-ruling-105)
 10. [S3-07: external check on 3RScan](#10-s3-07-external-check-on-3rscan)
 
 ## 1. Reproduction levels and determinism
@@ -32,16 +37,20 @@ Conventions used below:
 |---|---|---|
 | L0 | this repository (`results/`), CPU | every statistic, table and data figure of the paper ([section 2](#2-paper-results-index-l0)) |
 | L1 | HF T0 + T1 (weights; validation and test episodes, geometry, both caches) | the evaluation audits |
-| L2 | HF T2 (training and audit records) | inspection of training; intermediate products |
+| L2 | HF T2 (training and audit records) | inspection of training; intermediate outputs |
 | L3 | HF T3 (training inputs), or ProcTHOR-10K and the code | retraining without regenerating data (T3), or the full pipeline from ProcTHOR-10K |
+
+The entry point of L1 for outside users, and how a rerun of the test audits is recorded as a further read of test,
+have not been defined yet (S3-05R). The full pipeline from ProcTHOR-10K reproduces the same episodes only with the
+private salt of ruling 37, which decides the no-change draw and is not released; with another salt the draw differs.
 
 Determinism boundary:
 
 - Weights are bit-identical for the same commit and the same `TRAIN_THREADS` (ruling 96); this was verified only on
-  Intel AVX-512 with MKL. AMD hosts need the `LD_PRELOAD` fix used on worker w1; other CPUs may differ in the last
-  bits.
+  Intel AVX-512 with MKL. On an AMD host (w1), bit identity was obtained only with an `LD_PRELOAD` workaround
+  (EXECUTE LOG-307, section C); other CPUs may differ in the last bits.
 - Audits are deterministic (the S3-04 probes reproduce bit for bit).
-- The data generator reproduces episode structure; bytes are not guaranteed (LOG-303).
+- The data generator reproduces episode structure; byte identity is not guaranteed (LOG-303).
 - SAM 2.1 caches are expected to be deterministic but were not checked byte for byte.
 - LLM-op is reproduced by replaying its archived API calls, which reproduces the run byte for byte; the hosted API
   itself is not reproducible.
@@ -109,7 +118,7 @@ pages, any overfull box, undefined references, or identifying text in the review
 
 ## 3. Data and weights on Hugging Face (S3-05R)
 
-The S3 products are released in four independently downloadable layers (ruling 110):
+The data, weights and records behind the paper are released in four independently downloadable layers (ruling 110):
 
 | Layer | Repository | Content | Revision cited in the paper | Check |
 |---|---|---|---|---|
@@ -122,7 +131,8 @@ Later commits on these repositories only add the cards (`README.md`) and the lic
 Each episode directory is one deterministic tar (members sorted by path, time 0, owner 0/0, modes 644/755);
 `MANIFEST.json` records the SHA-256, size, restore path and directory-tree digest of every item (the same algorithm
 as the S3-02 test seal). Before upload, every test episode was checked against the seal and every cache against the
-S3-02 exports. After unpacking, recompute the tree digests to verify byte for byte; restore paths match the server
+S3-02 exports. `hf_fetch.py` checks each downloaded file against the manifest, unpacks it, recomputes the tree digest
+and stops with exit code 3 on any mismatch (verified items are skipped on a rerun). Restore paths match the server
 layout (under `/root/autodl-tmp`), so repository scripts need no path changes.
 
 Download and restore (any machine), for example the validation instance cache:
@@ -131,8 +141,8 @@ Download and restore (any machine), for example the validation instance cache:
 python ops/vsmt/hf_fetch.py --repo Jsun0632/vsmt-lean-s3-eval --repo-type dataset --revision 1bb81d27554d3795439172c418dc1416bff0c56e --select validation/instance_cache/ --dest /root/autodl-tmp
 ```
 
-Release (server B1, after `hf auth login`; the script sources `/etc/network_turbo` itself; rerunning the same command
-resumes):
+Release (maintainers only; server B1, after `hf auth login`; the script sources `/etc/network_turbo` itself; rerunning
+the same command resumes):
 
 ```bash
 setsid nohup bash ops/vsmt/hf_release.sh T0 T1 > /root/autodl-tmp/vsmt_outputs/run_logs/hf-release.log 2>&1 < /dev/null &
@@ -164,7 +174,7 @@ every trainable and fitted part is redone on SAM 2.1 under the frozen rules. It 
 development table and its pre-registered interpretation, side by side with the instance-mask reading. It is not a
 test, not a cross-front-end transfer test (the heads are retrained on SAM 2.1), and not used to change the method.
 
-One command (server; clean detached worktree of the reviewed commit; no GPU needed):
+Run (server; clean detached worktree of the reviewed commit; no GPU needed):
 
 ```bash
 git -C /root/Emboddied_Spatial_Memory worktree add --detach /root/autodl-tmp/vsmt_worktrees/s2-06-<commit> <commit>
@@ -193,10 +203,10 @@ points are listed at the top of [`ops/vsmt/s2_06_sam2.sh`](../ops/vsmt/s2_06_sam
 | pilot | the largest SAM 2.1 episode: its calibration job (kept as part of the calibration pass) and one timed TAF audit | 1.5–2.5 h |
 | calibration → grid-review → elu-p-fit | ruling-75 calibration pass; the grid review of ruling 100-2 step 2 (judged relative to instance masks per ruling 101 (1)(a); stops if out of grid); ELU-P fit (summed over all development episodes, ruling 101 (2)(a); the first run stops here for the registration commit) | 1.5–2.5 h |
 | round0 → train0 → round1 → train1 | round-0 ELU-P records; seed 7 of both learned arms; their round-1 records; 5 seeds per arm (grouped checkpoint selection for VSMT-lean) | 5–7 h |
-| audits → instance-noversion | 19 groups × 39 audits on SAM 2.1; NoVersion fill-in on instance masks, 5 × 39 (first checks that today's code reproduces one 7c76970 audit field for field) | 7–10 h |
+| audits → instance-noversion | 19 groups × 39 audits on SAM 2.1; NoVersion fill-in on instance masks, 5 × 39 (first checks that the current code reproduces one 7c76970 audit field for field) | 7–10 h |
 | merge → reading → verify | merge, interpretation per ruling 100-3, determinism probe, all digests checked, final run manifest | about 30 min |
 
-**Stop points.** If the grid review finds a point out of grid, the driver writes a `stopped` marker and waits for a
+**Stop conditions.** If the grid review finds a point out of grid, the driver writes a `stopped` marker and waits for a
 ruling on grids stored per `mask_source`. Under ruling 101 (1)(a), a point counts as out of grid only if the SAM 2.1
 point lies outside the grid on a different side from the instance-mask point; points outside on the same side are
 listed for S3-01 and do not stop the run. On the first run, `elu-p-fit` writes a `hold` marker: the three SAM 2.1
@@ -226,7 +236,7 @@ selection, audits) refuses a test root. If train yields fewer than 120 executed 
 scale ruling instead of relaxing rules or adding samples. S3-02 does not train or evaluate; for test it computes only
 digests and counts.
 
-One command (server with 4 GPUs; free data-disk space at least the roughly 340 GB projected by `check`; clean detached
+Run (server with 4 GPUs; free data-disk space of at least the total projected by `check`, about 340 GB; clean detached
 worktree of the reviewed commit):
 
 ```bash
@@ -237,7 +247,7 @@ bash ops/vsmt/s3_02_data.sh status
 ```
 
 Rerunning `all` resumes; a completed stage refuses reuse if the code changed afterwards (the three files that register
-the generator commit, and documentation, are exempt). Stages, reads, writes and stop points are listed at the top of
+the generator commit, and documentation, are exempt). Stages, reads, writes and stop conditions are listed at the top of
 [`ops/vsmt/s3_02_data.sh`](../ops/vsmt/s3_02_data.sh).
 
 | Input (`AUTODL=/root/autodl-tmp`) | Default path | Check before running (`check`) |
@@ -250,7 +260,7 @@ the generator commit, and documentation, are exempt). Stages, reads, writes and 
 
 | Stage | What it does | Estimated time (rough; measured during the run) |
 |---|---|---|
-| check | full test suite; inputs, GPUs, cgroup quota and memory, free data-disk space written to the run manifest (disk need is projected for all products minus what this run already wrote, so a rerun after `hold` on the registration commit requires only the remainder) | about 15 min |
+| check | full test suite; inputs, GPUs, cgroup quota and memory, free data-disk space written to the run manifest (the disk requirement is projected for all outputs minus what this run has already written, so a rerun after `hold` on the registration commit requires only the remainder) | about 15 min |
 | measure | first 4 train houses, 4 concurrent workers, measured per-worker use (measure root, not part of the S3 data) | about 25 min |
 | generate | disk need recomputed from measured bytes; one process pool over 450 houses (worker count derived by the S1-01 rule, simulator concurrency extrapolated from the 16 workers of the confirmation set); ruling-36 check | about 8–9 h |
 | hold | the first run stops here: the generator commit is registered in the S1-03 pose registry (registration commit pre-authorised by ruling 103-3); run `all` again on that commit | — |
@@ -260,7 +270,7 @@ the generator commit, and documentation, are exempt). Stages, reads, writes and 
 | sam2-cache | SAM 2.1 cache, best per-GPU worker count × GPUs | about 20–40 h |
 | export → verify | exports (train and validation per house; test counts only), test seal, consistency and seal checks across splits, final run manifest | about 30 min |
 
-**Stop points.** `generate` writes `stopped` and stops if train has fewer than 120 relocations or fewer than 60
+**Stop conditions.** `generate` writes `stopped` and stops if train has fewer than 120 relocations or fewer than 60
 source-first revisits, pending a scale ruling (ruling 36). The first run writes `hold` and stops at `hold` until the
 generator commit is registered. If the generator commit's camera_pose encoding differs from the registered one, `hold`
 writes `stopped`: such a commit cannot be registered this way. A cache episode that fails because of the data itself
@@ -290,15 +300,16 @@ manifest with `results/vsmt_lean_s3_02_manifest_<tag>.json`; the test seal diges
 
 ## 6. S3-03: training and selection readings (ruling 104)
 
-S3-03 produces, from the S3-02 train and validation data (test roots stay sealed; only their seal markers are read),
-the frozen method (the recipe of ruling 99-1), the grids and the selection rules: the ELU-P fitted values of both front
-ends, round-0 and round-1 trajectories and HeuristicLabel labels, 36 trainings (each recording per-epoch train and
+From the S3-02 train and validation data (test roots stay sealed; only their seal markers are read), and under the
+frozen method (the recipe of ruling 99-1), grids and selection rules, S3-03 produces: the ELU-P fitted values of both
+front ends, round-0 and round-1 trajectories and HeuristicLabel labels, 36 trainings (each recording per-epoch train and
 validation loss terms), 208 configuration groups × about 42 validation closed-loop audits (metrics only), and the
 selection readings for S3-04. The run is one dependency-driven job pool: a job is dispatched as soon as its inputs
-exist, the critical path (fit, trajectories, training) has priority, and rule-arm audits use the remaining cores.
+exist, the critical path (fit, trajectories, training) has priority, and audits of the deterministic arms use the
+remaining cores.
 S3-03 does not select configurations (S3-04 does), does not read test, and does not change the method or the grids.
 
-One command (server, CPU only; S3-02 complete with its exports in `$AUTODL/vsmt_outputs/exports`; clean detached
+Run (server, CPU only; S3-02 complete with its exports in `$AUTODL/vsmt_outputs/exports`; clean detached
 worktree of the reviewed commit):
 
 ```bash
@@ -324,7 +335,7 @@ subcommands are in [`ops/vsmt/s3_03_manifest.py`](../ops/vsmt/s3_03_manifest.py)
 | S3-02 data | raw episodes `$AUTODL/vsmt_outputs/s3-02-3f6ef1d/{train,validation}`, geometry `$AUTODL/vsmt_private/s3-02-geometry-3f6ef1d/<split>`, caches `$AUTODL/vsmt_caches/s3-02-{instance,sam2}-3f6ef1d/<split>` | the S3-02 run manifest has no problem; every export digest it records matches; per-house raw receipts, per-episode cache seals and geometry receipts equal the exports; counts equal the run manifest |
 | S3-02 test seal | `$AUTODL/vsmt_outputs/exports/vsmt_lean_s3_02_test_seal_3f6ef1d.json` | each of the four test roots has `TEST_SEALED.json` with state sealed and the digest of this seal (only these four marker files are read) |
 | Both ReID heads | `$AUTODL/vsmt_private/exports/reid_head_vitb14_154776d.json` (SAM 2.1), `$AUTODL/vsmt_private/lean-s1-04-diagnostics-oracle-caa50c7/reid_head_vitb14.json` (instance masks) | digests equal the per-source pins of S0-03 |
-| Optional: an existing calibration pass (S3 pre-fit) | `ADOPT_CALIBRATION_INSTANCE=<pass root>` | receipts, configuration and source match for every episode, and the smallest episode rerun on this commit is byte-identical in both products before adoption |
+| Optional: an existing calibration pass (S3 pre-fit) | `ADOPT_CALIBRATION_INSTANCE=<pass root>` | receipts, configuration and source match for every episode, and the smallest episode rerun on this commit is byte-identical in both outputs before adoption |
 
 | Part | What it does |
 |---|---|
@@ -332,7 +343,7 @@ subcommands are in [`ops/vsmt/s3_03_manifest.py`](../ops/vsmt/s3_03_manifest.py)
 | calibration pass → fit | TAF θ_a 0.7 without gate, with histograms and ELU-P counts; the three values fitted on all usable S3 train episodes and written as in-run values (ruling 104-1 1b); a rejected (degenerate) fit stops the run |
 | round 0 → gate | ELU-P trajectories under rollout_config plus this front end's fitted values, writing teacher records and HeuristicLabel records together; gate: the HeuristicLabel decision function matches the arm's decisions row by row on ELU-P's own trajectories (G4), and the largest nuisance-probe advantage over the whole split is ≤ 0.05; a failure stops before training |
 | training | round 0 of three arms (seed 7, checkpoint selected on the total validation loss) → round-1 trajectories (VSMT-lean and HeuristicLabel with τ_r 0.5, AssocOnly without configuration) → round 1 with 5 seeds per arm (grouped checkpoint selection for VSMT-lean and HeuristicLabel); first 240 houses for training, last 60 for checkpoint selection (104-1 1a); the thread count is chosen during round 0 by measuring 1–4 threads on 20 + 5 houses and fixed for the run; the optimiser uses AdamW's multi-tensor path (bit-identical to the registered path: pinned by the test suite and rechecked on real records by the training-equivalence probe); a training that crashes or runs out of memory is rerun once with the same inputs and seed; divergence is recorded as a result, seeds are not replaced |
-| audits | 208 groups on validation: rule arms TAF 12, ELU-P 12, RAC 12, LOW 5, HandCost 12 (ELU-P and others with fitted values); learned arms VSMT-lean, NoVersion and HeuristicLabel with 10 τ_r values × 5 seeds each, AssocOnly × 5 seeds; each job is up to 3 (rule arms) or 5 (learned arms) configurations of one arm and one head set on one episode, the cache is verified once per job, metrics only; jobs are not preemptible, so a single job is kept under about half an hour to avoid long low-priority jobs blocking the critical path |
+| audits | 208 groups on validation: deterministic arms TAF 12, ELU-P 12, RAC 12, LOW 5 and HandCost 12 (ELU-P and others with fitted values); learned arms VSMT-lean, NoVersion and HeuristicLabel with 10 τ_r values × 5 seeds each, AssocOnly × 5 seeds; each job is up to 3 (deterministic arms) or 5 (learned arms) configurations of one arm and one head set on one episode, the cache is verified once per job, metrics only; jobs are not preemptible, so a single job is kept under about half an hour to avoid long low-priority jobs blocking the critical path |
 | probes | audit equivalence (a full audit and a metrics-only audit agree field for field on one train episode) before all audits; training equivalence (the registered list path and this run's streaming plus multi-tensor path are bit-identical) before round-0 training; a failure stops the run; finally one audit on a validation episode is rerun to check determinism |
 | readings | merge completeness; selection readings per front end (per-metric exclusion lists, house means, seed means, missing seeds noted, AssocOnly reference values); report only: 89-3 ① state coverage, grid positions of both calibration passes (101 (1)(a) reading), label composition |
 | export → verify | exports `$AUTODL/vsmt_outputs/exports/vsmt_lean_s3_03_*_<tag>.json`; verify requires all jobs finished, all gates passed, and the fitted values registered in S0-05 equal to this run's values bit for bit |
@@ -345,7 +356,7 @@ checkout is never pulled). Before that pull, `verify` reports `elu_p_values_not_
 expected; no job is rerun. After pulling the registration commit, run `all` once more: all completed jobs are kept and
 `verify` passes.
 
-**Stop points.** `check` fails; a fit is rejected or not finite; the round-0 gate fails (a G4 mismatch, or a nuisance
+**Stop conditions.** `check` fails; a fit is rejected or not finite; the round-0 gate fails (a G4 mismatch, or a nuisance
 advantage above 0.05: first decompose read-only, then propose a ruling; the threshold is not relaxed); the audit
 equivalence, training equivalence or determinism probe differs; any job fails for engineering reasons (training is
 first rerun once automatically). On a stop, running jobs finish and no new job is dispatched.
@@ -367,12 +378,12 @@ and audits are deterministic (determinism probe). Compare your run manifest with
 ## 7. S3-04: freeze after validation (ruling 106)
 
 S3-04 reads the completed S3-03 run root (read only) and its exports and writes a freeze receipt: the single
-configuration of every arm per front end, the 25 runs per test episode (one configuration for each of the 5 rule arms,
-5 seeds for each of the 4 learned arms), the statistics S3-05 computes, and the fingerprints of every code file
-(`src/`, `ops/`, `configs/`) and weight file that run on test day. For example, for VSMT-lean with instance masks, the
-10 τ_r values whose validation Missing residual rate is not below AssocOnly's are removed first, then the one with the
-highest node F1 is chosen. S3-04 does not read test, train or compute the gate; S3-05 unseals test only after the
-receipt is committed and pushed and the user confirms (106-5).
+configuration of every arm per front end, the 25 runs per test episode (one configuration for each of the 5
+deterministic arms, i.e. the four rule-based arms and HandCost; 5 seeds for each of the 4 learned arms), the statistics
+S3-05 computes, and the fingerprints of every code file (`src/`, `ops/`, `configs/`) and weight file that run on test
+day. For example, for VSMT-lean with instance masks, those of the 10 τ_r values whose validation Missing residual rate
+is not below AssocOnly's are removed first, and the remaining value with the highest node F1 is chosen. S3-04 does not read test, train or compute the gate; S3-05 unseals test only after the
+receipt is committed and pushed and the project owner confirms (106-5).
 
 Preconditions: S3-03 has passed its final verify on the registration commit
 (`vsmt_lean_s3_03_verify_<tag>.json` has no problem); the freeze commit already contains the S3-05 entry point
@@ -387,7 +398,7 @@ bash ops/vsmt/s3_04_freeze.sh status
 ```
 
 About 30–60 minutes, in the foreground. Rerunning `all` keeps the steps already passed on this commit; a different
-commit redoes everything in a new output root. There is no automatic power-off. Exports are pulled back and committed
+commit redoes everything in a new output root. The driver does not power off the host. Exports are pulled back and committed
 from another checkout (committing in the freeze worktree changes the commit and starts a new freeze). If only an
 operational defect in `ops/` must be fixed before unsealing, set `PREVIOUS_RECEIPT=<old freeze_receipt.json>`: a receipt
 is written only if the new selection equals the old receipt bit for bit (106-4 (a)).
@@ -408,9 +419,8 @@ not changed, 102-6), validation event counts.
 **Outputs.** Output root `$AUTODL/vsmt_private/s3-04-<commit>` (JSON of each step, `freeze_receipt.json`,
 `<front>/probe/`); exports `$AUTODL/vsmt_outputs/exports/vsmt_lean_s3_04_{freeze,check,selection_<front>,probe_<front>,manifest,verify}_<commit>.json`.
 Next (106-5): pull the exports, commit them to `results/`, push `main` and `s1-02a-runner`, and unseal test in S3-05
-only after the user confirms. After the freeze, `src/` and `configs/` do not change; if only an operational defect in
-`ops/` must be fixed before unsealing, rerun the whole of S3-04 after the fix, and the selection must equal the old
-receipt bit for bit (106-4).
+only after the project owner confirms. After the freeze, `src/` and `configs/` do not change; an `ops/`-only fix before
+unsealing reruns the whole of S3-04 with `PREVIOUS_RECEIPT` set (see above; 106-4).
 
 ## 8. S3-05: one-time test run (ruling 107)
 
@@ -420,7 +430,7 @@ every ablation and rule-based arm, the three steps of the fixed-order primary ga
 interval, the decomposition, size and cost, and per-episode failures. If any file in `src/` changed after the receipt
 was committed, `check` stops and test stays sealed. It runs once and tunes nothing.
 
-Preconditions: the S3-04 receipt has been pulled, committed to `results/` and pushed (106-5), and the user has
+Preconditions: the S3-04 receipt has been pulled, committed to `results/` and pushed (106-5), and the project owner has
 confirmed and given the release key (the first 12 characters of the receipt digest); a detached worktree on B1 whose
 `src/`, `ops/` and `configs/` equal the freeze commit and whose `results/` contains the receipt.
 
@@ -434,22 +444,24 @@ bash ops/vsmt/s3_05_test.sh status
 |---|---|
 | suite | full test suite |
 | check | `verify_freeze` against the receipt (code, weights, registered ELU-P values, test list); the receipt is committed in `results/`; the release key equals the first 12 characters of the receipt digest |
-| unseal | the S3-02 seal digest equals the one recorded in the receipt; every episode of the four test roots is recomputed and must equal the seal before they are opened as read number 1, with a read record `TEST_READ.json` next to each root (a resume is the same read; the S3-03 / S3-04 entry points still refuse); the usable test episodes per front end are fixed |
+| unseal | the S3-02 seal digest equals the one recorded in the receipt; every episode of the four test roots is recomputed and must equal the seal before they are opened; this is read 1, recorded in `TEST_READ.json` next to each root (a resume is the same read; the S3-03 / S3-04 entry points still refuse); the usable test episodes per front end are fixed |
 | run | job pool: each job is one run of the receipt on one test episode (node audit, metrics only, `--manifest-split test --test-receipt`; the entry point rechecks that the configuration is the frozen one); a crash is rerun once with the same inputs, a second failure is recorded as a data failure and the run continues; no metric is printed or exported during the run |
 | merge → stats | after all jobs, one merge per run, then the statistics computed once per 107-4 (`lean_s3_05`) |
 | export | `$AUTODL/vsmt_outputs/exports/vsmt_lean_s3_05_*_<commit>.json` and the run manifest |
 
-**Worker hosts (107-3).** Test can be copied only after unsealing:
-`remote_hosts.py setup --run-root $AUTODL/vsmt_private/s3-05-run --kinds test` (B1 → w4; once w4 is admitted,
-`--relay-from w4 --relay-key <key on w4 that can log in to w1>` relays to w1; placing the key on w4 requires the
-user's consent), with the code worktree synchronised to the freeze commit;
+**Worker hosts (107-3).** Test data can be copied to worker hosts only after unsealing:
+`remote_hosts.py setup --run-root $AUTODL/vsmt_private/s3-05-run --kinds test`, with the code worktree synchronised to
+the freeze commit. The run copied B1 → w4 and B1 → w5 directly, per the machine revision of ruling 107 (2026-10-07);
+the w4 → w1 relay of 107-3 (`--relay-from w4 --relay-key <key on w4 that can log in to w1>`) was not used, and placing
+that key on w4 requires the project owner's consent.
 `admit --kinds test --reference-run-root $AUTODL/vsmt_private/s3-03-run` checks test file by file against the seal on
 the worker host (recorded in the read record) and reruns S3-03 validation audits on the freeze commit for a
 bit-for-bit comparison (test is not read). The job pool reads `<run root>/hosts/` every 30 seconds.
 
-## 9. LLM-op appendix arm (ruling 105)
+## 9. LLM-op arm (ruling 105)
 
-LLM-op asks whether a frozen large language model can perform the memory revision without training. It reads the same
+LLM-op (registered as an appendix arm; the paper has no appendix and reports it in Table III, outside the test
+comparison) asks whether a frozen large language model can perform the memory revision without training. It reads the same
 sealed feature tables as the other arms (rendered as tables with headers) and two registered instructions; the model is
 DeepSeek `deepseek-flash` (V4.1-Flash as of 2026-10-04) in its default reasoning mode. Each frame asks two questions:
 association first (for each fragment, one recalled entity or BIRTH), then, after the solve, existence (RETRACT or NOOP
@@ -460,16 +472,16 @@ machine at the same time.
 
 Preconditions: the two run switches (`pilot_run`, `validation_run`) of the contract
 [`configs/vsmt/lean_s3_03_llm_op_v1.json`](../configs/vsmt/lean_s3_03_llm_op_v1.json) are opened by one commit after the
-user has reviewed the code (until then pilot and formal runs refuse); S3-03 `check` has written `inputs.json` (validation
-of both front ends complete); on the new machine (no GPU needed; at least 16 cores, 64 GB RAM and 50 GB data disk
-recommended) the user writes the key file `/root/.config/vsmt/deepseek.env` (one line `DEEPSEEK_API_KEY=...`, mode 600).
+project owner has reviewed the code (until then pilot and formal runs refuse); S3-03 `check` has written `inputs.json` (validation
+of both front ends complete); on the LLM-op host (no GPU needed; at least 16 cores, 64 GB RAM and 50 GB data disk
+recommended) the operator writes the key file `/root/.config/vsmt/deepseek.env` (one line `DEEPSEEK_API_KEY=...`, mode 600).
 
 ```bash
 # S3-02 host (read only; clean detached worktree of the reviewed commit)
 bash ops/vsmt/llm_op.sh plan                         # draw the validation episode and the pilot episode; writes plan.json and transfer.txt
 # with an existing 15-episode plan (before ruling 108): SUPERSEDE_PLAN=1 bash ops/vsmt/llm_op.sh plan; the old plan is kept as plan.superseded.<sha12>.json
-SSH_KEY=<private key accepted by the new machine> bash ops/vsmt/llm_op.sh transfer <new machine address> <port>   # copies by absolute path (about 8 GB for 15 episodes; rsync skips existing files)
-# new machine (clean checkout of the same commit)
+SSH_KEY=<private key accepted by the LLM-op host> bash ops/vsmt/llm_op.sh transfer <LLM-op host address> <port>   # copies by absolute path (about 8 GB for 15 episodes; rsync skips existing files)
+# LLM-op host (clean checkout of the same commit)
 bash ops/vsmt/llm_op.sh test                         # full test suite
 bash ops/vsmt/llm_op.sh check                        # recompute cache seals per episode, check receipts, geometry tables and both ReID heads, read the key, query the API
 bash ops/vsmt/llm_op.sh pilot                        # 200-frame train pilot per front end; stops with exit 3 at a decision point (archived calls are replayed, not paid again)
@@ -479,11 +491,11 @@ bash ops/vsmt/llm_op.sh replay-check                 # replay the shortest episo
 bash ops/vsmt/llm_op.sh export                       # results/vsmt_lean_llm_op_<commit>.json
 ```
 
-| Step | What it does | Stop points |
+| Step | What it does | Stop conditions |
 |---|---|---|
 | plan | takes, in ascending order of sha256("vsmt-lean-llm-op-105-2\|" + episode ID), the first validation episode usable on both front ends (ruling 108; 105-2 originally took the first 15); the pilot is the first train episode in the same order with at least 200 frames; records seal digests, rows per frame (mean of this front end's S3-03 round-0 ELU-P receipts) and the paths to copy (the pilot copies only the public side and the generation receipts) | the plan is written once (`SUPERSEDE_PLAN=1` replaces only an old plan that differs in episode count, has the same salt string and draw order, and whose formal run has not started; the old plan is renamed and kept); S3-03 inputs record a problem or are still provisional (unless `ALLOW_PROVISIONAL=1`, recorded in the plan) |
 | check | the drawn and pilot caches recomputed frame by frame against the plan's seals; raw receipt and geometry-table digests; both ReID heads are the per-source pins of S0-03; the key is readable and the API lists `deepseek-flash`; parallelism set from memory and cores | any mismatch |
-| pilot | real API calls on the first 200 frames of the pilot episode per front end, public stage only, no private files, no metrics; tokens, latency, invalid answers and fallbacks, returned model name; projected cost = price per row × full-frame rows (the larger of the registered value and the pilot's) × planned frames, all at peak price (worst case), plus the pilot's own cost; the model name is registered | projection above 30 USD (ruling 108; originally 150); a call type not exercised in the pilot cannot be priced; a call type with a fallback rate above 2%; the two front ends return different model names (after the user decides, `ACCEPT_PILOT=1`, recorded in the run record) |
+| pilot | real API calls on the first 200 frames of the pilot episode per front end, public stage only, no private files, no metrics; tokens, latency, invalid answers and fallbacks, returned model name; projected cost = price per row × full-frame rows (the larger of the registered value and the pilot's) × planned frames, all at peak price (worst case), plus the pilot's own cost; the model name is registered | projection above 30 USD (ruling 108; originally 150); a call type not exercised in the pilot cannot be priced; a call type with a fallback rate above 2%; the two front ends return different model names (after the project owner decides, `ACCEPT_PILOT=1`, recorded in the run record) |
 | run | 2 jobs (2 front ends × 1 episode) of the LLM-op formal node audit in parallel (metrics only, validation); archived calls are always replayed and a gap in the archive is refused; rerunning `run` after an interruption resumes from the archive | at 30 USD in the ledger (pilot included) no new job starts (started jobs can still resume); at 40 USD a STOP file is written (ruling 108; originally 150 / 200) and every process stops before its next call (each process also checks the ledger itself, so this holds without the driver); a changed model name or a fatal 4xx writes STOP; a killed or failed driver also writes STOP; after an engineering failure no new job is dispatched |
 | replay-check | the shortest episode per front end replayed from the archive only (no API call); trajectory digest and metrics must equal the formal run byte for byte; recorded in `replay/check.json` | any difference: exit 3 |
 | export | per-episode metrics and merge, per-front-end call statistics (fallback rate above 2% flagged as "format unreliable"), cost, model name, pilot report, replay check and run record | an unfinished episode; no passed replay check |

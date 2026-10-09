@@ -9,8 +9,9 @@ Reproduction guide: [docs/REPRODUCE.md](docs/REPRODUCE.md) · Paper source: [pap
 
 A robot that revisits a changed home must decide, for every remembered object it cannot see, whether the object is
 hidden, missed by the detector, removed or moved, and it must re-identify objects that were moved. VSMT-lean is the
-entity-lifecycle core of versioned structural memory transactions: an object-level memory that applies five
-operations per frame as one transaction.
+entity-lifecycle core of Versioned Structural Memory Transactions (VSMT; the full design also revises places and
+relations, which are not part of this work): an object-level memory that applies five operations per frame as one
+transaction.
 
 | Operation | Effect |
 |---|---|
@@ -20,55 +21,61 @@ operations per frame as one transaction.
 | `RETRACT` | closes the current version of an entity; history is kept, nothing is deleted |
 | `REACTIVATE` | opens a new version of a dormant or retracted entity with the same identity |
 
-`REPLACE` is the composite `RETRACT` + `BIRTH`. `MERGE` is a deterministic de-duplication rule shared byte for byte by
+`REPLACE` is the composite `RETRACT` + `BIRTH`. `MERGE` is a deterministic deduplication rule shared byte for byte by
 all compared methods, not a learned operation. `SPLIT`, `RELINK`, place and topology revision, and relation edges are
-outside the scope of the first paper.
+outside the scope of this paper.
 
 Each frame, a frozen front end (simulator instance masks or SAM 2.1, with RGB-D geometry and frozen DINOv2 descriptors)
 turns the image into anonymous mask fragments. Recall proposes candidate entities per fragment; one rectangular
 Hungarian assignment decides `BIND`, `REACTIVATE` or `BIRTH`; an existence head decides `RETRACT` or `NOOP` for every
 unmatched entity that should be visible; and the executor applies the whole program to a copy of the previous memory,
-all or nothing. The only learned part is three small MLP cost heads (association, birth, existence; 54,787 parameters),
-trained in two DAgger rounds on hindsight labels from the simulator's instance ground truth. Candidate sets and feature
-tables are sealed before any ground-truth file is opened, so the teacher can label candidates but never add, remove or
-reorder them; no object identity, class, change log or future frame is ever an input.
+all or nothing. The only learned components are three small MLP cost heads (association, birth, existence; 54,787
+parameters in total), trained in two rounds of DAgger (dataset aggregation) on hindsight labels derived from the
+simulator's instance ground truth. Candidate sets and feature tables are sealed (hashed and recorded) before any
+ground-truth file is opened, so the hindsight teacher can label candidates but never add, remove or reorder them; no
+object identity, class, change log or future frame is ever an input.
 
-The evaluation compares nine arms that read byte-identical front-end outputs: VSMT-lean; the ablations `AssocOnly`
-(same association head, only `BIND`/`BIRTH`; the counterfactual for the lifecycle vocabulary), `NoVersion` (retraction
-deletes), `HeuristicLabel` (labels copied from a rule-based arm) and `HandCost` (hand-written costs); and four
-rule-based mechanisms re-implemented on the same interface (`TAF`, `ELU-P`, `RAC`, `LOW`; adapters of published
-mechanisms, not official reproductions). Data are procedurally generated ProcTHOR-10K houses with object changes made
-during an unobserved window. The primary hypothesis, the testing order and the statistics were registered internally
-before validation or test data were read, and the test was run once.
+The evaluation compares nine arms (compared methods) that read byte-identical front-end outputs: VSMT-lean; the
+ablations `AssocOnly` (same association head, only `BIND`/`BIRTH`; the counterfactual for the lifecycle vocabulary),
+`NoVersion` (retraction deletes), `HeuristicLabel` (labels copied from a rule-based arm) and `HandCost` (hand-written
+costs); and four rule-based mechanisms re-implemented on the same interface (`TAF`, `ELU-P`, `RAC`, `LOW`; adapters of
+published mechanisms, not official reproductions). Data are procedurally generated ProcTHOR-10K houses with object
+changes made during an unobserved window. The primary hypothesis (revised after development and confirmation
+readings), the testing order and the statistics were registered internally before validation or test data were read,
+and the test was run once.
 
 ## Main results
 
-Test split, one read, 87 ProcTHOR houses (85 with SAM 2.1 outputs). The inference target is the training procedure
-(five seeds). The primary hypothesis was tested in a fixed order against the same-recipe `AssocOnly` ablation;
-"lower bound" is the two-level one-sided 95% lower bound of VSMT-lean's advantage.
+Test split, read once: 87 ProcTHOR houses (85 with SAM 2.1 outputs). The inference target is the training procedure
+(five seeds). The primary hypothesis was tested in a fixed order against the same-recipe `AssocOnly` ablation.
+"Lower bound" is the one-sided 95% lower bound of VSMT-lean's advantage from a two-level (seeds and houses) bootstrap.
+MRR (Missing residual rate) is the share of removed or moved objects that still have an entity (a *stale entity*) at
+their old place after it was seen empty; IdC (identity continuity) is the share of moved objects whose first new
+observation is attached to the entity that carried them before.
 
 | Front end | Metric | AssocOnly | VSMT-lean | Lower bound | Fixed-order step |
 |---|---|---|---|---|---|
-| Simulator instance masks | Missing residual rate (MRR, lower is better) | 0.642 | 0.115 | 0.467 | 1: holds |
-| Simulator instance masks | Identity continuity (IdC) | 0.104 | 0.211 | 0.049 | 1: holds |
-| SAM 2.1 masks | Missing residual rate (MRR, lower is better) | 0.235 | 0.055 | 0.135 | 2: holds |
-| SAM 2.1 masks | Identity continuity (IdC) | 0.082 | 0.063 | −0.049 | 3: fails |
+| Simulator instance masks | MRR (lower is better) | 0.642 | 0.115 | 0.467 | 1: holds |
+| Simulator instance masks | IdC | 0.104 | 0.211 | 0.049 | 1: holds |
+| SAM 2.1 masks | MRR (lower is better) | 0.235 | 0.055 | 0.135 | 2: holds |
+| SAM 2.1 masks | IdC | 0.082 | 0.063 | −0.049 | 3: does not hold |
 
 - The simulator instance masks segment almost perfectly, so the first two rows concern memory updates given near-ideal
   segmentation. With SAM 2.1, stale entities also fall, but identity continuity does not improve, and more than half
-  of VSMT-lean's in-scope retractions concern objects still in place.
+  of VSMT-lean's in-scope retractions (walls, floors, doors, windows and ceilings excluded) concern objects still in
+  place.
 - Node F1 differs from `AssocOnly` by +0.003 (instance masks) and +0.009 (SAM 2.1); no margin was registered, so these
   are reported as differences only.
-- No method leads on every metric. The originally registered gate against the strongest rule-based arm is not met: with
-  instance masks `ELU-P` leaves fewer stale entities (MRR 0.075 vs. 0.115), while per house on average 92.4% of its
-  in-scope retractions concern objects still in place.
+- No method leads on every metric. The originally registered gate against the strongest rule-based arm is not met on
+  either front end: with instance masks `ELU-P` leaves fewer stale entities (MRR 0.075 vs. 0.115), while per house on
+  average 92.4% of its in-scope retractions concern objects still in place.
 - In a descriptive ablation, deleting instead of retracting (`NoVersion`) leaves slightly fewer stale entities but drops
   identity continuity to 0.006 (instance masks) and 0.014 (SAM 2.1).
 
-The full results (all arms and metrics, intervals, ledgers, the 3RScan external check and the LLM-op appendix arm) are
-in the paper and in `results/`; [docs/REPRODUCE.md](docs/REPRODUCE.md#2-paper-results-index-l0) maps every table and
-figure to its file and fields. The admissible claims are fixed in [docs/METHOD.md](docs/METHOD.md) (section 2,
-ruling 113).
+The full results (all arms and metrics, intervals, error ledgers, the 3RScan external check and the LLM-op arm in
+Table III) are in the paper and in `results/`; [docs/REPRODUCE.md](docs/REPRODUCE.md#2-paper-results-index-l0) maps
+every table and figure to its file and fields. The admissible claims are fixed in [docs/METHOD.md](docs/METHOD.md)
+(section 2, ruling 113).
 
 ## Installation
 
@@ -76,22 +83,26 @@ Python 3.11 or 3.12 with [uv](https://docs.astral.sh/uv/):
 
 ```bash
 uv sync
+uv pip install matplotlib huggingface_hub
 ```
 
-This installs the core dependencies (`numpy`, `torch`), which cover the memory, the cost heads, the evaluator, the
-statistics and the L0 recomputation. Data generation runs AI2-THOR in a separate Python 3.9 simulator environment on
-the servers (`$AUTODL/vsmt-envs/simulator-py39`, see
-[docs/REPRODUCE.md](docs/REPRODUCE.md#5-s3-02-formal-data-ruling-103)). Building the paper needs MiKTeX or TeX Live.
+`uv sync` installs the core dependencies (`numpy`, `torch`), which cover the memory, the cost heads, the evaluator,
+the statistics and the recomputation of all statistics from `results/`; `matplotlib` is needed for the paper figures
+and `huggingface_hub` for downloads. Run the commands below with `uv run` or inside the activated `.venv`. Data
+generation runs AI2-THOR in a separate Python 3.9 simulator environment on the servers
+(`$AUTODL/vsmt-envs/simulator-py39`, see [docs/REPRODUCE.md](docs/REPRODUCE.md#5-s3-02-formal-data-ruling-103)).
+Building the paper needs MiKTeX or TeX Live.
 
 Run the test suite from the repository root:
 
 ```bash
-PYTHONPATH=src python -m unittest discover -s tests -t tests -p "test_*.py"
+PYTHONPATH=src uv run python -m unittest discover -s tests -t tests -p "test_*.py"
 ```
 
 ## Data and weights
 
-All S3 products are on Hugging Face in four independently downloadable layers; the paper cites these revisions.
+All data and weights behind the paper's results are on Hugging Face in four independently downloadable layers; the
+paper cites these revisions.
 
 | Layer | Repository | Content | Revision |
 |---|---|---|---|
@@ -103,7 +114,7 @@ All S3 products are on Hugging Face in four independently downloadable layers; t
 For example, to fetch the validation instance-mask cache:
 
 ```bash
-python ops/vsmt/hf_fetch.py --repo Jsun0632/vsmt-lean-s3-eval --repo-type dataset --revision 1bb81d27554d3795439172c418dc1416bff0c56e --select validation/instance_cache/ --dest /root/autodl-tmp
+uv run python ops/vsmt/hf_fetch.py --repo Jsun0632/vsmt-lean-s3-eval --repo-type dataset --revision 1bb81d27554d3795439172c418dc1416bff0c56e --select validation/instance_cache/ --dest /root/autodl-tmp
 ```
 
 Full revisions, manifests and verification are described in
@@ -111,20 +122,21 @@ Full revisions, manifests and verification are described in
 
 ## Reproducing the paper
 
-Every statistic, table and data figure can be recomputed from the committed exports on a CPU, without the data:
+Every statistic, table and data figure can be recomputed from the committed exports on a CPU, without downloading any
+data:
 
 ```bash
-python ops/vsmt/s3_06_reanalysis.py run --workers 8
-python paper/tools/make_tables.py
-python paper/tools/make_figures.py
+uv run python ops/vsmt/s3_06_reanalysis.py run --workers 8
+uv run python paper/tools/make_tables.py
+uv run python paper/tools/make_figures.py
 bash paper/tools/build.sh
 ```
 
-The first command reproduces the S3-05 test statistics value for value before computing anything else.
-Deeper levels re-run the evaluation (T1), inspect training (T2), retrain (T3) or regenerate everything from
-ProcTHOR-10K; [docs/REPRODUCE.md](docs/REPRODUCE.md) gives the commands, inputs, stop points and the determinism
-boundary of every stage (weights are bit-identical for the same commit and thread count, verified on Intel AVX-512
-with MKL).
+The first command recomputes the test statistics and checks them value for value against the committed test export
+(stage S3-05) before computing anything else. The further reproduction levels re-run the evaluation (T1), inspect
+training (T2), retrain (T3) or regenerate everything from ProcTHOR-10K; [docs/REPRODUCE.md](docs/REPRODUCE.md) gives
+the commands, inputs, stop conditions and the determinism boundary of every stage (weights are bit-identical for the
+same commit and thread count, verified on Intel AVX-512 with MKL).
 
 ## Repository structure
 
@@ -136,9 +148,9 @@ with MKL).
 | `tests/` | unit and contract tests |
 | `results/` | committed result exports with manifests and digests (the source of every number in the paper) |
 | `paper/` | LaTeX source of the paper and the scripts that generate its tables and figures |
-| `docs/` | method, data, plan, decisions and reproduction guide |
+| `docs/` | method, data, reproduction guide, plan and decisions |
 | `data/`, `outputs/` | source and split lists; large server outputs (not tracked) |
-| `src/cpmt/`, `src/spatial_world_model/`, non-`lean` modules in `src/vsmt/`, `experiments/`, `schemas/`, `docs/source/`, `prototype/` | earlier project directions, original source material and literature, kept for provenance; not used by any current entry point |
+| `src/cpmt/`, non-`lean` modules in `src/vsmt/`, `experiments/`, `schemas/`, `docs/source/` | code and material from earlier project directions, kept for provenance; current code imports only `cpmt.hashing` and the front-end, visibility and episode-construction helpers in `src/vsmt/` (such as `shared_frontend_core`, `vm04_*` and `l1_*`) |
 
 The code and configuration files are frozen: the S3-04 freeze receipt fingerprints every tracked file in `src/`,
 `ops/` and `configs/`, and S3-05 rechecks those fingerprints. Comments inside these files are therefore left as they
@@ -151,10 +163,15 @@ were at the freeze, partly in Chinese.
 | [docs/METHOD.md](docs/METHOD.md) | method specification, arms, metrics, statistics and the admissible claims |
 | [docs/DATA.md](docs/DATA.md) | data sources, splits, interventions, fields and leakage checks |
 | [docs/REPRODUCE.md](docs/REPRODUCE.md) | stage-by-stage reproduction and the paper results index |
+| [paper/README.md](paper/README.md) | building the paper and its checks |
+
+Project records:
+
+| Record | Content |
+|---|---|
 | [docs/PLAN.md](docs/PLAN.md) | stage plan and current status |
 | [EXECUTE.md](EXECUTE.md) | experiment log: results, failures and claim evidence |
 | [docs/DECISIONS.md](docs/DECISIONS.md) | research decisions (rulings) and their rationale |
-| [paper/README.md](paper/README.md) | building the paper and its checks |
 | [AGENTS.md](AGENTS.md) | working rules for coding agents in this repository |
 
 `EXECUTE.md` and `docs/DECISIONS.md` are the original research records and are written in Chinese up to 2026-10-09;
@@ -165,13 +182,16 @@ later entries are in English. The Chinese versions of the other documents are pr
 
 - `main`: current work; `s1-02a-runner` mirrors `main` for the servers.
 - `s3-07-impl`: the 3RScan conversion, rendering and external-check driver (not yet merged into `main`).
-- `archive/pre-d224-unified-graph`: earlier project directions (CPMT, spatial world model, unified graph, eight-atom
-  vocabulary), superseded by decision D-224.
+- `archive/pre-d224-unified-graph`: documents of the unified-graph and eight-atom directions, superseded by decision
+  D-224.
+- `archive/cpmt-m1-20260917`, `archive/spatial-world-model-20260917`: snapshots taken before the CPMT/M1 and
+  spatial-world-model code left `main` (commit `d7159ba`).
 
 ## Licence
 
-- Weights (T0): Apache-2.0. Data (T1–T3) and result exports: CC-BY-4.0 for this project's contributions; the AI2-THOR
-  renderings, ProcTHOR-10K houses and the SAM 2.1 and DINOv2 features they contain remain under Apache-2.0.
+- Weights (T0): Apache-2.0. Data (T1–T3) and result exports: CC-BY-4.0 for this project's contributions; the upstream
+  material they contain (AI2-THOR renderings of ProcTHOR-10K houses; SAM 2.1 and DINOv2 features) remains under
+  Apache-2.0.
 - No 3RScan data are redistributed; reproducing the 3RScan check requires access granted by TUM.
 
 When using the data, please also cite ProcTHOR, AI2-THOR, DINOv2 and SAM 2.
@@ -190,4 +210,4 @@ When using the data, please also cite ProcTHOR, AI2-THOR, DINOv2 and SAM 2.
 
 ## Acknowledgements
 
-This work builds on AI2-THOR, ProcTHOR-10K, SAM 2, DINOv2 and 3RScan. The LLM-op appendix arm used the DeepSeek API.
+This work builds on AI2-THOR, ProcTHOR-10K, SAM 2, DINOv2 and 3RScan. The LLM-op arm used the DeepSeek API.

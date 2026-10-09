@@ -9,10 +9,10 @@ authors:
 repository-code: "https://github.com/JingzeSun/VSMT"
 url: "https://huggingface.co/Jsun0632"
 keywords:
+  - mapping
+  - semantic scene understanding
   - object-level memory
-  - semantic mapping
   - long-term autonomy
-  - embodied AI
 preferred-citation:
   type: unpublished
   title: "Versioned Lifecycle Transactions for Object-Level Spatial Memory: A Pre-Registered Evaluation Under Unobserved Changes"
