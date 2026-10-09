@@ -24,8 +24,6 @@ Fragments come either from the simulator's instance segmentation, of which only 
 A fragment carries its back-projected 3D points, centroid and box, and an appearance descriptor: the mean DINOv2 ViT-B/14 patch feature in its mask (a frozen self-supervised image network~\cite{dinov2_2024}) through a fixed 128-dimensional projection trained once per mask source, with an instance-contrastive loss, on 30 development houses never used for training, selection or test.
 Visibility is tested on an entity's last seen surface (up to 64 sampled points per fragment of its latest observation): projected into the current depth image, a point is \emph{seen through} if the measured depth lies more than 5\,cm beyond it, \emph{on the surface} if within 5\,cm, and occluded if nearer.
 An entity \emph{should be visible} if at least one point in 64 is seen through or on the surface, and its \emph{free-space coverage} is the seen-through share: the old surface of a removed cup is seen through, while a hidden cup is occluded.
-Instance masks remove segmentation errors unrelated to memory; SAM~2.1 tests a learned segmenter.
-
 \subsection{Recall and frame-level joint assignment}
 For each fragment $f$, recall unites a local channel (the $k{=}5$ entities with the highest descriptor cosine within 3\,m) and a global channel ($k'{=}3$, any distance, any state including retracted); because recall ignores the entity state, \arm{AssocOnly} receives the same far-away candidates as VSMT-lean.
 The cost matrix has a row per fragment and a column per recalled entity plus one \op{BIRTH} column per fragment,

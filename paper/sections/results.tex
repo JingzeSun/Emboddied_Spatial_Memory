@@ -46,7 +46,7 @@ VSMT-lean recovers many more of the changed objects that became observable (296 
 
 \subsection{Reversibility: retraction versus deletion}
 Replacing retraction by physical deletion with the same cost heads (\arm{NoVersion}, which selected $\tau_r=0.9$ versus 0.8 with instance masks and the same 0.25 with SAM~2.1) gives a slightly higher node F1 (by 0.001 and 0.003; the intervals of VSMT-lean's advantage, $-0.0016$ to $-0.0002$ and $-0.005$ to $-0.001$, both exclude zero) and a lower Missing residual rate (0.102 vs.\ 0.115; 0.029 vs.\ 0.055), but drops identity continuity to 0.006 (instance) and 0.014 (SAM~2.1), below even \arm{AssocOnly}'s 0.104 and 0.082; with SAM~2.1 \arm{NoVersion} has the highest node F1 (0.540) and lowest MRR (0.029) of all nine arms.
-On ProcTHOR, re-attachment depends on keeping the versions of retracted entities, at a small cost in stale entities, which were fewer for \arm{NoVersion} in all five seeds on both front ends (descriptive ablation, not corrected for multiplicity). This is consistent with identities being kept mainly by retracting, then reactivating (Fig.~\ref{fig:overview}), and fewer stale entities coming from retraction itself; the path per event is not recorded.
+On ProcTHOR, re-attachment depends on keeping the versions of retracted entities, at a small cost in stale entities, which were fewer for \arm{NoVersion} in all five seeds on both front ends (descriptive ablation, not corrected for multiplicity). This is consistent with identities being kept mainly by retracting, then reactivating (Fig.~\ref{fig:overview}); the path per event is not recorded.
 
 \subsection{Source of supervision and learned costs}
 \label{sec:costs}
