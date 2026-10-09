@@ -3303,3 +3303,8 @@
   ReID head (`5cea91cf…`), which needs a server that still holds it; without it the instance-mask audits cannot be
   re-run from the release.
 - **Effect.** No number, claim, rule, contract or code of record changes; the paper is unaffected.
+- **Executed (2026-10-09, LOG-317).** The user approved R2 (a) and R5 (a) 「R2 按 (a) 公开盐…；R5 补发实例 ReID 头，可以开服务器」.
+  Both files were uploaded from B1 to T0 as one commit (revision `1fc9efe8`, after the paper's `0b2ce7f8`, no earlier
+  file changed) and verified by download; `reproduce/fetch_extras.py` restores them. Effect: the instance-mask audits
+  can be re-run from the release, and the pipeline from ProcTHOR-10K can regenerate the paper's episodes without pin
+  edits; new data for other purposes should use a new salt. No number or claim changes.

@@ -10,6 +10,8 @@
 
 ## 当前看板
 
+**2026-10-09: instance-mask ReID head and ruling-37 salt released (LOG-317)** — T0 revision `1fc9efe8` adds both (paper revision unchanged); `reproduce/fetch_extras.py` restores them; the instance-mask probe audit re-run with the released head equals the server's in metrics and decomposition.
+
 **2026-10-09: reproduction entry points and memory plug-in (LOG-316)** — `reproduce/paper.py` recomputes every test statistic and rebuilds Tables II–III and Figures 3–4 in one command (2–3 min, all equal); `reproduce/l1_eval.py` re-runs frozen audits (test only with an explicit post-publication acknowledgement); `vsmt_memory/` runs the memory on any RGB-D stream (bit-identical to the frozen audit entry in one environment); README routes readers; Apache-2.0 licence. Open: salt and instance-mask ReID head (rulings).
 
 **2026-10-09: code review for readers (LOG-315)** — L0 runs again (src/ equals the freeze); tag `paper-v1` marks the state that produced the paper; METHOD Section 13 maps every paper component to code; earlier-direction code, six one-off scripts and `ops/remote/` left `main`; comments translated. Reproduce from `paper-v1`.
@@ -6209,3 +6211,37 @@ the revised version once).
 
 **Not done.** R2 (publishing the salt) and R5 (a) (releasing the instance-mask ReID head) await the user; `s3-07-impl` is
 still not merged.
+
+### LOG-317: The instance-mask ReID head and the ruling-37 salt released in a T0 addendum (2026-10-09, Sydney)
+
+**Approval.** The user, 2026-10-09: 「R2 按 (a) 公开盐，盐文件我来提供，如果是在服务器上的话；R5 补发实例 ReID 头，可以开服务器」
+("R2 as (a), publish the salt, I will provide the salt file if it is on the server; R5, release the instance ReID head,
+you may start the server"), and pushed LOG-316 (`307932d` on `main` and `s1-02a-runner`). B1 was started in no-GPU
+mode by the user.
+
+**On B1 (read only, then one upload).** Both files were at the paths the freeze receipt and S3-02 record:
+`/root/autodl-tmp/vsmt_private/lean-s1-04-diagnostics-oracle-caa50c7/reid_head_vitb14.json` (2,129,144 bytes, file
+SHA-256 `27bf6a10…` as in the freeze receipt, payload `5cea91cf…` as pinned in `lean_assignment`) and
+`/root/autodl-tmp/vsmt_private/null_window_salt.txt` (65 bytes, stripped-text SHA-256 `8f4eae85…` as pinned in the
+generator). One commit on `Jsun0632/vsmt-lean` with parent `72a7259f` (checked to be the head before the commit) added
+`reid/reid_head_vitb14_oracle_caa50c7.json`, `inputs/null_window_salt.txt` and `MANIFEST_ADDENDUM.json` and updated the
+card (`ops/vsmt/hf_cards/README_T0.md`): revision `1fc9efe87f990ce0e9cacced7187eda5d97e139b`. The check on B1 after the
+commit failed inside `hf_hub_download` (an httpx decoder error of that environment); B1 was then powered off and the
+port refused connections.
+
+**Verification (laptop, huggingface_hub 2.2.0).** At the new revision both files have the recorded size and SHA-256,
+the head its payload digest and the salt its stripped-text digest; the card equals the edited one; the file list
+differs from the parent only by the three added files; `MANIFEST.json` equals the paper revision's. Recorded in
+`results/vsmt_lean_hf_release_T0_addendum_1fc9efe.json`. With the released head (fetched by the new
+`reproduce/fetch_extras.py`) and the instance-mask cache of `procthor10k-0.1.2-train-02318` (T1) and the instance-mask
+weights (T0, 136 MB downloaded): `reproduce/l1_eval.py --front instance --scope probe --runs VSMT-lean:7 --episodes 1`
+gave metrics and error decomposition equal to the server's probe audit (only the seal chain and final memory digest
+differ), and the plug-in's replay of the same cache with `front_end="instance"` equals that local audit bit for bit
+(trajectory `4f272505…`, 341 frames).
+
+**Commits (local).** The addendum record and card; `reproduce/fetch_extras.py` and the checks that use it (3 tests);
+`vsmt_memory` loads the instance-mask head from the addendum (parity test for both front ends); README, REPRODUCE and
+PLUGIN no longer describe the two inputs as unreleased (the outside-rerun pin edits now apply only to a new salt or
+new heads); this record.
+
+**Not changed.** The revision the paper cites (`0b2ce7f8`) and every earlier T0 file; `src/`, `configs/`, `tests/`.

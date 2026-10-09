@@ -11,7 +11,7 @@ China Standard Time (UTC+8).
 Status (2026-10-09): S3-01 to S3-07 and the S3-05R release are complete (LOG-301 to LOG-314; the S3-07 code is on
 branch `s3-07-impl`, not yet merged into `main`); S4, the paper, is in progress (LOG-313). The repository was reviewed
 for readers (LOG-315): the tag `paper-v1` marks the state that produced the paper and every reproduction step runs
-from it; on `main` the earlier-direction code was removed and comments translated. Reproduction entry points (`reproduce/`), the memory plug-in (`vsmt_memory/`, docs/PLUGIN.md) and the code licence were added (LOG-316). Every "current execution point"
+from it; on `main` the earlier-direction code was removed and comments translated. Reproduction entry points (`reproduce/`), the memory plug-in (`vsmt_memory/`, docs/PLUGIN.md) and the code licence were added (LOG-316); the instance-mask ReID head and the ruling-37 salt were released in a T0 addendum (LOG-317). Every "current execution point"
 below is dated history, superseded by later entries.
 
 ## 1. Final goal and overall chain
@@ -601,6 +601,8 @@ Either cap changes `feasible_set_size` from "how many feasible interventions thi
 **S4 progress addendum 4 (2026-10-09, appended, LOG-315; the text above is unchanged)**: the user asked for a review of the code for readers matching the paper to the code, a code map, and the archiving of scripts that serve only server operations, and approved all five recommendations (「全按推荐，开始实施」). Done: L0 restored on `main` by moving `lean_hf_release.py` out of `src/` (`3b39bd4`); the seal-guard test failure fixed (`5c82a02`); DATA.md translated with the 3RScan check recorded as run (`7cec16b`); annotated tag `paper-v1` on `7cec16b` (L0 exit 0 with D2–D8 equal to the committed export, 1,879 tests OK); earlier-direction code, six one-off scripts and `ops/remote/` removed from `main` (`8434b99`, `5c84fde`, `37ec280`); comments and docstrings translated and corrected, syntax trees unchanged (`b9c8d0a`, `6a27d17`, `e52c295`); METHOD Section 13 code map and reproduction from the tag (`72176d3`, `ac89107`). Full suite on `main`: 1,360 tests OK. Open: pushing `main`, `s1-02a-runner` and the tag (awaiting the user); merging `s3-07-impl`; a code licence.
 
 **S4 progress addendum 5 (2026-10-09, appended, LOG-316; the text above is unchanged)**: the user asked for outside-usable reproduction entry points and a pluggable memory module, checked by simulated outside users, and approved the plan's recommendations for the local work (「…你可以开始你的表演了」). Done (local commits `7be0ea8`..`4d7b188`): Apache-2.0 licence; `vsmt_memory/` with docs/PLUGIN.md; `reproduce/` (L0 `paper.py`, L1 `l1_eval.py`, `check_env.py`); REPRODUCE quick start, L1 and test re-read rule, determinism measurement and section 11 (full pipeline, outside-rerun edits); README routing. A simulated reviewer, researcher and robotics developer each checked the docs twice. Open: pushing (awaiting the user); rulings R2 (publish the salt) and R5 (a) (release the instance-mask ReID head); merging `s3-07-impl`.
+
+**S4 progress addendum 6 (2026-10-09, appended, LOG-317)**: LOG-316 pushed (`307932d`); rulings R2 (a) and R5 (a) executed: the instance-mask ReID head and the ruling-37 salt are in T0 revision `1fc9efe8`, verified, with `reproduce/fetch_extras.py`, the plug-in's instance-mask front end and updated docs. B1 powered off. Open: pushing these commits (awaiting the user); merging `s3-07-impl`.
 
 ## 8. Timeline and recent actions
 
