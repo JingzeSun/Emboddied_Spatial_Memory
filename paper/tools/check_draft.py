@@ -2,7 +2,7 @@
 """S4: static checks of the LaTeX draft that need no TeX installation.
 
 Reads ``paper/main.tex``, the sections, tables and TikZ figures it inputs, and ``paper/refs.bib``; prints the problems
-found and exits with 0 when there are none. Four groups of checks:
+found and exits with 0 when there are none. Five groups of checks:
 1. Structure: every ``\\input`` file exists, every ``\\ref`` has a ``\\label``, every ``\\cite`` key is in the
    bibliography, braces balance, labels are unique.
 2. RA-L rules: every figure and table carries a label and is referenced at least once in the running text (outside
@@ -16,6 +16,8 @@ found and exits with 0 when there are none. Four groups of checks:
    procedure with five seeds); the three disclosures in the method or protocol sections (timing of the gate revision,
    design timing of the fixed testing order, identity continuity over common events); the LLM-op table in the main
    text, with a caption or note stating validation, one episode per front end, descriptive, no significance test.
+5. Generative-AI disclosure (IEEE policy; user approval of 2026-10-10): ``main.tex`` inputs the acknowledgment inside
+   ``\\iffinalversion`` and the acknowledgment states the use of generative AI.
 Passing these checks is not a successful build: layout, page count and overfull boxes are checked by ``build.sh``,
 and whether the wording stays within ruling 113 still needs a sentence-by-sentence review; this script only catches
 clear violations.
@@ -67,6 +69,9 @@ LLM_OP_CAPTION_REQUIRED = (
     (r"[Dd]escriptive", "descriptive"),
     (r"no significance test", "no significance test"),
 )
+#: the acknowledgment carrying the generative-AI disclosure, printed in the final version only
+ACKNOWLEDGMENT_INPUT = r"\iffinalversion\input{sections/acknowledgment}\fi"
+AI_DISCLOSURE = "Generative AI use"
 
 
 def strip_comments(text: str) -> str:
@@ -166,6 +171,18 @@ def wording_problems(document: str) -> list[str]:
     return problems
 
 
+def ai_disclosure_problems() -> list[str]:
+    """The generative-AI disclosure exists and only the final version prints it (the review version is anonymous)."""
+
+    problems = []
+    if ACKNOWLEDGMENT_INPUT not in strip_comments((PAPER / "main.tex").read_text(encoding="utf-8")):
+        problems.append(f"main.tex lacks {ACKNOWLEDGMENT_INPUT} (generative-AI disclosure, final version only)")
+    acknowledgment = PAPER / "sections" / "acknowledgment.tex"
+    if not acknowledgment.exists() or AI_DISCLOSURE not in strip_comments(acknowledgment.read_text(encoding="utf-8")):
+        problems.append(f"sections/acknowledgment.tex lacks the generative-AI disclosure ('{AI_DISCLOSURE}')")
+    return problems
+
+
 def main() -> int:
     problems: list[str] = []
     document = collect(PAPER / "main.tex", problems, set())
@@ -181,6 +198,7 @@ def main() -> int:
     problems += [f"\\cite{{{key}}} is not in refs.bib" for key in sorted(cited - keys)]
     problems += float_problems(document)
     problems += wording_problems(document)
+    problems += ai_disclosure_problems()
     unverified = sorted(re.findall(r"@\w+\{([^,\s]+),[^@]*?note\s*=\s*\{[^}]*VERIFY", bib, flags=re.S))
     todos = len(re.findall(r"\\todo\{", document))
     for problem in problems:

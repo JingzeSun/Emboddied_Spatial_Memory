@@ -85,7 +85,7 @@ Contamination AUC is lower than for every rule arm with instance masks, but with
 \end{table}
 
 \subsection{Where the errors are, and memory size}
-In VSMT-lean's ledger, 1.1\% of decisions are recall misses, 6.8\% teacher errors and 7.9\% amortization errors with instance masks, and 1.5\%, 12.7\% and 14.5\% (plus 10.0\% duplicates) with SAM~2.1, where ambiguous labels about double, suggesting that part of the difficulty lies in the labels. Shares are not compared across arms, and the ledger does not attribute the gate results to error classes.
+In VSMT-lean's ledger, 1.1\% of decisions are recall misses, 6.8\% teacher errors and 7.9\% amortization errors with instance masks, and 1.5\%, 12.7\% and 14.5\% (plus 10.0\% duplicates) with SAM~2.1, where ambiguous labels about double. Shares are not compared across arms, and the ledger does not attribute the gate results to error classes.
 VSMT-lean keeps fewer active entities per episode than \arm{AssocOnly} (66.5 vs.\ 105.1; 89.7 vs.\ 152.3 with SAM~2.1) but more lifecycle versions, opened by anything but a plain \op{BIND} (507 vs.\ 124; 904 vs.\ 281).
 
 \subsection{External check on 3RScan}

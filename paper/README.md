@@ -15,8 +15,10 @@ One switch at the top of `main.tex` selects the version:
 
 - `\finalversionfalse` (default): the anonymous review version for RA-L's double-blind review. The author block reads
   "Anonymous Authors", and the GitHub and Hugging Face links read "link withheld for review"; the PDF metadata carry
-  no creation date or trailer ID.
-- `\finalversiontrue`: the final version with author (Jingze Sun, The University of Sydney) and all links.
+  no creation date or trailer ID. It has no acknowledgment.
+- `\finalversiontrue`: the final version with author (Jingze Sun, The University of Sydney), all links and the
+  acknowledgment (`sections/acknowledgment.tex`), which discloses the use of generative AI as IEEE policy requires
+  (AI systems, parts of the work and of the article, level of use).
 
 RA-L limits (checked 2026-10-08 on the RA-L Information for Authors page): 6 pages plus at most 2 paid pages, with
 figures, tables, references and appendices counted; text or figures cannot be moved to supplementary material
@@ -47,7 +49,7 @@ locally, never edited on Overleaf.
 | File | Content |
 |---|---|
 | `main.tex` | IEEEtran journal class, version switch, `\input` of each section |
-| `sections/*.tex` | abstract, introduction, related work, method, protocol, results, limitations, conclusion |
+| `sections/*.tex` | abstract, introduction, related work, method, protocol, results, limitations, conclusion; acknowledgment with the generative-AI disclosure (final version only) |
 | `figures/overview.tex` | Fig. 1: one object moved while unobserved, the outcome under AssocOnly, NoVersion and VSMT-lean, and what MRR and IdC count (TikZ illustration, no data) |
 | `figures/method.tex` | Fig. 2: one frame of VSMT-lean with seals A and B, the offline teacher and the entity states (TikZ; the only number is the parameter count 54,787) |
 | `figures/gate.pdf` | Fig. 3: the fixed-order test and the original gate (generated; S3-05 `primary_gate` / `original_gate`, S3-06 `d3_intervals`; the script checks that each interval's left end equals the one-sided lower bound used by the test) |
@@ -57,6 +59,6 @@ locally, never edited on Overleaf.
 | Table I in `sections/method.tex` | the nine arms, one line each (hand-written, no data) |
 | `refs.bib` | bibliography; each entry records the source it was checked against |
 | `tools/make_tables.py`, `tools/make_figures.py` | table and figure generators (read `results/` only) |
-| `tools/check_draft.py` | static checks without TeX: structure, figure and table citation, ruling-113 wording, required sentences and disclosures |
+| `tools/check_draft.py` | static checks without TeX: structure, figure and table citation, ruling-113 wording, required sentences and disclosures, the generative-AI disclosure |
 | `tools/build.sh` | builds and checks both versions |
 | `tools/pack_overleaf.py` | Overleaf zip |
